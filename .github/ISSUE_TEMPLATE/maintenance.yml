@@ -1,0 +1,36 @@
+name: Maintenance
+description: Tests, tooling, CI, or refactoring
+body:
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Type
+      options:
+        - Test coverage or fixtures
+        - Tooling, CI, or dependencies
+        - Refactoring
+    validations:
+      required: true
+
+  - type: textarea
+    id: current
+    attributes:
+      label: Current state
+      description: What does the code or setup look like today?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: What would you change, and why is it better?
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: behavior
+    attributes:
+      label: Behavior
+      options:
+        - label: This does not change smocket's delivery behavior

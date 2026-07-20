@@ -1,0 +1,32 @@
+name: Feature request
+description: Suggest a new capability or API change
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What are you unable to do with smocket today?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed API
+      description: What would the code look like if this existed?
+      render: ts
+
+  - type: textarea
+    id: parity
+    attributes:
+      label: Socket.IO behavior
+      description: How does real socket.io behave here? Link to docs or source if you can.
+
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope check
+      options:
+        - label: This is not reconnection, transport fallback, heartbeat, Redis multi-server, or binary encoding
+          required: true
