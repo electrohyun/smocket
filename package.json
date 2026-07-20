@@ -1,0 +1,52 @@
+{
+  "name": "smocket",
+  "version": "1.0.0",
+  "description": "Socket.IO mock for frontend development and testing — with full room, namespace, and broadcast support.",
+  "type": "module",
+  "license": "MIT",
+  "author": "electrohyun",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/electrohyun/smocket.git"
+  },
+  "bugs": "https://github.com/electrohyun/smocket/issues",
+  "homepage": "https://github.com/electrohyun/smocket#readme",
+  "keywords": [
+    "socket.io",
+    "socketio",
+    "websocket",
+    "mock",
+    "mocking",
+    "testing",
+    "test-utils",
+    "typescript"
+  ],
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "sideEffects": false,
+  "scripts": {
+    "test": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "^11.5.2",
+      "onFail": "download"
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.10"
+  }
+}
