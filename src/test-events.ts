@@ -1,4 +1,4 @@
-import type { Socket as ClientSocket } from "socket.io-client";
+import type { Socket as ClientSocket } from 'socket.io-client';
 
 /** Resolve with the first payload the client receives for `event`. */
 export function receive(client: ClientSocket, event: string): Promise<unknown> {
@@ -13,10 +13,7 @@ export function receive(client: ClientSocket, event: string): Promise<unknown> {
  * order, so once the marker lands, any message that was coming would already
  * have arrived.
  */
-export function track(
-  client: ClientSocket,
-  event: string,
-): { received: boolean } {
+export function track(client: ClientSocket, event: string): { received: boolean } {
   const state = { received: false };
   client.on(event, () => {
     state.received = true;

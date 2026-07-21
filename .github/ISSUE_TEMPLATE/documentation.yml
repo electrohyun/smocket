@@ -1,6 +1,6 @@
 name: Documentation
 description: Unclear, missing, or incorrect documentation
-labels: ["documentation"]
+labels: ['documentation']
 body:
   - type: input
     id: location
