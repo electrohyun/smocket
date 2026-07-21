@@ -23,3 +23,12 @@ export function track(
   });
   return state;
 }
+
+/** Count how many times `event` arrives at the client (for dedup checks). */
+export function count(client: ClientSocket, event: string): { count: number } {
+  const state = { count: 0 };
+  client.on(event, () => {
+    state.count += 1;
+  });
+  return state;
+}
