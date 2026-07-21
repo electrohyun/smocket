@@ -13,6 +13,12 @@ export interface RealServerContext {
   io: Server;
   /** Connect one more client and return it paired with its server-side socket. */
   connectClient: () => Promise<ConnectedClient>;
+  /**
+   * Resolve with the server-side socket of the next client to connect. Needed
+   * when the connection is not started by `connectClient`, as with a reconnect
+   * of a client that is already known to the test.
+   */
+  nextConnection: () => Promise<ServerSocket>;
 }
 
 /**
@@ -48,6 +54,11 @@ export function setupRealServer(): RealServerContext {
     });
   });
 
+  ctx.nextConnection = () =>
+    new Promise<ServerSocket>((resolve) => {
+      ioServer.once('connection', (socket) => resolve(socket));
+    });
+
   ctx.connectClient = async () => {
     const client = io(`http://localhost:${port}`, {
       transports: ['websocket'],
@@ -56,9 +67,7 @@ export function setupRealServer(): RealServerContext {
     // Connects are awaited one at a time, so the pending `connection` event
     // belongs to exactly this client — no id matching needed.
     const [serverSocket] = await Promise.all([
-      new Promise<ServerSocket>((resolve) => {
-        ioServer.once('connection', (socket) => resolve(socket));
-      }),
+      ctx.nextConnection(),
       new Promise<void>((resolve) => client.once('connect', () => resolve())),
     ]);
 
