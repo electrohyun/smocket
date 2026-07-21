@@ -4,50 +4,67 @@ import { Server, type Socket as ServerSocket } from "socket.io";
 import { io, type Socket as ClientSocket } from "socket.io-client";
 import { afterEach, beforeEach } from "vitest";
 
-export interface RealServerContext {
+export interface ConnectedClient {
   client: ClientSocket;
   serverSocket: ServerSocket;
 }
 
+export interface RealServerContext {
+  io: Server;
+  /** Connect one more client and return it paired with its server-side socket. */
+  connectClient: () => Promise<ConnectedClient>;
+}
+
 /**
- * Boots a real socket.io server and a connected client around each test.
- *
- * Returned as a mutable context so tests read `ctx.client` / `ctx.serverSocket`
- * after `beforeEach` has populated them. Kept as an explicit seam: the dual-run
- * setup will later swap this out for the smocket target behind an env var,
- * without touching the test files that consume the context.
+ * Boots a real socket.io server around each test and hands back a
+ * `connectClient()` factory. Room / broadcast rules only show up with more than
+ * one client (a member vs a non-member), so clients are connected on demand
+ * rather than fixed at one. Every connected client is disconnected in
+ * `afterEach`. Kept as an explicit seam: the dual-run setup will later swap this
+ * out for the smocket target behind an env var, without touching the test files.
  */
 export function setupRealServer(): RealServerContext {
   const ctx = {} as RealServerContext;
   let httpServer: HttpServer;
   let ioServer: Server;
+  let port: number;
+  let clients: ClientSocket[] = [];
 
   beforeEach(async () => {
     httpServer = createServer();
     ioServer = new Server(httpServer);
 
     await new Promise<void>((resolve) => httpServer.listen(0, resolve));
-    const { port } = httpServer.address() as AddressInfo;
+    port = (httpServer.address() as AddressInfo).port;
 
-    ctx.client = io(`http://localhost:${port}`, { transports: ["websocket"] });
-
-    await Promise.all([
-      new Promise<void>((resolve) => {
-        ioServer.on("connection", (s) => {
-          ctx.serverSocket = s;
-          resolve();
-        });
-      }),
-      new Promise<void>((resolve) => ctx.client.on("connect", () => resolve())),
-    ]);
+    clients = [];
+    ctx.io = ioServer;
   });
 
   afterEach(async () => {
-    ctx.client.disconnect();
+    for (const client of clients) client.disconnect();
     await new Promise<void>((resolve) => {
       ioServer.close(() => resolve());
     });
   });
+
+  ctx.connectClient = async () => {
+    const client = io(`http://localhost:${port}`, {
+      transports: ["websocket"],
+    });
+
+    // Connects are awaited one at a time, so the pending `connection` event
+    // belongs to exactly this client — no id matching needed.
+    const [serverSocket] = await Promise.all([
+      new Promise<ServerSocket>((resolve) => {
+        ioServer.once("connection", (socket) => resolve(socket));
+      }),
+      new Promise<void>((resolve) => client.once("connect", () => resolve())),
+    ]);
+
+    clients.push(client);
+    return { client, serverSocket };
+  };
 
   return ctx;
 }
