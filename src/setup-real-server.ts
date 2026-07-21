@@ -9,16 +9,21 @@ export interface ConnectedClient {
   serverSocket: ServerSocket;
 }
 
+export interface ConnectOptions {
+  /** Namespace to attach to, `/` by default. */
+  namespace?: string;
+}
+
 export interface RealServerContext {
   io: Server;
   /** Connect one more client and return it paired with its server-side socket. */
-  connectClient: () => Promise<ConnectedClient>;
+  connectClient: (options?: ConnectOptions) => Promise<ConnectedClient>;
   /**
-   * Resolve with the server-side socket of the next client to connect. Needed
-   * when the connection is not started by `connectClient`, as with a reconnect
-   * of a client that is already known to the test.
+   * Resolve with the server-side socket of the next client to connect on
+   * `namespace`. Needed when the connection is not started by `connectClient`,
+   * as with a reconnect of a client that is already known to the test.
    */
-  nextConnection: () => Promise<ServerSocket>;
+  nextConnection: (namespace?: string) => Promise<ServerSocket>;
 }
 
 /**
@@ -54,20 +59,22 @@ export function setupRealServer(): RealServerContext {
     });
   });
 
-  ctx.nextConnection = () =>
+  // Going through of() rather than ioServer.once('connection') also creates the
+  // namespace, which a client cannot attach to until the server knows it.
+  ctx.nextConnection = (namespace = '/') =>
     new Promise<ServerSocket>((resolve) => {
-      ioServer.once('connection', (socket) => resolve(socket));
+      ioServer.of(namespace).once('connection', (socket) => resolve(socket));
     });
 
-  ctx.connectClient = async () => {
-    const client = io(`http://localhost:${port}`, {
+  ctx.connectClient = async ({ namespace = '/' }: ConnectOptions = {}) => {
+    const client = io(`http://localhost:${port}${namespace}`, {
       transports: ['websocket'],
     });
 
     // Connects are awaited one at a time, so the pending `connection` event
     // belongs to exactly this client — no id matching needed.
     const [serverSocket] = await Promise.all([
-      ctx.nextConnection(),
+      ctx.nextConnection(namespace),
       new Promise<void>((resolve) => client.once('connect', () => resolve())),
     ]);
 
