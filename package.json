@@ -35,6 +35,7 @@
   "sideEffects": false,
   "scripts": {
     "test": "vitest",
+    "coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "format": "prettier --write .",
@@ -50,6 +51,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^26.1.1",
+    "@vitest/coverage-v8": "^4.1.10",
     "eslint": "^10.7.0",
     "eslint-config-prettier": "^10.1.8",
     "prettier": "^3.9.5",
