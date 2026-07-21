@@ -182,3 +182,48 @@ it("socket.rooms는 서버 전용이며 자기 id와 join/leave를 반영한다"
   expect(socket1.rooms.has("room")).toBe(false);
   expect(socket1.rooms.has(socket1.id)).toBe(true);
 });
+
+it("socket.to(room)은 발신자가 그 방의 멤버여도 자신을 제외한다", async () => {
+  const { client: client1, serverSocket: socket1 } = await ctx.connectClient();
+  const { client: client2, serverSocket: socket2 } = await ctx.connectClient();
+  const { client: client3, serverSocket: socket3 } = await ctx.connectClient();
+  await socket1.join("room");
+  await socket2.join("room");
+  // client3 is outside the room
+
+  const got2 = receive(client2, "msg");
+  const msg1 = track(client1, "msg");
+  const msg3 = track(client3, "msg");
+  const marker1 = receive(client1, "marker");
+  const marker3 = receive(client3, "marker");
+
+  socket1.to("room").emit("msg", "hello");
+  socket1.emit("marker");
+  socket3.emit("marker");
+
+  await expect(got2).resolves.toBe("hello");
+  await marker1;
+  await marker3;
+  // The sender is in the room, so io.to("room") would have included it here.
+  // socket.to("room") is the same as socket.broadcast.to("room"): room minus sender.
+  expect(msg1.received).toBe(false);
+  expect(msg3.received).toBe(false); // outside the room
+});
+
+it("io.emit()은 연결된 전원에게 전달한다", async () => {
+  const { client: client1 } = await ctx.connectClient();
+  const { client: client2 } = await ctx.connectClient();
+  const { client: client3 } = await ctx.connectClient();
+
+  const got1 = receive(client1, "msg");
+  const got2 = receive(client2, "msg");
+  const got3 = receive(client3, "msg");
+
+  // No sender to exclude, so this needs no marker: every client is expected to
+  // receive, and the awaits below would time out if one did not.
+  ctx.io.emit("msg", "hello");
+
+  await expect(got1).resolves.toBe("hello");
+  await expect(got2).resolves.toBe("hello");
+  await expect(got3).resolves.toBe("hello");
+});
