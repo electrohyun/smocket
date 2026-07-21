@@ -1,8 +1,8 @@
-import { createServer, type Server as HttpServer } from "node:http";
-import type { AddressInfo } from "node:net";
-import { Server, type Socket as ServerSocket } from "socket.io";
-import { io, type Socket as ClientSocket } from "socket.io-client";
-import { afterEach, beforeEach } from "vitest";
+import { createServer, type Server as HttpServer } from 'node:http';
+import type { AddressInfo } from 'node:net';
+import { Server, type Socket as ServerSocket } from 'socket.io';
+import { io, type Socket as ClientSocket } from 'socket.io-client';
+import { afterEach, beforeEach } from 'vitest';
 
 export interface ConnectedClient {
   client: ClientSocket;
@@ -50,16 +50,16 @@ export function setupRealServer(): RealServerContext {
 
   ctx.connectClient = async () => {
     const client = io(`http://localhost:${port}`, {
-      transports: ["websocket"],
+      transports: ['websocket'],
     });
 
     // Connects are awaited one at a time, so the pending `connection` event
     // belongs to exactly this client — no id matching needed.
     const [serverSocket] = await Promise.all([
       new Promise<ServerSocket>((resolve) => {
-        ioServer.once("connection", (socket) => resolve(socket));
+        ioServer.once('connection', (socket) => resolve(socket));
       }),
-      new Promise<void>((resolve) => client.once("connect", () => resolve())),
+      new Promise<void>((resolve) => client.once('connect', () => resolve())),
     ]);
 
     clients.push(client);

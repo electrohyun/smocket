@@ -24,22 +24,22 @@ npm install -D smocket
 ## Usage
 
 ```ts
-import { MockServer } from "smocket";
+import { MockServer } from 'smocket';
 
 const io = new MockServer();
 
-io.on("connection", (socket) => {
-  socket.on("join", (room) => {
+io.on('connection', (socket) => {
+  socket.on('join', (room) => {
     socket.join(room);
-    socket.to(room).emit("user-joined", socket.id);
+    socket.to(room).emit('user-joined', socket.id);
   });
 });
 
 const a = io.connect();
 const b = io.connect();
 
-a.emit("join", "room-1");
-b.emit("join", "room-1");
+a.emit('join', 'room-1');
+b.emit('join', 'room-1');
 // a receives 'user-joined'; b does not, since it is the sender
 ```
 
