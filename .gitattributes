@@ -1,0 +1,5 @@
+# Check out every text file with LF, whatever a contributor's core.autocrlf is
+# set to. Without this, a Windows checkout produces a CRLF working tree while
+# the committed blobs stay LF, and Prettier (endOfLine defaults to "lf") then
+# reports every file in the repo as unformatted.
+* text=auto eol=lf
