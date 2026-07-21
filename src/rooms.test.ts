@@ -1,29 +1,8 @@
-import type { Socket as ClientSocket } from "socket.io-client";
 import { expect, it } from "vitest";
 import { setupRealServer } from "./setup-real-server";
+import { receive, track } from "./test-events";
 
 const ctx = setupRealServer();
-
-/** Resolve with the first payload the client receives for `event`. */
-function receive(client: ClientSocket, event: string): Promise<unknown> {
-  return new Promise((resolve) => {
-    client.once(event, (payload) => resolve(payload));
-  });
-}
-
-/**
- * Track whether `event` ever arrives. To prove a client did NOT receive a room
- * message, emit it a direct `marker` afterwards: socket.io preserves per-socket
- * order, so once the marker lands, any room message that was coming would have
- * already arrived.
- */
-function track(client: ClientSocket, event: string): { received: boolean } {
-  const state = { received: false };
-  client.on(event, () => {
-    state.received = true;
-  });
-  return state;
-}
 
 it("join하면 그 방의 emit을 받는다", async () => {
   const { client: client1, serverSocket: socket1 } = await ctx.connectClient();
