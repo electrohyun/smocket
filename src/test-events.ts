@@ -1,3 +1,4 @@
+import type { Socket as ServerSocket } from 'socket.io';
 import type { Socket as ClientSocket } from 'socket.io-client';
 
 /** Resolve with the first payload the client receives for `event`. */
@@ -19,6 +20,31 @@ export function track(client: ClientSocket, event: string): { received: boolean 
     state.received = true;
   });
   return state;
+}
+
+/**
+ * Watch a socket's teardown from the server side. `client.disconnect()` returns
+ * long before the server has processed anything: reading the roster on the next
+ * line still shows the socket in all of its rooms. Awaiting `disconnected` is
+ * what makes the cleanup observable, and skipping it gives a test that passes
+ * locally and races elsewhere.
+ *
+ * Both promises resolve with a copy of `socket.rooms` taken at that moment,
+ * because the live Set is emptied in place between the two events. Call this
+ * before disconnecting, so the listeners are attached in time.
+ */
+export function observeDisconnect(socket: ServerSocket): {
+  disconnecting: Promise<Set<string>>;
+  disconnected: Promise<Set<string>>;
+} {
+  return {
+    disconnecting: new Promise((resolve) =>
+      socket.once('disconnecting', () => resolve(new Set(socket.rooms))),
+    ),
+    disconnected: new Promise((resolve) =>
+      socket.once('disconnect', () => resolve(new Set(socket.rooms))),
+    ),
+  };
 }
 
 /** Count how many times `event` arrives at the client (for dedup checks). */
