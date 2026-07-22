@@ -1,8 +1,8 @@
 import { expect, it } from 'vitest';
-import { setupRealServer } from './setup-real-server';
+import { setupServer } from './setup-server';
 import { receive, track } from './test-events';
 
-const ctx = setupRealServer();
+const ctx = setupServer();
 
 it('join하면 그 방의 emit을 받는다', async () => {
   const { client: client1, serverSocket: socket1 } = await ctx.connectClient();
