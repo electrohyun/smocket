@@ -9,6 +9,13 @@
   <em>Sweet setup, rocket speed.</em>
 </p>
 
+<p align="center">
+  <!-- Real target only; add the dual-run badge once mock is green. -->
+  <a href="https://github.com/electrohyun/smocket/actions/workflows/ci.yml">
+    <img src="https://github.com/electrohyun/smocket/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI" />
+  </a>
+</p>
+
 ## Why smocket
 
 Socket.IO delivery is more than event propagation. Room membership, namespace isolation, and broadcast exclusion rules interact to decide a single question: who actually receives this event?
