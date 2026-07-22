@@ -1,8 +1,8 @@
 import { expect, it } from 'vitest';
-import { setupRealServer } from './setup-real-server';
+import { setupServer } from './setup-server';
 import { count, receive, track } from './test-events';
 
-const ctx = setupRealServer();
+const ctx = setupServer();
 
 it('socket.broadcast.emit은 발신자를 제외한 전원에게 간다', async () => {
   const { client: client1, serverSocket: socket1 } = await ctx.connectClient();

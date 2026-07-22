@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest';
-import { setupRealServer } from './setup-real-server';
+import { setupServer } from './setup-server';
 
-const ctx = setupRealServer();
+const ctx = setupServer();
 
 it('연결되면 양쪽 다 socket id를 가진다', async () => {
   const { client, serverSocket } = await ctx.connectClient();

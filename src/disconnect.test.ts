@@ -1,8 +1,8 @@
 import { expect, it } from 'vitest';
-import { setupRealServer } from './setup-real-server';
+import { setupServer } from './setup-server';
 import { observeDisconnect, receive, track } from './test-events';
 
-const ctx = setupRealServer();
+const ctx = setupServer();
 
 it('끊긴 소켓은 그 방의 emit을 더 이상 받지 않는다', async () => {
   const { client: client1, serverSocket: socket1 } = await ctx.connectClient();

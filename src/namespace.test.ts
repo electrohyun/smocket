@@ -1,8 +1,8 @@
 import { expect, it } from 'vitest';
-import { setupRealServer } from './setup-real-server';
+import { setupServer } from './setup-server';
 import { receive, track } from './test-events';
 
-const ctx = setupRealServer();
+const ctx = setupServer();
 
 it('io.of(nsp).emit()은 그 네임스페이스의 클라이언트에게만 간다', async () => {
   const { client: rootClient, serverSocket: rootSocket } = await ctx.connectClient();
