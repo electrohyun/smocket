@@ -22,3 +22,28 @@ jobs:
       - run: pnpm lint
       - run: pnpm format:check
       - run: pnpm coverage
+
+  mock-target:
+    name: mock target (in progress)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # smocket has no implementation yet, so this step fails today.
+      # continue-on-error is on the step, not the job, so the job still reports
+      # green: it tracks how much of the spec smocket reproduces without turning
+      # the check list or main red while the core is unfinished. The
+      # "(in progress)" in the job name is the at-a-glance signal instead.
+      # Promotion: when the suite passes on both real and mock (the 2026-08-05
+      # milestone that declares the core done), remove continue-on-error here and
+      # drop "(in progress)" from the name so a regression fails the job.
+      - name: Run suite against smocket
+        run: pnpm test:mock
+        continue-on-error: true
