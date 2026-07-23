@@ -79,7 +79,7 @@ smocket follows [Conventional Commits](https://www.conventionalcommits.org).
 
 Scopes are not used. smocket is a single package, so `feat:` rather than `feat(core):`.
 
-An imperative description of around 70 characters is plenty. There is no need to put issue numbers in the subject line, since squash merging adds the pull request number for you.
+An imperative description of around 70 characters is plenty. There is no need to put issue numbers in the subject line; link the issue from the pull request body instead.
 
 ```
 feat: add room join and leave
@@ -100,7 +100,7 @@ A few things worth checking before you ask for review:
 
 The last one matters most here. A test asserting that smocket does what smocket already does does not tell us much, so tests that encode what Socket.IO does are the most useful kind.
 
-Pull requests are squash merged, so there is no need to tidy up your commit history. The pull request title does become the commit message, so following the commit conventions above helps.
+Pull requests are rebase merged, so please tidy up your commit history before asking for review. Every commit lands on `main` as-is, so following the commit conventions above helps.
 
 ## Reporting bugs
 
