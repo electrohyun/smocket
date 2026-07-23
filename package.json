@@ -1,7 +1,7 @@
 {
   "name": "smocket",
-  "version": "1.0.0",
-  "description": "Socket.IO mock for frontend development and testing — with full room, namespace, and broadcast support.",
+  "version": "0.0.1",
+  "description": "Socket.IO mock for frontend development and testing — with full room, namespace, and broadcast support. (Work in progress: under active development and not yet functional.)",
   "type": "module",
   "license": "MIT",
   "author": "electrohyun",
@@ -24,16 +24,25 @@
   "files": [
     "dist"
   ],
-  "main": "./dist/index.js",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
     }
   },
   "sideEffects": false,
   "scripts": {
+    "build": "tsup",
+    "prepublishOnly": "pnpm run build",
     "test": "vitest",
     "test:mock": "SMOCKET_TARGET=mock vitest run",
     "coverage": "vitest run --coverage",
@@ -58,6 +67,7 @@
     "prettier": "^3.9.5",
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3",
+    "tsup": "^8.5.1",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.64.0",
     "vitest": "^4.1.10"
