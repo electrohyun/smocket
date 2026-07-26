@@ -7,6 +7,11 @@ export default tseslint.config(
   {
     files: ['**/*.ts'],
     extends: [js.configs.recommended, ...tseslint.configs.strict],
+    rules: {
+      // #40: the not-yet-implemented seams declare their full contract
+      // signatures but don't use the args yet; a leading underscore opts them out.
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+    },
   },
   eslintConfigPrettier,
 );
