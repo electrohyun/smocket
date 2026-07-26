@@ -1,1 +1,1 @@
-export const hello = () => 'smocket';
+export { Server } from './mock-server';
