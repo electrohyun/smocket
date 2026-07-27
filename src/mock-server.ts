@@ -57,11 +57,116 @@ function notImplemented(member: string): never {
  */
 type Waiter = (socket: ServerSocket) => void;
 
+/**
+ * The room bookkeeping for one namespace, reproducing socket.io's per-namespace
+ * `socket.io-adapter`. It owns the two mirrored maps and nothing else: it mutates
+ * membership and answers "which sids are in these rooms", but never delivers an
+ * event. Delivery is the caller's job (see `BroadcastOperator`), which keeps the
+ * adapter reusable for observation (`io.of('/').adapter`, #44) without pulling
+ * the delivery path into it.
+ *
+ * The two maps are the same membership read from both directions, kept in step
+ * by every mutator:
+ * - `rooms`: room name -> the sids currently in it.
+ * - `sids`:  sid -> the rooms it currently belongs to.
+ */
+class Adapter {
+  /** room -> member sids. A room key exists only while it has at least one member. */
+  readonly rooms = new Map<string, Set<string>>();
+  /** sid -> the rooms it is in. The reverse index, so leaving is not a full scan. */
+  readonly sids = new Map<string, Set<string>>();
+
+  /** Record that `sid` is now in `room`, updating both directions. */
+  add(sid: string, room: string): void {
+    const members = this.rooms.get(room) ?? new Set<string>();
+    members.add(sid);
+    this.rooms.set(room, members);
+
+    const joined = this.sids.get(sid) ?? new Set<string>();
+    joined.add(room);
+    this.sids.set(sid, joined);
+  }
+
+  /**
+   * Record that `sid` has left `room`. When the room loses its last member the
+   * key is dropped, so `rooms` never keeps empty rooms around, matching
+   * socket.io-adapter.
+   */
+  del(sid: string, room: string): void {
+    const members = this.rooms.get(room);
+    if (members) {
+      members.delete(sid);
+      if (members.size === 0) this.rooms.delete(room);
+    }
+    this.sids.get(sid)?.delete(room);
+  }
+
+  /**
+   * Resolve target rooms to the deduped union of their member sids. A socket in
+   * several of the target rooms appears once, which is what stops `io.to(a).to(b)`
+   * from delivering twice to a socket in both.
+   */
+  socketsIn(rooms: Iterable<string>): Set<string> {
+    const sids = new Set<string>();
+    for (const room of rooms) {
+      const members = this.rooms.get(room);
+      if (!members) continue;
+      for (const sid of members) sids.add(sid);
+    }
+    return sids;
+  }
+}
+
+/**
+ * The object returned by `io.to(room)`: an accumulating set of target rooms plus
+ * the `emit` that fans out to them. `to` unions in more rooms and returns `this`,
+ * so `io.to(a).to(b)` targets the union of both.
+ *
+ * `emit` resolves its target rooms to member sids through the adapter, then hands
+ * each member to that member's own `ServerSocket.emit`. It deliberately reuses
+ * the per-socket send path rather than delivering itself: every event, direct or
+ * broadcast, then flows through the one `defer` primitive, so the per-socket FIFO
+ * order the "did NOT receive" marker proofs rely on holds for broadcast too.
+ */
+class BroadcastOperator implements BroadcastContract {
+  private readonly targetRooms = new Set<string>();
+
+  constructor(
+    private readonly adapter: Adapter,
+    private readonly sockets: Map<string, ServerSocket>,
+    rooms: string | string[],
+  ) {
+    for (const room of Array.isArray(rooms) ? rooms : [rooms]) this.targetRooms.add(room);
+  }
+
+  to(room: string | string[]): BroadcastContract {
+    for (const r of Array.isArray(room) ? room : [room]) this.targetRooms.add(r);
+    return this;
+  }
+
+  emit(event: string, ...args: unknown[]): void {
+    // Every member of every target room, deduped. No sender exclusion here: that
+    // is `socket.broadcast` / `socket.to` (#43); `io.to` reaches all members.
+    for (const sid of this.adapter.socketsIn(this.targetRooms)) {
+      this.sockets.get(sid)?.emit(event, ...args);
+    }
+  }
+}
+
 export class Server implements ServerContract {
   /** Server sockets that have connected but not yet been claimed by a caller. */
   private readonly ready: ServerSocket[] = [];
   /** `nextConnection` calls still waiting for a socket to appear. */
   private readonly waiters: Waiter[] = [];
+  /**
+   * The implicit `/` namespace, split across two fields socket.io keeps on the
+   * Namespace: `sockets` (sid -> the connected server socket) and its `adapter`
+   * (room membership). They are a pair: the adapter routes a broadcast to a set
+   * of sids, and `sockets` turns each sid back into the socket to deliver to.
+   * #44 extracts the pair into a real Namespace object; until then they live here.
+   */
+  private readonly sockets = new Map<string, ServerSocket>();
+  private readonly adapter = new Adapter();
 
   /**
    * Attach a client to the server in memory and return the client side. The
@@ -73,7 +178,7 @@ export class Server implements ServerContract {
    */
   connect(_namespace = '/'): ClientSocket {
     const id = newId();
-    const serverSocket = new ServerSocket(id);
+    const serverSocket = new ServerSocket(id, this.adapter);
     const client = new ClientSocket(id, this, serverSocket);
     serverSocket.attachPeer(client);
 
@@ -81,6 +186,9 @@ export class Server implements ServerContract {
     // `connection` is offered first, then the client-side `connect` fires, the
     // order real socket.io uses.
     defer(() => {
+      // Register the socket before offering it, so a broadcast triggered from a
+      // `connection` handler can already resolve this sid to its socket.
+      this.sockets.set(serverSocket.id, serverSocket);
       this.offer(serverSocket);
       client.completeConnection();
     });
@@ -107,8 +215,8 @@ export class Server implements ServerContract {
   emit(_event: string, ..._args: unknown[]): void {
     notImplemented('server.emit()');
   }
-  to(_room: string | string[]): BroadcastContract {
-    return notImplemented('server.to()');
+  to(room: string | string[]): BroadcastContract {
+    return new BroadcastOperator(this.adapter, this.sockets, room);
   }
   in(_room: string | string[]): BroadcastContract {
     return notImplemented('server.in()');
@@ -154,10 +262,13 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
   readonly id: string;
   readonly rooms = new Set<string>();
   private peer!: ClientSocket;
+  /** The namespace adapter this socket's membership is recorded in. */
+  private readonly adapter: Adapter;
 
-  constructor(id: string) {
+  constructor(id: string, adapter: Adapter) {
     super();
     this.id = id;
+    this.adapter = adapter;
   }
 
   /** Wire the paired client in; called by `Server.connect` before completion. */
@@ -184,11 +295,18 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
   get broadcast(): BroadcastContract {
     return notImplemented('socket.broadcast');
   }
-  join(_room: string | string[]): void {
-    notImplemented('socket.join()');
+  join(room: string | string[]): void {
+    // `join` takes one room or many; `leave` is always one, matching socket.io.
+    // Each room is recorded in the adapter (both directions) and mirrored into
+    // this socket's own `rooms`, the server-only view the tests observe.
+    for (const r of Array.isArray(room) ? room : [room]) {
+      this.adapter.add(this.id, r);
+      this.rooms.add(r);
+    }
   }
-  leave(_room: string): void {
-    notImplemented('socket.leave()');
+  leave(room: string): void {
+    this.adapter.del(this.id, room);
+    this.rooms.delete(room);
   }
   to(_room: string | string[]): BroadcastContract {
     return notImplemented('socket.to()');
