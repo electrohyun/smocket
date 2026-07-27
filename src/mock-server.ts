@@ -48,6 +48,11 @@ function notImplemented(member: string): never {
   throw new Error(`smocket: ${member} is not implemented yet`);
 }
 
+/** Normalize socket.io's `one room | many rooms` argument to an array. */
+function asRooms(room: string | string[]): string[] {
+  return Array.isArray(room) ? room : [room];
+}
+
 /**
  * A pending connection waiting to be handed to `nextConnection`, or a
  * `nextConnection` call waiting for the next connection. `connect` and
@@ -118,36 +123,64 @@ class Adapter {
 }
 
 /**
- * The object returned by `io.to(room)`: an accumulating set of target rooms plus
- * the `emit` that fans out to them. `to` unions in more rooms and returns `this`,
- * so `io.to(a).to(b)` targets the union of both.
+ * The object returned by every broadcast form: `io.emit`, `io.to`/`in`/`except`,
+ * `socket.broadcast`, `socket.to`, `socket.except`. All eleven are the same one
+ * formula over two sets, so they are all this one operator built with different
+ * initial sets (see the `Server` / `ServerSocket` construction sites):
  *
- * `emit` resolves its target rooms to member sids through the adapter, then hands
- * each member to that member's own `ServerSocket.emit`. It deliberately reuses
- * the per-socket send path rather than delivering itself: every event, direct or
+ *   targets  = targetRooms empty ? all connected sids : union(targetRooms)
+ *   excluded = union(each exceptRoom's member sids)
+ *   deliver to (targets - excluded), once per socket
+ *
+ * Sender exclusion is not a flag: it is the sender's own id-room dropped into
+ * `exceptRooms`. Because every socket auto-joins a room named after its id on
+ * connect, `except {ownId}` subtracts exactly the sender. This is why
+ * `socket.to(room)` excludes a sender that is itself in `room` for free: the
+ * room's union includes the sender (its id-room member is itself), and the
+ * `{ownId}` except then removes it.
+ *
+ * `to` unions in more rooms and returns `this`, so `io.to(a).to(b)` targets the
+ * union of both. `except` is a constructor argument only, never chained: the
+ * `BroadcastContract` is `{ emit; to }` and no form needs `.to().except()`.
+ *
+ * `emit` resolves both sets to sids through the adapter, then hands each surviving
+ * member to that member's own `ServerSocket.emit`. It deliberately reuses the
+ * per-socket send path rather than delivering itself: every event, direct or
  * broadcast, then flows through the one `defer` primitive, so the per-socket FIFO
  * order the "did NOT receive" marker proofs rely on holds for broadcast too.
  */
 class BroadcastOperator implements BroadcastContract {
   private readonly targetRooms = new Set<string>();
+  private readonly exceptRooms = new Set<string>();
 
   constructor(
     private readonly adapter: Adapter,
     private readonly sockets: Map<string, ServerSocket>,
-    rooms: string | string[],
+    rooms: Iterable<string>,
+    except: Iterable<string>,
   ) {
-    for (const room of Array.isArray(rooms) ? rooms : [rooms]) this.targetRooms.add(room);
+    for (const room of rooms) this.targetRooms.add(room);
+    for (const room of except) this.exceptRooms.add(room);
   }
 
   to(room: string | string[]): BroadcastContract {
-    for (const r of Array.isArray(room) ? room : [room]) this.targetRooms.add(r);
+    for (const r of asRooms(room)) this.targetRooms.add(r);
     return this;
   }
 
   emit(event: string, ...args: unknown[]): void {
-    // Every member of every target room, deduped. No sender exclusion here: that
-    // is `socket.broadcast` / `socket.to` (#43); `io.to` reaches all members.
-    for (const sid of this.adapter.socketsIn(this.targetRooms)) {
+    // Empty target rooms means "everyone" (`io.emit` / `socket.broadcast`), so the
+    // target set is all connected sids; otherwise it is the deduped union of the
+    // target rooms' members. The excluded set is the union of the except rooms'
+    // members (the sender's id-room for the `socket.*` forms). Deliver to the
+    // difference, once per socket, through each socket's own send path.
+    const targets =
+      this.targetRooms.size === 0
+        ? new Set(this.sockets.keys())
+        : this.adapter.socketsIn(this.targetRooms);
+    const excluded = this.adapter.socketsIn(this.exceptRooms);
+    for (const sid of targets) {
+      if (excluded.has(sid)) continue;
       this.sockets.get(sid)?.emit(event, ...args);
     }
   }
@@ -178,7 +211,7 @@ export class Server implements ServerContract {
    */
   connect(_namespace = '/'): ClientSocket {
     const id = newId();
-    const serverSocket = new ServerSocket(id, this.adapter);
+    const serverSocket = new ServerSocket(id, this.adapter, this.sockets);
     const client = new ClientSocket(id, this, serverSocket);
     serverSocket.attachPeer(client);
 
@@ -189,6 +222,13 @@ export class Server implements ServerContract {
       // Register the socket before offering it, so a broadcast triggered from a
       // `connection` handler can already resolve this sid to its socket.
       this.sockets.set(serverSocket.id, serverSocket);
+      // Auto-join the room named after the socket's own id, exactly as real
+      // socket.io does on connect. Reusing `join` carries the adapter update in
+      // both directions and the `socket.rooms` mirror. This id-room is what makes
+      // `io.to(socketId)` address a single socket and what sender exclusion
+      // subtracts (see `BroadcastOperator`); without it those cases have no room
+      // to name.
+      serverSocket.join(serverSocket.id);
       this.offer(serverSocket);
       client.completeConnection();
     });
@@ -212,17 +252,21 @@ export class Server implements ServerContract {
     }
   }
 
-  emit(_event: string, ..._args: unknown[]): void {
-    notImplemented('server.emit()');
+  emit(event: string, ...args: unknown[]): void {
+    // No target rooms (everyone) and no exclusion: reaches every connected socket.
+    new BroadcastOperator(this.adapter, this.sockets, [], []).emit(event, ...args);
   }
   to(room: string | string[]): BroadcastContract {
-    return new BroadcastOperator(this.adapter, this.sockets, room);
+    return new BroadcastOperator(this.adapter, this.sockets, asRooms(room), []);
   }
-  in(_room: string | string[]): BroadcastContract {
-    return notImplemented('server.in()');
+  in(room: string | string[]): BroadcastContract {
+    // `in` is a pure alias of `to` in socket.io; delegate so they cannot drift.
+    return this.to(room);
   }
-  except(_room: string | string[]): BroadcastContract {
-    return notImplemented('server.except()');
+  except(room: string | string[]): BroadcastContract {
+    // No target rooms (everyone) minus the members of `room`. No sender to exclude:
+    // this is the server, not a socket.
+    return new BroadcastOperator(this.adapter, this.sockets, [], asRooms(room));
   }
   of(_namespace: string): NamespaceContract {
     return notImplemented('server.of()');
@@ -264,11 +308,20 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
   private peer!: ClientSocket;
   /** The namespace adapter this socket's membership is recorded in. */
   private readonly adapter: Adapter;
+  /**
+   * The namespace's sid -> socket registry, the adapter's partner: the adapter
+   * routes a broadcast to a set of sids and this turns each sid back into the
+   * socket to deliver to. A socket needs it to build its own broadcast operators
+   * (`broadcast` / `to` / `except`). The adapter+sockets pair is the Namespace
+   * #44 extracts.
+   */
+  private readonly sockets: Map<string, ServerSocket>;
 
-  constructor(id: string, adapter: Adapter) {
+  constructor(id: string, adapter: Adapter, sockets: Map<string, ServerSocket>) {
     super();
     this.id = id;
     this.adapter = adapter;
+    this.sockets = sockets;
   }
 
   /** Wire the paired client in; called by `Server.connect` before completion. */
@@ -293,7 +346,8 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
     return notImplemented('socket.nsp');
   }
   get broadcast(): BroadcastContract {
-    return notImplemented('socket.broadcast');
+    // Everyone except the sender: no target rooms, except the sender's own id-room.
+    return new BroadcastOperator(this.adapter, this.sockets, [], [this.id]);
   }
   join(room: string | string[]): void {
     // `join` takes one room or many; `leave` is always one, matching socket.io.
@@ -308,11 +362,16 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
     this.adapter.del(this.id, room);
     this.rooms.delete(room);
   }
-  to(_room: string | string[]): BroadcastContract {
-    return notImplemented('socket.to()');
+  to(room: string | string[]): BroadcastContract {
+    // The rooms, minus the sender: `socket.to(room)` is `socket.broadcast.to(room)`.
+    // If the sender is itself a member of `room`, the room's union includes it and
+    // the id-room except then removes it, so the sender is excluded for free.
+    return new BroadcastOperator(this.adapter, this.sockets, asRooms(room), [this.id]);
   }
-  except(_room: string | string[]): BroadcastContract {
-    return notImplemented('socket.except()');
+  except(room: string | string[]): BroadcastContract {
+    // Everyone except both the named room's members and the sender: no target
+    // rooms, except the given rooms plus the sender's own id-room.
+    return new BroadcastOperator(this.adapter, this.sockets, [], [...asRooms(room), this.id]);
   }
 }
 
