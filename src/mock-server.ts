@@ -390,10 +390,30 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
     this.peer = client;
   }
 
-  /** Run the server-side teardown for a disconnecting client. */
+  /**
+   * Run the server-side teardown for a disconnecting client, one tick later
+   * through the same `defer` every emit uses. An emit sent just before
+   * `disconnect()` is already queued, so deferring the teardown lets it arrive
+   * before the socket leaves its rooms, keeping the per-socket FIFO invariant the
+   * marker proofs rely on. Only the client-side state flip is synchronous (see
+   * `ClientSocket.disconnect`).
+   */
   handleDisconnect(): void {
-    this.dispatch('disconnecting', []);
-    this.dispatch('disconnect', []);
+    defer(() => {
+      // `disconnecting` fires while the rooms are still intact, so a handler can
+      // read and notify them; `disconnect` fires once they are gone. This is the
+      // ordering the `observeDisconnect` proof and real socket.io both depend on.
+      this.dispatch('disconnecting', []);
+      for (const room of this.rooms) this.nsp.adapter.del(this.id, room);
+      // Empty the live Set in place (contract: "emptied in place on teardown")
+      // rather than replacing it, so any held reference sees it clear.
+      this.rooms.clear();
+      // Drop the socket from the namespace roster too, the other half of the
+      // teardown: otherwise `io.emit()` (empty target rooms means the whole
+      // `sockets` map) keeps delivering to a socket that is already gone.
+      this.nsp.sockets.delete(this.id);
+      this.dispatch('disconnect', []);
+    });
   }
 
   emit(event: string, ...args: unknown[]): void {
