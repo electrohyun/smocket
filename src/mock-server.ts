@@ -16,11 +16,11 @@ type Listener = (...args: never[]) => void;
 /**
  * smocket's in-memory core. No HTTP server, no port, no transport: a client and
  * its server-side socket are paired directly in memory (decision ③). This file
- * covers the connect lifecycle and id pairing (#40) and event delivery with
- * acknowledgements in both directions (#41). Everything further downstream
- * (rooms #42, broadcast #43, namespaces #44, membership cleanup #45) is a
- * `notImplemented` seam so mock mode fails legibly, one message per unfinished
- * feature, instead of on a mystery `undefined`.
+ * covers the connect lifecycle and id pairing (#40), event delivery with
+ * acknowledgements in both directions (#41), rooms (#42), broadcast (#43) and
+ * per-namespace isolation (#44). Membership cleanup on disconnect (#45) is still
+ * a `notImplemented` seam (`client.connect`) so mock mode fails legibly, one
+ * message per unfinished feature, instead of on a mystery `undefined`.
  *
  * FIFO invariant: connection completion and every emit are scheduled through the
  * one `defer` primitive, and the microtask queue is itself FIFO, so a socket
@@ -186,37 +186,59 @@ class BroadcastOperator implements BroadcastContract {
   }
 }
 
-export class Server implements ServerContract {
-  /** Server sockets that have connected but not yet been claimed by a caller. */
-  private readonly ready: ServerSocket[] = [];
-  /** `nextConnection` calls still waiting for a socket to appear. */
-  private readonly waiters: Waiter[] = [];
+/**
+ * One namespace: the `adapter` + `sockets` pair the delivery formula reads, plus
+ * the connection queues that pair a `connect` with its `nextConnection`. Making
+ * these per-namespace is the whole of isolation (#44) — a `BroadcastOperator`
+ * built here can only ever see this namespace's sockets and rooms, so a room name
+ * collides harmlessly across namespaces and no broadcast crosses a namespace
+ * boundary. The delivery formula itself is untouched; only the two data
+ * structures it reads are now one set per namespace.
+ *
+ * Its broadcast surface (`emit`/`to`/`in`/`except`) is the same code that used to
+ * live on `Server`, moved here so the server can delegate to `of('/')`.
+ */
+class Namespace implements NamespaceContract {
   /**
-   * The implicit `/` namespace, split across two fields socket.io keeps on the
-   * Namespace: `sockets` (sid -> the connected server socket) and its `adapter`
-   * (room membership). They are a pair: the adapter routes a broadcast to a set
-   * of sids, and `sockets` turns each sid back into the socket to deliver to.
-   * #44 extracts the pair into a real Namespace object; until then they live here.
+   * sid -> connected server socket, the adapter's partner: the adapter routes a
+   * broadcast to a set of sids and this turns each sid back into a socket to
+   * deliver to.
    */
-  private readonly sockets = new Map<string, ServerSocket>();
-  private readonly adapter = new Adapter();
+  readonly sockets = new Map<string, ServerSocket>();
+  /** This namespace's room membership. */
+  readonly adapter = new Adapter();
+  /** Server sockets connected here but not yet claimed by a `nextConnection`. */
+  private readonly ready: ServerSocket[] = [];
+  /**
+   * `nextConnection` calls on this namespace still waiting for a socket. Keeping
+   * the queue per-namespace is the subtle half of isolation: a global queue could
+   * hand a `nextConnection('/game')` a socket that connected on `/`.
+   */
+  private readonly waiters: Waiter[] = [];
+
+  constructor(
+    readonly name: string,
+    /** The shared Manager stand-in every client here is given; see ClientSocket.io. */
+    private readonly server: Server,
+  ) {}
 
   /**
-   * Attach a client to the server in memory and return the client side. The
-   * client comes back not-yet-connected (`connected === false`, `id`
-   * undefined); a tick later the paired server socket is offered to
-   * `nextConnection` and the client's `connect` fires. The server socket is
-   * created up front and handed to `nextConnection` from here, never from a
-   * fresh connection, so the two never race.
+   * Attach a client to this namespace in memory and return the client side. The
+   * client comes back not-yet-connected (`connected === false`, `id` undefined);
+   * a tick later the paired server socket is offered to `nextConnection` and the
+   * client's `connect` fires. The server socket is created up front and handed to
+   * `nextConnection` from here, never from a fresh connection, so the two never
+   * race. The client takes the `Server` as its `io`, so two clients on different
+   * namespaces share one Manager stand-in — one multiplexed connection.
    */
-  connect(_namespace = '/'): ClientSocket {
+  connect(): ClientSocket {
     const id = newId();
-    const serverSocket = new ServerSocket(id, this.adapter, this.sockets);
-    const client = new ClientSocket(id, this, serverSocket);
+    const serverSocket = new ServerSocket(id, this);
+    const client = new ClientSocket(id, this.server, serverSocket);
     serverSocket.attachPeer(client);
 
-    // Connection completes a tick later (decision 3-4b). Server-side
-    // `connection` is offered first, then the client-side `connect` fires, the
+    // Connection completes a tick later (decision 3-4b). The server-side socket
+    // is registered and offered first, then the client-side `connect` fires, the
     // order real socket.io uses.
     defer(() => {
       // Register the socket before offering it, so a broadcast triggered from a
@@ -235,8 +257,8 @@ export class Server implements ServerContract {
     return client;
   }
 
-  /** Resolve with the server socket of the next client to connect. */
-  nextConnection(_namespace = '/'): Promise<ServerSocket> {
+  /** Resolve with the server socket of the next client to connect here. */
+  nextConnection(): Promise<ServerSocket> {
     const socket = this.ready.shift();
     if (socket) return Promise.resolve(socket);
     return new Promise<ServerSocket>((resolve) => this.waiters.push(resolve));
@@ -253,7 +275,7 @@ export class Server implements ServerContract {
   }
 
   emit(event: string, ...args: unknown[]): void {
-    // No target rooms (everyone) and no exclusion: reaches every connected socket.
+    // No target rooms (everyone) and no exclusion: reaches every socket here.
     new BroadcastOperator(this.adapter, this.sockets, [], []).emit(event, ...args);
   }
   to(room: string | string[]): BroadcastContract {
@@ -265,11 +287,53 @@ export class Server implements ServerContract {
   }
   except(room: string | string[]): BroadcastContract {
     // No target rooms (everyone) minus the members of `room`. No sender to exclude:
-    // this is the server, not a socket.
+    // this is the namespace, not a socket.
     return new BroadcastOperator(this.adapter, this.sockets, [], asRooms(room));
   }
-  of(_namespace: string): NamespaceContract {
-    return notImplemented('server.of()');
+}
+
+export class Server implements ServerContract {
+  /**
+   * The namespace registry. Every connection, room and broadcast lives on a
+   * `Namespace`; the server is the front door that routes to one. `of` is
+   * get-or-create and returns the *same* `Namespace` on repeat calls, so the
+   * `connect` path and an `of()` observation in a test reach one object.
+   */
+  private readonly namespaces = new Map<string, Namespace>();
+
+  /** Get the namespace by name, creating it on first use (socket.io's lazy `of`). */
+  of(name: string): Namespace {
+    const existing = this.namespaces.get(name);
+    if (existing) return existing;
+    const namespace = new Namespace(name, this);
+    this.namespaces.set(name, namespace);
+    return namespace;
+  }
+
+  /** Attach a client on `namespace` (`/` by default); see `Namespace.connect`. */
+  connect(namespace = '/'): ClientSocket {
+    return this.of(namespace).connect();
+  }
+
+  /** Resolve with the server socket of the next client to connect on `namespace`. */
+  nextConnection(namespace = '/'): Promise<ServerSocket> {
+    return this.of(namespace).nextConnection();
+  }
+
+  // The server's own broadcast surface is the default namespace's: `io.emit()` is
+  // exactly `io.of('/').emit()`, so "everyone" means everyone on `/` and never
+  // reaches another namespace. Each form delegates rather than reimplements.
+  emit(event: string, ...args: unknown[]): void {
+    this.of('/').emit(event, ...args);
+  }
+  to(room: string | string[]): BroadcastContract {
+    return this.of('/').to(room);
+  }
+  in(room: string | string[]): BroadcastContract {
+    return this.of('/').in(room);
+  }
+  except(room: string | string[]): BroadcastContract {
+    return this.of('/').except(room);
   }
 }
 
@@ -305,23 +369,20 @@ class Emitter {
 export class ServerSocket extends Emitter implements ServerSocketContract {
   readonly id: string;
   readonly rooms = new Set<string>();
-  private peer!: ClientSocket;
-  /** The namespace adapter this socket's membership is recorded in. */
-  private readonly adapter: Adapter;
   /**
-   * The namespace's sid -> socket registry, the adapter's partner: the adapter
-   * routes a broadcast to a set of sids and this turns each sid back into the
-   * socket to deliver to. A socket needs it to build its own broadcast operators
-   * (`broadcast` / `to` / `except`). The adapter+sockets pair is the Namespace
-   * #44 extracts.
+   * The namespace this socket lives on. `nsp.adapter` records its membership and
+   * `nsp.sockets` turns a broadcast's target sids back into sockets to deliver to;
+   * both belong to the namespace, so every operator this socket builds is scoped
+   * to its own namespace (#44) and `socket.nsp` reads back the real object. The
+   * disconnect cleanup (#45) drops this socket from the same `nsp.adapter`.
    */
-  private readonly sockets: Map<string, ServerSocket>;
+  readonly nsp: Namespace;
+  private peer!: ClientSocket;
 
-  constructor(id: string, adapter: Adapter, sockets: Map<string, ServerSocket>) {
+  constructor(id: string, nsp: Namespace) {
     super();
     this.id = id;
-    this.adapter = adapter;
-    this.sockets = sockets;
+    this.nsp = nsp;
   }
 
   /** Wire the paired client in; called by `Server.connect` before completion. */
@@ -342,36 +403,38 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
     return emitWithAck(this.peer, event, args);
   }
 
-  get nsp(): NamespaceContract {
-    return notImplemented('socket.nsp');
-  }
   get broadcast(): BroadcastContract {
     // Everyone except the sender: no target rooms, except the sender's own id-room.
-    return new BroadcastOperator(this.adapter, this.sockets, [], [this.id]);
+    return new BroadcastOperator(this.nsp.adapter, this.nsp.sockets, [], [this.id]);
   }
   join(room: string | string[]): void {
     // `join` takes one room or many; `leave` is always one, matching socket.io.
     // Each room is recorded in the adapter (both directions) and mirrored into
     // this socket's own `rooms`, the server-only view the tests observe.
     for (const r of Array.isArray(room) ? room : [room]) {
-      this.adapter.add(this.id, r);
+      this.nsp.adapter.add(this.id, r);
       this.rooms.add(r);
     }
   }
   leave(room: string): void {
-    this.adapter.del(this.id, room);
+    this.nsp.adapter.del(this.id, room);
     this.rooms.delete(room);
   }
   to(room: string | string[]): BroadcastContract {
     // The rooms, minus the sender: `socket.to(room)` is `socket.broadcast.to(room)`.
     // If the sender is itself a member of `room`, the room's union includes it and
     // the id-room except then removes it, so the sender is excluded for free.
-    return new BroadcastOperator(this.adapter, this.sockets, asRooms(room), [this.id]);
+    return new BroadcastOperator(this.nsp.adapter, this.nsp.sockets, asRooms(room), [this.id]);
   }
   except(room: string | string[]): BroadcastContract {
     // Everyone except both the named room's members and the sender: no target
     // rooms, except the given rooms plus the sender's own id-room.
-    return new BroadcastOperator(this.adapter, this.sockets, [], [...asRooms(room), this.id]);
+    return new BroadcastOperator(
+      this.nsp.adapter,
+      this.nsp.sockets,
+      [],
+      [...asRooms(room), this.id],
+    );
   }
 }
 
