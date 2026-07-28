@@ -4,7 +4,7 @@ import { receive, track } from './test-events';
 
 const ctx = setupServer();
 
-it('join하면 그 방의 emit을 받는다', async () => {
+it('joining a room receives emits for that room', async () => {
   const { client: client1, serverSocket: socket1 } = await ctx.connectClient();
   await socket1.join('room');
 
@@ -14,7 +14,7 @@ it('join하면 그 방의 emit을 받는다', async () => {
   await expect(got).resolves.toBe('hello');
 });
 
-it('join하지 않은 클라이언트는 그 방의 emit을 못 받는다', async () => {
+it('a client that has not joined does not receive emits for that room', async () => {
   const { client: client1, serverSocket: socket1 } = await ctx.connectClient();
   const { client: client2, serverSocket: socket2 } = await ctx.connectClient();
   await socket1.join('room');
@@ -31,7 +31,7 @@ it('join하지 않은 클라이언트는 그 방의 emit을 못 받는다', asyn
   expect(msg2.received).toBe(false);
 });
 
-it('leave하면 더 이상 그 방의 emit을 받지 못한다', async () => {
+it('after leaving, a client no longer receives emits for that room', async () => {
   const { client: client1, serverSocket: socket1 } = await ctx.connectClient();
   const { client: client2, serverSocket: socket2 } = await ctx.connectClient();
   await socket1.join('room');
@@ -50,7 +50,7 @@ it('leave하면 더 이상 그 방의 emit을 받지 못한다', async () => {
   expect(msg2.received).toBe(false);
 });
 
-it('여러 방에 속하면 각 방의 emit을 모두 받는다', async () => {
+it('a socket in several rooms receives the emits of each room', async () => {
   const { client: client1, serverSocket: socket1 } = await ctx.connectClient();
   await socket1.join('roomA');
   await socket1.join('roomB');
@@ -64,7 +64,7 @@ it('여러 방에 속하면 각 방의 emit을 모두 받는다', async () => {
   await expect(gotB).resolves.toBe('2');
 });
 
-it('같은 방의 여러 클라이언트가 모두 받는다 (팬아웃)', async () => {
+it('every client in the same room receives (fan-out)', async () => {
   const { client: client1, serverSocket: socket1 } = await ctx.connectClient();
   const { client: client2, serverSocket: socket2 } = await ctx.connectClient();
   await socket1.join('room');

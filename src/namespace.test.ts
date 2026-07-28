@@ -4,7 +4,7 @@ import { receive, track } from './test-events';
 
 const ctx = setupServer();
 
-it('io.of(nsp).emit()은 그 네임스페이스의 클라이언트에게만 간다', async () => {
+it('io.of(nsp).emit() goes only to clients in that namespace', async () => {
   const { client: rootClient, serverSocket: rootSocket } = await ctx.connectClient();
   const { client: gameClient } = await ctx.connectClient({ namespace: '/game' });
 
@@ -20,7 +20,7 @@ it('io.of(nsp).emit()은 그 네임스페이스의 클라이언트에게만 간�
   expect(msgRoot.received).toBe(false);
 });
 
-it('기본 네임스페이스의 io.emit()은 다른 네임스페이스에 가지 않는다', async () => {
+it('io.emit() on the default namespace does not reach other namespaces', async () => {
   const { client: rootClient } = await ctx.connectClient();
   const { client: gameClient, serverSocket: gameSocket } = await ctx.connectClient({
     namespace: '/game',
@@ -39,7 +39,7 @@ it('기본 네임스페이스의 io.emit()은 다른 네임스페이스에 가�
   expect(msgGame.received).toBe(false);
 });
 
-it('같은 이름의 방이라도 네임스페이스마다 별개다', async () => {
+it('a room of the same name is separate per namespace', async () => {
   const { client: rootClient, serverSocket: rootSocket } = await ctx.connectClient();
   const { client: gameClient, serverSocket: gameSocket } = await ctx.connectClient({
     namespace: '/game',
@@ -64,7 +64,7 @@ it('같은 이름의 방이라도 네임스페이스마다 별개다', async () 
   expect(msgRoot.received).toBe(false); // in "room" too, on the other namespace
 });
 
-it('두 네임스페이스에 붙은 클라이언트는 네임스페이스마다 다른 소켓 id를 갖는다', async () => {
+it('a client attached to two namespaces has a different socket id per namespace', async () => {
   const { client: rootClient, serverSocket: rootSocket } = await ctx.connectClient();
   const { client: gameClient, serverSocket: gameSocket } = await ctx.connectClient({
     namespace: '/game',
@@ -79,7 +79,7 @@ it('두 네임스페이스에 붙은 클라이언트는 네임스페이스마다
   expect(rootClient.io).toBe(gameClient.io);
 });
 
-it('socket.broadcast는 발신자의 네임스페이스 안에만 간다', async () => {
+it('socket.broadcast stays inside the namespace of the sender', async () => {
   const { client: rootClient, serverSocket: rootSocket } = await ctx.connectClient();
   const { client: gameClient1, serverSocket: gameSocket1 } = await ctx.connectClient({
     namespace: '/game',

@@ -4,7 +4,7 @@ import { observeDisconnect, receive, track } from './test-events';
 
 const ctx = setupServer();
 
-it('끊긴 소켓은 그 방의 emit을 더 이상 받지 않는다', async () => {
+it('a disconnected socket no longer receives emits for that room', async () => {
   const { client: client1, serverSocket: socket1 } = await ctx.connectClient();
   const { client: client2, serverSocket: socket2 } = await ctx.connectClient();
   await socket1.join('room');
@@ -26,7 +26,7 @@ it('끊긴 소켓은 그 방의 emit을 더 이상 받지 않는다', async () =
   expect(msg1.received).toBe(false);
 });
 
-it('마지막 멤버가 끊기면 그 방은 adapter에서 사라진다', async () => {
+it('a room disappears from the adapter when its last member disconnects', async () => {
   const { client: client1, serverSocket: socket1 } = await ctx.connectClient();
   const { serverSocket: socket2 } = await ctx.connectClient();
   await socket1.join('room');
@@ -50,7 +50,7 @@ it('마지막 멤버가 끊기면 그 방은 adapter에서 사라진다', async 
   expect(adapter.rooms.has(socket2.id)).toBe(true);
 });
 
-it('재연결한 소켓은 이전 방에 자동으로 다시 들어가지 않는다', async () => {
+it('a reconnected socket does not automatically rejoin its previous rooms', async () => {
   const { client: client1, serverSocket: socket1 } = await ctx.connectClient();
   const { client: client2, serverSocket: socket2 } = await ctx.connectClient();
   await socket1.join('room');
@@ -77,7 +77,7 @@ it('재연결한 소켓은 이전 방에 자동으로 다시 들어가지 않는
   expect(msg1.received).toBe(false);
 });
 
-it('disconnecting 시점엔 방이 남아 있고 disconnect 시점엔 비어 있다', async () => {
+it('rooms are still present at disconnecting and empty at disconnect', async () => {
   const { client: client1, serverSocket: socket1 } = await ctx.connectClient();
   await socket1.join('room');
   const socket1Id = socket1.id;
@@ -100,7 +100,7 @@ it('disconnecting 시점엔 방이 남아 있고 disconnect 시점엔 비어 있
 // three forms settle differently. The promise form on the client rejects; the
 // trailing-callback form and the server-to-client promise both stay pending.
 
-it('연결이 끊기면 대기 중이던 client.emitWithAck는 reject된다', async () => {
+it('a pending client.emitWithAck rejects when the connection drops', async () => {
   const { client, serverSocket } = await ctx.connectClient();
   serverSocket.on('slow', () => {
     /* never acks */
@@ -112,7 +112,7 @@ it('연결이 끊기면 대기 중이던 client.emitWithAck는 reject된다', as
   await expect(pending).rejects.toThrow(/disconnected/);
 });
 
-it('연결이 끊겨도 trailing 콜백 ack은 조용히 폐기된다', async () => {
+it('a trailing-callback ack is silently discarded when the connection drops', async () => {
   const { client, serverSocket } = await ctx.connectClient();
   serverSocket.on('slow', () => {
     /* never acks */
@@ -130,7 +130,7 @@ it('연결이 끊겨도 trailing 콜백 ack은 조용히 폐기된다', async ()
   expect(state.called).toBe(false);
 });
 
-it('클라이언트가 끊겨도 대기 중이던 server.emitWithAck는 pending으로 남는다', async () => {
+it('a pending server.emitWithAck stays pending when the client disconnects', async () => {
   const { client, serverSocket } = await ctx.connectClient();
   client.on('slow', () => {
     /* never acks */
