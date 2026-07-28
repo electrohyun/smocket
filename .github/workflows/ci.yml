@@ -24,7 +24,7 @@ jobs:
       - run: pnpm coverage
 
   mock-target:
-    name: mock target (in progress)
+    name: mock target
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -36,14 +36,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # smocket has no implementation yet, so this step fails today.
-      # continue-on-error is on the step, not the job, so the job still reports
-      # green: it tracks how much of the spec smocket reproduces without turning
-      # the check list or main red while the core is unfinished. The
-      # "(in progress)" in the job name is the at-a-glance signal instead.
-      # Promotion: when the suite passes on both real and mock (the 2026-08-05
-      # milestone that declares the core done), remove continue-on-error here and
-      # drop "(in progress)" from the name so a regression fails the job.
+      # The mock suite is green as of the v0.1.0 core, so this job now hard-gates
+      # like any other check: a mock regression fails it, and with it the badge.
       - name: Run suite against smocket
         run: pnpm test:mock
-        continue-on-error: true

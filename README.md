@@ -10,9 +10,10 @@
 </p>
 
 <p align="center">
-  <!-- Real target only; add the dual-run badge once mock is green. -->
+  <!-- One workflow badge covering both the real and mock jobs; it goes red if
+       either target regresses. -->
   <a href="https://github.com/electrohyun/smocket/actions/workflows/ci.yml">
-    <img src="https://github.com/electrohyun/smocket/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI" />
+    <img src="https://github.com/electrohyun/smocket/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI (real + mock)" />
   </a>
 </p>
 
