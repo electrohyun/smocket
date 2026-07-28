@@ -1,0 +1,27 @@
+# Decision records
+
+> **TL;DR** One row per architecture decision, with a one-line summary and the
+> issues it relates to. The Issues column resolves the `#40` to `#45` coordinates
+> that appear in source comments but link nowhere else in the repo.
+
+Each file states one decision and keeps its number for life; it is never
+renumbered, and a reversed decision changes its Status to `Superseded by 00NN`
+rather than moving. See [../CONTRIBUTING-docs.md](../CONTRIBUTING-docs.md) for how
+these are written.
+
+| #                                                    | Decision                                                                       | Status   | Issues        |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------ | -------- | ------------- |
+| [0000](./0000-do-not-invent-what-has-no-source.md)   | Fill only what real socket.io observably does; never invent                    | Accepted | #64           |
+| [0001](./0001-server-not-mockserver.md)              | The public class is `Server`, not `MockServer`                                 | Accepted | #64           |
+| [0002](./0002-construction-is-activation.md)         | `new Server(url)` is activation; there is no `start()`                         | Accepted | #64           |
+| [0003](./0003-url-is-required.md)                    | The `Server` url argument is required                                          | Accepted | #64           |
+| [0004](./0004-connection-deferred-one-tick.md)       | Connection completes one tick later so `connect` handlers register in time     | Accepted | #40, #65      |
+| [0005](./0005-missing-server-behavior.md)            | A missing server fires `connect_error` at once, no retry, plus `console.error` | Accepted | #65           |
+| [0006](./0006-handshake-fields.md)                   | The handshake carries only fields a mock has a source for                      | Accepted | #65           |
+| [0007](./0007-no-unchecked-indexed-access.md)        | `noUncheckedIndexedAccess` guards the delivery-layer map lookups               | Accepted | #66           |
+| [0008](./0008-adapter-api-before-v1.md)              | The adapter registration API lands before v1.0.0                               | Accepted | #66           |
+| [0009](./0009-no-raw-websocket-mocking.md)           | smocket does not mock raw WebSocket; that is MSW's lane                        | Accepted | #66           |
+| [0010](./0010-single-defer-primitive-and-fifo.md)    | One `defer` primitive keeps per-socket delivery FIFO                           | Accepted | #40, #41, #67 |
+| [0011](./0011-socket-id-format.md)                   | Socket ids match socket.io's shape, not its source                             | Accepted | #67           |
+| [0012](./0012-reject-inflight-acks-on-disconnect.md) | A pending `emitWithAck` is rejected on disconnect                              | Accepted | #45, #67      |
+| [0013](./0013-reconnect-fresh-socket.md)             | Reconnecting yields a fresh socket and id, with no old rooms                   | Accepted | #45, #67      |

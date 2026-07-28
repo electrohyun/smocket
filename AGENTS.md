@@ -4,10 +4,11 @@
 > pattern rather than timeouts, and never re-derive a settled design decision:
 > link to `docs/decisions/`. How to write docs lives in docs, not here.
 
-Repo-operation rules for agents and contributors. For how to write documentation,
-see [docs/CONTRIBUTING-docs.md](docs/CONTRIBUTING-docs.md); for why the code is
-shaped the way it is, read the decision records under `docs/decisions/`. This file
-links to both and summarizes neither.
+Repo-operation rules for agents and contributors. Start at
+[docs/README.md](docs/README.md) for the documentation map, read
+[docs/decisions/README.md](docs/decisions/README.md) for the index of design
+decisions, and see [docs/CONTRIBUTING-docs.md](docs/CONTRIBUTING-docs.md) for how
+to write docs. This file links to those and summarizes none.
 
 ## Tests
 
