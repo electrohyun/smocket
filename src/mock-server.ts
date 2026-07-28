@@ -17,10 +17,10 @@ type Listener = (...args: never[]) => void;
  * smocket's in-memory core. No HTTP server, no port, no transport: a client and
  * its server-side socket are paired directly in memory (decision ③). This file
  * covers the connect lifecycle and id pairing (#40), event delivery with
- * acknowledgements in both directions (#41), rooms (#42), broadcast (#43) and
- * per-namespace isolation (#44). Membership cleanup on disconnect (#45) is still
- * a `notImplemented` seam (`client.connect`) so mock mode fails legibly, one
- * message per unfinished feature, instead of on a mystery `undefined`.
+ * acknowledgements in both directions (#41), rooms (#42), broadcast (#43),
+ * per-namespace isolation (#44) and membership cleanup with reconnect on
+ * disconnect (#45). With #45 the last unimplemented seam (`client.connect`) is
+ * filled, so mock mode now covers the whole surface the conformance suite drives.
  *
  * FIFO invariant: connection completion and every emit are scheduled through the
  * one `defer` primitive, and the microtask queue is itself FIFO, so a socket
@@ -42,10 +42,6 @@ function defer(fn: () => void): void {
 /** socket.io ids are 20-char url-safe base64. Match the shape, not the source. */
 function newId(): string {
   return randomBytes(15).toString('base64url');
-}
-
-function notImplemented(member: string): never {
-  throw new Error(`smocket: ${member} is not implemented yet`);
 }
 
 /** Normalize socket.io's `one room | many rooms` argument to an array. */
@@ -223,23 +219,31 @@ class Namespace implements NamespaceContract {
   ) {}
 
   /**
-   * Attach a client to this namespace in memory and return the client side. The
-   * client comes back not-yet-connected (`connected === false`, `id` undefined);
-   * a tick later the paired server socket is offered to `nextConnection` and the
-   * client's `connect` fires. The server socket is created up front and handed to
-   * `nextConnection` from here, never from a fresh connection, so the two never
-   * race. The client takes the `Server` as its `io`, so two clients on different
-   * namespaces share one Manager stand-in — one multiplexed connection.
+   * Attach a new client to this namespace in memory and return the client side.
+   * The client takes the `Server` as its `io`, so two clients on different
+   * namespaces share one Manager stand-in, one multiplexed connection. The actual
+   * pairing is `pair`, shared with reconnect.
    */
   connect(): ClientSocket {
-    const id = newId();
-    const serverSocket = new ServerSocket(id, this);
-    const client = new ClientSocket(id, this.server, serverSocket);
+    const client = new ClientSocket(this.server, this);
+    this.pair(client);
+    return client;
+  }
+
+  /**
+   * Pair `client` to a fresh server socket on this namespace. Shared by the first
+   * `connect` and by a reconnect (`ClientSocket.connect`): both are the same
+   * operation, "give this client a new server socket here", so a reconnect is one
+   * call to this rather than a second copy of the connect path. The client comes
+   * back not-yet-connected (`connected === false`, `id` undefined); a tick later
+   * (decision 3-4b) the new socket is registered, auto-joins its id-room, is
+   * offered to `nextConnection`, and the client's `connect` fires, the server
+   * side observable before the client side, the order real socket.io uses.
+   */
+  pair(client: ClientSocket): void {
+    const serverSocket = new ServerSocket(newId(), this);
     serverSocket.attachPeer(client);
 
-    // Connection completes a tick later (decision 3-4b). The server-side socket
-    // is registered and offered first, then the client-side `connect` fires, the
-    // order real socket.io uses.
     defer(() => {
       // Register the socket before offering it, so a broadcast triggered from a
       // `connection` handler can already resolve this sid to its socket.
@@ -248,13 +252,12 @@ class Namespace implements NamespaceContract {
       // socket.io does on connect. Reusing `join` carries the adapter update in
       // both directions and the `socket.rooms` mirror. This id-room is what makes
       // `io.to(socketId)` address a single socket and what sender exclusion
-      // subtracts (see `BroadcastOperator`); without it those cases have no room
-      // to name.
+      // subtracts (see `BroadcastOperator`). A reconnect gets a fresh id-room and
+      // none of the socket's previous rooms, which is the reconnect test's point.
       serverSocket.join(serverSocket.id);
       this.offer(serverSocket);
-      client.completeConnection();
+      client.completeConnection(serverSocket);
     });
-    return client;
   }
 
   /** Resolve with the server socket of the next client to connect here. */
@@ -385,7 +388,7 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
     this.nsp = nsp;
   }
 
-  /** Wire the paired client in; called by `Server.connect` before completion. */
+  /** Wire the paired client in; called by `Namespace.pair` before completion. */
   attachPeer(client: ClientSocket): void {
     this.peer = client;
   }
@@ -463,22 +466,36 @@ export class ClientSocket extends Emitter implements ClientSocketContract {
   id: string | undefined;
   /** The shared Manager stand-in; compared only by identity across namespaces. */
   readonly io: unknown;
-  private readonly assignedId: string;
-  private readonly serverSocket: ServerSocket;
+  /**
+   * The namespace this client is attached to. Held so `connect` (a reconnect) can
+   * re-pair on the same namespace without routing through the dead server socket.
+   */
+  private readonly nsp: Namespace;
+  /**
+   * The current paired server socket. Assigned at `completeConnection`, not at
+   * construction, and not readonly: a reconnect swaps in a new socket with a new
+   * id, since the id belongs to one connection, not to the client.
+   */
+  private serverSocket!: ServerSocket;
   /** Emits made before `connect`; flushed in order once connected (like sendBuffer). */
   private sendBuffer: Array<[string, unknown[]]> = [];
 
-  constructor(id: string, server: Server, serverSocket: ServerSocket) {
+  constructor(server: Server, nsp: Namespace) {
     super();
-    this.assignedId = id;
-    this.serverSocket = serverSocket;
     this.io = server;
+    this.nsp = nsp;
   }
 
-  /** Server accepted us: adopt the id, fire `connect`, then flush buffered emits. */
-  completeConnection(): void {
+  /**
+   * Server accepted us on `serverSocket`: adopt it and its id, fire `connect`,
+   * then flush buffered emits to it. On a reconnect this is a new socket and id,
+   * and flushing after the swap sends the buffer (emits made while disconnected)
+   * to the new socket, matching socket.io-client.
+   */
+  completeConnection(serverSocket: ServerSocket): void {
+    this.serverSocket = serverSocket;
     this.connected = true;
-    this.id = this.assignedId;
+    this.id = serverSocket.id;
     this.dispatch('connect', []);
     const buffered = this.sendBuffer;
     this.sendBuffer = [];
@@ -499,7 +516,10 @@ export class ClientSocket extends Emitter implements ClientSocketContract {
   }
 
   connect(): void {
-    notImplemented('client.connect()');
+    // Already-connected `connect()` is a no-op in socket.io. Otherwise re-pair on
+    // our namespace: a brand-new server socket and id, none of the old rooms.
+    if (this.connected) return;
+    this.nsp.pair(this);
   }
 
   disconnect(): void {
