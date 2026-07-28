@@ -95,3 +95,57 @@ it('disconnecting 시점엔 방이 남아 있고 disconnect 시점엔 비어 있
   const atDisconnect = await disconnected;
   expect(atDisconnect.size).toBe(0);
 });
+
+// In-flight ack semantics at disconnect, pinned against real socket.io: the
+// three forms settle differently. The promise form on the client rejects; the
+// trailing-callback form and the server-to-client promise both stay pending.
+
+it('연결이 끊기면 대기 중이던 client.emitWithAck는 reject된다', async () => {
+  const { client, serverSocket } = await ctx.connectClient();
+  serverSocket.on('slow', () => {
+    /* never acks */
+  });
+
+  const pending = client.emitWithAck('slow');
+  client.disconnect();
+
+  await expect(pending).rejects.toThrow(/disconnected/);
+});
+
+it('연결이 끊겨도 trailing 콜백 ack은 조용히 폐기된다', async () => {
+  const { client, serverSocket } = await ctx.connectClient();
+  serverSocket.on('slow', () => {
+    /* never acks */
+  });
+
+  const state = { called: false };
+  client.emit('slow', () => {
+    state.called = true;
+  });
+  client.disconnect();
+
+  // Unlike the promise form, the callback is never invoked, not even with an
+  // error argument; give any delivery a chance and confirm it stayed silent.
+  await new Promise((resolve) => setTimeout(resolve, 30));
+  expect(state.called).toBe(false);
+});
+
+it('클라이언트가 끊겨도 대기 중이던 server.emitWithAck는 pending으로 남는다', async () => {
+  const { client, serverSocket } = await ctx.connectClient();
+  client.on('slow', () => {
+    /* never acks */
+  });
+
+  const pendingAck = serverSocket.emitWithAck('slow');
+  client.disconnect();
+
+  // The server side does not reject on the peer leaving; it simply keeps waiting.
+  const race = await Promise.race([
+    pendingAck.then(
+      () => 'settled',
+      () => 'settled',
+    ),
+    new Promise((resolve) => setTimeout(() => resolve('pending'), 30)),
+  ]);
+  expect(race).toBe('pending');
+});

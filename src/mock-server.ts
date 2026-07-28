@@ -479,6 +479,15 @@ export class ClientSocket extends Emitter implements ClientSocketContract {
   private serverSocket!: ServerSocket;
   /** Emits made before `connect`; flushed in order once connected (like sendBuffer). */
   private sendBuffer: Array<[string, unknown[]]> = [];
+  /**
+   * Rejecters for acks still waiting for an answer. socket.io-client settles a
+   * pending `emitWithAck` with an error when the socket disconnects instead of
+   * leaving the promise hanging, so `disconnect` drains these. Only this promise
+   * form is tracked: the trailing-callback ack and the server-to-client direction
+   * stay silently pending on disconnect (pinned against real socket.io), so they
+   * need no registry.
+   */
+  private readonly pendingAcks = new Set<(reason: Error) => void>();
 
   constructor(server: Server, nsp: Namespace) {
     super();
@@ -512,7 +521,16 @@ export class ClientSocket extends Emitter implements ClientSocketContract {
     send(this.serverSocket, event, args);
   }
   emitWithAck(event: string, ...args: unknown[]): Promise<unknown> {
-    return emitWithAck(this.serverSocket, event, args);
+    // Like the free `emitWithAck`, but the rejecter is registered so `disconnect`
+    // can settle a still-pending ack, matching socket.io-client.
+    return new Promise((resolve, reject) => {
+      this.pendingAcks.add(reject);
+      const answer = (value: unknown) => {
+        this.pendingAcks.delete(reject);
+        resolve(value);
+      };
+      send(this.serverSocket, event, [...args, (...received: unknown[]) => answer(received[0])]);
+    });
   }
 
   connect(): void {
@@ -526,6 +544,11 @@ export class ClientSocket extends Emitter implements ClientSocketContract {
     if (!this.connected) return;
     this.connected = false;
     this.id = undefined;
+    // Reject any ack still waiting for an answer, the way socket.io-client settles
+    // a pending emitWithAck on disconnect instead of leaving it hanging forever.
+    const rejecters = [...this.pendingAcks];
+    this.pendingAcks.clear();
+    for (const reject of rejecters) reject(new Error('socket has been disconnected'));
     this.serverSocket.handleDisconnect();
   }
 }
