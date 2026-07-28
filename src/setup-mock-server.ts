@@ -1,28 +1,33 @@
-import { beforeEach } from 'vitest';
-import type { ConnectOptions, ServerContext } from './contract';
+import { afterEach, beforeEach } from 'vitest';
+import type { ClientSocketContract, ConnectOptions, ServerContext } from './contract';
 import { Server } from './mock-server';
 
 /**
- * The `mock` target: same `ServerContext` the tests are written against, but
+ * The `mock` target: the same `ServerContext` the tests are written against, but
  * backed by smocket instead of a real socket.io server, with no HTTP server and
- * no port (decision ③). The connect / disconnect lifecycle and id pairing are
- * live (#40); features downstream of a connection still throw a legible "not
- * implemented" from the core, one message per unfinished feature, so a
- * `SMOCKET_TARGET=mock` run is green where a feature has landed and legibly red
- * where it has not.
+ * no port (decision ③). Which behaviour it must reproduce is defined by the
+ * conformance suite that runs against both targets; whether it does is the CI
+ * run's verdict, not this comment's.
  */
 export function setupMockServer(): ServerContext {
   const ctx = {} as ServerContext;
   let server: Server;
+  let clients: ClientSocketContract[] = [];
 
   beforeEach(() => {
     server = new Server();
+    clients = [];
     ctx.io = server;
   });
 
-  // No teardown needed yet: the in-memory server holds no port or socket, and a
-  // fresh `MockServer` per test drops the previous one. Membership cleanup on
-  // disconnect is #45, exercised through `client.disconnect()`, not here.
+  // Disconnect every client the test opened, mirroring the real target's
+  // teardown. The in-memory server holds no port or socket and a fresh one
+  // replaces it each test, so no current test needs this. Its value is symmetry:
+  // the two targets' teardown shape stays identical, so a future test that
+  // depends on teardown cannot pass on one target and fail on the other.
+  afterEach(() => {
+    for (const client of clients) client.disconnect();
+  });
 
   ctx.nextConnection = (namespace = '/') => server.nextConnection(namespace);
 
@@ -32,6 +37,7 @@ export function setupMockServer(): ServerContext {
     // not a fresh connection that would never come. See Server.connect.
     const client = server.connect(namespace);
     const serverSocket = await ctx.nextConnection(namespace);
+    clients.push(client);
     return { client, serverSocket };
   };
 
