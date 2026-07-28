@@ -4,7 +4,7 @@ import { count, receive, track } from './test-events';
 
 const ctx = setupServer();
 
-it('socket.broadcast.emit은 발신자를 제외한 전원에게 간다', async () => {
+it('socket.broadcast.emit goes to everyone except the sender', async () => {
   const { client: client1, serverSocket: socket1 } = await ctx.connectClient();
   const { client: client2 } = await ctx.connectClient();
 
@@ -20,7 +20,7 @@ it('socket.broadcast.emit은 발신자를 제외한 전원에게 간다', async 
   expect(msg1.received).toBe(false); // sender excluded
 });
 
-it('io.except(room)은 그 방에 속하지 않은 전원에게 간다', async () => {
+it('io.except(room) goes to everyone not in that room', async () => {
   const { client: client1, serverSocket: socket1 } = await ctx.connectClient();
   const { client: client2 } = await ctx.connectClient();
   await socket1.join('room');
@@ -37,7 +37,7 @@ it('io.except(room)은 그 방에 속하지 않은 전원에게 간다', async (
   expect(msg1.received).toBe(false); // room member excluded
 });
 
-it('to()에 배열을 주면 방들의 합집합에 전달한다', async () => {
+it('to() with an array delivers to the union of the rooms', async () => {
   const { client: client1, serverSocket: socket1 } = await ctx.connectClient();
   const { client: client2, serverSocket: socket2 } = await ctx.connectClient();
   const { client: client3, serverSocket: socket3 } = await ctx.connectClient();
@@ -59,7 +59,7 @@ it('to()에 배열을 주면 방들의 합집합에 전달한다', async () => {
   expect(out3.received).toBe(false);
 });
 
-it('to()를 체이닝하면 방들의 합집합에 전달한다', async () => {
+it('chaining to() delivers to the union of the rooms', async () => {
   const { client: client1, serverSocket: socket1 } = await ctx.connectClient();
   const { client: client2, serverSocket: socket2 } = await ctx.connectClient();
   const { client: client3, serverSocket: socket3 } = await ctx.connectClient();
@@ -80,7 +80,7 @@ it('to()를 체이닝하면 방들의 합집합에 전달한다', async () => {
   expect(out3.received).toBe(false);
 });
 
-it('배열 합집합은 여러 방에 동시 소속이어도 한 번만 전달한다', async () => {
+it('the array union delivers only once even when a socket is in several rooms', async () => {
   const { client: client1, serverSocket: socket1 } = await ctx.connectClient();
   await socket1.join('roomA');
   await socket1.join('roomB');
@@ -95,7 +95,7 @@ it('배열 합집합은 여러 방에 동시 소속이어도 한 번만 전달�
   expect(counter.count).toBe(1); // deduplicated
 });
 
-it('체이닝 합집합은 여러 방에 동시 소속이어도 한 번만 전달한다', async () => {
+it('the chained union delivers only once even when a socket is in several rooms', async () => {
   const { client: client1, serverSocket: socket1 } = await ctx.connectClient();
   await socket1.join('roomA');
   await socket1.join('roomB');
@@ -110,7 +110,7 @@ it('체이닝 합집합은 여러 방에 동시 소속이어도 한 번만 전�
   expect(counter.count).toBe(1); // a per-call delivery would make this 2 and fail
 });
 
-it('in()은 to()의 별칭이다', async () => {
+it('in() is an alias for to()', async () => {
   const { client: client1, serverSocket: socket1 } = await ctx.connectClient();
   const { client: client2, serverSocket: socket2 } = await ctx.connectClient();
   await socket1.join('room');
@@ -127,7 +127,7 @@ it('in()은 to()의 별칭이다', async () => {
   expect(msg2.received).toBe(false);
 });
 
-it('socket.except(room)은 발신자와 그 방을 모두 제외한다', async () => {
+it('socket.except(room) excludes both the sender and that room', async () => {
   const { client: client1, serverSocket: socket1 } = await ctx.connectClient();
   const { client: client2, serverSocket: socket2 } = await ctx.connectClient();
   const { client: client3 } = await ctx.connectClient();
@@ -150,7 +150,7 @@ it('socket.except(room)은 발신자와 그 방을 모두 제외한다', async (
   expect(msg2.received).toBe(false); // room member excluded
 });
 
-it('io.to(socketId)는 그 소켓에게만 전달한다 (자기 id 방)', async () => {
+it('io.to(socketId) delivers only to that socket (its own id room)', async () => {
   const { client: client1, serverSocket: socket1 } = await ctx.connectClient();
   const { client: client2, serverSocket: socket2 } = await ctx.connectClient();
 
@@ -166,7 +166,7 @@ it('io.to(socketId)는 그 소켓에게만 전달한다 (자기 id 방)', async 
   expect(msg1.received).toBe(false);
 });
 
-it('socket.rooms는 서버 전용이며 자기 id와 join/leave를 반영한다', async () => {
+it('socket.rooms is server-only and reflects its own id and join/leave', async () => {
   const { serverSocket: socket1 } = await ctx.connectClient();
 
   // socket.rooms is a server-only concept; right after connecting it holds only the socket's own id room.
@@ -183,7 +183,7 @@ it('socket.rooms는 서버 전용이며 자기 id와 join/leave를 반영한다'
   expect(socket1.rooms.has(socket1.id)).toBe(true);
 });
 
-it('socket.to(room)은 발신자가 그 방의 멤버여도 자신을 제외한다', async () => {
+it('socket.to(room) excludes the sender even when the sender is a member of that room', async () => {
   const { client: client1, serverSocket: socket1 } = await ctx.connectClient();
   const { client: client2, serverSocket: socket2 } = await ctx.connectClient();
   const { client: client3, serverSocket: socket3 } = await ctx.connectClient();
@@ -210,7 +210,7 @@ it('socket.to(room)은 발신자가 그 방의 멤버여도 자신을 제외한�
   expect(msg3.received).toBe(false); // outside the room
 });
 
-it('io.emit()은 연결된 전원에게 전달한다', async () => {
+it('io.emit() delivers to everyone connected', async () => {
   const { client: client1 } = await ctx.connectClient();
   const { client: client2 } = await ctx.connectClient();
   const { client: client3 } = await ctx.connectClient();

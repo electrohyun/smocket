@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest';
 import { Server } from './index';
 
-it('연결하면 client와 server socket이 같은 id로 짝지어진다', async () => {
+it('connecting pairs the client and server socket with the same id', async () => {
   const server = new Server();
   const client = server.connect();
   const serverSocket = await server.nextConnection();

@@ -6,13 +6,13 @@ import { setupServer } from './setup-server';
 // server-side timeout requirement) were read off the real target, not guessed.
 const ctx = setupServer();
 
-it('다중 인자 ack은 첫 번째 값으로 resolve된다', async () => {
+it('multi-argument ack resolves with the first value', async () => {
   const { client, serverSocket } = await ctx.connectClient();
   serverSocket.on('multi', (ack: (...a: number[]) => void) => ack(1, 2, 3));
   await expect(client.emitWithAck('multi')).resolves.toBe(1);
 });
 
-it('trailing 콜백으로 sender-side ack을 받는다', async () => {
+it('the trailing callback receives the sender-side ack', async () => {
   const { client, serverSocket } = await ctx.connectClient();
   serverSocket.on('cb', (a: number, ack: (n: number) => void) => ack(a * 10));
   const result = await new Promise((resolve) => {
@@ -21,7 +21,7 @@ it('trailing 콜백으로 sender-side ack을 받는다', async () => {
   expect(result).toBe(50);
 });
 
-it('ack을 두 번 불러도 sender 콜백은 한 번만 실행된다', async () => {
+it('calling ack twice runs the sender callback only once', async () => {
   const { client, serverSocket } = await ctx.connectClient();
   serverSocket.on('double', (ack: (n: number) => void) => {
     ack(1);
@@ -37,7 +37,7 @@ it('ack을 두 번 불러도 sender 콜백은 한 번만 실행된다', async ()
   expect(calls).toBe(1);
 });
 
-it('상대가 ack을 안 부르면 emitWithAck은 pending으로 남는다', async () => {
+it('emitWithAck stays pending when the peer never acks', async () => {
   const { client, serverSocket } = await ctx.connectClient();
   serverSocket.on('silent', () => {
     /* never acks */
@@ -49,7 +49,7 @@ it('상대가 ack을 안 부르면 emitWithAck은 pending으로 남는다', asyn
   expect(race).toBe('pending');
 });
 
-it('서버 -> 클라이언트 emitWithAck은 timeout 없이 동작한다', async () => {
+it('server-to-client emitWithAck works without a timeout', async () => {
   const { client, serverSocket } = await ctx.connectClient();
   client.on('sq', (n: number, ack: (r: number) => void) => ack(n + 1));
   await expect(serverSocket.emitWithAck('sq', 41)).resolves.toBe(42);

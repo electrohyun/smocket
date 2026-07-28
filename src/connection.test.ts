@@ -3,14 +3,14 @@ import { setupServer } from './setup-server';
 
 const ctx = setupServer();
 
-it('연결되면 양쪽 다 socket id를 가진다', async () => {
+it('both sides have a socket id once connected', async () => {
   const { client, serverSocket } = await ctx.connectClient();
   expect(client.connected).toBe(true);
   expect(client.id).toBeTruthy();
   expect(serverSocket.id).toBe(client.id);
 });
 
-it('클라이언트 -> 서버 emit이 도착한다', async () => {
+it('a client-to-server emit arrives', async () => {
   const { client, serverSocket } = await ctx.connectClient();
   const received = new Promise<string>((resolve) => {
     serverSocket.on('ping', resolve);
@@ -19,7 +19,7 @@ it('클라이언트 -> 서버 emit이 도착한다', async () => {
   await expect(received).resolves.toBe('hello');
 });
 
-it('클라이언트 -> 서버 ack이 돌아온다', async () => {
+it('a client-to-server ack comes back', async () => {
   const { client, serverSocket } = await ctx.connectClient();
   serverSocket.on('sum', (a: number, b: number, ack: (n: number) => void) => {
     ack(a + b);
@@ -28,7 +28,7 @@ it('클라이언트 -> 서버 ack이 돌아온다', async () => {
   expect(result).toBe(3);
 });
 
-it('서버 -> 클라이언트 ack이 돌아온다', async () => {
+it('a server-to-client ack comes back', async () => {
   const { client, serverSocket } = await ctx.connectClient();
   client.on('sum', (a: number, b: number, ack: (n: number) => void) => {
     ack(a + b);
