@@ -15,17 +15,17 @@ type Listener = (...args: never[]) => void;
 
 /**
  * smocket's in-memory core. No HTTP server, no port, no transport: a client and
- * its server-side socket are paired directly in memory (decision ③). This file
- * covers the connect lifecycle and id pairing (#40), event delivery with
- * acknowledgements in both directions (#41), rooms (#42), broadcast (#43),
- * per-namespace isolation (#44) and membership cleanup with reconnect on
- * disconnect (#45). With #45 the last unimplemented seam (`client.connect`) is
- * filled, so mock mode now covers the whole surface the conformance suite drives.
+ * its server-side socket are paired directly in memory (decision ③). It is the
+ * `mock` half of the dual-run suite, standing in for a real socket.io server and
+ * reproducing its behaviour over the surface the conformance tests exercise, from
+ * the connect / disconnect lifecycle through emit/on acks, rooms, broadcast, and
+ * per-namespace isolation. What must be reproduced is whatever those tests pin;
+ * whether it holds is the CI run's verdict, not this comment's.
  *
  * FIFO invariant: connection completion and every emit are scheduled through the
  * one `defer` primitive, and the microtask queue is itself FIFO, so a socket
  * observes events in send order. The "did NOT receive" marker proofs in the
- * tests depend on this per-socket ordering; broadcast (#43) must preserve it.
+ * tests depend on this per-socket ordering; broadcast must preserve it.
  */
 
 /**
