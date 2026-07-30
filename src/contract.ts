@@ -101,6 +101,12 @@ export interface ServerSocketContract {
   leave(room: string): Promise<void> | void;
   to(room: string | string[]): BroadcastContract;
   except(room: string | string[]): BroadcastContract;
+  /**
+   * Server-initiated disconnect. `close` decides whether the underlying transport
+   * is closed too; a mock has no transport, so it has no effect there. Fires
+   * `disconnect` on both sides with real socket.io's reason for this path.
+   */
+  disconnect(close?: boolean): void;
 }
 
 /** A client-side socket, as `client`. */
