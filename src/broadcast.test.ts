@@ -211,19 +211,12 @@ it('socket.to(room) excludes the sender even when the sender is a member of that
 });
 
 it('io.emit() delivers to everyone connected', async () => {
-  const { client: client1 } = await ctx.connectClient();
-  const { client: client2 } = await ctx.connectClient();
-  const { client: client3 } = await ctx.connectClient();
-
-  const got1 = receive(client1, 'msg');
-  const got2 = receive(client2, 'msg');
-  const got3 = receive(client3, 'msg');
+  const clients = await ctx.connectClients(3);
+  const received = clients.map(({ client }) => receive(client, 'msg'));
 
   // No sender to exclude, so this needs no marker: every client is expected to
   // receive, and the awaits below would time out if one did not.
   ctx.io.emit('msg', 'hello');
 
-  await expect(got1).resolves.toBe('hello');
-  await expect(got2).resolves.toBe('hello');
-  await expect(got3).resolves.toBe('hello');
+  for (const got of received) await expect(got).resolves.toBe('hello');
 });
