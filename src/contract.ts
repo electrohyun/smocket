@@ -46,6 +46,37 @@ export interface NamespaceContract {
   to(room: string | string[]): BroadcastContract;
 }
 
+/**
+ * The routing seam a custom adapter implements, promoted from smocket's internal
+ * `Adapter`. It owns membership (`add` / `del`) and the routing decision
+ * (`socketsIn`: which sids a broadcast targets), and nothing else. It has no
+ * delivery or scheduling method, so a registered adapter can retarget a broadcast
+ * but can never reorder or delay a socket's stream: the per-socket FIFO invariant
+ * (0010) is structurally out of its reach because delivery stays in the core.
+ *
+ * This is a smocket-only addition with no dual-run counterpart, so it is not held
+ * to the `Ensure<>` checks below. Real socket.io's adapter also delivers and needs
+ * a transport smocket has none of (0009), so a custom adapter written here does not
+ * run there. That asymmetry is recorded in `docs/differences.md` §B.
+ */
+export interface SmocketAdapter {
+  /** room -> member sids. */
+  rooms: Map<string, Set<string>>;
+  /** sid -> the rooms it is in. */
+  sids: Map<string, Set<string>>;
+  add(sid: string, room: string): void;
+  del(sid: string, room: string): void;
+  /** The routing decision: the deduped union of the given rooms' member sids. */
+  socketsIn(rooms: Iterable<string>): Set<string>;
+}
+
+/**
+ * Builds the adapter for one namespace. Passed to `Server.adapter` to replace the
+ * built-in routing with a custom one; called once per namespace with that
+ * namespace, so the adapter can read per-namespace state such as its name.
+ */
+export type AdapterFactory = (nsp: NamespaceContract) => SmocketAdapter;
+
 /** The socket.io `Server`, as `ctx.io`. */
 export interface ServerContract {
   emit(event: string, ...args: unknown[]): void;
