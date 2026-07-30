@@ -4,6 +4,7 @@ import { Server, type Socket as ServerSocket } from 'socket.io';
 import { io, type Socket as ClientSocket } from 'socket.io-client';
 import { afterEach, beforeEach } from 'vitest';
 import type { ConnectOptions, ServerContext } from './contract';
+import { makeConnectClients } from './connect-clients';
 
 /**
  * Boots a real socket.io server around each test and hands back a
@@ -60,6 +61,8 @@ export function setupRealServer(): ServerContext {
     clients.push(client);
     return { client, serverSocket };
   };
+
+  ctx.connectClients = makeConnectClients(ctx);
 
   return ctx;
 }

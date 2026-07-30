@@ -143,6 +143,14 @@ export interface ServerContext {
   /** Connect one more client and return it paired with its server-side socket. */
   connectClient: (options?: ConnectOptions) => Promise<ConnectedClient>;
   /**
+   * Connect `count` clients and return them paired with their server-side
+   * sockets, in connection order. Sugar over `connectClient` for the recurring
+   * multi-client setup; connections are made one at a time, since the harness
+   * pairs each connect with the next `connection`, so connecting concurrently
+   * would mismatch the pairs.
+   */
+  connectClients: (count: number, options?: ConnectOptions) => Promise<ConnectedClient[]>;
+  /**
    * Resolve with the server-side socket of the next client to connect on
    * `namespace`. Needed when the connection is not started by `connectClient`,
    * as with a reconnect of a client already known to the test.
