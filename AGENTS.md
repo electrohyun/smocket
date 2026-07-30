@@ -41,6 +41,7 @@ multi-server scaling (Redis adapter), and binary encoding.
 
 Follow the Commits and Pull requests sections of
 [CONTRIBUTING.md](CONTRIBUTING.md). In short: Conventional Commits
-(`type: description`), no issue number in the branch or subject line, one commit
-per issue (amend rather than stack fixups), and `Closes #N` in the PR body. Write
-commits, PRs, and issues in English.
+(`type: description`), no issue number in the branch or subject line, commits
+split by type (`feat` apart from `docs`) with a tidy history before review, since
+PRs are rebase merged and every commit lands on `main` as-is, and `Closes #N` in
+the PR body. Write commits, PRs, and issues in English.
