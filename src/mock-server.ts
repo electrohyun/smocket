@@ -440,29 +440,49 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
   }
 
   /**
-   * Run the server-side teardown for a disconnecting client, one tick later
-   * through the same `defer` every emit uses. An emit sent just before
-   * `disconnect()` is already queued, so deferring the teardown lets it arrive
-   * before the socket leaves its rooms, keeping the per-socket FIFO invariant the
-   * marker proofs rely on. Only the client-side state flip is synchronous (see
-   * `ClientSocket.disconnect`).
+   * Server-side teardown for a disconnecting socket, one tick later through the
+   * same `defer` every emit uses. An emit sent just before disconnect is already
+   * queued, so deferring the teardown lets it arrive before the socket leaves its
+   * rooms, keeping the per-socket FIFO invariant the marker proofs rely on.
+   *
+   * `disconnecting` fires while the rooms are still intact, so a handler can read
+   * and notify them; `disconnect` fires once they are gone. Both carry `reason`,
+   * the string real socket.io reports on this side (pinned in the tests).
    */
-  handleDisconnect(): void {
+  private teardown(reason: string): void {
     defer(() => {
-      // `disconnecting` fires while the rooms are still intact, so a handler can
-      // read and notify them; `disconnect` fires once they are gone. This is the
-      // ordering the `observeDisconnect` proof and real socket.io both depend on.
-      this.dispatch('disconnecting', []);
+      this.dispatch('disconnecting', [reason]);
       for (const room of this.rooms) this.nsp.adapter.del(this.id, room);
       // Empty the live Set in place (contract: "emptied in place on teardown")
       // rather than replacing it, so any held reference sees it clear.
       this.rooms.clear();
-      // Drop the socket from the namespace roster too, the other half of the
-      // teardown: otherwise `io.emit()` (empty target rooms means the whole
-      // `sockets` map) keeps delivering to a socket that is already gone.
+      // Drop the socket from the namespace roster too: otherwise `io.emit()`
+      // (empty target rooms means the whole `sockets` map) keeps delivering to a
+      // socket that is already gone.
       this.nsp.sockets.delete(this.id);
-      this.dispatch('disconnect', []);
+      this.dispatch('disconnect', [reason]);
     });
+  }
+
+  /**
+   * A client-initiated disconnect (`client.disconnect()`) reaching the server
+   * side. The client already reported `io client disconnect` on its own side; the
+   * server reports `client namespace disconnect`, real socket.io's reason here.
+   */
+  handleDisconnect(): void {
+    this.teardown('client namespace disconnect');
+  }
+
+  /**
+   * Server-initiated disconnect, socket.io's `socket.disconnect(close?)`. `close`
+   * only decides whether the underlying connection is torn down too; a mock has no
+   * transport and the reason is the same either way (pinned against real), so the
+   * argument is accepted and ignored. The client side learns `io server
+   * disconnect`; this side tears down with `server namespace disconnect`.
+   */
+  disconnect(_close?: boolean): void {
+    this.peer.markDisconnected('io server disconnect');
+    this.teardown('server namespace disconnect');
   }
 
   emit(event: string, ...args: unknown[]): void {
@@ -599,14 +619,26 @@ export class ClientSocket extends Emitter implements ClientSocketContract {
 
   disconnect(): void {
     if (!this.connected) return;
+    // Client-initiated: this side reports `io client disconnect`, then the server
+    // side tears down and reports `client namespace disconnect`.
+    this.markDisconnected('io client disconnect');
+    this.serverSocket.handleDisconnect();
+  }
+
+  /**
+   * Flip to disconnected, settle any pending ack, and fire the client-side
+   * `disconnect` with `reason`. Shared by a client-initiated disconnect and a
+   * server-initiated one (`ServerSocket.disconnect`); only the reason differs.
+   * socket.io-client settles a pending emitWithAck on disconnect instead of
+   * leaving it hanging, which is why the rejecters are drained here.
+   */
+  markDisconnected(reason: string): void {
     this.connected = false;
     this.id = undefined;
-    // Reject any ack still waiting for an answer, the way socket.io-client settles
-    // a pending emitWithAck on disconnect instead of leaving it hanging forever.
     const rejecters = [...this.pendingAcks];
     this.pendingAcks.clear();
     for (const reject of rejecters) reject(new Error('socket has been disconnected'));
-    this.serverSocket.handleDisconnect();
+    this.dispatch('disconnect', [reason]);
   }
 }
 
