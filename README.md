@@ -32,23 +32,30 @@ npm install -D smocket
 ## Usage
 
 ```ts
-import { MockServer } from 'smocket';
+import { Server } from 'smocket';
 
-const io = new MockServer();
+const io = new Server();
 
-io.on('connection', (socket) => {
+// smocket pairs each client with its server-side socket through nextConnection.
+// (A single io.on('connection') entry point is planned; see #88.)
+async function connect() {
+  const client = io.connect();
+  const socket = await io.nextConnection();
   socket.on('join', (room) => {
     socket.join(room);
     socket.to(room).emit('user-joined', socket.id);
   });
-});
+  return client;
+}
 
-const a = io.connect();
-const b = io.connect();
+const a = await connect();
+const b = await connect();
+
+a.on('user-joined', (id) => console.log('a saw', id));
 
 a.emit('join', 'room-1');
 b.emit('join', 'room-1');
-// a receives 'user-joined'; b does not, since it is the sender
+// b joins after a, so a receives 'user-joined' (b's id); b does not, since it is the sender.
 ```
 
 ## Features
