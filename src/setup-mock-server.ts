@@ -1,5 +1,6 @@
 import { afterEach, beforeEach } from 'vitest';
 import type { ClientSocketContract, ConnectOptions, ServerContext } from './contract';
+import { makeConnectClients } from './connect-clients';
 import { Server } from './mock-server';
 
 /**
@@ -40,6 +41,8 @@ export function setupMockServer(): ServerContext {
     clients.push(client);
     return { client, serverSocket };
   };
+
+  ctx.connectClients = makeConnectClients(ctx);
 
   return ctx;
 }
