@@ -1,5 +1,6 @@
 import { expect, it } from 'vitest';
 import { setupServer } from './setup-server';
+import { observeDisconnect } from './test-events';
 
 // Ack semantics pinned against real socket.io first, then satisfied by smocket.
 // The exact shapes here (first-value resolve, ack-once, stays-pending, no
@@ -53,4 +54,23 @@ it('server-to-client emitWithAck works without a timeout', async () => {
   const { client, serverSocket } = await ctx.connectClient();
   client.on('sq', (n: number, ack: (r: number) => void) => ack(n + 1));
   await expect(serverSocket.emitWithAck('sq', 41)).resolves.toBe(42);
+});
+
+it('emitWithAck buffers while disconnected and settles after reconnect', async () => {
+  const { client, serverSocket } = await ctx.connectClient();
+
+  const { disconnected } = observeDisconnect(serverSocket);
+  client.disconnect();
+  await disconnected;
+
+  // Buffered while disconnected, exactly like emit: it must wait for reconnect
+  // rather than deliver to the dead socket, and it must neither throw nor leak.
+  const pending = client.emitWithAck('q', 5);
+
+  const reconnected = ctx.nextConnection();
+  client.connect();
+  const socket2 = await reconnected;
+  socket2.on('q', (n: number, ack: (r: number) => void) => ack(n * 2));
+
+  await expect(pending).resolves.toBe(10);
 });
