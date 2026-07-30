@@ -17,6 +17,8 @@
   </a>
 </p>
 
+> **Status: pre-1.0.** The delivery core (rooms, namespaces, broadcasts, acks, disconnect) is complete and checked against real socket.io by a dual-run conformance suite. The public API can still change before 1.0.0, and the idiomatic `io.on('connection')` and URL-based connect are on the way ([#88](https://github.com/electrohyun/smocket/issues/88)); for now you pair each connection with `nextConnection` (see [Usage](#usage)).
+
 ## Why smocket
 
 Socket.IO delivery is more than event propagation. Room membership, namespace isolation, and broadcast exclusion rules interact to decide a single question: who actually receives this event?
