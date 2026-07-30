@@ -35,7 +35,10 @@ None of these can exist in a mock, because a mock never opens a real connection:
   planned feature, and is not this.)
 - **transport fallback**: there is no WebSocket or HTTP long-polling transport to
   fall back between.
-- **heartbeat**: there is no live connection to ping, so none can time out.
+- **heartbeat**: there is no live connection to ping, so none can time out. (The
+  disconnect a timeout would cause is still observable: `socket.disconnect()`
+  delivers a reason your handler can branch on, the same way the reconnect trigger
+  exercises your reconnect handlers.)
 - **multi-server scaling** (the Redis [adapter](./glossary.md#adapter),
   `serverSideEmit`): one in-memory process has no second server to reach.
 - **binary encoding / engine framing**: nothing is serialised onto a wire, so
