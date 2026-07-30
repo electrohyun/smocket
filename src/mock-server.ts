@@ -575,7 +575,18 @@ export class ClientSocket extends Emitter implements ClientSocketContract {
         this.pendingAcks.delete(reject);
         resolve(value);
       };
-      send(this.serverSocket, event, [...args, (...received: unknown[]) => answer(received[0])]);
+      const withAck = [...args, (...received: unknown[]) => answer(received[0])];
+      // Before the first connect or while disconnected there is no live server
+      // socket, so buffer the call the way `emit` does and let `completeConnection`
+      // replay it to the (re)connected socket. `send` treats the trailing callback
+      // as the ack, so a flushed emitWithAck still gets its answer. Delivering to
+      // the stale `serverSocket` instead would leak the promise (the dead socket
+      // never acks) and, before the first connect, dereference an undefined socket.
+      if (!this.connected) {
+        this.sendBuffer.push([event, withAck]);
+        return;
+      }
+      send(this.serverSocket, event, withAck);
     });
   }
 
