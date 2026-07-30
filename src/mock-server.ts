@@ -1,10 +1,12 @@
 import { randomBytes } from 'node:crypto';
 import type {
+  AdapterFactory,
   BroadcastContract,
   ClientSocketContract,
   NamespaceContract,
   ServerContract,
   ServerSocketContract,
+  SmocketAdapter,
 } from './contract';
 
 /**
@@ -70,8 +72,12 @@ type Waiter = (socket: ServerSocket) => void;
  * by every mutator:
  * - `rooms`: room name -> the sids currently in it.
  * - `sids`:  sid -> the rooms it currently belongs to.
+ *
+ * It is the built-in `SmocketAdapter`, and the base a custom one extends: a
+ * registered adapter typically overrides `socketsIn` to observe or narrow the
+ * routing decision while reusing this membership bookkeeping (see `Server.adapter`).
  */
-class Adapter {
+export class Adapter implements SmocketAdapter {
   /** room -> member sids. A room key exists only while it has at least one member. */
   readonly rooms = new Map<string, Set<string>>();
   /** sid -> the rooms it is in. The reverse index, so leaving is not a full scan. */
@@ -150,7 +156,7 @@ class BroadcastOperator implements BroadcastContract {
   private readonly exceptRooms = new Set<string>();
 
   constructor(
-    private readonly adapter: Adapter,
+    private readonly adapter: SmocketAdapter,
     private readonly sockets: Map<string, ServerSocket>,
     rooms: Iterable<string>,
     except: Iterable<string>,
@@ -201,8 +207,12 @@ class Namespace implements NamespaceContract {
    * deliver to.
    */
   readonly sockets = new Map<string, ServerSocket>();
-  /** This namespace's room membership. */
-  readonly adapter = new Adapter();
+  /**
+   * This namespace's routing seam: the built-in `Adapter`, or a custom one built by
+   * the factory registered through `Server.adapter`. Not `readonly`, so a late
+   * `io.adapter()` can swap it in; see `useAdapter`.
+   */
+  adapter: SmocketAdapter;
   /** Server sockets connected here but not yet claimed by a `nextConnection`. */
   private readonly ready: ServerSocket[] = [];
   /**
@@ -216,7 +226,22 @@ class Namespace implements NamespaceContract {
     readonly name: string,
     /** The shared Manager stand-in every client here is given; see ClientSocket.io. */
     private readonly server: Server,
-  ) {}
+    /** The custom adapter factory registered on the server, if any; see `useAdapter`. */
+    adapterFactory?: AdapterFactory,
+  ) {
+    this.adapter = adapterFactory ? adapterFactory(this) : new Adapter();
+  }
+
+  /**
+   * Swap in a custom adapter built by `factory`. Called by `Server.adapter` both
+   * when a namespace is created and to reconfigure one that already exists, so
+   * registering an adapter reaches every namespace. Like real socket.io, this
+   * installs a fresh adapter and does not carry over membership, so it is meant to
+   * be called during setup, before any client connects here.
+   */
+  useAdapter(factory: AdapterFactory): void {
+    this.adapter = factory(this);
+  }
 
   /**
    * Attach a new client to this namespace in memory and return the client side.
@@ -304,11 +329,32 @@ export class Server implements ServerContract {
    */
   private readonly namespaces = new Map<string, Namespace>();
 
+  /**
+   * The custom adapter factory registered through `adapter`, applied to every
+   * namespace this server creates. Undefined until a caller registers one, in
+   * which case each namespace uses the built-in `Adapter`.
+   */
+  private adapterFactory: AdapterFactory | undefined;
+
+  /**
+   * Register a custom [adapter](../docs/glossary.md#adapter) factory: smocket's
+   * public routing seam. The factory builds one adapter per namespace, replacing
+   * the built-in routing (which sids a broadcast targets) while delivery stays in
+   * the core, so a custom adapter cannot break per-socket order (0010). This is a
+   * smocket-only API with no socket.io-compatible counterpart (see
+   * `docs/differences.md` §B); call it during setup, before connecting clients,
+   * since it installs a fresh adapter on every namespace, including existing ones.
+   */
+  adapter(factory: AdapterFactory): void {
+    this.adapterFactory = factory;
+    for (const namespace of this.namespaces.values()) namespace.useAdapter(factory);
+  }
+
   /** Get the namespace by name, creating it on first use (socket.io's lazy `of`). */
   of(name: string): Namespace {
     const existing = this.namespaces.get(name);
     if (existing) return existing;
-    const namespace = new Namespace(name, this);
+    const namespace = new Namespace(name, this, this.adapterFactory);
     this.namespaces.set(name, namespace);
     return namespace;
   }
