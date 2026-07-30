@@ -149,3 +149,58 @@ it('a pending server.emitWithAck stays pending when the client disconnects', asy
   ]);
   expect(race).toBe('pending');
 });
+
+// disconnect reasons, pinned against real socket.io: a client-initiated close and
+// a server-initiated one carry different strings, and each side sees its own.
+it('client.disconnect() reports io client disconnect to the client and client namespace disconnect to the server', async () => {
+  const { client, serverSocket } = await ctx.connectClient();
+
+  const clientReason = new Promise<string>((resolve) =>
+    client.once('disconnect', (reason: string) => resolve(reason)),
+  );
+  const serverReason = new Promise<string>((resolve) =>
+    serverSocket.once('disconnect', (reason: string) => resolve(reason)),
+  );
+
+  client.disconnect();
+
+  await expect(clientReason).resolves.toBe('io client disconnect');
+  await expect(serverReason).resolves.toBe('client namespace disconnect');
+});
+
+it('serverSocket.disconnect() reports io server disconnect to the client and server namespace disconnect to the server', async () => {
+  const { client, serverSocket } = await ctx.connectClient();
+
+  const clientReason = new Promise<string>((resolve) =>
+    client.once('disconnect', (reason: string) => resolve(reason)),
+  );
+  const serverReason = new Promise<string>((resolve) =>
+    serverSocket.once('disconnect', (reason: string) => resolve(reason)),
+  );
+
+  serverSocket.disconnect();
+
+  await expect(clientReason).resolves.toBe('io server disconnect');
+  await expect(serverReason).resolves.toBe('server namespace disconnect');
+});
+
+it('disconnecting carries the same reason and fires before disconnect', async () => {
+  const { client, serverSocket } = await ctx.connectClient();
+
+  const order: string[] = [];
+  serverSocket.once('disconnecting', (reason: string) => order.push(`disconnecting:${reason}`));
+  const disconnected = new Promise<void>((resolve) =>
+    serverSocket.once('disconnect', (reason: string) => {
+      order.push(`disconnect:${reason}`);
+      resolve();
+    }),
+  );
+
+  client.disconnect();
+  await disconnected;
+
+  expect(order).toEqual([
+    'disconnecting:client namespace disconnect',
+    'disconnect:client namespace disconnect',
+  ]);
+});
