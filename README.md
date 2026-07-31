@@ -17,7 +17,7 @@
   </a>
 </p>
 
-> **Status: pre-1.0.** The delivery core (rooms, namespaces, broadcasts, acks, disconnect) is complete and checked against real socket.io by a dual-run conformance suite. The public API can still change before 1.0.0, and the idiomatic `io.on('connection')` and URL-based connect are on the way ([#88](https://github.com/electrohyun/smocket/issues/88)); for now you pair each connection with `nextConnection` (see [Usage](#usage)).
+> **Status: pre-1.0.** The delivery core (rooms, namespaces, broadcasts, acks, disconnect) is complete and checked against real socket.io by a dual-run conformance suite. The idiomatic `io.on('connection')` entry point and URL-based `connect(url)` now work (see [Usage](#usage)); the `nextConnection` pairing helper stays for tests that drive a connection directly. The public API can still change before 1.0.0.
 
 ## Why smocket
 
@@ -34,27 +34,27 @@ npm install -D smocket
 ## Usage
 
 ```ts
-import { Server } from 'smocket';
+import { connect, Server } from 'smocket';
 
-const io = new Server();
+const io = new Server('http://localhost:3000');
 
-// smocket pairs each client with its server-side socket through nextConnection.
-// (A single io.on('connection') entry point is planned; see #88.)
-async function connect() {
-  const client = io.connect();
-  const socket = await io.nextConnection();
+// The server-side entry point, exactly as in real socket.io: wire per-socket
+// handlers as each client connects.
+io.on('connection', (socket) => {
   socket.on('join', (room) => {
     socket.join(room);
     socket.to(room).emit('user-joined', socket.id);
   });
-  return client;
-}
+});
 
-const a = await connect();
-const b = await connect();
+// Clients connect by URL, resolved to the server through smocket's origin registry.
+const a = connect('http://localhost:3000');
+const b = connect('http://localhost:3000');
 
 a.on('user-joined', (id) => console.log('a saw', id));
 
+// Emits sent before the connection completes are buffered and flushed in order,
+// so a joins room-1 before b does.
 a.emit('join', 'room-1');
 b.emit('join', 'room-1');
 // b joins after a, so a receives 'user-joined' (b's id); b does not, since it is the sender.
