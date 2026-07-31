@@ -1,9 +1,9 @@
 # Glossary
 
-> **TL;DR** The lookup reference for the socket.io domain terms that recur across
-> smocket's docs. Each doc links here on first use and never redefines a term.
-> Entries describe socket.io itself; smocket-specific behaviour lives in its own
-> owning doc.
+> **TL;DR** The lookup reference for the terms that recur across smocket's docs.
+> Each doc links here on first use and never redefines a term. Most entries describe
+> socket.io itself; the few smocket-specific terms that recur are anchored here too,
+> each linking to the owning doc where the behaviour is decided.
 
 Terms are listed in dependency order: later entries lean on earlier ones.
 
@@ -57,3 +57,11 @@ returned by `io.of(name)`. See namespace.
 The object returned by `io.to(room)`, `socket.broadcast`, `socket.except(room)`,
 and their siblings. It holds the target and excluded room sets and exposes `emit`,
 so every broadcast form is one mechanism built with different sets.
+
+## origin registry
+
+smocket-specific. The in-memory map from a normalized URL origin to the `Server`
+registered there. `new Server(url)` adds itself to it, and `connect(url)` resolves
+a client's target through it, standing in for the network a real client would reach
+over. Decided in [0003](./decisions/0003-url-is-required.md) and
+[0014](./decisions/0014-connection-handler-fires-before-client-connect.md).
