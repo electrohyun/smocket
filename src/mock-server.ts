@@ -412,8 +412,12 @@ export function resetRegistry(): void {
 }
 
 export class Server implements ServerContract {
-  /** This server's normalized origin, its key in the module `servers` registry. */
-  readonly origin: string;
+  /**
+   * This server's normalized origin, its key in the module `servers` registry.
+   * Private: it is internal bookkeeping with no counterpart on real socket.io, so
+   * it stays off the public surface rather than becoming an undocumented addition.
+   */
+  private readonly origin: string;
   /**
    * The namespace registry. Every connection, room and broadcast lives on a
    * `Namespace`; the server is the front door that routes to one. `of` is
