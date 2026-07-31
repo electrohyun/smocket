@@ -42,6 +42,12 @@ export interface AdapterContract {
 export interface NamespaceContract {
   name: string;
   adapter: AdapterContract;
+  /**
+   * Per-namespace entry point: `io.of(name).on('connection', cb)` fires `cb` only
+   * for connections on that namespace. `io.on('connection')` is the `/` case of
+   * this, so both go through the same surface.
+   */
+  on(event: string, listener: Listener): void;
   emit(event: string, ...args: unknown[]): void;
   to(room: string | string[]): BroadcastContract;
 }
