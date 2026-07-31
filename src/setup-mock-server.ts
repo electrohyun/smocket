@@ -16,7 +16,7 @@ export function setupMockServer(): ServerContext {
   let clients: ClientSocketContract[] = [];
 
   beforeEach(() => {
-    server = new Server();
+    server = new Server('http://localhost');
     clients = [];
     ctx.io = server;
   });

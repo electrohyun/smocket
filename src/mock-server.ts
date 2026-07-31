@@ -362,7 +362,58 @@ class Namespace implements NamespaceContract {
   }
 }
 
+/**
+ * The origin registry: normalized origin -> the `Server` listening there. Every
+ * `new Server(url)` registers itself here and every `connect(url)` resolves through
+ * it, so the required url and this map are the one decision (0003). A module-level
+ * singleton, cleared between tests through `resetRegistry`.
+ */
+const servers = new Map<string, Server>();
+
+/**
+ * Split a url into its origin (the registry key) and namespace path, normalizing
+ * the way socket.io's `url.js` does so two spellings of one origin collapse to a
+ * single key (0003): a relative url resolves against `location.origin`, and a
+ * missing port is filled from the scheme (http -> 80, https -> 443).
+ */
+function parseUrl(url: string): { origin: string; namespace: string } {
+  // `location` exists in a browser/jsdom run and is absent under plain node; read
+  // it off `globalThis` so the reference type-checks either way.
+  const base = (globalThis as { location?: { origin: string } }).location?.origin;
+  const parsed = new URL(url, base);
+  const port = parsed.port || (parsed.protocol === 'https:' ? '443' : '80');
+  const origin = `${parsed.protocol}//${parsed.hostname}:${port}`;
+  const namespace = parsed.pathname === '' ? '/' : parsed.pathname;
+  return { origin, namespace };
+}
+
+/**
+ * Attach a client to the server registered for `url`'s origin: smocket's
+ * app-facing entry point, socket.io-client's `io(url)`. The origin is resolved
+ * through the registry (0003) and the url's path selects the namespace. When no
+ * server is registered for that origin, the returned client fires `connect_error`
+ * and does not retry (0005), rather than throwing.
+ */
+export function connect(url: string): ClientSocketContract {
+  const { origin, namespace } = parseUrl(url);
+  const server = servers.get(origin);
+  if (!server) return new FailedClientSocket(origin);
+  return server.connect(namespace);
+}
+
+/**
+ * Clear the origin registry. Test-only, and deliberately not re-exported from the
+ * package index: the registry is a module-level singleton that would otherwise
+ * carry servers across a file's tests, so a suite registering servers resets
+ * between cases to keep `connect(url)` lookups isolated.
+ */
+export function resetRegistry(): void {
+  servers.clear();
+}
+
 export class Server implements ServerContract {
+  /** This server's normalized origin, its key in the module `servers` registry. */
+  readonly origin: string;
   /**
    * The namespace registry. Every connection, room and broadcast lives on a
    * `Namespace`; the server is the front door that routes to one. `of` is
@@ -377,6 +428,18 @@ export class Server implements ServerContract {
    * which case each namespace uses the built-in `Adapter`.
    */
   private adapterFactory: AdapterFactory | undefined;
+
+  /**
+   * The url is required, with no argument-less form: socket.io always takes a
+   * connection target, so smocket does too rather than invent a rule for what an
+   * unlabelled server means (0003). The url is normalized to an origin and the
+   * server registers itself under it, so a later `connect(url)` naming the same
+   * origin resolves back to this instance.
+   */
+  constructor(url: string) {
+    this.origin = parseUrl(url).origin;
+    servers.set(this.origin, this);
+  }
 
   /**
    * Register a custom [adapter](../docs/glossary.md#adapter) factory: smocket's
@@ -690,6 +753,51 @@ export class ClientSocket extends Emitter implements ClientSocketContract {
     this.pendingAcks.clear();
     for (const reject of rejecters) reject(new Error('socket has been disconnected'));
     this.dispatch('disconnect', [reason]);
+  }
+}
+
+/**
+ * The client `connect(url)` returns when no server is registered for the origin.
+ * It never pairs: one tick later it fires `connect_error` once and logs the
+ * failure to the console, then stops. This is smocket's single deliberate
+ * divergence from real socket.io, which retries the connection forever (0005) —
+ * that retry is driven by network timing a mock has no source for, so smocket
+ * reports the failure and does not simulate it. The `console.error` is a
+ * diagnostics layer over the event, so a mistyped url is not silent for the common
+ * case of no `connect_error` handler.
+ */
+class FailedClientSocket extends Emitter implements ClientSocketContract {
+  readonly connected = false;
+  readonly id = undefined;
+  readonly io = undefined;
+
+  constructor(origin: string) {
+    super();
+    const message = `no server registered for ${origin}`;
+    // Next tick through the same `defer` a successful connect uses (0005: no
+    // artificial delay), so a `connect_error` handler added on the next line is
+    // registered in time, the same ordering reason as a real connect (0004).
+    defer(() => {
+      console.error(`[smocket] connect_error: ${message}`);
+      this.dispatch('connect_error', [new Error(message)]);
+    });
+  }
+
+  // A failed connection never completes, so there is nothing to send, ack, or tear
+  // down, and `connect()` does not retry: the failure was already reported (0005).
+  emit(): void {
+    /* inert: never connected */
+  }
+  emitWithAck(): Promise<unknown> {
+    // No server will ever answer, so this stays pending, matching a client whose
+    // connection never completes rather than inventing a rejection shape.
+    return new Promise<unknown>(() => {});
+  }
+  connect(): void {
+    /* inert: the failure is terminal, no retry (0005) */
+  }
+  disconnect(): void {
+    /* inert: never connected */
   }
 }
 
