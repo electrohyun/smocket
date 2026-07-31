@@ -2,7 +2,7 @@ import { expect, it } from 'vitest';
 import { Server } from './index';
 
 it('connecting pairs the client and server socket with the same id', async () => {
-  const server = new Server();
+  const server = new Server('http://localhost');
   const client = server.connect();
   const serverSocket = await server.nextConnection();
 

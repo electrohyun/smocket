@@ -39,7 +39,7 @@ class DropAdapter extends Adapter {
 }
 
 it('io.adapter registers a custom adapter that observes the routing decision', async () => {
-  const server = new Server();
+  const server = new Server('http://localhost');
   const spy = new SpyAdapter();
   // The factory receives the namespace; this example does not need it. One
   // namespace is used here, so returning a single prebuilt instance is enough.
@@ -62,7 +62,7 @@ it('io.adapter registers a custom adapter that observes the routing decision', a
 });
 
 it('a custom adapter can drop a socket from the target set, and per-socket order still holds', async () => {
-  const server = new Server();
+  const server = new Server('http://localhost');
   const drop = new DropAdapter();
   server.adapter(() => drop);
 
@@ -90,7 +90,7 @@ it('a custom adapter can drop a socket from the target set, and per-socket order
 });
 
 it('registering a custom adapter preserves per-socket delivery order', async () => {
-  const server = new Server();
+  const server = new Server('http://localhost');
   server.adapter(() => new SpyAdapter());
 
   const client1 = server.connect();
