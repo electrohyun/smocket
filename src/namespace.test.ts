@@ -1,8 +1,25 @@
 import { expect, it } from 'vitest';
+import type { ServerSocketContract } from './contract';
 import { setupServer } from './setup-server';
 import { receive, track } from './test-events';
 
 const ctx = setupServer();
+
+it("io.of(nsp).on('connection') fires only for connections on that namespace", async () => {
+  const seen = new Promise<ServerSocketContract>((resolve) => {
+    ctx.io.of('/game').on('connection', (socket: ServerSocketContract) => resolve(socket));
+  });
+  // Connect on the default namespace first, and fully await it. Were that
+  // connection to leak into the /game handler, `seen` would already be resolved
+  // with a `/` socket, so the namespace assertion below would fail. This proves
+  // the isolation by ordering rather than by waiting out a timeout.
+  await ctx.connectClient();
+  const { client } = await ctx.connectClient({ namespace: '/game' });
+
+  const serverSocket = await seen;
+  expect(serverSocket.nsp.name).toBe('/game');
+  expect(serverSocket.id).toBe(client.id);
+});
 
 it('io.of(nsp).emit() goes only to clients in that namespace', async () => {
   const { client: rootClient, serverSocket: rootSocket } = await ctx.connectClient();
