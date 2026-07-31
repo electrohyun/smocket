@@ -1,4 +1,5 @@
 import { expect, it } from 'vitest';
+import type { ServerSocketContract } from './contract';
 import { setupServer } from './setup-server';
 
 const ctx = setupServer();
@@ -7,6 +8,26 @@ it('both sides have a socket id once connected', async () => {
   const { client, serverSocket } = await ctx.connectClient();
   expect(client.connected).toBe(true);
   expect(client.id).toBeTruthy();
+  expect(serverSocket.id).toBe(client.id);
+});
+
+it("io.on('connection') fires with the connecting server socket", async () => {
+  const connected = new Promise<ServerSocketContract>((resolve) => {
+    ctx.io.on('connection', (socket: ServerSocketContract) => resolve(socket));
+  });
+  const { client } = await ctx.connectClient();
+  const serverSocket = await connected;
+  expect(serverSocket.id).toBe(client.id);
+});
+
+it("io.on('connect') is a synonym for 'connection' on the server", async () => {
+  // Real socket.io fires `connect` alongside `connection` on the namespace, so an
+  // app that wires handlers through `io.on('connect')` must work on smocket too.
+  const connected = new Promise<ServerSocketContract>((resolve) => {
+    ctx.io.on('connect', (socket: ServerSocketContract) => resolve(socket));
+  });
+  const { client } = await ctx.connectClient();
+  const serverSocket = await connected;
   expect(serverSocket.id).toBe(client.id);
 });
 

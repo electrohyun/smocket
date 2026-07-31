@@ -216,6 +216,17 @@ class Namespace implements NamespaceContract {
   /** Server sockets connected here but not yet claimed by a `nextConnection`. */
   private readonly ready: ServerSocket[] = [];
   /**
+   * Handlers registered through `on`, keyed by event. This is the app-facing entry
+   * point: `io.on('connection', cb)` wires per-socket handlers, and each is fired
+   * with the new server socket as the pairing completes. The `nextConnection`
+   * harness path resolves the same socket; the two are the two ways to reach a
+   * fresh connection, not two different connections. Kept per-event (not one merged
+   * set) so `connection` and its `connect` synonym stay separate registries, matching
+   * real socket.io, where a listener on each fires once and the same function on both
+   * fires twice.
+   */
+  private readonly connectionListeners = new Map<string, Set<Listener>>();
+  /**
    * `nextConnection` calls on this namespace still waiting for a socket. Keeping
    * the queue per-namespace is the subtle half of isolation: a global queue could
    * hand a `nextConnection('/game')` a socket that connected on `/`.
@@ -281,8 +292,39 @@ class Namespace implements NamespaceContract {
       // none of the socket's previous rooms, which is the reconnect test's point.
       serverSocket.join(serverSocket.id);
       this.offer(serverSocket);
+      // Fire `connection` before the client's own `connect` (in
+      // `completeConnection`), so the server side is observable first, the order
+      // real socket.io uses. A handler here can already broadcast to the new
+      // socket: it is registered in `sockets` and its id-room above.
+      this.emitConnection(serverSocket);
       client.completeConnection(serverSocket);
     });
+  }
+
+  /**
+   * Register a namespace-level handler. Only the connection events have a source in
+   * the mock (0000): `connection`, and `connect` as its synonym, are the app entry
+   * point that hands over each new server socket. Real socket.io fires both, so an
+   * app listening on either works. Other events are accepted but never fire, since a
+   * mock has nothing else to raise here.
+   */
+  on(event: string, listener: Listener): void {
+    if (event === 'connection' || event === 'connect') {
+      addListener(this.connectionListeners, event, listener);
+    }
+  }
+
+  /**
+   * Fire the connection handlers with the freshly paired server socket. Both synonyms
+   * are raised, `connection` then `connect`, each from its own registry, so a handler
+   * on either runs once and the reference order matches real socket.io.
+   */
+  private emitConnection(socket: ServerSocket): void {
+    for (const event of ['connection', 'connect']) {
+      const set = this.connectionListeners.get(event);
+      if (!set) continue;
+      for (const listener of [...set]) (listener as (s: ServerSocket) => void)(socket);
+    }
   }
 
   /** Resolve with the server socket of the next client to connect here. */
@@ -357,6 +399,15 @@ export class Server implements ServerContract {
     const namespace = new Namespace(name, this, this.adapterFactory);
     this.namespaces.set(name, namespace);
     return namespace;
+  }
+
+  /**
+   * The server's `on` is the default namespace's: `io.on('connection')` is exactly
+   * `io.of('/').on('connection')`, socket.io's primary server entry point, so it
+   * wires handlers for connections on `/` and never sees another namespace's.
+   */
+  on(event: string, listener: Listener): void {
+    this.of('/').on(event, listener);
   }
 
   /** Attach a client on `namespace` (`/` by default); see `Namespace.connect`. */

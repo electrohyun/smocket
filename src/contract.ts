@@ -79,6 +79,13 @@ export type AdapterFactory = (nsp: NamespaceContract) => SmocketAdapter;
 
 /** The socket.io `Server`, as `ctx.io`. */
 export interface ServerContract {
+  /**
+   * The app-facing server entry point: `io.on('connection', cb)` fires `cb` with
+   * each new server-side socket, socket.io's primary way to wire per-socket
+   * handlers. The `nextConnection` harness path resolves the same socket; this is
+   * the on-based path code written for real socket.io actually uses.
+   */
+  on(event: string, listener: Listener): void;
   emit(event: string, ...args: unknown[]): void;
   to(room: string | string[]): BroadcastContract;
   in(room: string | string[]): BroadcastContract;
