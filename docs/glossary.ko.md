@@ -3,9 +3,10 @@
 
 # Glossary
 
-> **TL;DR** smocket 문서 전반에서 반복되는 socket.io 도메인 용어의 조회용 사전입니다.
-> 각 문서는 첫 등장에서 여기로 링크하며 용어를 다시 정의하지 않습니다. 항목은 socket.io
-> 자체를 설명하고, smocket 고유 동작은 각자의 주인 문서에 둡니다.
+> **TL;DR** smocket 문서 전반에서 반복되는 용어의 조회용 사전입니다. 각 문서는 첫
+> 등장에서 여기로 링크하며 용어를 다시 정의하지 않습니다. 대부분의 항목은 socket.io
+> 자체를 설명하며, 반복되는 소수의 smocket 고유 용어도 여기 앵커하되 그 동작이 정해지는
+> 주인 문서로 각각 링크합니다.
 
 용어는 의존 순서로 나열합니다. 뒤 항목이 앞 항목에 기댑니다.
 
@@ -56,3 +57,11 @@ namespace를 가리키는 socket.io 자체의 줄임말로, 속성(`socket.nsp`)
 `io.to(room)`·`socket.broadcast`·`socket.except(room)`과 그 형제들이 반환하는 객체입니다.
 대상 room 집합과 제외 room 집합을 쥐고 `emit`을 노출하므로, 모든 브로드캐스트 형태가 서로
 다른 집합으로 만든 하나의 메커니즘입니다.
+
+## origin registry
+
+smocket 고유. 정규화된 URL origin에서 그곳에 등록된 `Server`로 가는 인메모리 맵입니다.
+`new Server(url)`이 자신을 여기에 등록하고 `connect(url)`이 클라이언트의 대상을 이를 통해
+해석하므로, 실제 클라이언트가 도달할 네트워크를 대신합니다.
+[0003](./decisions/0003-url-is-required.md)과
+[0014](./decisions/0014-connection-handler-fires-before-client-connect.md)에서 정해졌습니다.
