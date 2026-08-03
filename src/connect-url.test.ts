@@ -40,6 +40,19 @@ it('two spellings of one origin resolve to the same server', async () => {
   expect(serverSocket.id).toBe(client.id);
 });
 
+it("the url's query string lands on handshake.query", async () => {
+  // The url is one of the two sources for `handshake.query`. Reading it off `connect(url)`
+  // is mock-only for the same reason as the rest of this file: the mock harness routes
+  // through `connect(url)`, whereas real socket.io's url query rides its own network
+  // stack. Values arrive as strings, matching how a real querystring is decoded.
+  const server = new Server('http://localhost');
+  connect('http://localhost/?room=lobby&max=4');
+  const serverSocket = await server.nextConnection();
+
+  expect(serverSocket.handshake.query.room).toBe('lobby');
+  expect(serverSocket.handshake.query.max).toBe('4');
+});
+
 it("the url's path selects the namespace", async () => {
   const server = new Server('http://localhost');
   const client = connect('http://localhost/game');
