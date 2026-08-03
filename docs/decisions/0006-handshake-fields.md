@@ -23,6 +23,14 @@ The filled fields all come from the connection smocket sets up in memory.
 - **`url`** is the normalized origin the client connected to, which smocket already
   holds as the registry key, so it is available with no invention.
 
+`query` has two caller sources, the url's own query string and the options argument
+of `connect(url, opts)`. When both are present the url wins and the options query is
+dropped wholesale; the options query is used only when the url carries none. This is
+not the intuitive rule, explicit options winning, so it was measured against
+socket.io-client 4.x rather than assumed: the real client uses the url query and
+ignores `opts.query` whole, and smocket matches, so a handler reads the same
+`handshake.query` on either engine.
+
 The unfilled fields all describe a transport smocket does not have.
 
 - **`headers`** and **`address`** are properties of a real HTTP request and a real

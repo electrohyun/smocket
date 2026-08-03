@@ -20,6 +20,12 @@
 - **Handshake `headers`, `address`, `xdomain`, and `secure` are left unset.** These
   describe a real transport a mock does not have, so smocket leaves them rather
   than invent values. See [0006](./decisions/0006-handshake-fields.md).
+- **`handshake.query` fidelity is scalar-only.** smocket stringifies each query value
+  the way a real querystring does (`{ room: 1 }` -> `{ room: '1' }`), matching real
+  socket.io for scalar values. Array or object query values are coerced with
+  `String(...)` and are not guaranteed to match real socket.io's encoding: that edge
+  has no measured reference, so smocket does not invent one.
+  See [0006](./decisions/0006-handshake-fields.md).
 
 ## B. What smocket adds that socket.io has no equivalent for
 
