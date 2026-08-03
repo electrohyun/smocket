@@ -17,7 +17,7 @@
   </a>
 </p>
 
-> **Status: pre-1.0.** The delivery core (rooms, namespaces, broadcasts, acks, disconnect) is complete and checked against real socket.io by a dual-run conformance suite. The idiomatic `io.on('connection')` entry point and URL-based `connect(url)` now work (see [Usage](#usage)); the `nextConnection` pairing helper stays for tests that drive a connection directly. The public API can still change before 1.0.0.
+> **Status: pre-1.0.** The delivery core (rooms, namespaces, broadcasts, acks, disconnect) is complete and checked against real socket.io by a dual-run conformance suite. The idiomatic `io.on('connection')` entry point and URL-based `connect(url, { auth, query })` now work (see [Usage](#usage)), populating `socket.handshake`; the `nextConnection` pairing helper stays for tests that drive a connection directly. The public API can still change before 1.0.0.
 
 ## Why smocket
 
@@ -39,8 +39,10 @@ import { connect, Server } from 'smocket';
 const io = new Server('http://localhost:3000');
 
 // The server-side entry point, exactly as in real socket.io: wire per-socket
-// handlers as each client connects.
+// handlers as each client connects. `socket.handshake` carries the client's auth
+// and query, so the same code an app runs on socket.io runs here.
 io.on('connection', (socket) => {
+  console.log('connected as', socket.handshake.auth.name);
   socket.on('join', (room) => {
     socket.join(room);
     socket.to(room).emit('user-joined', socket.id);
@@ -48,8 +50,9 @@ io.on('connection', (socket) => {
 });
 
 // Clients connect by URL, resolved to the server through smocket's origin registry.
-const a = connect('http://localhost:3000');
-const b = connect('http://localhost:3000');
+// A second argument passes auth and query through, socket.io-client's `io(url, opts)`.
+const a = connect('http://localhost:3000', { auth: { name: 'a' } });
+const b = connect('http://localhost:3000', { auth: { name: 'b' } });
 
 a.on('user-joined', (id) => console.log('a saw', id));
 
