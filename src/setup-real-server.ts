@@ -46,9 +46,11 @@ export function setupRealServer(): ServerContext {
       ioServer.of(namespace).once('connection', (socket) => resolve(socket));
     });
 
-  ctx.connectClient = async ({ namespace = '/' }: ConnectOptions = {}) => {
+  ctx.connectClient = async ({ namespace = '/', auth, query }: ConnectOptions = {}) => {
     const client = io(`http://localhost:${port}${namespace}`, {
       transports: ['websocket'],
+      auth,
+      query,
     });
 
     // Connects are awaited one at a time, so the pending `connection` event

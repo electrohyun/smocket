@@ -53,6 +53,34 @@ it("the url's query string lands on handshake.query", async () => {
   expect(serverSocket.handshake.query.max).toBe('4');
 });
 
+it('connect(url, { auth }) puts the auth object on the handshake', async () => {
+  const server = new Server('http://localhost');
+  connect('http://localhost', { auth: { token: 't' } });
+  const serverSocket = await server.nextConnection();
+
+  expect(serverSocket.handshake.auth).toEqual({ token: 't' });
+});
+
+it('the url query wins wholesale over the options query when both are given', async () => {
+  // Measured against socket.io-client 4.x: a url carrying a query uses that query and
+  // ignores opts.query entirely, so even an opts-only key is dropped. smocket matches,
+  // so connect(url, opts) yields the same handshake the real client would.
+  const server = new Server('http://localhost');
+  connect('http://localhost/?room=fromurl', { query: { room: 'fromopts', only: 'opt' } });
+  const serverSocket = await server.nextConnection();
+
+  expect(serverSocket.handshake.query.room).toBe('fromurl');
+  expect(serverSocket.handshake.query.only).toBeUndefined();
+});
+
+it('the options query is used only when the url carries none', async () => {
+  const server = new Server('http://localhost');
+  connect('http://localhost', { query: { room: 'fromopts' } });
+  const serverSocket = await server.nextConnection();
+
+  expect(serverSocket.handshake.query.room).toBe('fromopts');
+});
+
 it("the url's path selects the namespace", async () => {
   const server = new Server('http://localhost');
   const client = connect('http://localhost/game');
