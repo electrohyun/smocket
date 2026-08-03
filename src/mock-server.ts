@@ -383,8 +383,7 @@ function parseUrl(url: string): { origin: string; namespace: string } {
   const parsed = new URL(url, base);
   const port = parsed.port || (parsed.protocol === 'https:' ? '443' : '80');
   const origin = `${parsed.protocol}//${parsed.hostname}:${port}`;
-  const namespace = parsed.pathname === '' ? '/' : parsed.pathname;
-  return { origin, namespace };
+  return { origin, namespace: parsed.pathname };
 }
 
 /**
