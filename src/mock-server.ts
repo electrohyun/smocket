@@ -298,11 +298,12 @@ class Namespace implements NamespaceContract {
    * Attach a new client to this namespace in memory and return the client side.
    * The client takes the `Server` as its `io`, so two clients on different
    * namespaces share one Manager stand-in, one multiplexed connection. The actual
-   * pairing is `pair`, shared with reconnect.
+   * pairing is `pair`, shared with reconnect. `source` carries the caller's `auth` /
+   * `query` onto the handshake; a reconnect replays the client's own copy.
    */
-  connect(): ClientSocket {
-    const client = new ClientSocket(this.server, this);
-    this.pair(client);
+  connect(source?: HandshakeSource): ClientSocket {
+    const client = new ClientSocket(this.server, this, source);
+    this.pair(client, source);
     return client;
   }
 
@@ -314,10 +315,11 @@ class Namespace implements NamespaceContract {
    * back not-yet-connected (`connected === false`, `id` undefined); a tick later
    * (decision 3-4b) the new socket is registered, auto-joins its id-room, is
    * offered to `nextConnection`, and the client's `connect` fires, the server
-   * side observable before the client side, the order real socket.io uses.
+   * side observable before the client side, the order real socket.io uses. `source`
+   * is the caller's `auth` / `query`, folded into this socket's handshake (0006).
    */
-  pair(client: ClientSocket): void {
-    const serverSocket = new ServerSocket(newId(), this, buildHandshake(this.origin));
+  pair(client: ClientSocket, source?: HandshakeSource): void {
+    const serverSocket = new ServerSocket(newId(), this, buildHandshake(this.origin, source));
     serverSocket.attachPeer(client);
 
     defer(() => {
@@ -411,19 +413,27 @@ class Namespace implements NamespaceContract {
 const servers = new Map<string, Server>();
 
 /**
- * Split a url into its origin (the registry key) and namespace path, normalizing
- * the way socket.io's `url.js` does so two spellings of one origin collapse to a
- * single key (0003): a relative url resolves against `location.origin`, and a
- * missing port is filled from the scheme (http -> 80, https -> 443).
+ * Split a url into its origin (the registry key), namespace path, and query string,
+ * normalizing the way socket.io's `url.js` does so two spellings of one origin
+ * collapse to a single key (0003): a relative url resolves against `location.origin`,
+ * and a missing port is filled from the scheme (http -> 80, https -> 443). The query
+ * is one of the two sources a client can supply for `handshake.query`, the other being
+ * the options argument, which takes precedence over it.
  */
-function parseUrl(url: string): { origin: string; namespace: string } {
+function parseUrl(url: string): {
+  origin: string;
+  namespace: string;
+  query: Record<string, string>;
+} {
   // `location` exists in a browser/jsdom run and is absent under plain node; read
   // it off `globalThis` so the reference type-checks either way.
   const base = (globalThis as { location?: { origin: string } }).location?.origin;
   const parsed = new URL(url, base);
   const port = parsed.port || (parsed.protocol === 'https:' ? '443' : '80');
   const origin = `${parsed.protocol}//${parsed.hostname}:${port}`;
-  return { origin, namespace: parsed.pathname };
+  const query: Record<string, string> = {};
+  for (const [key, value] of parsed.searchParams) query[key] = value;
+  return { origin, namespace: parsed.pathname, query };
 }
 
 /**
@@ -434,10 +444,10 @@ function parseUrl(url: string): { origin: string; namespace: string } {
  * and does not retry (0005), rather than throwing.
  */
 export function connect(url: string): ClientSocketContract {
-  const { origin, namespace } = parseUrl(url);
+  const { origin, namespace, query } = parseUrl(url);
   const server = servers.get(origin);
   if (!server) return new FailedClientSocket(origin);
-  return server.connect(namespace);
+  return server.connect(namespace, { query });
 }
 
 /**
@@ -516,9 +526,12 @@ export class Server implements ServerContract {
     this.of('/').on(event, listener);
   }
 
-  /** Attach a client on `namespace` (`/` by default); see `Namespace.connect`. */
-  connect(namespace = '/'): ClientSocket {
-    return this.of(namespace).connect();
+  /**
+   * Attach a client on `namespace` (`/` by default); see `Namespace.connect`.
+   * `source` carries the caller's `auth` / `query` onto the connection's handshake.
+   */
+  connect(namespace = '/', source?: HandshakeSource): ClientSocket {
+    return this.of(namespace).connect(source);
   }
 
   /** Resolve with the server socket of the next client to connect on `namespace`. */
@@ -718,11 +731,18 @@ export class ClientSocket extends Emitter implements ClientSocketContract {
    * need no registry.
    */
   private readonly pendingAcks = new Set<(reason: Error) => void>();
+  /**
+   * The caller's `auth` / `query`, held so a reconnect (`connect`) can rebuild the
+   * same handshake on its fresh server socket, the way socket.io-client resends the
+   * connection's auth and query on every reattach.
+   */
+  private readonly handshakeSource?: HandshakeSource;
 
-  constructor(server: Server, nsp: Namespace) {
+  constructor(server: Server, nsp: Namespace, source?: HandshakeSource) {
     super();
     this.io = server;
     this.nsp = nsp;
+    this.handshakeSource = source;
   }
 
   /**
@@ -776,9 +796,10 @@ export class ClientSocket extends Emitter implements ClientSocketContract {
 
   connect(): void {
     // Already-connected `connect()` is a no-op in socket.io. Otherwise re-pair on
-    // our namespace: a brand-new server socket and id, none of the old rooms.
+    // our namespace: a brand-new server socket and id, none of the old rooms, and the
+    // same handshake source, so the reattached socket carries the original auth/query.
     if (this.connected) return;
-    this.nsp.pair(this);
+    this.nsp.pair(this, this.handshakeSource);
   }
 
   disconnect(): void {
