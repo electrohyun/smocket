@@ -61,6 +61,43 @@ it('connect(url, { auth }) puts the auth object on the handshake', async () => {
   expect(serverSocket.handshake.auth).toEqual({ token: 't' });
 });
 
+it('a function auth holds the pairing until its callback fires', async () => {
+  // The callback form is resolved before the pairing completes, so a connection whose
+  // auth callback has not fired yet has no server socket. This proves the hold by
+  // ordering, not a timeout: the pairing is observed absent, then present once the
+  // callback runs. Real socket.io likewise holds the connect until the callback fires.
+  const server = new Server('http://localhost');
+  let fire!: () => void;
+  connect('http://localhost', { auth: (cb) => (fire = () => cb({ token: 'late' })) });
+
+  let paired = false;
+  const pending = server.nextConnection().then((socket) => ((paired = true), socket));
+  // Flush the microtask queue; with the callback still unfired, nothing can pair.
+  await Promise.resolve();
+  expect(paired).toBe(false);
+
+  fire();
+  const serverSocket = await pending;
+  expect(serverSocket.handshake.auth).toEqual({ token: 'late' });
+});
+
+it('a function auth is re-evaluated on each connection, including a reconnect', async () => {
+  // Measured against the real client: the auth function runs once per connection, so a
+  // reconnect calls it again and can hand over a fresh value (a rotated token).
+  const server = new Server('http://localhost');
+  let calls = 0;
+  const client = connect('http://localhost', { auth: (cb) => cb({ n: (calls += 1) }) });
+  await server.nextConnection();
+
+  const reconnected = server.nextConnection();
+  client.disconnect();
+  client.connect();
+  const serverSocket = await reconnected;
+
+  expect(calls).toBe(2);
+  expect(serverSocket.handshake.auth).toEqual({ n: 2 });
+});
+
 it('the url query wins wholesale over the options query when both are given', async () => {
   // Measured against socket.io-client 4.x: a url carrying a query uses that query and
   // ignores opts.query entirely, so even an opts-only key is dropped. smocket matches,
