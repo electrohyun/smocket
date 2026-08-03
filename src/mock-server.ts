@@ -3,6 +3,7 @@ import type {
   AdapterFactory,
   BroadcastContract,
   ClientSocketContract,
+  Handshake,
   NamespaceContract,
   ServerContract,
   ServerSocketContract,
@@ -44,6 +45,43 @@ function defer(fn: () => void): void {
 /** socket.io ids are 20-char url-safe base64. Match the shape, not the source. */
 function newId(): string {
   return randomBytes(15).toString('base64url');
+}
+
+/**
+ * The caller-supplied half of a handshake: the `auth` and `query` a client passes
+ * to `connect(url, opts)`. Both are optional and both are raw, still to be stringified
+ * (for `query`) at the handshake boundary. The rest of the handshake (`url`, `time`,
+ * `issued`) comes from smocket's own bookkeeping, not the caller.
+ */
+interface HandshakeSource {
+  auth?: Record<string, unknown>;
+  query?: Record<string, unknown>;
+}
+
+/**
+ * Build the connection handshake for a freshly paired socket (0006). `auth` is
+ * carried through unchanged, since it travels as a packet payload and reaches the
+ * server as the object the caller passed. `query` is stringified: on real socket.io
+ * it rides the connection url, so every value arrives as a string, and smocket
+ * matches that (`{ room: 1 }` -> `{ room: '1' }`) so a dual-run comparison holds.
+ * `url` is the origin the client connected to, and `time` / `issued` are the moment
+ * the pairing completes, the two timestamps a mock can supply exactly.
+ */
+function buildHandshake(url: string, source?: HandshakeSource): Handshake {
+  return {
+    auth: source?.auth ?? {},
+    query: stringifyValues(source?.query ?? {}),
+    url,
+    time: new Date().toString(),
+    issued: Date.now(),
+  };
+}
+
+/** Stringify every value of an object, the way a url querystring coerces them. */
+function stringifyValues(source: Record<string, unknown>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [key, value] of Object.entries(source)) out[key] = String(value);
+  return out;
 }
 
 /** Normalize socket.io's `one room | many rooms` argument to an array. */
@@ -237,6 +275,8 @@ class Namespace implements NamespaceContract {
     readonly name: string,
     /** The shared Manager stand-in every client here is given; see ClientSocket.io. */
     private readonly server: Server,
+    /** The server's normalized origin, filled into each socket's `handshake.url` (0006). */
+    private readonly origin: string,
     /** The custom adapter factory registered on the server, if any; see `useAdapter`. */
     adapterFactory?: AdapterFactory,
   ) {
@@ -277,7 +317,7 @@ class Namespace implements NamespaceContract {
    * side observable before the client side, the order real socket.io uses.
    */
   pair(client: ClientSocket): void {
-    const serverSocket = new ServerSocket(newId(), this);
+    const serverSocket = new ServerSocket(newId(), this, buildHandshake(this.origin));
     serverSocket.attachPeer(client);
 
     defer(() => {
@@ -462,7 +502,7 @@ export class Server implements ServerContract {
   of(name: string): Namespace {
     const existing = this.namespaces.get(name);
     if (existing) return existing;
-    const namespace = new Namespace(name, this, this.adapterFactory);
+    const namespace = new Namespace(name, this, this.origin, this.adapterFactory);
     this.namespaces.set(name, namespace);
     return namespace;
   }
@@ -543,12 +583,19 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
    * disconnect cleanup (#45) drops this socket from the same `nsp.adapter`.
    */
   readonly nsp: Namespace;
+  /**
+   * The connection handshake (0006), built when the pairing completes and read by a
+   * `connection` handler as `socket.handshake`. Carries the caller's `auth` / `query`
+   * and the fields smocket derives from the connection itself.
+   */
+  readonly handshake: Handshake;
   private peer!: ClientSocket;
 
-  constructor(id: string, nsp: Namespace) {
+  constructor(id: string, nsp: Namespace, handshake: Handshake) {
     super();
     this.id = id;
     this.nsp = nsp;
+    this.handshake = handshake;
   }
 
   /** Wire the paired client in; called by `Namespace.pair` before completion. */

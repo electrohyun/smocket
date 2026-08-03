@@ -99,6 +99,24 @@ export interface ServerContract {
   of(namespace: string): NamespaceContract;
 }
 
+/**
+ * The connection [handshake](../docs/glossary.md#handshake), read as
+ * `socket.handshake`. Only the fields a mock has a source for are declared (0006):
+ * `auth` and `query` are caller-supplied, `url` is the normalized origin the client
+ * connected to, and `time` / `issued` are the pairing timestamp. The network-layer
+ * fields (`headers`, `address`, `xdomain`, `secure`) have no source in an in-memory
+ * pairing and are left off the surface rather than guessed. The value types are
+ * deliberately loose so socket.io's own `Handshake` stays assignable to this subset
+ * and the `Ensure<>` guard below holds.
+ */
+export interface Handshake {
+  auth: Record<string, unknown>;
+  query: Record<string, unknown>;
+  url: string;
+  time: string;
+  issued: number;
+}
+
 /** A server-side socket, as `serverSocket`. */
 export interface ServerSocketContract {
   id: string;
@@ -106,6 +124,8 @@ export interface ServerSocketContract {
   rooms: Set<string>;
   nsp: NamespaceContract;
   broadcast: BroadcastContract;
+  /** The connection handshake; see {@link Handshake}. */
+  handshake: Handshake;
   on(event: string, listener: Listener): void;
   once(event: string, listener: Listener): void;
   emit(event: string, ...args: unknown[]): void;
