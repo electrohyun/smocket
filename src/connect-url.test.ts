@@ -19,6 +19,17 @@ it('connect(url) resolves to the server registered for that origin', async () =>
   expect(serverSocket.id).toBe(client.id);
 });
 
+it('handshake.url is the normalized origin the client connected to', async () => {
+  // The one mock-only handshake field: real socket.io fills `url` with the request
+  // path, smocket with the normalized origin it holds as the registry key (0006), so
+  // the exact value is pinned here rather than in the dual-run handshake test.
+  const server = new Server('http://localhost');
+  connect('http://localhost/game');
+  const serverSocket = await server.nextConnection('/game');
+
+  expect(serverSocket.handshake.url).toBe('http://localhost:80');
+});
+
 it('two spellings of one origin resolve to the same server', async () => {
   // A missing port is filled from the scheme (http -> 80), so the bare host and
   // the same host with its default port are one key (0003).
