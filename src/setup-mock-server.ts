@@ -32,11 +32,11 @@ export function setupMockServer(): ServerContext {
 
   ctx.nextConnection = (namespace = '/') => server.nextConnection(namespace);
 
-  ctx.connectClient = async ({ namespace = '/' }: ConnectOptions = {}) => {
+  ctx.connectClient = async ({ namespace = '/', auth, query }: ConnectOptions = {}) => {
     // `connect` creates the paired server socket synchronously and offers it to
     // `nextConnection`, so the socket awaited here is the one this connect made,
     // not a fresh connection that would never come. See Server.connect.
-    const client = server.connect(namespace);
+    const client = server.connect(namespace, { auth, query });
     const serverSocket = await ctx.nextConnection(namespace);
     clients.push(client);
     return { client, serverSocket };

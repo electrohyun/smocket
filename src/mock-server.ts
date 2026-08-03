@@ -3,6 +3,7 @@ import type {
   AdapterFactory,
   BroadcastContract,
   ClientSocketContract,
+  ConnectOptions,
   Handshake,
   NamespaceContract,
   ServerContract,
@@ -48,17 +49,6 @@ function newId(): string {
 }
 
 /**
- * The caller-supplied half of a handshake: the `auth` and `query` a client passes
- * to `connect(url, opts)`. Both are optional and both are raw, still to be stringified
- * (for `query`) at the handshake boundary. The rest of the handshake (`url`, `time`,
- * `issued`) comes from smocket's own bookkeeping, not the caller.
- */
-interface HandshakeSource {
-  auth?: Record<string, unknown>;
-  query?: Record<string, unknown>;
-}
-
-/**
  * Build the connection handshake for a freshly paired socket (0006). `auth` is
  * carried through unchanged, since it travels as a packet payload and reaches the
  * server as the object the caller passed. `query` is stringified: on real socket.io
@@ -67,7 +57,7 @@ interface HandshakeSource {
  * `url` is the origin the client connected to, and `time` / `issued` are the moment
  * the pairing completes, the two timestamps a mock can supply exactly.
  */
-function buildHandshake(url: string, source?: HandshakeSource): Handshake {
+function buildHandshake(url: string, source?: ConnectOptions): Handshake {
   return {
     auth: source?.auth ?? {},
     query: stringifyValues(source?.query ?? {}),
@@ -301,7 +291,7 @@ class Namespace implements NamespaceContract {
    * pairing is `pair`, shared with reconnect. `source` carries the caller's `auth` /
    * `query` onto the handshake; a reconnect replays the client's own copy.
    */
-  connect(source?: HandshakeSource): ClientSocket {
+  connect(source?: ConnectOptions): ClientSocket {
     const client = new ClientSocket(this.server, this, source);
     this.pair(client, source);
     return client;
@@ -318,7 +308,7 @@ class Namespace implements NamespaceContract {
    * side observable before the client side, the order real socket.io uses. `source`
    * is the caller's `auth` / `query`, folded into this socket's handshake (0006).
    */
-  pair(client: ClientSocket, source?: HandshakeSource): void {
+  pair(client: ClientSocket, source?: ConnectOptions): void {
     const serverSocket = new ServerSocket(newId(), this, buildHandshake(this.origin, source));
     serverSocket.attachPeer(client);
 
@@ -417,8 +407,8 @@ const servers = new Map<string, Server>();
  * normalizing the way socket.io's `url.js` does so two spellings of one origin
  * collapse to a single key (0003): a relative url resolves against `location.origin`,
  * and a missing port is filled from the scheme (http -> 80, https -> 443). The query
- * is one of the two sources a client can supply for `handshake.query`, the other being
- * the options argument, which takes precedence over it.
+ * is one of the two sources for `handshake.query`, the other being the options argument;
+ * `connect` resolves which one wins (the url does, when it carries a query).
  */
 function parseUrl(url: string): {
   origin: string;
@@ -438,16 +428,24 @@ function parseUrl(url: string): {
 
 /**
  * Attach a client to the server registered for `url`'s origin: smocket's
- * app-facing entry point, socket.io-client's `io(url)`. The origin is resolved
- * through the registry (0003) and the url's path selects the namespace. When no
- * server is registered for that origin, the returned client fires `connect_error`
- * and does not retry (0005), rather than throwing.
+ * app-facing entry point, socket.io-client's `io(url, opts)`. The origin is resolved
+ * through the registry (0003) and the url's path selects the namespace. `opts` carries
+ * `auth` and `query` onto the handshake (0006). When no server is registered for that
+ * origin, the returned client fires `connect_error` and does not retry (0005), rather
+ * than throwing.
+ *
+ * `query` has two sources, the url's own query string and `opts.query`, and the url
+ * wins: when the url carries a query, `opts.query` is ignored wholesale, and it is
+ * consulted only when the url has none. This is not the intuitive "explicit option
+ * wins" rule but is what socket.io-client 4.x does, measured against the real client,
+ * so a dogfooding app sees the same handshake on either engine.
  */
-export function connect(url: string): ClientSocketContract {
-  const { origin, namespace, query } = parseUrl(url);
+export function connect(url: string, options?: ConnectOptions): ClientSocketContract {
+  const { origin, namespace, query: urlQuery } = parseUrl(url);
   const server = servers.get(origin);
   if (!server) return new FailedClientSocket(origin);
-  return server.connect(namespace, { query });
+  const query = Object.keys(urlQuery).length > 0 ? urlQuery : options?.query;
+  return server.connect(namespace, { auth: options?.auth, query });
 }
 
 /**
@@ -530,7 +528,7 @@ export class Server implements ServerContract {
    * Attach a client on `namespace` (`/` by default); see `Namespace.connect`.
    * `source` carries the caller's `auth` / `query` onto the connection's handshake.
    */
-  connect(namespace = '/', source?: HandshakeSource): ClientSocket {
+  connect(namespace = '/', source?: ConnectOptions): ClientSocket {
     return this.of(namespace).connect(source);
   }
 
@@ -736,9 +734,9 @@ export class ClientSocket extends Emitter implements ClientSocketContract {
    * same handshake on its fresh server socket, the way socket.io-client resends the
    * connection's auth and query on every reattach.
    */
-  private readonly handshakeSource?: HandshakeSource;
+  private readonly handshakeSource?: ConnectOptions;
 
-  constructor(server: Server, nsp: Namespace, source?: HandshakeSource) {
+  constructor(server: Server, nsp: Namespace, source?: ConnectOptions) {
     super();
     this.io = server;
     this.nsp = nsp;

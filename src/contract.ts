@@ -157,9 +157,22 @@ export interface ClientSocketContract {
   disconnect(): void;
 }
 
+/**
+ * Options for opening a connection: the caller's `auth` / `query`, carried onto
+ * `socket.handshake` (0006). Shared by the public `connect(url, opts)` and the test
+ * harness's `connectClient`, so both forward the same fields; `connect` takes the
+ * namespace from the url path, so it reads only `auth` and `query`.
+ */
 export interface ConnectOptions {
-  /** Namespace to attach to, `/` by default. */
+  /**
+   * Namespace to attach to, `/` by default. Used by the harness `connectClient`;
+   * `connect(url)` derives the namespace from the url path and ignores this.
+   */
   namespace?: string;
+  /** Client-supplied handshake auth, read on the server as `socket.handshake.auth`. */
+  auth?: Record<string, unknown>;
+  /** Client-supplied handshake query, read on the server as `socket.handshake.query`. */
+  query?: Record<string, unknown>;
 }
 
 export interface ConnectedClient {
