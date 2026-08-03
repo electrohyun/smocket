@@ -1,6 +1,6 @@
 {
   "name": "smocket",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Socket.IO mock for frontend development and testing, with full room, namespace, and broadcast support. Pre-1.0: the API may change before 1.0.0.",
   "type": "module",
   "license": "MIT",
