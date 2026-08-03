@@ -158,6 +158,14 @@ export interface ClientSocketContract {
 }
 
 /**
+ * A callback-form auth. socket.io-client accepts a function here as well as an object:
+ * it is called at connect time and the object it calls back with becomes the handshake
+ * auth, so a token can be fetched lazily per connection. The connection is held until
+ * the callback fires, and the function is re-evaluated on every reconnect.
+ */
+export type AuthCallback = (cb: (data: Record<string, unknown>) => void) => void;
+
+/**
  * Options for opening a connection: the caller's `auth` / `query`, carried onto
  * `socket.handshake` (0006). Shared by the public `connect(url, opts)` and the test
  * harness's `connectClient`, so both forward the same fields; `connect` takes the
@@ -169,8 +177,12 @@ export interface ConnectOptions {
    * `connect(url)` derives the namespace from the url path and ignores this.
    */
   namespace?: string;
-  /** Client-supplied handshake auth, read on the server as `socket.handshake.auth`. */
-  auth?: Record<string, unknown>;
+  /**
+   * Client-supplied handshake auth, read on the server as `socket.handshake.auth`. An
+   * object is carried through as-is; a function is the callback form (see
+   * {@link AuthCallback}), resolved at connect time.
+   */
+  auth?: Record<string, unknown> | AuthCallback;
   /** Client-supplied handshake query, read on the server as `socket.handshake.query`. */
   query?: Record<string, unknown>;
 }

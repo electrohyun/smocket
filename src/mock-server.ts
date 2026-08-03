@@ -49,22 +49,47 @@ function newId(): string {
 }
 
 /**
- * Build the connection handshake for a freshly paired socket (0006). `auth` is
- * carried through unchanged, since it travels as a packet payload and reaches the
- * server as the object the caller passed. `query` is stringified: on real socket.io
- * it rides the connection url, so every value arrives as a string, and smocket
- * matches that (`{ room: 1 }` -> `{ room: '1' }`) so a dual-run comparison holds.
- * `url` is the origin the client connected to, and `time` / `issued` are the moment
- * the pairing completes, the two timestamps a mock can supply exactly.
+ * Build the connection handshake for a freshly paired socket (0006). `auth` is already
+ * resolved to an object (see `resolveAuth`) and carried through unchanged: it travels as
+ * a packet payload, so the server reads it exactly as resolved, with no stringifying. `query`
+ * is stringified: on real socket.io it rides the connection url, so every value arrives
+ * as a string, and smocket matches that (`{ room: 1 }` -> `{ room: '1' }`) so a dual-run
+ * comparison holds. `url` is the origin the client connected to, and `time` / `issued`
+ * are the moment the pairing completes, the two timestamps a mock can supply exactly.
  */
-function buildHandshake(url: string, source?: ConnectOptions): Handshake {
+function buildHandshake(
+  url: string,
+  auth: Record<string, unknown>,
+  query?: Record<string, unknown>,
+): Handshake {
   return {
-    auth: source?.auth ?? {},
-    query: stringifyValues(source?.query ?? {}),
+    auth,
+    query: stringifyValues(query ?? {}),
     url,
     time: new Date().toString(),
     issued: Date.now(),
   };
+}
+
+/**
+ * Resolve the connection's auth to a plain object, then continue through `done`. An
+ * object auth is handed straight over; a function auth is socket.io-client's callback
+ * form, so it is invoked and the object it calls back with is the auth. The callback
+ * may fire later than this tick (a token fetched async), which is exactly why the whole
+ * pairing runs inside `done`: real socket.io holds the connection until the callback
+ * fires, so a delayed callback delays the connect. A reconnect re-runs this resolve (the
+ * reconnect path calls `pair` again), so the function is re-invoked for a fresh value.
+ * Both behaviours pinned by measurement against the real client.
+ */
+function resolveAuth(
+  auth: ConnectOptions['auth'],
+  done: (auth: Record<string, unknown>) => void,
+): void {
+  if (typeof auth === 'function') {
+    auth((data) => done(data ?? {}));
+  } else {
+    done(auth ?? {});
+  }
 }
 
 /** Stringify every value of an object, the way a url querystring coerces them. */
@@ -309,27 +334,33 @@ class Namespace implements NamespaceContract {
    * is the caller's `auth` / `query`, folded into this socket's handshake (0006).
    */
   pair(client: ClientSocket, source?: ConnectOptions): void {
-    const serverSocket = new ServerSocket(newId(), this, buildHandshake(this.origin, source));
-    serverSocket.attachPeer(client);
+    // Resolve the auth first, then pair. For an object auth this runs synchronously, so
+    // the timing is unchanged; a function auth may call back later, and the connection
+    // is held until it does (real socket.io holds the connect until the callback fires).
+    resolveAuth(source?.auth, (auth) => {
+      const handshake = buildHandshake(this.origin, auth, source?.query);
+      const serverSocket = new ServerSocket(newId(), this, handshake);
+      serverSocket.attachPeer(client);
 
-    defer(() => {
-      // Register the socket before offering it, so a broadcast triggered from a
-      // `connection` handler can already resolve this sid to its socket.
-      this.sockets.set(serverSocket.id, serverSocket);
-      // Auto-join the room named after the socket's own id, exactly as real
-      // socket.io does on connect. Reusing `join` carries the adapter update in
-      // both directions and the `socket.rooms` mirror. This id-room is what makes
-      // `io.to(socketId)` address a single socket and what sender exclusion
-      // subtracts (see `BroadcastOperator`). A reconnect gets a fresh id-room and
-      // none of the socket's previous rooms, which is the reconnect test's point.
-      serverSocket.join(serverSocket.id);
-      this.offer(serverSocket);
-      // Fire `connection` before the client's own `connect` (in
-      // `completeConnection`), so the server side is observable first, the order
-      // real socket.io uses. A handler here can already broadcast to the new
-      // socket: it is registered in `sockets` and its id-room above.
-      this.emitConnection(serverSocket);
-      client.completeConnection(serverSocket);
+      defer(() => {
+        // Register the socket before offering it, so a broadcast triggered from a
+        // `connection` handler can already resolve this sid to its socket.
+        this.sockets.set(serverSocket.id, serverSocket);
+        // Auto-join the room named after the socket's own id, exactly as real
+        // socket.io does on connect. Reusing `join` carries the adapter update in
+        // both directions and the `socket.rooms` mirror. This id-room is what makes
+        // `io.to(socketId)` address a single socket and what sender exclusion
+        // subtracts (see `BroadcastOperator`). A reconnect gets a fresh id-room and
+        // none of the socket's previous rooms, which is the reconnect test's point.
+        serverSocket.join(serverSocket.id);
+        this.offer(serverSocket);
+        // Fire `connection` before the client's own `connect` (in
+        // `completeConnection`), so the server side is observable first, the order
+        // real socket.io uses. A handler here can already broadcast to the new
+        // socket: it is registered in `sockets` and its id-room above.
+        this.emitConnection(serverSocket);
+        client.completeConnection(serverSocket);
+      });
     });
   }
 

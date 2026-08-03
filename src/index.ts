@@ -6,4 +6,4 @@
 // Only the named export is provided; a default export (`import io from ...`) waits
 // on the CJS interop it needs across tsup's dual output.
 export { Adapter, connect, connect as io, Server } from './mock-server';
-export type { AdapterFactory, ConnectOptions, SmocketAdapter } from './contract';
+export type { AdapterFactory, AuthCallback, ConnectOptions, SmocketAdapter } from './contract';

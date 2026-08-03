@@ -38,6 +38,14 @@ it('handshake.query stringifies the client-supplied query values', async () => {
   expect(serverSocket.handshake.query.room).toBe('1');
 });
 
+it('handshake.auth accepts a function form, resolved via its callback', async () => {
+  // socket.io-client's callback-form auth: the function is called at connect time and
+  // the object it calls back with becomes handshake.auth, measured against the real
+  // client. A lazily fetched token reaches the server the same as an object auth.
+  const { serverSocket } = await ctx.connectClient({ auth: (cb) => cb({ token: 'fn' }) });
+  expect(serverSocket.handshake.auth).toEqual({ token: 'fn' });
+});
+
 it('a reconnect replays the client-supplied auth on the fresh socket', async () => {
   // Real socket.io re-sends the connection's auth when it reattaches (measured against
   // the real client), so the reconnected socket carries the same auth, on a new id.
