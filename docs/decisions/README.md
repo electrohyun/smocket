@@ -26,3 +26,4 @@ these are written.
 | [0012](./0012-reject-inflight-acks-on-disconnect.md)             | A pending `emitWithAck` is rejected on disconnect                              | Accepted | #45, #67      |
 | [0013](./0013-reconnect-fresh-socket.md)                         | Reconnecting yields a fresh socket and id, with no old rooms                   | Accepted | #45, #67      |
 | [0014](./0014-connection-handler-fires-before-client-connect.md) | `io.on('connection')` fires the server side before the client connect          | Accepted | #88           |
+| [0015](./0015-review-bot-reads-intent-ci-keeps-the-gate.md)      | A review bot reads a diff against intent; CI keeps the mechanical checks       | Accepted | #101          |
