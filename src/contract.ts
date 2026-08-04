@@ -128,6 +128,10 @@ export interface ServerSocketContract {
   handshake: Handshake;
   on(event: string, listener: Listener): void;
   once(event: string, listener: Listener): void;
+  /** Catch-all for incoming events; the listener receives the event name then its args. */
+  onAny(listener: (...args: unknown[]) => void): void;
+  /** Remove one catch-all listener, or all of them when called with no argument. */
+  offAny(listener?: (...args: unknown[]) => void): void;
   emit(event: string, ...args: unknown[]): void;
   emitWithAck(event: string, ...args: unknown[]): Promise<unknown>;
   join(room: string | string[]): Promise<void> | void;
@@ -151,6 +155,10 @@ export interface ClientSocketContract {
   io: unknown;
   on(event: string, listener: Listener): void;
   once(event: string, listener: Listener): void;
+  /** Catch-all for incoming events; the listener receives the event name then its args. */
+  onAny(listener: (...args: unknown[]) => void): void;
+  /** Remove one catch-all listener, or all of them when called with no argument. */
+  offAny(listener?: (...args: unknown[]) => void): void;
   emit(event: string, ...args: unknown[]): void;
   emitWithAck(event: string, ...args: unknown[]): Promise<unknown>;
   connect(): void;

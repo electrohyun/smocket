@@ -586,6 +586,13 @@ export class Server implements ServerContract {
 }
 
 /**
+ * Events smocket dispatches locally rather than receiving from the peer. A
+ * catch-all (`onAny`) skips them, matching socket.io, whose catch-all fires only
+ * for events that arrive as packets, never for the lifecycle ones.
+ */
+const RESERVED_EVENTS = new Set(['connect', 'connect_error', 'disconnect', 'disconnecting']);
+
+/**
  * A minimal event target shared by both socket sides: a listener registry, the
  * `on`/`once` the tests register through, and `dispatch`, which fires this
  * side's own listeners. Delivery from the peer goes through `send`, which calls
@@ -593,6 +600,8 @@ export class Server implements ServerContract {
  */
 class Emitter {
   private readonly listeners = new Map<string, Set<Listener>>();
+  /** Catch-all listeners, fired for every non-reserved event before the specific ones. */
+  private readonly anyListeners = new Set<Listener>();
 
   on(event: string, listener: Listener): void {
     addListener(this.listeners, event, listener);
@@ -606,8 +615,27 @@ class Emitter {
     addListener(this.listeners, event, wrapper);
   }
 
-  /** Fire this side's listeners for `event`. Internal; the peer's `send` calls it. */
+  onAny(listener: Listener): void {
+    this.anyListeners.add(listener);
+  }
+
+  offAny(listener?: Listener): void {
+    if (listener) this.anyListeners.delete(listener);
+    else this.anyListeners.clear();
+  }
+
+  /**
+   * Fire this side's listeners for `event`. Internal; the peer's `send` calls it.
+   * A catch-all runs first and receives the event name ahead of the args, for
+   * every event except the reserved lifecycle ones, which are dispatched locally
+   * rather than received from the peer.
+   */
   dispatch(event: string, args: unknown[]): void {
+    if (this.anyListeners.size > 0 && !RESERVED_EVENTS.has(event)) {
+      for (const any of [...this.anyListeners]) {
+        (any as (...a: unknown[]) => void)(event, ...args);
+      }
+    }
     const set = this.listeners.get(event);
     if (!set) return;
     for (const listener of [...set]) (listener as (...a: unknown[]) => void)(...args);
