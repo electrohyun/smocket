@@ -1,0 +1,79 @@
+# CodeRabbit configuration.
+# CI already enforces typecheck, lint, format, and coverage on both targets.
+# This review layer covers what those checks cannot: reading a diff against
+# the conventions and invariants of this repository.
+
+language: en-US
+
+tone_instructions: >-
+  Be direct and specific. Skip praise and restatements of the diff.
+  Do not suggest changes that contradict decisions recorded in
+  docs/decisions/.
+
+reviews:
+  profile: chill
+  request_changes_workflow: false
+  high_level_summary: false
+  poem: false
+  collapse_walkthrough: true
+
+  path_filters:
+    - '!pnpm-lock.yaml'
+
+  path_instructions:
+    - path: '**'
+      instructions: >-
+        This library reimplements socket.io delivery semantics, verified by
+        running the same test suite against real socket.io and against the mock.
+        A change to observable behavior should arrive with a test that passes on
+        both targets; flag behavior changes that come without one.
+        Out of scope by design (see docs/scope.md): reconnection reproduction,
+        transport fallback, heartbeat, multi-server scaling, binary encoding.
+        Do not suggest adding these.
+        Never suggest populating a field whose value has no real source inside
+        a mock (docs/decisions/0000); network-layer handshake fields are
+        intentionally absent.
+    - path: 'src/mock-server.ts'
+      instructions: >-
+        The rooms and sids maps are a bidirectional index and must be
+        updated together (see Adapter.add and Adapter.del). Flag any change
+        that writes one direction without the other, and any join, leave,
+        or disconnect path that skips the Socket.rooms mirror. Stale
+        entries here surface later as broadcasts delivered to dead sids.
+    - path: 'src/contract.ts'
+      instructions: >-
+        This file is the hand-picked API subset both engines are verified
+        against. Any change here affects both engines and every test.
+        Call it out explicitly and check that the Ensure<> proof at the
+        bottom still covers the widened surface.
+    - path: 'src/*.test.ts'
+      instructions: >-
+        Non-delivery of an event must be proven with the marker and
+        ordering helpers in src/test-events.ts, never with a timeout.
+        Exception: setTimeout is the accepted idiom for proving an ack
+        stays pending or a callback is not invoked again; do not flag
+        those cases.
+    - path: 'docs/**/*.md'
+      instructions: >-
+        Files with a .ko.md twin are translation pairs; flag a change to
+        the English file that does not update its Korean counterpart.
+        Entries in differences.md follow the existing format: bold lead
+        sentence, short explanation, link to the governing decision.
+        Do not comment on the length of files in docs/decisions/.
+
+  finishing_touches:
+    docstrings:
+      enabled: false
+    unit_tests:
+      enabled: false
+
+  tools:
+    eslint:
+      enabled: false
+    markdownlint:
+      enabled: false
+    languagetool:
+      enabled: false
+
+chat:
+  auto_reply: true
