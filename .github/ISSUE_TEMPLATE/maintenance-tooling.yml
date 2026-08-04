@@ -1,17 +1,7 @@
-name: Maintenance
-description: Tests, tooling, CI, or refactoring
+name: 'Maintenance: tooling, CI, dependencies'
+description: Build config, CI, dependencies, or tooling
+labels: ['chore']
 body:
-  - type: dropdown
-    id: kind
-    attributes:
-      label: Type
-      options:
-        - Test coverage or fixtures
-        - Tooling, CI, or dependencies
-        - Refactoring
-    validations:
-      required: true
-
   - type: textarea
     id: current
     attributes:
