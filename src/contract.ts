@@ -128,6 +128,10 @@ export interface ServerSocketContract {
   handshake: Handshake;
   on(event: string, listener: Listener): void;
   once(event: string, listener: Listener): void;
+  /** Remove one registration. The server is Node's emitter, so a listener is required (0017). */
+  off(event: string, listener: (...args: unknown[]) => void): void;
+  /** Remove every listener for `event`, or all of them when called with no argument. */
+  removeAllListeners(event?: string): void;
   /** Catch-all for incoming events; the listener receives the event name then its args. */
   onAny(listener: (...args: unknown[]) => void): void;
   /** Remove one catch-all listener, or all of them when called with no argument. */
@@ -155,6 +159,13 @@ export interface ClientSocketContract {
   io: unknown;
   on(event: string, listener: Listener): void;
   once(event: string, listener: Listener): void;
+  /**
+   * The client is component-emitter's: `off()` clears every listener, `off(event)`
+   * clears that event, and `off(event, listener)` removes one. No form throws (0017).
+   */
+  off(event?: string, listener?: (...args: unknown[]) => void): void;
+  /** Remove every listener for `event`, or all of them when called with no argument. */
+  removeAllListeners(event?: string): void;
   /** Catch-all for incoming events; the listener receives the event name then its args. */
   onAny(listener: (...args: unknown[]) => void): void;
   /** Remove one catch-all listener, or all of them when called with no argument. */

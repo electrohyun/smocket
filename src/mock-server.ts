@@ -612,6 +612,9 @@ class Emitter {
       this.listeners.get(event)?.delete(wrapper);
       listener(...args);
     }) as Listener;
+    // Carry the original so `off(listener)` can find a `once` registration through
+    // its wrapper, the way socket.io's emitters do.
+    (wrapper as { listener?: Listener }).listener = listener;
     addListener(this.listeners, event, wrapper);
   }
 
@@ -622,6 +625,32 @@ class Emitter {
   offAny(listener?: Listener): void {
     if (listener) this.anyListeners.delete(listener);
     else this.anyListeners.clear();
+  }
+
+  /**
+   * Remove one registration for `event`, matching the original listener even when it
+   * was registered through a `once` wrapper (socket.io keeps the original on the
+   * wrapper and compares against it). Removes the first match only; a listener that
+   * was never registered, or an event with none, is a no-op. `off` itself differs by
+   * side (Node's emitter on the server, component-emitter on the client, 0017), so
+   * each socket exposes its own; this is the shared single-removal both build on.
+   */
+  protected removeOne(event: string, listener: Listener): void {
+    const set = this.listeners.get(event);
+    if (!set) return;
+    if (set.delete(listener)) return;
+    for (const registered of set) {
+      if ((registered as { listener?: Listener }).listener === listener) {
+        set.delete(registered);
+        return;
+      }
+    }
+  }
+
+  /** Clear every listener for `event`, or every listener on the socket with no argument. */
+  removeAllListeners(event?: string): void {
+    if (event === undefined) this.listeners.clear();
+    else this.listeners.delete(event);
   }
 
   /**
@@ -639,6 +668,25 @@ class Emitter {
     const set = this.listeners.get(event);
     if (!set) return;
     for (const listener of [...set]) (listener as (...a: unknown[]) => void)(...args);
+  }
+}
+
+/**
+ * The client-side emitter. Its `off` follows component-emitter, where the
+ * no-listener forms clear rather than throw: `off()` clears every listener,
+ * `off(event)` clears that event, and `off(event, listener)` removes one. This is
+ * the half that differs from the server's Node emitter (0017), and it is shared by
+ * both the connected client and the failed-connection client.
+ */
+class ClientEmitter extends Emitter {
+  off(event?: string, listener?: Listener): void {
+    if (event === undefined) {
+      this.removeAllListeners();
+    } else if (listener === undefined) {
+      this.removeAllListeners(event);
+    } else {
+      this.removeOne(event, listener);
+    }
   }
 }
 
@@ -726,6 +774,18 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
     return emitWithAck(this.peer, event, args);
   }
 
+  /**
+   * The server socket is Node's `EventEmitter`, whose `off` (`removeListener`)
+   * requires a listener: `off(event)` with none throws rather than clearing the
+   * event, so bulk removal here is `removeAllListeners` (0017).
+   */
+  off(event: string, listener: Listener): void {
+    if (typeof listener !== 'function') {
+      throw new TypeError('The "listener" argument must be of type function. Received undefined');
+    }
+    this.removeOne(event, listener);
+  }
+
   get broadcast(): BroadcastContract {
     // Everyone except the sender: no target rooms, except the sender's own id-room.
     return new BroadcastOperator(this.nsp.adapter, this.nsp.sockets, [], [this.id]);
@@ -761,7 +821,7 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
   }
 }
 
-export class ClientSocket extends Emitter implements ClientSocketContract {
+export class ClientSocket extends ClientEmitter implements ClientSocketContract {
   connected = false;
   id: string | undefined;
   /** The shared Manager stand-in; compared only by identity across namespaces. */
@@ -894,7 +954,7 @@ export class ClientSocket extends Emitter implements ClientSocketContract {
  * diagnostics layer over the event, so a mistyped url is not silent for the common
  * case of no `connect_error` handler.
  */
-class FailedClientSocket extends Emitter implements ClientSocketContract {
+class FailedClientSocket extends ClientEmitter implements ClientSocketContract {
   readonly connected = false;
   readonly id = undefined;
   readonly io = undefined;
