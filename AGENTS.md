@@ -18,6 +18,10 @@ to write docs. This file links to those and summarizes none.
   comparison the project rests on.
 - Never assert non-receipt with a timeout. Use the marker pattern in
   `src/test-events.ts`: send a later event and prove ordering instead.
+- `pnpm test:browser` runs the mock target in Chromium and needs
+  `pnpm exec playwright install chromium` once. Not part of the dual run: a page
+  cannot host a socket.io server, so it only asks whether the mock behaves in a
+  browser the way it does in Node. Run it when a change touches a host API.
 
 ## Delivery behavior
 
