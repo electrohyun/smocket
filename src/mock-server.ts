@@ -278,7 +278,7 @@ class Namespace implements NamespaceContract {
    * real socket.io, where a listener on each fires once and the same function on both
    * fires twice.
    */
-  private readonly connectionListeners = new Map<string, Set<Listener>>();
+  private readonly connectionListeners = new Map<string, Listener[]>();
   /**
    * `nextConnection` calls on this namespace still waiting for a socket. Keeping
    * the queue per-namespace is the subtle half of isolation: a global queue could
@@ -384,9 +384,9 @@ class Namespace implements NamespaceContract {
    */
   private emitConnection(socket: ServerSocket): void {
     for (const event of ['connection', 'connect']) {
-      const set = this.connectionListeners.get(event);
-      if (!set) continue;
-      for (const listener of [...set]) (listener as (s: ServerSocket) => void)(socket);
+      const list = this.connectionListeners.get(event);
+      if (!list) continue;
+      for (const listener of [...list]) (listener as (s: ServerSocket) => void)(socket);
     }
   }
 
@@ -599,9 +599,9 @@ const RESERVED_EVENTS = new Set(['connect', 'connect_error', 'disconnect', 'disc
  * the target's `dispatch` a tick later.
  */
 class Emitter {
-  private readonly listeners = new Map<string, Set<Listener>>();
+  private readonly listeners = new Map<string, Listener[]>();
   /** Catch-all listeners, fired for every non-reserved event before the specific ones. */
-  private readonly anyListeners = new Set<Listener>();
+  private readonly anyListeners: Listener[] = [];
 
   on(event: string, listener: Listener): void {
     addListener(this.listeners, event, listener);
@@ -609,7 +609,7 @@ class Emitter {
 
   once(event: string, listener: Listener): void {
     const wrapper = ((...args: never[]) => {
-      this.listeners.get(event)?.delete(wrapper);
+      removeFirst(this.listeners.get(event), wrapper);
       listener(...args);
     }) as Listener;
     // Carry the original so `off(listener)` can find a `once` registration through
@@ -619,29 +619,49 @@ class Emitter {
   }
 
   onAny(listener: Listener): void {
-    this.anyListeners.add(listener);
+    this.anyListeners.push(listener);
   }
 
   offAny(listener?: Listener): void {
-    if (listener) this.anyListeners.delete(listener);
-    else this.anyListeners.clear();
+    // Remove the first matching registration, the way `off` removes one specific
+    // listener; with no argument, clear every catch-all. socket.io's `offAny`
+    // splices the first occurrence out of its `_anyListeners` array (#125).
+    if (listener) removeFirst(this.anyListeners, listener);
+    else this.anyListeners.length = 0;
   }
 
   /**
    * Remove one registration for `event`, matching the original listener even when it
    * was registered through a `once` wrapper (socket.io keeps the original on the
-   * wrapper and compares against it). Removes the first match only; a listener that
-   * was never registered, or an event with none, is a no-op. `off` itself differs by
-   * side (Node's emitter on the server, component-emitter on the client, 0017), so
-   * each socket exposes its own; this is the shared single-removal both build on.
+   * wrapper and compares against it). A listener that was never registered, or an
+   * event with none, is a no-op.
+   *
+   * Which occurrence goes differs by side, and it is observable once the same
+   * function is registered twice (#125): the client is component-emitter, which
+   * splices the *first* match; the server is Node's emitter, which scans from the
+   * end and removes the *last* (measured on 4.8.3). This is the client's
+   * first-match half; `ServerSocket` removes through `removeLast` instead (0017).
    */
   protected removeOne(event: string, listener: Listener): void {
-    const set = this.listeners.get(event);
-    if (!set) return;
-    if (set.delete(listener)) return;
-    for (const registered of set) {
-      if ((registered as { listener?: Listener }).listener === listener) {
-        set.delete(registered);
+    const list = this.listeners.get(event);
+    if (!list) return;
+    const i = list.findIndex((r) => isListener(r, listener));
+    if (i !== -1) list.splice(i, 1);
+  }
+
+  /**
+   * The server's counterpart to `removeOne`: Node's emitter removes the last
+   * matching registration, not the first, so a doubly-registered listener drops
+   * its most recent registration first. Same match rule (direct or `once`
+   * wrapper), scanned from the end.
+   */
+  protected removeLast(event: string, listener: Listener): void {
+    const list = this.listeners.get(event);
+    if (!list) return;
+    for (let i = list.length - 1; i >= 0; i--) {
+      const entry = list[i];
+      if (entry !== undefined && isListener(entry, listener)) {
+        list.splice(i, 1);
         return;
       }
     }
@@ -660,14 +680,14 @@ class Emitter {
    * rather than received from the peer.
    */
   dispatch(event: string, args: unknown[]): void {
-    if (this.anyListeners.size > 0 && !RESERVED_EVENTS.has(event)) {
+    if (this.anyListeners.length > 0 && !RESERVED_EVENTS.has(event)) {
       for (const any of [...this.anyListeners]) {
         (any as (...a: unknown[]) => void)(event, ...args);
       }
     }
-    const set = this.listeners.get(event);
-    if (!set) return;
-    for (const listener of [...set]) (listener as (...a: unknown[]) => void)(...args);
+    const list = this.listeners.get(event);
+    if (!list) return;
+    for (const listener of [...list]) (listener as (...a: unknown[]) => void)(...args);
   }
 }
 
@@ -783,7 +803,7 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
     if (typeof listener !== 'function') {
       throw new TypeError('The "listener" argument must be of type function. Received undefined');
     }
-    this.removeOne(event, listener);
+    this.removeLast(event, listener);
   }
 
   get broadcast(): BroadcastContract {
@@ -1026,8 +1046,23 @@ function emitWithAck(target: Emitter, event: string, args: unknown[]): Promise<u
   });
 }
 
-function addListener(map: Map<string, Set<Listener>>, event: string, listener: Listener): void {
-  const set = map.get(event) ?? new Set<Listener>();
-  set.add(listener);
-  map.set(event, set);
+// Store listeners in arrays, not Sets, so a callback registered twice is kept
+// twice and fired once per registration, the way real socket.io's emitters do
+// (#125). A Set would de-duplicate, calling a doubly-registered callback once.
+function addListener(map: Map<string, Listener[]>, event: string, listener: Listener): void {
+  const list = map.get(event) ?? [];
+  list.push(listener);
+  map.set(event, list);
+}
+
+/** Remove the first occurrence of `listener` from `list` in place, if present. */
+function removeFirst(list: Listener[] | undefined, listener: Listener): void {
+  if (!list) return;
+  const i = list.indexOf(listener);
+  if (i !== -1) list.splice(i, 1);
+}
+
+/** True if `entry` is `listener`, directly or as the `once` wrapper carrying it. */
+function isListener(entry: Listener, listener: Listener): boolean {
+  return entry === listener || (entry as { listener?: Listener }).listener === listener;
 }

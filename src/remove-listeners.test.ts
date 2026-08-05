@@ -21,6 +21,36 @@ it('off removes only the named registration', async () => {
   expect(hits).toEqual(['l2']);
 });
 
+// Listeners are stored in arrays, not de-duplicated: registering the same
+// callback twice calls it once per registration, and off removes one occurrence.
+
+it('the same callback registered twice is called once per registration', async () => {
+  const { client, serverSocket } = await ctx.connectClient();
+  const hits: string[] = [];
+  const listener = () => hits.push('x');
+  serverSocket.on('ev', listener);
+  serverSocket.on('ev', listener);
+  const done = new Promise<void>((resolve) => serverSocket.on('marker', () => resolve()));
+  client.emit('ev');
+  client.emit('marker');
+  await done;
+  expect(hits).toEqual(['x', 'x']);
+});
+
+it('off removes one occurrence of a doubly-registered callback, leaving the rest', async () => {
+  const { client, serverSocket } = await ctx.connectClient();
+  const hits: string[] = [];
+  const listener = () => hits.push('x');
+  serverSocket.on('ev', listener);
+  serverSocket.on('ev', listener);
+  serverSocket.off('ev', listener);
+  const done = new Promise<void>((resolve) => serverSocket.on('marker', () => resolve()));
+  client.emit('ev');
+  client.emit('marker');
+  await done;
+  expect(hits).toEqual(['x']);
+});
+
 it('removeAllListeners(event) clears every listener for that event only', async () => {
   const { client, serverSocket } = await ctx.connectClient();
   const hits: string[] = [];
@@ -118,6 +148,71 @@ it('off removes a once registration on the client side too', async () => {
   serverSocket.emit('marker');
   await done;
   expect(hits).toEqual([]);
+});
+
+// Which occurrence off removes when the same function is registered both ways
+// splits by side (measured on 4.8.3): Node's emitter removes the last match, so
+// off leaves the earlier registration; component-emitter removes the first, so
+// it leaves the later one.
+
+it('server off removes the last match, leaving the earlier once registration', async () => {
+  const { client, serverSocket } = await ctx.connectClient();
+  const hits: string[] = [];
+  const l = () => hits.push('x');
+  serverSocket.once('ev', l);
+  serverSocket.on('ev', l);
+  serverSocket.off('ev', l);
+  const done = new Promise<void>((resolve) => serverSocket.on('marker', () => resolve()));
+  client.emit('ev');
+  client.emit('ev');
+  client.emit('marker');
+  await done;
+  expect(hits).toEqual(['x']); // the once survived and fired a single time
+});
+
+it('server off removes the last match, leaving the earlier on registration', async () => {
+  const { client, serverSocket } = await ctx.connectClient();
+  const hits: string[] = [];
+  const l = () => hits.push('x');
+  serverSocket.on('ev', l);
+  serverSocket.once('ev', l);
+  serverSocket.off('ev', l);
+  const done = new Promise<void>((resolve) => serverSocket.on('marker', () => resolve()));
+  client.emit('ev');
+  client.emit('ev');
+  client.emit('marker');
+  await done;
+  expect(hits).toEqual(['x', 'x']); // the on survived and fired on both emits
+});
+
+it('client off removes the first match, leaving the later on registration', async () => {
+  const { client, serverSocket } = await ctx.connectClient();
+  const hits: string[] = [];
+  const l = () => hits.push('x');
+  client.once('ev', l);
+  client.on('ev', l);
+  client.off('ev', l);
+  const done = new Promise<void>((resolve) => client.on('marker', () => resolve()));
+  serverSocket.emit('ev');
+  serverSocket.emit('ev');
+  serverSocket.emit('marker');
+  await done;
+  expect(hits).toEqual(['x', 'x']); // the on survived and fired on both emits
+});
+
+it('client off removes the first match, leaving the later once registration', async () => {
+  const { client, serverSocket } = await ctx.connectClient();
+  const hits: string[] = [];
+  const l = () => hits.push('x');
+  client.on('ev', l);
+  client.once('ev', l);
+  client.off('ev', l);
+  const done = new Promise<void>((resolve) => client.on('marker', () => resolve()));
+  serverSocket.emit('ev');
+  serverSocket.emit('ev');
+  serverSocket.emit('marker');
+  await done;
+  expect(hits).toEqual(['x']); // the once survived and fired a single time
 });
 
 // The client side must be exercised directly: the shared emitter is not enough,
