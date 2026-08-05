@@ -234,6 +234,13 @@ export interface ServerSocketContract {
   broadcast: BroadcastContract;
   /** The connection handshake; see {@link Handshake}. */
   handshake: Handshake;
+  /**
+   * A per-socket store, an empty object at creation (#108). Connection middleware writes
+   * to it (`socket.data.userId = ...`) and an event handler reads it back, the place to
+   * carry what middleware resolved from the handshake. Server-only, never sent to the
+   * client, and tied to the socket: a reconnection is a fresh socket with a fresh `data`.
+   */
+  data: Record<string, unknown>;
   on(event: string, listener: Listener): void;
   once(event: string, listener: Listener): void;
   /** Remove one registration. The server is Node's emitter, so a listener is required (0017). */
