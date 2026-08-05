@@ -5,6 +5,7 @@ import type {
   ClientSocketContract,
   ConnectionMiddleware,
   ConnectOptions,
+  DeliveryTimer,
   Handshake,
   MiddlewareError,
   NamespaceContract,
@@ -181,6 +182,116 @@ export class Adapter implements SmocketAdapter {
       for (const sid of members) sids.add(sid);
     }
     return sids;
+  }
+}
+
+/** The default `DeliveryTimer`: real `setTimeout` / `Date.now`, which fake timers can drive. */
+const realTimer: DeliveryTimer = {
+  schedule: (fn, ms) => {
+    setTimeout(fn, ms);
+  },
+  now: () => Date.now(),
+};
+
+/**
+ * A `SmocketAdapter` that delays what a socket's client receives by a per-sid amount (#78),
+ * the mock-only affordance for interleaving events across sockets deterministically in a
+ * race-condition test. It slows the client-inbound stream (server -> client) only; a socket's
+ * server side still receives its client's emits on the next tick, so a delay never couples
+ * the two directions. It extends the built-in `Adapter`, so routing is unchanged; it adds
+ * only the delivery-scheduling hook. Register it through `io.adapter` and set delays by sid:
+ *
+ *   let delaying!: DelayingAdapter;
+ *   io.adapter(() => (delaying = new DelayingAdapter(timer)));
+ *   // ...connect sockets...
+ *   delaying.setDelay(slowSid, 20);
+ *
+ * Note the factory runs once per namespace, so the captured `delaying` is whichever namespace
+ * was created last; a test that uses more than one namespace should key its own map of them
+ * rather than a single variable.
+ *
+ * Order within the stream is preserved (0010): deliveries drain through a per-sid FIFO queue
+ * one at a time, so a just-lowered delay never lets a new event overtake one already waiting,
+ * and order never rides on the timer's equal-deadline callback ordering. The scheduling goes
+ * through an injected `DeliveryTimer` (default real, fake-timer-drivable), so a test never
+ * waits on the wall clock. A delay applies to event
+ * delivery only: an acknowledgement answer and the connect / disconnect lifecycle return on
+ * the normal tick, so a delayed event can arrive after the disconnect that followed it.
+ */
+export class DelayingAdapter extends Adapter {
+  private readonly delays = new Map<string, number>();
+  /**
+   * A per-sid FIFO queue of pending deliveries, each with the time it may fire. Only the
+   * head is ever scheduled; the next is scheduled after the head runs, so order is a
+   * structural property of the queue, not of the timer's callback ordering (#78).
+   */
+  private readonly queues = new Map<string, Array<{ deliver: () => void; fireAt: number }>>();
+
+  constructor(private readonly timer: DeliveryTimer = realTimer) {
+    super();
+  }
+
+  /**
+   * Set the delivery delay for `sid` in ms; `0` (or any non-positive value) clears it,
+   * dropping the entry so the sid is back on the default next-tick delivery. A non-finite
+   * value (`NaN` / `Infinity`) is ignored, since it has no meaning as a delay. It applies to
+   * deliveries scheduled after this call; anything already queued keeps the delay it was
+   * scheduled with.
+   */
+  setDelay(sid: string, ms: number): void {
+    if (!Number.isFinite(ms)) return;
+    if (ms <= 0) this.delays.delete(sid);
+    else this.delays.set(sid, ms);
+  }
+
+  scheduleDelivery(sid: string, deliver: () => void): void {
+    const fireAt = this.timer.now() + (this.delays.get(sid) ?? 0);
+    const queue = this.queues.get(sid);
+    // A drain is already running for this sid: append and let it pick this up in order.
+    if (queue) {
+      queue.push({ deliver, fireAt });
+      return;
+    }
+    this.queues.set(sid, [{ deliver, fireAt }]);
+    this.pump(sid);
+  }
+
+  /**
+   * Fire the head of `sid`'s queue when its time is due, then drain the next. Because only
+   * the head is scheduled at a time and the next is scheduled from inside the head's run,
+   * a later delivery can never dispatch before an earlier one, whatever the delays or the
+   * timer's equal-deadline ordering. A head already due (delay 0, or a later delivery whose
+   * fire time has passed while it waited behind another) keeps the plain next-tick `defer`,
+   * so a socket the test never delayed behaves exactly as it would with the built-in adapter.
+   */
+  private pump(sid: string): void {
+    const queue = this.queues.get(sid);
+    if (!queue) return;
+    const head = queue[0];
+    if (!head) {
+      this.queues.delete(sid);
+      return;
+    }
+    const run = () => {
+      head.deliver();
+      queue.shift();
+      this.pump(sid);
+    };
+    const wait = head.fireAt - this.timer.now();
+    if (wait <= 0) defer(run);
+    else this.timer.schedule(run, wait);
+  }
+
+  /**
+   * Drop a socket's delay bookkeeping when it leaves its own id-room, which the teardown on
+   * disconnect does, so `delays` / `queues` do not grow without bound across a long test run.
+   */
+  override del(sid: string, room: string): void {
+    super.del(sid, room);
+    if (room === sid) {
+      this.delays.delete(sid);
+      this.queues.delete(sid);
+    }
   }
 }
 
@@ -871,6 +982,17 @@ class Emitter {
   }
 
   /**
+   * Schedule one inbound delivery to this socket. The default is the shared next-tick
+   * `defer`, which the server socket keeps (a client-to-server emit is never delayed).
+   * `ClientSocket` overrides it to consult its namespace adapter's optional
+   * delivery-scheduling hook (#78), so a delay applies to the client-inbound stream while
+   * its order is preserved. Called by `send`.
+   */
+  scheduleReceive(deliver: () => void): void {
+    defer(deliver);
+  }
+
+  /**
    * Fire this side's listeners for `event`. Internal; the peer's `send` calls it.
    * A catch-all runs first and receives the event name ahead of the args, for
    * every event except the reserved lifecycle ones, which are dispatched locally
@@ -946,10 +1068,13 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
   }
 
   /**
-   * Server-side teardown for a disconnecting socket, one tick later through the
-   * same `defer` every emit uses. An emit sent just before disconnect is already
-   * queued, so deferring the teardown lets it arrive before the socket leaves its
-   * rooms, keeping the per-socket FIFO invariant the marker proofs rely on.
+   * Server-side teardown for a disconnecting socket, one tick later through the same
+   * `defer` a server-inbound emit uses. A client-to-server emit sent just before disconnect
+   * is already queued on that same next tick, so deferring the teardown lets it arrive
+   * before the socket leaves its rooms, keeping the per-socket FIFO invariant the marker
+   * proofs rely on. (A `DelayingAdapter` only slows the client-inbound stream, never this
+   * one, so it does not disturb this ordering; a delayed client-inbound event can still land
+   * after the disconnect that followed it, which 0018 records as a limitation.)
    *
    * `disconnecting` fires while the rooms are still intact, so a handler can read
    * and notify them; `disconnect` fires once they are gone. Both carry `reason`,
@@ -1185,6 +1310,19 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
     const buffered = this.sendBuffer;
     this.sendBuffer = [];
     for (const [event, args] of buffered) send(this.serverSocket, event, args);
+  }
+
+  /**
+   * Deliveries to this client are what a delay affects (#78): the per-socket delay slows a
+   * socket's client-inbound stream, keyed by the client's identity in the namespace, its
+   * paired server socket's id. During the connect window the pairing is not complete yet
+   * (`serverSocket` is unset), and an emit from a `connection` handler reaches here before
+   * then, so that case falls back to the default next-tick with no delay.
+   */
+  override scheduleReceive(deliver: () => void): void {
+    const paired: ServerSocket | undefined = this.serverSocket;
+    if (paired) scheduleDelivery(paired.nsp.adapter, paired.id, deliver);
+    else defer(deliver);
   }
 
   /**
@@ -1453,7 +1591,17 @@ function send(target: Emitter, event: string, args: unknown[]): void {
         },
       ]
     : data;
-  defer(() => target.dispatch(event, finalArgs));
+  target.scheduleReceive(() => target.dispatch(event, finalArgs));
+}
+
+/**
+ * Route one delivery to `sid` through the adapter's optional scheduling hook (#78), or the
+ * default next-tick when it has none. Keeping the choice here means a socket with no
+ * delay behaves exactly as before, so the conformance suite is untouched.
+ */
+function scheduleDelivery(adapter: SmocketAdapter, sid: string, deliver: () => void): void {
+  if (adapter.scheduleDelivery) adapter.scheduleDelivery(sid, deliver);
+  else defer(deliver);
 }
 
 /**
