@@ -40,16 +40,21 @@
     }
   },
   "sideEffects": false,
+  "packageManager": "pnpm@11.15.1",
   "scripts": {
     "build": "tsup",
     "prepublishOnly": "pnpm run build",
     "test": "vitest",
+    "test:real": "vitest run",
     "test:mock": "SMOCKET_TARGET=mock vitest run",
-    "coverage": "vitest run --coverage",
+    "coverage": "SMOCKET_TARGET=mock vitest run --coverage",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "publint": "publint",
+    "attw": "attw \"$(pnpm pack 2>/dev/null | tail -1)\"",
+    "check:package": "pnpm build && pnpm publint && pnpm attw"
   },
   "devEngines": {
     "packageManager": {
@@ -59,12 +64,14 @@
     }
   },
   "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.5",
     "@eslint/js": "^10.0.1",
     "@types/node": "^26.1.1",
     "@vitest/coverage-v8": "^4.1.10",
     "eslint": "^10.7.0",
     "eslint-config-prettier": "^10.1.8",
     "prettier": "^3.9.5",
+    "publint": "^0.3.23",
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3",
     "tsup": "^8.5.1",
