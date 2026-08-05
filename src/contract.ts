@@ -31,6 +31,8 @@ type Listener = (...args: never[]) => void;
 export interface BroadcastContract {
   emit(event: string, ...args: unknown[]): void;
   to(room: string | string[]): BroadcastContract;
+  /** Add an ack timeout to this broadcast; see {@link TimeoutBroadcastContract}. */
+  timeout(ms: number): TimeoutBroadcastContract;
 }
 
 /**
@@ -46,6 +48,33 @@ export interface BroadcastContract {
 export interface TimeoutEmitterContract {
   emit(event: string, ...args: unknown[]): void;
   emitWithAck(event: string, ...args: unknown[]): Promise<unknown>;
+}
+
+/**
+ * A broadcast carrying an ack timeout, from `io.timeout(ms)` / `socket.timeout(ms).to(...)`
+ * / `socket.broadcast.timeout(ms)` and the like. Its `emit`'s trailing callback is invoked
+ * once with `(null, responses)` when every recipient acks in time, or `(Error('operation
+ * has timed out'), responses)` when the timer wins, where `responses` holds the acks that
+ * arrived, in arrival order. A broadcast to no recipient resolves at once as `(null, [])`.
+ * A late ack is dropped, so the callback fires exactly once. `to` chains and keeps the
+ * timeout, so `io.timeout(ms).to(a).to(b)` targets the union.
+ */
+export interface TimeoutBroadcastContract {
+  emit(event: string, ...args: unknown[]): void;
+  to(room: string | string[]): TimeoutBroadcastContract;
+}
+
+/**
+ * What `socket.timeout(ms)` returns on the server side: the single-ack emit forms
+ * (see {@link TimeoutEmitterContract}) plus the broadcast entry points, so a timeout set
+ * first still reaches `socket.timeout(ms).to(room)` / `.broadcast` / `.except(room)`, each
+ * an ack-collecting {@link TimeoutBroadcastContract}. Real socket.io returns the socket
+ * itself here, so this is a subset of its surface and the `Ensure<>` guards below hold.
+ */
+export interface SocketTimeoutContract extends TimeoutEmitterContract {
+  broadcast: TimeoutBroadcastContract;
+  to(room: string | string[]): TimeoutBroadcastContract;
+  except(room: string | string[]): TimeoutBroadcastContract;
 }
 
 /**
@@ -116,6 +145,8 @@ export interface NamespaceContract {
   use(middleware: ConnectionMiddleware): void;
   emit(event: string, ...args: unknown[]): void;
   to(room: string | string[]): BroadcastContract;
+  /** A timed broadcast to this namespace; see {@link TimeoutBroadcastContract}. */
+  timeout(ms: number): TimeoutBroadcastContract;
   /** Namespace-wide volatile broadcast: `io.of(ns).volatile.emit(...)`; see {@link VolatileServerSocket}. */
   volatile: BroadcastContract;
 }
@@ -169,6 +200,8 @@ export interface ServerContract {
   to(room: string | string[]): BroadcastContract;
   in(room: string | string[]): BroadcastContract;
   except(room: string | string[]): BroadcastContract;
+  /** A timed broadcast to `/`: `io.timeout(ms).to(room).emit(...)`; see {@link TimeoutBroadcastContract}. */
+  timeout(ms: number): TimeoutBroadcastContract;
   /** Server-wide volatile broadcast: `io.volatile.to(room).emit(...)`; see {@link VolatileServerSocket}. */
   volatile: BroadcastContract;
   of(namespace: string): NamespaceContract;
@@ -213,8 +246,12 @@ export interface ServerSocketContract {
   offAny(listener?: (...args: unknown[]) => void): void;
   emit(event: string, ...args: unknown[]): void;
   emitWithAck(event: string, ...args: unknown[]): Promise<unknown>;
-  /** Arm a per-emit ack timer on the next emit; see {@link TimeoutEmitterContract}. */
-  timeout(ms: number): TimeoutEmitterContract;
+  /**
+   * Arm a per-emit ack timer. Its `emit` / `emitWithAck` are the single-ack forms
+   * ({@link TimeoutEmitterContract}); its `to` / `broadcast` / `except` are the
+   * ack-collecting broadcast forms ({@link TimeoutBroadcastContract}).
+   */
+  timeout(ms: number): SocketTimeoutContract;
   /** The volatile emitter (0016): a plain emit once connected, dropped in the pre-connect window. */
   volatile: VolatileServerSocket;
   join(room: string | string[]): Promise<void> | void;
