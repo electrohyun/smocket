@@ -27,10 +27,10 @@ jobs:
       # One version failing should not hide the others.
       fail-fast: false
       matrix:
-        # The versions the toolchain can actually run. pnpm 11, pinned by the
-        # packageManager field, needs Node 22.13, so 20 cannot install here at
-        # all. Node 20 also left maintenance in April 2026. What the published
-        # package supports is a wider question, settled separately in #104.
+        # The versions still in maintenance. Node 20 left it in April 2026, which
+        # is why it is not here; that pnpm 11 cannot install on it either is a
+        # consequence, not the reason, so raising pnpm does not raise this list.
+        # What the published package supports is a wider question, settled in #143.
         node: [22, 24]
     steps:
       - uses: actions/checkout@v4
@@ -58,7 +58,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Install the chromium Playwright drives
+      - name: Install Chromium for Playwright
         run: pnpm exec playwright install --with-deps chromium
       # Only the mock target has a counterpart in a page, so this asks a narrower
       # question than the dual run. Does the mock behave in a browser the way it
@@ -100,10 +100,9 @@ jobs:
       - name: Coverage against smocket
         run: pnpm coverage
       # The gate above is the check that matters. This upload only feeds the
-      # Codecov report and badge, and it needs a CODECOV_TOKEN secret even on a
-      # public repository (a tokenless upload is rejected). Until that secret
-      # exists the step logs the rejection and moves on, so the job stays green
-      # and nothing here waits on an external service.
+      # Codecov report, and it needs the CODECOV_TOKEN secret even on a public
+      # repository, since a tokenless upload is rejected. It never fails the job,
+      # so a Codecov outage or a missing token costs the report and not the run.
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
