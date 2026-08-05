@@ -894,6 +894,13 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
    * and the fields smocket derives from the connection itself.
    */
   readonly handshake: Handshake;
+  /**
+   * The per-socket store (#108): an empty object at creation that middleware writes and a
+   * handler reads, to carry what middleware resolved from the handshake. A fresh socket
+   * gets a fresh object, so a reconnection (a new socket, 0013) starts empty, which ties
+   * `data` to the socket rather than the client identity, matching real socket.io.
+   */
+  readonly data: Record<string, unknown> = {};
   private peer!: ClientSocket;
 
   constructor(id: string, nsp: Namespace, handshake: Handshake) {
