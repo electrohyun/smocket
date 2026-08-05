@@ -29,15 +29,18 @@ as one more standalone capability.
 ## What you can and cannot swap
 
 In real socket.io an adapter does two jobs: it holds room membership and it
-delivers the event. smocket splits them. The adapter here answers only which
-[sids](./glossary.md#sid) a broadcast targets; delivery stays in the core, so
-per-socket order holds no matter which adapter is registered
+delivers the event. smocket splits them. The adapter here answers which
+[sids](./glossary.md#sid) a broadcast targets, and by default delivery stays in the
+core, so per-socket order holds no matter which routing adapter is registered
 (see [0010](./decisions/0010-single-defer-primitive-and-fifo.md)).
 
-So a custom adapter can retarget a broadcast, observing or narrowing the set, but
-it cannot reorder or delay one socket's stream. Reordering is the one thing the
-order guarantee forbids; scheduling is simply not part of this seam, and a
-per-socket delay is tracked as its own feature instead.
+So a routing adapter can retarget a broadcast, observing or narrowing the set, without
+touching delivery. One optional hook goes further: `scheduleDelivery(sid, deliver)` lets
+an adapter take over _when_ a socket's client-inbound deliveries fire, which is how the
+shipped `DelayingAdapter` delays what a socket's client receives for race-condition tests
+(see [0018](./decisions/0018-delivery-scheduling-adapter-hook.md)). It may delay that stream
+but never reorder within it: reordering is the one thing the order guarantee forbids, so a
+scheduling adapter owes 0010 the obligation to keep each socket's stream in send order.
 
 ## Why now, and why smocket-only
 

@@ -34,10 +34,19 @@
   connect with its server side. Real socket.io exposes no counterpart, so this is
   the first asymmetry a user meets, and it is listed here rather than left to be
   discovered.
-- **`io.adapter(factory)` registers a targeting-only adapter.** socket.io has
+- **`io.adapter(factory)` registers a smocket adapter.** socket.io has
   `io.adapter(...)` too, but its adapter also delivers and needs a transport smocket
   lacks, so the two are not signature-compatible: a custom adapter written for
-  smocket does not run on real socket.io. smocket's adapter changes the routing
-  decision (which sockets a broadcast targets) only; delivery stays in the core.
+  smocket does not run on real socket.io. A smocket adapter changes the routing
+  decision (which sockets a broadcast targets); delivery stays in the core unless the
+  adapter opts into the optional `scheduleDelivery(sid, deliver)` hook (see the delay
+  affordance below and [0018](./decisions/0018-delivery-scheduling-adapter-hook.md)).
   See [adapter-registration.md](./adapter-registration.md) and
   [0008](./decisions/0008-adapter-api-before-v1.md).
+- **`DelayingAdapter` delays what a socket's client receives, by sid.** Not a socket.io API.
+  It rides the adapter registration above to hold a socket's client-inbound stream
+  (server -> client) by a per-sid amount, so a race-condition test can interleave events
+  across sockets deterministically; the server side still receives its client's emits on the
+  next tick. Order within the delayed stream is preserved, and scheduling runs through an
+  injectable timer so a test drives it with fake timers rather than the wall clock. See
+  [0018](./decisions/0018-delivery-scheduling-adapter-hook.md).
