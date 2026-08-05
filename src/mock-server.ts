@@ -769,6 +769,8 @@ class Emitter {
   private readonly listeners = new Map<string, Listener[]>();
   /** Catch-all listeners, fired for every non-reserved event before the specific ones. */
   private readonly anyListeners: Listener[] = [];
+  /** Outgoing catch-all listeners, fired for every event this socket sends (#111). */
+  private readonly anyOutgoingListeners: Listener[] = [];
 
   on(event: string, listener: Listener): void {
     addListener(this.listeners, event, listener);
@@ -795,6 +797,34 @@ class Emitter {
     // splices the first occurrence out of its `_anyListeners` array (#125).
     if (listener) removeFirst(this.anyListeners, listener);
     else this.anyListeners.length = 0;
+  }
+
+  onAnyOutgoing(listener: Listener): void {
+    this.anyOutgoingListeners.push(listener);
+  }
+
+  offAnyOutgoing(listener?: Listener): void {
+    // The outgoing catch-all's removal mirrors `offAny` (#111): drop the first match,
+    // or clear all with no argument.
+    if (listener) removeFirst(this.anyOutgoingListeners, listener);
+    else this.anyOutgoingListeners.length = 0;
+  }
+
+  /**
+   * Fire the outgoing catch-all for an event this socket sends (#111), the sending
+   * counterpart of the `dispatch` catch-all. It runs at the send site (`emit` /
+   * `emitWithAck`), before the peer receives anything, and the listeners get the event
+   * name then the args. A trailing ack function is stripped first, so the catch-all sees
+   * the same args whether the emit carried an ack or not (measured on 4.8.3), and reserved
+   * lifecycle events are skipped, exactly as the incoming catch-all skips them.
+   */
+  protected emitOutgoing(event: string, args: unknown[]): void {
+    if (this.anyOutgoingListeners.length === 0 || RESERVED_EVENTS.has(event)) return;
+    const last = args.at(-1);
+    const outgoing = typeof last === 'function' ? args.slice(0, -1) : args;
+    for (const any of [...this.anyOutgoingListeners]) {
+      (any as (...a: unknown[]) => void)(event, ...outgoing);
+    }
   }
 
   /**
@@ -962,9 +992,11 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
   }
 
   emit(event: string, ...args: unknown[]): void {
+    this.emitOutgoing(event, args);
     send(this.peer, event, args);
   }
   emitWithAck(event: string, ...args: unknown[]): Promise<unknown> {
+    this.emitOutgoing(event, args);
     return emitWithAck(this.peer, event, args);
   }
   /**
@@ -1026,10 +1058,17 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
   get volatile(): VolatileServerSocket {
     return {
       emit: (event, ...args) => {
-        if (this.peer.connected) send(this.peer, event, args);
+        // A dropped (pre-connect) volatile emit is never sent, so it fires no outgoing
+        // catch-all; a connected one delivers and runs it, like a plain emit (#111).
+        if (!this.peer.connected) return;
+        this.emitOutgoing(event, args);
+        send(this.peer, event, args);
       },
-      emitWithAck: (event, ...args) =>
-        this.peer.connected ? emitWithAck(this.peer, event, args) : new Promise<unknown>(() => {}),
+      emitWithAck: (event, ...args) => {
+        if (!this.peer.connected) return new Promise<unknown>(() => {});
+        this.emitOutgoing(event, args);
+        return emitWithAck(this.peer, event, args);
+      },
       broadcast: new BroadcastOperator(this.nsp.adapter, this.nsp.sockets, [], [this.id], true),
       to: (room) =>
         new BroadcastOperator(this.nsp.adapter, this.nsp.sockets, asRooms(room), [this.id], true),
@@ -1162,6 +1201,9 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
   }
 
   emit(event: string, ...args: unknown[]): void {
+    // The outgoing catch-all fires at the send site, before the packet leaves and
+    // regardless of whether it is buffered first (#111).
+    this.emitOutgoing(event, args);
     // Before the connection completes, emits are buffered rather than lost, and
     // replayed in order at `completeConnection`, matching socket.io-client.
     if (!this.connected) {
@@ -1171,6 +1213,10 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
     send(this.serverSocket, event, args);
   }
   emitWithAck(event: string, ...args: unknown[]): Promise<unknown> {
+    // The outgoing catch-all fires for emitWithAck too (#111); the internally added
+    // ack never reaches it, and neither does a caller's, since `emitOutgoing` strips
+    // a trailing function.
+    this.emitOutgoing(event, args);
     // Like the free `emitWithAck`, but the rejecter is registered so `disconnect`
     // can settle a still-pending ack, matching socket.io-client.
     return new Promise((resolve, reject) => {
@@ -1211,12 +1257,17 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
   get volatile(): VolatileClientSocket {
     return {
       emit: (event, ...args) => {
-        if (this.connected) send(this.serverSocket, event, args);
+        // Dropped (pre-connect) volatile emits are never sent, so they fire no outgoing
+        // catch-all; a connected one delivers and runs it, like a plain emit (#111).
+        if (!this.connected) return;
+        this.emitOutgoing(event, args);
+        send(this.serverSocket, event, args);
       },
-      emitWithAck: (event, ...args) =>
-        this.connected
-          ? emitWithAck(this.serverSocket, event, args)
-          : new Promise<unknown>(() => {}),
+      emitWithAck: (event, ...args) => {
+        if (!this.connected) return new Promise<unknown>(() => {});
+        this.emitOutgoing(event, args);
+        return emitWithAck(this.serverSocket, event, args);
+      },
     };
   }
 

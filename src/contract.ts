@@ -251,6 +251,10 @@ export interface ServerSocketContract {
   onAny(listener: (...args: unknown[]) => void): void;
   /** Remove one catch-all listener, or all of them when called with no argument. */
   offAny(listener?: (...args: unknown[]) => void): void;
+  /** Catch-all for outgoing events this socket sends; receives the event name then its args. */
+  onAnyOutgoing(listener: (...args: unknown[]) => void): void;
+  /** Remove one outgoing catch-all, or all of them when called with no argument. */
+  offAnyOutgoing(listener?: (...args: unknown[]) => void): void;
   emit(event: string, ...args: unknown[]): void;
   emitWithAck(event: string, ...args: unknown[]): Promise<unknown>;
   /**
@@ -293,6 +297,10 @@ export interface ClientSocketContract {
   onAny(listener: (...args: unknown[]) => void): void;
   /** Remove one catch-all listener, or all of them when called with no argument. */
   offAny(listener?: (...args: unknown[]) => void): void;
+  /** Catch-all for outgoing events this socket sends; receives the event name then its args. */
+  onAnyOutgoing(listener: (...args: unknown[]) => void): void;
+  /** Remove one outgoing catch-all, or all of them when called with no argument. */
+  offAnyOutgoing(listener?: (...args: unknown[]) => void): void;
   emit(event: string, ...args: unknown[]): void;
   emitWithAck(event: string, ...args: unknown[]): Promise<unknown>;
   /** Arm a per-emit ack timer on the next emit; see {@link TimeoutEmitterContract}. */
