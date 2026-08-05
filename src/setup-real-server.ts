@@ -64,6 +64,19 @@ export function setupRealServer(): ServerContext {
     return { client, serverSocket };
   };
 
+  // Open a connection without awaiting `connect`, for a connection a test expects to
+  // fail: a middleware rejection fires `connect_error` and never `connect`, so awaiting
+  // the connect here would hang. The client is tracked for teardown like any other.
+  ctx.openClient = ({ namespace = '/', auth, query }: ConnectOptions = {}) => {
+    const client = io(`http://localhost:${port}${namespace}`, {
+      transports: ['websocket'],
+      auth,
+      query,
+    });
+    clients.push(client);
+    return client;
+  };
+
   ctx.connectClients = makeConnectClients(ctx);
 
   return ctx;

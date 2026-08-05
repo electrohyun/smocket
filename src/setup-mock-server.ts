@@ -42,6 +42,15 @@ export function setupMockServer(): ServerContext {
     return { client, serverSocket };
   };
 
+  // Open a connection without awaiting `connect`, mirroring the real target's
+  // `openClient`: a connection a middleware rejects fires `connect_error` and never
+  // `connect`, so a test drives this and awaits the error rather than the connect.
+  ctx.openClient = ({ namespace = '/', auth, query }: ConnectOptions = {}) => {
+    const client = server.connect(namespace, { auth, query });
+    clients.push(client);
+    return client;
+  };
+
   ctx.connectClients = makeConnectClients(ctx);
 
   return ctx;
