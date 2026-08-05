@@ -11,6 +11,18 @@ it('both sides have a socket id once connected', async () => {
   expect(serverSocket.id).toBe(client.id);
 });
 
+it('a socket id is 20 characters of url-safe base64', async () => {
+  // The shape real socket.io emits, which 0011 says smocket copies. It was stated
+  // there and pinned nowhere, so the generator could change shape without a test
+  // noticing — and it did (#139), where a browser bundle could not produce an id at
+  // all while this Node suite stayed green. Running dual, so the shape is read off
+  // the real target rather than asserted about it.
+  const clients = await ctx.connectClients(5);
+  for (const { client } of clients) {
+    expect(client.id).toMatch(/^[A-Za-z0-9_-]{20}$/);
+  }
+});
+
 it("io.on('connection') fires with the connecting server socket", async () => {
   const connected = new Promise<ServerSocketContract>((resolve) => {
     ctx.io.on('connection', (socket: ServerSocketContract) => resolve(socket));
