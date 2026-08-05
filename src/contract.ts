@@ -33,6 +33,21 @@ export interface BroadcastContract {
   to(room: string | string[]): BroadcastContract;
 }
 
+/**
+ * Result of `socket.timeout(ms)`: a per-emit wrapper that arms a timer on the next
+ * acknowledged emit rather than mutating the socket (measured against real socket.io).
+ * Its `emit`'s trailing callback is error-first: `(null, response)` when the ack wins
+ * the race, and a lone `Error('operation has timed out')` when the timer wins, with a
+ * late ack then dropped so the callback fires exactly once. A callback-less `emit` is a
+ * plain emit that arms no timer. `emitWithAck` is the same race as a promise, resolving
+ * with the response and rejecting with that same timeout `Error`. Real socket.io returns
+ * the decorated socket here; the subset it is held to is just these two emit forms.
+ */
+export interface TimeoutEmitterContract {
+  emit(event: string, ...args: unknown[]): void;
+  emitWithAck(event: string, ...args: unknown[]): Promise<unknown>;
+}
+
 /** The room bookkeeping the tests reach into for observation only. */
 export interface AdapterContract {
   rooms: Map<string, Set<string>>;
@@ -172,6 +187,8 @@ export interface ServerSocketContract {
   offAny(listener?: (...args: unknown[]) => void): void;
   emit(event: string, ...args: unknown[]): void;
   emitWithAck(event: string, ...args: unknown[]): Promise<unknown>;
+  /** Arm a per-emit ack timer on the next emit; see {@link TimeoutEmitterContract}. */
+  timeout(ms: number): TimeoutEmitterContract;
   join(room: string | string[]): Promise<void> | void;
   leave(room: string): Promise<void> | void;
   to(room: string | string[]): BroadcastContract;
@@ -206,6 +223,8 @@ export interface ClientSocketContract {
   offAny(listener?: (...args: unknown[]) => void): void;
   emit(event: string, ...args: unknown[]): void;
   emitWithAck(event: string, ...args: unknown[]): Promise<unknown>;
+  /** Arm a per-emit ack timer on the next emit; see {@link TimeoutEmitterContract}. */
+  timeout(ms: number): TimeoutEmitterContract;
   connect(): void;
   disconnect(): void;
 }
