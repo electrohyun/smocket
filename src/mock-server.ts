@@ -12,6 +12,8 @@ import type {
   ServerSocketContract,
   SmocketAdapter,
   TimeoutEmitterContract,
+  VolatileClientSocket,
+  VolatileServerSocket,
 } from './contract';
 
 /**
@@ -206,6 +208,11 @@ export class Adapter implements SmocketAdapter {
  * per-socket send path rather than delivering itself: every event, direct or
  * broadcast, then flows through the one `defer` primitive, so the per-socket FIFO
  * order the "did NOT receive" marker proofs rely on holds for broadcast too.
+ *
+ * When `volatile` is set (the `.volatile` broadcast forms, 0016) the routing is
+ * unchanged; the only difference is a per-recipient drop: a target whose client has
+ * not yet completed its connection is skipped rather than delivered to, matching real
+ * socket.io deciding volatile per recipient. Connected recipients receive it as normal.
  */
 class BroadcastOperator implements BroadcastContract {
   private readonly targetRooms = new Set<string>();
@@ -216,6 +223,7 @@ class BroadcastOperator implements BroadcastContract {
     private readonly sockets: Map<string, ServerSocket>,
     rooms: Iterable<string>,
     except: Iterable<string>,
+    private readonly volatile = false,
   ) {
     for (const room of rooms) this.targetRooms.add(room);
     for (const room of except) this.exceptRooms.add(room);
@@ -239,7 +247,12 @@ class BroadcastOperator implements BroadcastContract {
     const excluded = this.adapter.socketsIn(this.exceptRooms);
     for (const sid of targets) {
       if (excluded.has(sid)) continue;
-      this.sockets.get(sid)?.emit(event, ...args);
+      const socket = this.sockets.get(sid);
+      if (!socket) continue;
+      // Volatile drops per recipient in the pre-connect window (0016): a socket that is
+      // registered but whose client has not yet completed its connection is skipped.
+      if (this.volatile && !socket.connected) continue;
+      socket.emit(event, ...args);
     }
   }
 }
@@ -480,6 +493,11 @@ class Namespace implements NamespaceContract {
     // this is the namespace, not a socket.
     return new BroadcastOperator(this.adapter, this.sockets, [], asRooms(room));
   }
+  get volatile(): BroadcastContract {
+    // Everyone here, flagged volatile: a per-recipient pre-connect drop, a plain
+    // broadcast otherwise (0016). `to`/`except` chain off it and keep the flag.
+    return new BroadcastOperator(this.adapter, this.sockets, [], [], true);
+  }
 }
 
 /**
@@ -649,6 +667,10 @@ export class Server implements ServerContract {
   }
   except(room: string | string[]): BroadcastContract {
     return this.of('/').except(room);
+  }
+  get volatile(): BroadcastContract {
+    // `io.volatile` is the default namespace's: `io.volatile.to(room)` reaches only `/`.
+    return this.of('/').volatile;
   }
 }
 
@@ -869,6 +891,42 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
   }
 
   /**
+   * Whether the paired client has completed its connection. A volatile emit targeted at a
+   * socket whose client is not yet connected is dropped (0016); the volatile broadcast path
+   * reads this to make that per-recipient decision.
+   */
+  get connected(): boolean {
+    return this.peer.connected;
+  }
+
+  /**
+   * The volatile emitter (0016). A volatile emit is an ordinary emit once the client is
+   * connected and is dropped in the pre-connect window; a fresh view is returned each access,
+   * so the volatile flag never leaks into the socket's own `emit`. Its broadcast forms mirror
+   * `broadcast` / `to` / `except`, carrying the volatile flag into the operator.
+   */
+  get volatile(): VolatileServerSocket {
+    return {
+      emit: (event, ...args) => {
+        if (this.peer.connected) send(this.peer, event, args);
+      },
+      emitWithAck: (event, ...args) =>
+        this.peer.connected ? emitWithAck(this.peer, event, args) : new Promise<unknown>(() => {}),
+      broadcast: new BroadcastOperator(this.nsp.adapter, this.nsp.sockets, [], [this.id], true),
+      to: (room) =>
+        new BroadcastOperator(this.nsp.adapter, this.nsp.sockets, asRooms(room), [this.id], true),
+      except: (room) =>
+        new BroadcastOperator(
+          this.nsp.adapter,
+          this.nsp.sockets,
+          [],
+          [...asRooms(room), this.id],
+          true,
+        ),
+    };
+  }
+
+  /**
    * The server socket is Node's `EventEmitter`, whose `off` (`removeListener`)
    * requires a listener: `off(event)` with none throws rather than clearing the
    * event, so bulk removal here is `removeAllListeners` (0017).
@@ -1027,6 +1085,23 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
     return new TimeoutEmitter((event, args) => this.emit(event, ...args), ms);
   }
 
+  /**
+   * The volatile emitter (0016). Unlike a normal emit, a volatile one is not buffered while
+   * disconnected: sent before the connection completes it is dropped, and once connected it is
+   * an ordinary emit. `this.connected` / `this.serverSocket` are read at emit time, not now.
+   */
+  get volatile(): VolatileClientSocket {
+    return {
+      emit: (event, ...args) => {
+        if (this.connected) send(this.serverSocket, event, args);
+      },
+      emitWithAck: (event, ...args) =>
+        this.connected
+          ? emitWithAck(this.serverSocket, event, args)
+          : new Promise<unknown>(() => {}),
+    };
+  }
+
   connect(): void {
     // Already-connected `connect()` is a no-op in socket.io. Otherwise re-pair on
     // our namespace: a brand-new server socket and id, none of the old rooms, and the
@@ -1104,6 +1179,14 @@ class FailedClientSocket extends ClientEmitter implements ClientSocketContract {
       emit() {
         /* inert: never connected */
       },
+      emitWithAck: () => new Promise<unknown>(() => {}),
+    };
+  }
+  get volatile(): VolatileClientSocket {
+    // Never connected, so a volatile emit is always in the pre-connect window: dropped,
+    // and its ack stays pending, exactly like the inert `emit` / `emitWithAck` above (0016).
+    return {
+      emit: () => {},
       emitWithAck: () => new Promise<unknown>(() => {}),
     };
   }
