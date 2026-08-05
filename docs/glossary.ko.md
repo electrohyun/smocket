@@ -56,7 +56,9 @@ namespace를 가리키는 socket.io 자체의 줄임말로, 속성(`socket.nsp`)
 
 `io.to(room)`·`socket.broadcast`·`socket.except(room)`과 그 형제들이 반환하는 객체입니다.
 대상 room 집합과 제외 room 집합을 쥐고 `emit`을 노출하므로, 모든 브로드캐스트 형태가 서로
-다른 집합으로 만든 하나의 메커니즘입니다.
+다른 집합으로 만든 하나의 메커니즘입니다. `to`·`in`·`except`·`timeout`도 함께 노출하며 각각
+합쳐진 집합으로 만든 또 하나의 오퍼레이터를 반환하는데, 이것이 브로드캐스트를 어떤 순서로도
+좁힐 수 있게 하는 지점입니다.
 
 ## origin registry
 
