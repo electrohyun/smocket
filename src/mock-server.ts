@@ -51,6 +51,24 @@ function defer(fn: () => void): void {
 }
 
 /**
+ * `Buffer.toString('base64url')` done by hand, over `btoa` and two character swaps.
+ *
+ * The padding strip is load-bearing despite looking like a no-op at the id's length.
+ * `base64url` omits padding and `btoa` emits it, and the two agree only when the byte
+ * length is a multiple of three, which 15 is. Drop the strip and ids stay correct until
+ * the day someone changes the length, then quietly grow a `=`.
+ *
+ * Exported for `socket-id.test.ts`, which is the only caller that can pass a length
+ * other than the id's and so the only place that claim can be pinned. Not re-exported
+ * from `index.ts`, so it stays internal to the package.
+ */
+export function toBase64Url(bytes: Uint8Array): string {
+  let binary = '';
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+/**
  * socket.io ids are 20-char url-safe base64. Match the shape, not the source (0011).
  *
  * The entropy comes from Web Crypto and the encoding is done by hand, because
@@ -58,19 +76,11 @@ function defer(fn: () => void): void {
  * the trip to a browser (#139): a bundler's `Buffer` shim has no `base64url`, so
  * `newId` threw and no client could connect anywhere but Node. `globalThis.crypto`
  * has been a global since Node 19, so nothing is given up on the Node side.
- *
- * The padding strip is load-bearing despite looking like a no-op here. `base64url`
- * omits padding and `btoa` emits it, and the two agree only when the byte length is
- * a multiple of three — which 15 is. Drop the strip and ids stay correct until the
- * day someone changes the length, then quietly grow a `=`. Verified byte-for-byte
- * against `randomBytes(n).toString('base64url')` at lengths either side of 15.
  */
 function newId(): string {
   const bytes = new Uint8Array(15);
   crypto.getRandomValues(bytes);
-  let binary = '';
-  for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  return toBase64Url(bytes);
 }
 
 /**
