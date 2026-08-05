@@ -21,6 +21,7 @@ export default defineConfig({
         'src/setup-real-server.ts',
         'src/setup-mock-server.ts',
         'src/setup-server.ts',
+        'src/setup-server.browser.ts',
         'src/test-events.ts',
       ],
       // Gate on coverage of smocket's own code, which only the mock target
