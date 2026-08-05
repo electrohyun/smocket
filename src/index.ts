@@ -5,5 +5,11 @@
 // `const io = new Server(...)`), so the two names never collide in one file.
 // Only the named export is provided; a default export (`import io from ...`) waits
 // on the CJS interop it needs across tsup's dual output.
-export { Adapter, connect, connect as io, Server } from './mock-server';
-export type { AdapterFactory, AuthCallback, ConnectOptions, SmocketAdapter } from './contract';
+export { Adapter, connect, connect as io, DelayingAdapter, Server } from './mock-server';
+export type {
+  AdapterFactory,
+  AuthCallback,
+  ConnectOptions,
+  DeliveryTimer,
+  SmocketAdapter,
+} from './contract';

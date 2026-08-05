@@ -154,10 +154,12 @@ export interface NamespaceContract {
 /**
  * The routing seam a custom adapter implements, promoted from smocket's internal
  * `Adapter`. It owns membership (`add` / `del`) and the routing decision
- * (`socketsIn`: which sids a broadcast targets), and nothing else. It has no
- * delivery or scheduling method, so a registered adapter can retarget a broadcast
- * but can never reorder or delay a socket's stream: the per-socket FIFO invariant
- * (0010) is structurally out of its reach because delivery stays in the core.
+ * (`socketsIn`: which sids a broadcast targets). A routing adapter stops there, so it
+ * retargets a broadcast without touching delivery, which stays in the core and keeps the
+ * per-socket FIFO invariant (0010) structural. The optional `scheduleDelivery` hook below
+ * is the one exception (0018): an adapter that implements it takes over *when* a socket's
+ * deliveries fire, so it may delay a stream but owes 0010 the obligation to keep that
+ * stream in order (the shipped `DelayingAdapter` does).
  *
  * This is a smocket-only addition with no dual-run counterpart, so it is not held
  * to the `Ensure<>` checks below. Real socket.io's adapter also delivers and needs
@@ -173,6 +175,18 @@ export interface SmocketAdapter {
   del(sid: string, room: string): void;
   /** The routing decision: the deduped union of the given rooms' member sids. */
   socketsIn(rooms: Iterable<string>): Set<string>;
+  /**
+   * Optional delivery-scheduling hook (#78): when present, the core routes a socket's
+   * client-inbound event deliveries (server -> client, keyed by `sid`) through it instead of
+   * the default next-tick, handing over the `deliver` thunk that runs that socket's
+   * `dispatch`. It may delay that stream but must preserve its order (0010): a scheduler that
+   * reordered within it would break the FIFO the marker proofs rest on. The server-inbound
+   * stream, acknowledgement answers, and the connect / disconnect lifecycle are not routed
+   * here; they stay on the next tick. A mock-only affordance with no socket.io counterpart,
+   * used by `DelayingAdapter` for race-condition tests; an adapter that omits it keeps the
+   * default next-tick delivery.
+   */
+  scheduleDelivery?(sid: string, deliver: () => void): void;
 }
 
 /**
@@ -181,6 +195,20 @@ export interface SmocketAdapter {
  * namespace, so the adapter can read per-namespace state such as its name.
  */
 export type AdapterFactory = (nsp: NamespaceContract) => SmocketAdapter;
+
+/**
+ * The clock and scheduler a `DelayingAdapter` uses (#78), the seam for injecting a fake
+ * timer so a race-condition test is deterministic and never waits on the wall clock. The
+ * default delegates to `setTimeout` / `Date.now`, which Vitest's fake timers already
+ * control, so a test opts in with `vi.useFakeTimers()` and drives it with
+ * `vi.advanceTimersByTime`, or passes its own implementation.
+ */
+export interface DeliveryTimer {
+  /** Run `fn` `ms` from now. */
+  schedule(fn: () => void, ms: number): void;
+  /** The current time in ms; used to keep a socket's queue ordered across delay changes. */
+  now(): number;
+}
 
 /** The socket.io `Server`, as `ctx.io`. */
 export interface ServerContract {
