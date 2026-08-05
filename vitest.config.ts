@@ -23,9 +23,17 @@ export default defineConfig({
         'src/setup-server.ts',
         'src/test-events.ts',
       ],
-      // No threshold yet: the suite currently exercises real socket.io, not
-      // smocket's own code, so the number is not meaningful until the
-      // implementation lands. Revisit once delivery branching gets complex.
+      // Gate on coverage of smocket's own code, which only the mock target
+      // exercises (the real target runs socket.io, not this source), so the
+      // `coverage` script runs the mock target. The floors sit a little under
+      // the current numbers so a normal change does not trip them, while a real
+      // drop still fails the run rather than only reporting it.
+      thresholds: {
+        statements: 90,
+        branches: 82,
+        functions: 82,
+        lines: 92,
+      },
     },
   },
 });

@@ -11,8 +11,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        with:
-          version: 11
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -21,22 +19,91 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm format:check
-      - run: pnpm coverage
 
-  mock-target:
-    name: mock target
+  test:
+    name: test (node ${{ matrix.node }})
     runs-on: ubuntu-latest
+    strategy:
+      # One version failing should not hide the others.
+      fail-fast: false
+      matrix:
+        # The versions the toolchain can actually run. pnpm 11, pinned by the
+        # packageManager field, needs Node 22.13, so 20 cannot install here at
+        # all. Node 20 also left maintenance in April 2026. What the published
+        # package supports is a wider question, settled separately in #104.
+        node: [22, 24]
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
         with:
-          version: 11
+          node-version: ${{ matrix.node }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Run the suite against real socket.io
+        run: pnpm test:real
+      # The mock suite hard-gates like any other check: a mock regression fails
+      # it, and with it the badge.
+      - name: Run the suite against smocket
+        run: pnpm test:mock
+
+  compat:
+    name: real target (socket.io ${{ matrix.socketio }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # Exercise the oracle across its supported range, not one pinned version.
+        socketio: ['4.7', '4.8']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # The mock suite is green as of the v0.1.0 core, so this job now hard-gates
-      # like any other check: a mock regression fails it, and with it the badge.
-      - name: Run suite against smocket
-        run: pnpm test:mock
+      - name: Pin socket.io ${{ matrix.socketio }}
+        run: pnpm add -D socket.io@${{ matrix.socketio }} socket.io-client@${{ matrix.socketio }}
+      - run: pnpm test:real
+
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Coverage of smocket's own code, which only the mock target exercises; it
+      # gates on the thresholds in vitest.config.ts.
+      - name: Coverage against smocket
+        run: pnpm coverage
+      # The gate above is the check that matters. This upload only feeds the
+      # Codecov report and badge, and it needs a CODECOV_TOKEN secret even on a
+      # public repository (a tokenless upload is rejected). Until that secret
+      # exists the step logs the rejection and moves on, so the job stays green
+      # and nothing here waits on an external service.
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./coverage/lcov.info
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # publint checks the published manifest; arethetypeswrong checks that the
+      # type declarations resolve for both module systems (the substitution path
+      # depends on it).
+      - name: Verify packaging (publint + arethetypeswrong)
+        run: pnpm check:package
