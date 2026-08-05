@@ -9,6 +9,7 @@ import type {
   ServerContract,
   ServerSocketContract,
   SmocketAdapter,
+  TimeoutEmitterContract,
 } from './contract';
 
 /**
@@ -773,6 +774,13 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
   emitWithAck(event: string, ...args: unknown[]): Promise<unknown> {
     return emitWithAck(this.peer, event, args);
   }
+  /**
+   * Arm a per-emit ack timer on the next emit. The wrapper is handed this socket's own
+   * `emit` as its send path, so the timed emit still flows to the peer through `send`.
+   */
+  timeout(ms: number): TimeoutEmitterContract {
+    return new TimeoutEmitter((event, args) => this.emit(event, ...args), ms);
+  }
 
   /**
    * The server socket is Node's `EventEmitter`, whose `off` (`removeListener`)
@@ -911,6 +919,15 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
     });
   }
 
+  /**
+   * Arm a per-emit ack timer on the next emit. The wrapper sends through this client's
+   * own `emit`, so a timed emit made before connect still buffers and replays on connect
+   * while the timer counts down, matching a bare emit's buffering.
+   */
+  timeout(ms: number): TimeoutEmitterContract {
+    return new TimeoutEmitter((event, args) => this.emit(event, ...args), ms);
+  }
+
   connect(): void {
     // Already-connected `connect()` is a no-op in socket.io. Otherwise re-pair on
     // our namespace: a brand-new server socket and id, none of the old rooms, and the
@@ -981,11 +998,84 @@ class FailedClientSocket extends ClientEmitter implements ClientSocketContract {
     // connection never completes rather than inventing a rejection shape.
     return new Promise<unknown>(() => {});
   }
+  timeout(): TimeoutEmitterContract {
+    // Inert like the rest of this socket: the emit never leaves and the promise never
+    // settles, so no timer is armed and the terminal failure stays terminal (0005).
+    return {
+      emit() {
+        /* inert: never connected */
+      },
+      emitWithAck: () => new Promise<unknown>(() => {}),
+    };
+  }
   connect(): void {
     /* inert: the failure is terminal, no retry (0005) */
   }
   disconnect(): void {
     /* inert: never connected */
+  }
+}
+
+/**
+ * The object `socket.timeout(ms)` returns: a per-emit wrapper that races the ack
+ * against a real `ms` timer, rather than mutating the socket (measured against real
+ * socket.io — `timeout` applies to the next emit only). It layers the timer over the
+ * socket's own send path, which it is handed as `deliver`, so the emit still buffers,
+ * defers, and collapses the ack to its first value exactly like a bare emit; only the
+ * race is added on top.
+ *
+ * The race settles exactly once. When the ack answers first, the timer is cleared and
+ * the callback gets `(null, response)`, error-first with the collapsed first value. When
+ * the timer fires first, the callback gets a lone `Error('operation has timed out')` and
+ * `settled` then drops the late ack, so the callback never fires a second time. All three
+ * shapes (the null-first success, the single-argument timeout error, the dropped late ack)
+ * are pinned against real socket.io.
+ */
+class TimeoutEmitter implements TimeoutEmitterContract {
+  constructor(
+    /** The socket's ordinary send path (its own `emit`), so buffering and FIFO still hold. */
+    private readonly deliver: (event: string, args: unknown[]) => void,
+    private readonly ms: number,
+  ) {}
+
+  emit(event: string, ...args: unknown[]): void {
+    const last = args.at(-1);
+    // No trailing callback: a plain emit that delivers and arms no timer (measured).
+    if (typeof last !== 'function') {
+      this.deliver(event, args);
+      return;
+    }
+    const callback = last as (...received: unknown[]) => void;
+    const data = args.slice(0, -1);
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      // Timeout fires with a single argument, a plain timeout Error and no response.
+      callback(new Error('operation has timed out'));
+    }, this.ms);
+    // The ack wrapper is the trailing function, so the socket's `send` treats it as the
+    // ack and delivers the peer's answer here a tick later. Winning the race clears the
+    // timer and answers error-first; losing it is a no-op, so the late ack is dropped.
+    this.deliver(event, [
+      ...data,
+      (...answer: unknown[]) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        callback(null, answer[0]);
+      },
+    ]);
+  }
+
+  emitWithAck(event: string, ...args: unknown[]): Promise<unknown> {
+    // The same race as a promise: resolve with the response, reject with the timeout Error.
+    return new Promise((resolve, reject) => {
+      this.emit(event, ...args, (error: Error | null, response: unknown) => {
+        if (error) reject(error);
+        else resolve(response);
+      });
+    });
   }
 }
 
