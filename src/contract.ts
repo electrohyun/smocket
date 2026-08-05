@@ -38,6 +38,30 @@ export interface AdapterContract {
   rooms: Map<string, Set<string>>;
 }
 
+/**
+ * The error a connection middleware passes to `next` to reject a connection. It is a
+ * plain `Error` plus an optional `data`: real socket.io transmits `message` and `data`
+ * to the client, which rebuilds an `Error` carrying both, so an app can attach a code
+ * or payload to the rejection and read it back on the client's `connect_error`.
+ */
+export interface MiddlewareError extends Error {
+  data?: unknown;
+}
+
+/**
+ * A connection middleware, registered through `io.use()`. It runs after the handshake
+ * is built and before the socket is considered connected: `next()` admits the
+ * connection and passes control to the next middleware (or completes it, if last),
+ * while `next(err)` rejects it, and the client observes a `connect_error` carrying
+ * `err`. A rejected socket never joins its id-room, never enters the roster, and never
+ * reaches a `connection` handler. Registration order is execution order, and the first
+ * middleware to reject short-circuits the rest.
+ */
+export type ConnectionMiddleware = (
+  socket: ServerSocketContract,
+  next: (err?: MiddlewareError) => void,
+) => void;
+
 /** A namespace, as returned by `io.of()` and read via `socket.nsp`. */
 export interface NamespaceContract {
   name: string;
@@ -48,6 +72,11 @@ export interface NamespaceContract {
    * this, so both go through the same surface.
    */
   on(event: string, listener: Listener): void;
+  /**
+   * Register a connection middleware on this namespace; see {@link ConnectionMiddleware}.
+   * Called once per incoming connection here, in registration order.
+   */
+  use(middleware: ConnectionMiddleware): void;
   emit(event: string, ...args: unknown[]): void;
   to(room: string | string[]): BroadcastContract;
 }
@@ -92,6 +121,11 @@ export interface ServerContract {
    * the on-based path code written for real socket.io actually uses.
    */
   on(event: string, listener: Listener): void;
+  /**
+   * `io.use` is the default namespace's `use`: it registers a connection middleware for
+   * connections on `/`, exactly as `io.of('/').use` would. See {@link ConnectionMiddleware}.
+   */
+  use(middleware: ConnectionMiddleware): void;
   emit(event: string, ...args: unknown[]): void;
   to(room: string | string[]): BroadcastContract;
   in(room: string | string[]): BroadcastContract;
@@ -219,6 +253,13 @@ export interface ServerContext {
   io: ServerContract;
   /** Connect one more client and return it paired with its server-side socket. */
   connectClient: (options?: ConnectOptions) => Promise<ConnectedClient>;
+  /**
+   * Open a connection and return the client immediately, without waiting for it to
+   * connect. Needed for a connection expected to fail (a middleware rejection): its
+   * `connect` never fires, so `connectClient` would hang, whereas a test drives this
+   * and awaits the client's `connect_error` instead.
+   */
+  openClient: (options?: ConnectOptions) => ClientSocketContract;
   /**
    * Connect `count` clients and return them paired with their server-side
    * sockets, in connection order. Sugar over `connectClient` for the recurring

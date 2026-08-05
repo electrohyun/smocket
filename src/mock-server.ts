@@ -3,8 +3,10 @@ import type {
   AdapterFactory,
   BroadcastContract,
   ClientSocketContract,
+  ConnectionMiddleware,
   ConnectOptions,
   Handshake,
+  MiddlewareError,
   NamespaceContract,
   ServerContract,
   ServerSocketContract,
@@ -280,6 +282,12 @@ class Namespace implements NamespaceContract {
    */
   private readonly connectionListeners = new Map<string, Listener[]>();
   /**
+   * Connection middleware registered through `use`, in registration order. Each runs
+   * for every incoming connection here, before the socket is considered connected;
+   * the first to reject stops the chain (see `runMiddleware`).
+   */
+  private readonly middleware: ConnectionMiddleware[] = [];
+  /**
    * `nextConnection` calls on this namespace still waiting for a socket. Keeping
    * the queue per-namespace is the subtle half of isolation: a global queue could
    * hand a `nextConnection('/game')` a socket that connected on `/`.
@@ -342,26 +350,74 @@ class Namespace implements NamespaceContract {
       const serverSocket = new ServerSocket(newId(), this, handshake);
       serverSocket.attachPeer(client);
 
-      defer(() => {
-        // Register the socket before offering it, so a broadcast triggered from a
-        // `connection` handler can already resolve this sid to its socket.
-        this.sockets.set(serverSocket.id, serverSocket);
-        // Auto-join the room named after the socket's own id, exactly as real
-        // socket.io does on connect. Reusing `join` carries the adapter update in
-        // both directions and the `socket.rooms` mirror. This id-room is what makes
-        // `io.to(socketId)` address a single socket and what sender exclusion
-        // subtracts (see `BroadcastOperator`). A reconnect gets a fresh id-room and
-        // none of the socket's previous rooms, which is the reconnect test's point.
-        serverSocket.join(serverSocket.id);
-        this.offer(serverSocket);
-        // Fire `connection` before the client's own `connect` (in
-        // `completeConnection`), so the server side is observable first, the order
-        // real socket.io uses. A handler here can already broadcast to the new
-        // socket: it is registered in `sockets` and its id-room above.
-        this.emitConnection(serverSocket);
-        client.completeConnection(serverSocket);
+      // Connection middleware runs here, after the handshake is built (so a middleware
+      // reads the same fields a `connection` handler will) and before the socket is
+      // considered connected. Its verdict gates the deferred completion below: on
+      // rejection the socket is dropped before it is registered, joins its id-room, or
+      // reaches `connection`, and the client learns of the failure through
+      // `connect_error`; a reconnect re-runs `pair`, so the chain runs again for free.
+      this.runMiddleware(serverSocket, (err) => {
+        if (err) {
+          client.failConnection(err);
+          return;
+        }
+        defer(() => {
+          // Register the socket before offering it, so a broadcast triggered from a
+          // `connection` handler can already resolve this sid to its socket.
+          this.sockets.set(serverSocket.id, serverSocket);
+          // Auto-join the room named after the socket's own id, exactly as real
+          // socket.io does on connect. Reusing `join` carries the adapter update in
+          // both directions and the `socket.rooms` mirror. This id-room is what makes
+          // `io.to(socketId)` address a single socket and what sender exclusion
+          // subtracts (see `BroadcastOperator`). A reconnect gets a fresh id-room and
+          // none of the socket's previous rooms, which is the reconnect test's point.
+          serverSocket.join(serverSocket.id);
+          this.offer(serverSocket);
+          // Fire `connection` before the client's own `connect` (in
+          // `completeConnection`), so the server side is observable first, the order
+          // real socket.io uses. A handler here can already broadcast to the new
+          // socket: it is registered in `sockets` and its id-room above.
+          this.emitConnection(serverSocket);
+          client.completeConnection(serverSocket);
+        });
       });
     });
+  }
+
+  /**
+   * Register a connection middleware, matching real socket.io's `namespace.use`.
+   * Middleware are kept in registration order and run by `runMiddleware` on every
+   * connection here.
+   */
+  use(middleware: ConnectionMiddleware): void {
+    this.middleware.push(middleware);
+  }
+
+  /**
+   * Run the middleware chain for `socket`, then call `done` once with the verdict:
+   * `undefined` to admit the connection, or the rejecting error. Each middleware calls
+   * `next` to advance, or `next(err)` to reject and short-circuit the rest. A chain with
+   * no middleware admits immediately. This is a plain re-drive with no guard against a
+   * middleware calling `next` more than once: like real socket.io, a second `next` just
+   * re-drives the chain rather than throwing.
+   */
+  private runMiddleware(socket: ServerSocket, done: (err?: MiddlewareError) => void): void {
+    const chain = [...this.middleware];
+    let index = 0;
+    const next = (err?: MiddlewareError): void => {
+      if (err) {
+        done(err);
+        return;
+      }
+      const middleware = chain[index];
+      index += 1;
+      if (!middleware) {
+        done();
+        return;
+      }
+      middleware(socket, next);
+    };
+    next();
   }
 
   /**
@@ -553,6 +609,16 @@ export class Server implements ServerContract {
    */
   on(event: string, listener: Listener): void {
     this.of('/').on(event, listener);
+  }
+
+  /**
+   * The server's `use` is the default namespace's: `io.use(fn)` registers a connection
+   * middleware for connections on `/`, exactly `io.of('/').use(fn)`, socket.io's primary
+   * place to authenticate a connection. Middleware on another namespace is registered
+   * through `io.of(name).use(fn)`.
+   */
+  use(middleware: ConnectionMiddleware): void {
+    this.of('/').use(middleware);
   }
 
   /**
@@ -896,6 +962,19 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
     const buffered = this.sendBuffer;
     this.sendBuffer = [];
     for (const [event, args] of buffered) send(this.serverSocket, event, args);
+  }
+
+  /**
+   * A connection middleware rejected us: fire `connect_error` a tick later, carrying
+   * the middleware's error (its `message`, and its `data` if set) the way real
+   * socket.io's client rebuilds it. The connection never completes, so the client
+   * stays `connected === false` with no id; unlike a missing-server failure (0005),
+   * this is an app-driven rejection, so it is not logged to the console. The deferral
+   * matches a successful connect's one-tick delay, so a `connect_error` handler added
+   * on the next line is registered in time.
+   */
+  failConnection(err: MiddlewareError): void {
+    defer(() => this.dispatch('connect_error', [err]));
   }
 
   emit(event: string, ...args: unknown[]): void {
