@@ -11,6 +11,8 @@ import type {
   ServerContract,
   ServerSocketContract,
   SmocketAdapter,
+  SocketTimeoutContract,
+  TimeoutBroadcastContract,
   TimeoutEmitterContract,
   VolatileClientSocket,
   VolatileServerSocket,
@@ -214,7 +216,7 @@ export class Adapter implements SmocketAdapter {
  * not yet completed its connection is skipped rather than delivered to, matching real
  * socket.io deciding volatile per recipient. Connected recipients receive it as normal.
  */
-class BroadcastOperator implements BroadcastContract {
+class BroadcastOperator implements BroadcastContract, TimeoutBroadcastContract {
   private readonly targetRooms = new Set<string>();
   private readonly exceptRooms = new Set<string>();
 
@@ -224,35 +226,102 @@ class BroadcastOperator implements BroadcastContract {
     rooms: Iterable<string>,
     except: Iterable<string>,
     private readonly volatile = false,
+    /** When set, `emit` with a trailing callback collects each recipient's ack (#112). */
+    private timeoutMs: number | undefined = undefined,
   ) {
     for (const room of rooms) this.targetRooms.add(room);
     for (const room of except) this.exceptRooms.add(room);
   }
 
-  to(room: string | string[]): BroadcastContract {
+  to(room: string | string[]): BroadcastOperator {
     for (const r of asRooms(room)) this.targetRooms.add(r);
     return this;
   }
 
-  emit(event: string, ...args: unknown[]): void {
-    // Empty target rooms means "everyone" (`io.emit` / `socket.broadcast`), so the
-    // target set is all connected sids; otherwise it is the deduped union of the
-    // target rooms' members. The excluded set is the union of the except rooms'
-    // members (the sender's id-room for the `socket.*` forms). Deliver to the
-    // difference, once per socket, through each socket's own send path.
+  /** Add an ack timeout, so the next `emit` with a trailing callback collects responses (#112). */
+  timeout(ms: number): TimeoutBroadcastContract {
+    this.timeoutMs = ms;
+    return this;
+  }
+
+  /**
+   * Resolve this broadcast's recipients: empty target rooms means "everyone" (`io.emit` /
+   * `socket.broadcast`), otherwise the deduped union of the target rooms' members, minus the
+   * except rooms (the sender's id-room for the `socket.*` forms). A volatile broadcast also
+   * skips a recipient still in its pre-connect window (0016).
+   */
+  private recipients(): ServerSocket[] {
     const targets =
       this.targetRooms.size === 0
         ? new Set(this.sockets.keys())
         : this.adapter.socketsIn(this.targetRooms);
     const excluded = this.adapter.socketsIn(this.exceptRooms);
+    const out: ServerSocket[] = [];
     for (const sid of targets) {
       if (excluded.has(sid)) continue;
       const socket = this.sockets.get(sid);
       if (!socket) continue;
-      // Volatile drops per recipient in the pre-connect window (0016): a socket that is
-      // registered but whose client has not yet completed its connection is skipped.
       if (this.volatile && !socket.connected) continue;
-      socket.emit(event, ...args);
+      out.push(socket);
+    }
+    return out;
+  }
+
+  emit(event: string, ...args: unknown[]): void {
+    const recipients = this.recipients();
+    const last = args.at(-1);
+    // A plain broadcast unless a timeout is armed and a trailing callback is present:
+    // then it collects one ack per recipient and answers the callback once (#112).
+    if (this.timeoutMs === undefined || typeof last !== 'function') {
+      for (const socket of recipients) socket.emit(event, ...args);
+      return;
+    }
+    this.collect(
+      event,
+      args.slice(0, -1),
+      last as (...a: unknown[]) => void,
+      recipients,
+      this.timeoutMs,
+    );
+  }
+
+  /**
+   * Fan `event` out to `recipients` and gather their acks (#112). The callback fires once:
+   * `(null, responses)` when every recipient answers before `ms`, or `(Error('operation has
+   * timed out'), responses)` when the timer wins, where `responses` holds the acks that
+   * arrived, in arrival order (measured on 4.8.3, not join order). A `settled` flag drops a
+   * late ack and keeps the callback single-shot. No recipient resolves at once as `(null, [])`.
+   */
+  private collect(
+    event: string,
+    data: unknown[],
+    callback: (...received: unknown[]) => void,
+    recipients: ServerSocket[],
+    ms: number,
+  ): void {
+    if (recipients.length === 0) {
+      defer(() => callback(null, []));
+      return;
+    }
+    const responses: unknown[] = [];
+    let settled = false;
+    let remaining = recipients.length;
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      callback(new Error('operation has timed out'), responses);
+    }, ms);
+    for (const socket of recipients) {
+      socket.emit(event, ...data, (...answer: unknown[]) => {
+        if (settled) return;
+        responses.push(answer[0]);
+        remaining -= 1;
+        if (remaining === 0) {
+          settled = true;
+          clearTimeout(timer);
+          callback(null, responses);
+        }
+      });
     }
   }
 }
@@ -498,6 +567,11 @@ class Namespace implements NamespaceContract {
     // broadcast otherwise (0016). `to`/`except` chain off it and keep the flag.
     return new BroadcastOperator(this.adapter, this.sockets, [], [], true);
   }
+  timeout(ms: number): TimeoutBroadcastContract {
+    // Everyone here, carrying an ack timeout: `io.of(ns).timeout(ms).to(room).emit(cb)`
+    // collects each recipient's ack (#112). `to` chains off it and keeps the timeout.
+    return new BroadcastOperator(this.adapter, this.sockets, [], [], false, ms);
+  }
 }
 
 /**
@@ -667,6 +741,10 @@ export class Server implements ServerContract {
   }
   except(room: string | string[]): BroadcastContract {
     return this.of('/').except(room);
+  }
+  timeout(ms: number): TimeoutBroadcastContract {
+    // `io.timeout(ms)` is the default namespace's: `io.timeout(ms).to(room)` reaches only `/`.
+    return this.of('/').timeout(ms);
   }
   get volatile(): BroadcastContract {
     // `io.volatile` is the default namespace's: `io.volatile.to(room)` reaches only `/`.
@@ -883,11 +961,44 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
     return emitWithAck(this.peer, event, args);
   }
   /**
-   * Arm a per-emit ack timer on the next emit. The wrapper is handed this socket's own
-   * `emit` as its send path, so the timed emit still flows to the peer through `send`.
+   * Arm a per-emit ack timer. `emit` / `emitWithAck` are the single-ack forms, sent to the
+   * peer through this socket's own `emit`; `to` / `broadcast` / `except` are the ack-collecting
+   * broadcast forms (#112), each a timeout-carrying operator that excludes the sender the way
+   * `socket.broadcast` does. So a timeout set first still reaches every broadcast shape, and
+   * `.timeout` / `.to` / `.broadcast` are freely ordered, matching real socket.io.
    */
-  timeout(ms: number): TimeoutEmitterContract {
-    return new TimeoutEmitter((event, args) => this.emit(event, ...args), ms);
+  timeout(ms: number): SocketTimeoutContract {
+    const single = new TimeoutEmitter((event, args) => this.emit(event, ...args), ms);
+    return {
+      emit: (event, ...args) => single.emit(event, ...args),
+      emitWithAck: (event, ...args) => single.emitWithAck(event, ...args),
+      broadcast: new BroadcastOperator(
+        this.nsp.adapter,
+        this.nsp.sockets,
+        [],
+        [this.id],
+        false,
+        ms,
+      ),
+      to: (room) =>
+        new BroadcastOperator(
+          this.nsp.adapter,
+          this.nsp.sockets,
+          asRooms(room),
+          [this.id],
+          false,
+          ms,
+        ),
+      except: (room) =>
+        new BroadcastOperator(
+          this.nsp.adapter,
+          this.nsp.sockets,
+          [],
+          [...asRooms(room), this.id],
+          false,
+          ms,
+        ),
+    };
   }
 
   /**
