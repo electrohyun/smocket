@@ -17,6 +17,12 @@
   </a>
 </p>
 
+<p align="center">
+  <!-- The landing site. Its interactive demo is still being built, so this points
+       at the site and not at a demo. -->
+  <a href="https://smocket-site.vercel.app">smocket-site.vercel.app</a>
+</p>
+
 > **Status: pre-1.0.** The delivery core (rooms, namespaces, broadcasts, acks, disconnect) is complete and checked against real socket.io by a dual-run conformance suite. The idiomatic `io.on('connection')` entry point and URL-based `connect(url, { auth, query })` now work (see [Usage](#usage)), populating `socket.handshake`; the `nextConnection` pairing helper stays for tests that drive a connection directly. The public API can still change before 1.0.0.
 
 ## Why smocket
