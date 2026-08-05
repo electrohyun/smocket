@@ -56,7 +56,9 @@ returned by `io.of(name)`. See namespace.
 
 The object returned by `io.to(room)`, `socket.broadcast`, `socket.except(room)`,
 and their siblings. It holds the target and excluded room sets and exposes `emit`,
-so every broadcast form is one mechanism built with different sets.
+so every broadcast form is one mechanism built with different sets. It also carries
+`to` / `in` / `except` / `timeout`, each returning a further operator over the merged
+sets, which is what lets a broadcast be narrowed in any order.
 
 ## origin registry
 
