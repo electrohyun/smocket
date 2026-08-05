@@ -87,9 +87,11 @@ These belong to the transport layer, which has no meaning in an in-memory mock.
 
 ## Roadmap
 
-- **v0.1.0 — Core delivery layer.** Socket lifecycle, emit/on with acknowledgements, room join/leave, broadcast variants, and namespace isolation — verified against a real Socket.IO server.
-- **v0.2.0 — Extensibility.** Public adapter API with a working example, multi-client simulation helpers, and a stable public surface for 1.0.
-- **v1.0.0 — First stable release.** Complete documentation, usage examples, and a published conformance test report.
+- **v0.1.0** (2026-07-30). Core delivery layer: socket lifecycle, emit/on with acknowledgements, room join/leave, broadcast variants, and namespace isolation, verified against a real Socket.IO server.
+- **v0.2.0** (2026-07-30). Extensibility: public adapter API with a working example, multi-client simulation helpers, and a stable public surface for 1.0.
+- **v0.3.0** (2026-08-03). App-facing entry points: `io.on('connection')`, `connect(url)`, and the `io` alias, so code written for socket.io runs against smocket.
+- **v0.4.0** (in progress). The remaining public API surface and packaging verification: everything that changes `src/` before the feature freeze.
+- **v1.0.0** (planned). First stable release: complete documentation, usage examples, and a published conformance test report.
 
 Beyond 1.0, extensions such as a devtools panel and a Storybook addon are under consideration.
 
