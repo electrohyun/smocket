@@ -27,10 +27,18 @@ import type { Socket as IoClientSocket } from 'socket.io-client';
  */
 type Listener = (...args: never[]) => void;
 
-/** Result of `io.to()` / `socket.broadcast` / `socket.to()` and friends. */
+/**
+ * Result of `io.to()` / `socket.broadcast` / `socket.to()` and friends. Every way of
+ * narrowing a broadcast lives on the operator itself, not only on the entry points, so
+ * `to` / `in` / `except` / `timeout` compose in any order (#137).
+ */
 export interface BroadcastContract {
   emit(event: string, ...args: unknown[]): void;
   to(room: string | string[]): BroadcastContract;
+  /** An alias of `to`, as at the entry points. */
+  in(room: string | string[]): BroadcastContract;
+  /** Exclude a room from this broadcast, on top of any exclusion it already carries. */
+  except(room: string | string[]): BroadcastContract;
   /** Add an ack timeout to this broadcast; see {@link TimeoutBroadcastContract}. */
   timeout(ms: number): TimeoutBroadcastContract;
 }
@@ -56,12 +64,17 @@ export interface TimeoutEmitterContract {
  * once with `(null, responses)` when every recipient acks in time, or `(Error('operation
  * has timed out'), responses)` when the timer wins, where `responses` holds the acks that
  * arrived, in arrival order. A broadcast to no recipient resolves at once as `(null, [])`.
- * A late ack is dropped, so the callback fires exactly once. `to` chains and keeps the
- * timeout, so `io.timeout(ms).to(a).to(b)` targets the union.
+ * A late ack is dropped, so the callback fires exactly once. The narrowing methods chain
+ * and keep the timeout, so `io.timeout(ms).to(a).to(b)` targets the union and
+ * `io.timeout(ms).to(a).except(b)` collects from the survivors only (#137).
  */
 export interface TimeoutBroadcastContract {
   emit(event: string, ...args: unknown[]): void;
   to(room: string | string[]): TimeoutBroadcastContract;
+  /** An alias of `to`, as at the entry points. */
+  in(room: string | string[]): TimeoutBroadcastContract;
+  /** Exclude a room from this broadcast, on top of any exclusion it already carries. */
+  except(room: string | string[]): TimeoutBroadcastContract;
 }
 
 /**

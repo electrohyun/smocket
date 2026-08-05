@@ -312,9 +312,14 @@ export class DelayingAdapter extends Adapter {
  * room's union includes the sender (its id-room member is itself), and the
  * `{ownId}` except then removes it.
  *
- * `to` unions in more rooms and returns `this`, so `io.to(a).to(b)` targets the
- * union of both. `except` is a constructor argument only, never chained: the
- * `BroadcastContract` is `{ emit; to }` and no form needs `.to().except()`.
+ * Every way of narrowing a broadcast — `to` / `in` / `except` / `timeout` — is on the
+ * operator as well as on the entry points, so the order they are chained in does not
+ * change the recipients (#137): `io.to(a).except(b)` and `io.except(b).to(a)` build the
+ * same two sets. Each returns a *new* operator over the merged sets rather than narrowing
+ * this one, measured against real socket.io: an operator held in a variable is a fixed
+ * target, and a later chained call on it produces another operator instead of widening the
+ * one already held. `to` unions in more rooms, so `io.to(a).to(b)` targets the union of
+ * both, and `except` unions likewise.
  *
  * `emit` resolves both sets to sids through the adapter, then hands each surviving
  * member to that member's own `ServerSocket.emit`. It deliberately reuses the
@@ -328,8 +333,8 @@ export class DelayingAdapter extends Adapter {
  * socket.io deciding volatile per recipient. Connected recipients receive it as normal.
  */
 class BroadcastOperator implements BroadcastContract, TimeoutBroadcastContract {
-  private readonly targetRooms = new Set<string>();
-  private readonly exceptRooms = new Set<string>();
+  private readonly targetRooms: Set<string>;
+  private readonly exceptRooms: Set<string>;
 
   constructor(
     private readonly adapter: SmocketAdapter,
@@ -338,21 +343,48 @@ class BroadcastOperator implements BroadcastContract, TimeoutBroadcastContract {
     except: Iterable<string>,
     private readonly volatile = false,
     /** When set, `emit` with a trailing callback collects each recipient's ack (#112). */
-    private timeoutMs: number | undefined = undefined,
+    private readonly timeoutMs: number | undefined = undefined,
   ) {
-    for (const room of rooms) this.targetRooms.add(room);
-    for (const room of except) this.exceptRooms.add(room);
+    this.targetRooms = new Set(rooms);
+    this.exceptRooms = new Set(except);
+  }
+
+  /**
+   * One more narrowing of this broadcast, as a new operator (#137). The adapter, the
+   * socket map, and the volatile flag are carried over untouched; only the two sets and
+   * the timeout ever differ, which is why every chaining method below is one call to this.
+   */
+  private narrow(
+    rooms: Iterable<string>,
+    except: Iterable<string>,
+    timeoutMs = this.timeoutMs,
+  ): BroadcastOperator {
+    return new BroadcastOperator(
+      this.adapter,
+      this.sockets,
+      rooms,
+      except,
+      this.volatile,
+      timeoutMs,
+    );
   }
 
   to(room: string | string[]): BroadcastOperator {
-    for (const r of asRooms(room)) this.targetRooms.add(r);
-    return this;
+    return this.narrow([...this.targetRooms, ...asRooms(room)], this.exceptRooms);
+  }
+
+  in(room: string | string[]): BroadcastOperator {
+    // `in` is a pure alias of `to` here too; delegate so the two cannot drift.
+    return this.to(room);
+  }
+
+  except(room: string | string[]): BroadcastOperator {
+    return this.narrow(this.targetRooms, [...this.exceptRooms, ...asRooms(room)]);
   }
 
   /** Add an ack timeout, so the next `emit` with a trailing callback collects responses (#112). */
-  timeout(ms: number): TimeoutBroadcastContract {
-    this.timeoutMs = ms;
-    return this;
+  timeout(ms: number): BroadcastOperator {
+    return this.narrow(this.targetRooms, this.exceptRooms, ms);
   }
 
   /**
