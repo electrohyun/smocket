@@ -134,6 +134,55 @@ it('socket.broadcast.timeout(ms) collects from everyone except the sender', asyn
   expect(senderGot).toBe(false); // the sender is excluded from its own broadcast
 });
 
+it('a chained except drops that recipient from the collection, timeout set first', async () => {
+  const a = await ctx.connectClient();
+  const b = await ctx.connectClient();
+  await a.serverSocket.join('room');
+  await b.serverSocket.join('room');
+  a.client.on('ask', (_q: unknown, ack: (r: string) => void) => ack('a'));
+  let excludedGot = false;
+  b.client.on('ask', () => {
+    excludedGot = true;
+  });
+  const { err, responses } = await new Promise<{ err: unknown; responses: unknown[] }>((resolve) =>
+    ctx.io
+      .timeout(200)
+      .to('room')
+      .except(b.serverSocket.id)
+      .emit('ask', 'q', (e: unknown, r: unknown[]) => resolve({ err: e, responses: r })),
+  );
+  // A null error is itself the proof of the recipient set, not just of ordering: the
+  // excluded socket never acks, so had it been a recipient the collection would still be
+  // one ack short and could only answer with an Error once the timeout expired. The flag
+  // below therefore needs no marker of its own; it is read after the callback has already
+  // ruled the socket out.
+  expect(err).toBeNull();
+  expect(responses).toEqual(['a']);
+  expect(excludedGot).toBe(false);
+});
+
+it('a chained except drops that recipient from the collection, timeout set last', async () => {
+  const a = await ctx.connectClient();
+  const b = await ctx.connectClient();
+  await a.serverSocket.join('room');
+  await b.serverSocket.join('room');
+  a.client.on('ask', (_q: unknown, ack: (r: string) => void) => ack('a'));
+  let excludedGot = false;
+  b.client.on('ask', () => {
+    excludedGot = true;
+  });
+  const { err, responses } = await new Promise<{ err: unknown; responses: unknown[] }>((resolve) =>
+    ctx.io
+      .to('room')
+      .except(b.serverSocket.id)
+      .timeout(200)
+      .emit('ask', 'q', (e: unknown, r: unknown[]) => resolve({ err: e, responses: r })),
+  );
+  expect(err).toBeNull(); // the same proof of the recipient set as the test above
+  expect(responses).toEqual(['a']); // the order of timeout and except does not matter
+  expect(excludedGot).toBe(false);
+});
+
 it('socket.timeout(ms).to(room) collects from the room, timeout set first', async () => {
   const a = await ctx.connectClient();
   const b = await ctx.connectClient();
