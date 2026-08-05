@@ -47,6 +47,25 @@ jobs:
       - name: Run the suite against smocket
         run: pnpm test:mock
 
+  browser:
+    name: browser (chromium)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install the chromium Playwright drives
+        run: pnpm exec playwright install --with-deps chromium
+      # Only the mock target has a counterpart in a page, so this asks a narrower
+      # question than the dual run. Does the mock behave in a browser the way it
+      # behaves in Node. #139 is what happens without it.
+      - name: Run the mock target in a browser
+        run: pnpm test:browser
+
   compat:
     name: real target (socket.io ${{ matrix.socketio }})
     runs-on: ubuntu-latest

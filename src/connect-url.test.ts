@@ -128,9 +128,14 @@ it("the url's path selects the namespace", async () => {
 });
 
 it('a relative url resolves against location.origin', async () => {
-  vi.stubGlobal('location', { origin: 'http://localhost:3000' });
+  // Node has no `location`, so the origin is stubbed there. A browser has a real one
+  // that cannot be redefined (#105), so the browser run reads it and resolves against
+  // the page it is actually served from, which is the case this rule exists for.
+  const pageOrigin = (globalThis as { location?: { origin: string } }).location?.origin;
+  const origin = pageOrigin ?? 'http://localhost:3000';
+  if (pageOrigin === undefined) vi.stubGlobal('location', { origin });
   try {
-    const server = new Server('http://localhost:3000');
+    const server = new Server(origin);
     const client = connect('/');
     const serverSocket = await server.nextConnection();
 
