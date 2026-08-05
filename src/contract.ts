@@ -48,6 +48,28 @@ export interface TimeoutEmitterContract {
   emitWithAck(event: string, ...args: unknown[]): Promise<unknown>;
 }
 
+/**
+ * The emitter surface `socket.volatile` returns (0016). A volatile emit is delivered
+ * exactly like a plain emit once the socket is connected, and dropped when it is sent in
+ * the pre-connect window. Real socket.io returns the socket itself here, so this is a
+ * subset of the socket's own surface and the `Ensure<>` guards below still hold. It keeps
+ * the broadcast forms so `socket.volatile.broadcast.emit(...)` and `socket.volatile.to(room)`
+ * carry the volatile flag through the same routing.
+ */
+export interface VolatileServerSocket {
+  emit(event: string, ...args: unknown[]): void;
+  emitWithAck(event: string, ...args: unknown[]): Promise<unknown>;
+  broadcast: BroadcastContract;
+  to(room: string | string[]): BroadcastContract;
+  except(room: string | string[]): BroadcastContract;
+}
+
+/** The client-side counterpart of {@link VolatileServerSocket}; a client has no broadcast surface. */
+export interface VolatileClientSocket {
+  emit(event: string, ...args: unknown[]): void;
+  emitWithAck(event: string, ...args: unknown[]): Promise<unknown>;
+}
+
 /** The room bookkeeping the tests reach into for observation only. */
 export interface AdapterContract {
   rooms: Map<string, Set<string>>;
@@ -94,6 +116,8 @@ export interface NamespaceContract {
   use(middleware: ConnectionMiddleware): void;
   emit(event: string, ...args: unknown[]): void;
   to(room: string | string[]): BroadcastContract;
+  /** Namespace-wide volatile broadcast: `io.of(ns).volatile.emit(...)`; see {@link VolatileServerSocket}. */
+  volatile: BroadcastContract;
 }
 
 /**
@@ -145,6 +169,8 @@ export interface ServerContract {
   to(room: string | string[]): BroadcastContract;
   in(room: string | string[]): BroadcastContract;
   except(room: string | string[]): BroadcastContract;
+  /** Server-wide volatile broadcast: `io.volatile.to(room).emit(...)`; see {@link VolatileServerSocket}. */
+  volatile: BroadcastContract;
   of(namespace: string): NamespaceContract;
 }
 
@@ -189,6 +215,8 @@ export interface ServerSocketContract {
   emitWithAck(event: string, ...args: unknown[]): Promise<unknown>;
   /** Arm a per-emit ack timer on the next emit; see {@link TimeoutEmitterContract}. */
   timeout(ms: number): TimeoutEmitterContract;
+  /** The volatile emitter (0016): a plain emit once connected, dropped in the pre-connect window. */
+  volatile: VolatileServerSocket;
   join(room: string | string[]): Promise<void> | void;
   leave(room: string): Promise<void> | void;
   to(room: string | string[]): BroadcastContract;
@@ -225,6 +253,8 @@ export interface ClientSocketContract {
   emitWithAck(event: string, ...args: unknown[]): Promise<unknown>;
   /** Arm a per-emit ack timer on the next emit; see {@link TimeoutEmitterContract}. */
   timeout(ms: number): TimeoutEmitterContract;
+  /** The volatile emitter (0016): a plain emit once connected, dropped in the pre-connect window. */
+  volatile: VolatileClientSocket;
   connect(): void;
   disconnect(): void;
 }
