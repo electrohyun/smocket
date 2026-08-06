@@ -55,7 +55,8 @@
     "format:check": "prettier --check .",
     "publint": "publint",
     "attw": "attw \"$(pnpm pack 2>/dev/null | tail -1)\"",
-    "check:package": "pnpm build && pnpm publint && pnpm attw"
+    "assert:no-imports": "node scripts/assert-no-imports.js",
+    "check:package": "pnpm build && pnpm assert:no-imports && pnpm publint && pnpm attw"
   },
   "devEngines": {
     "packageManager": {
