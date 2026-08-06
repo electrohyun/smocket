@@ -21,8 +21,8 @@
       "schedule": ["before 6am on monday"]
     },
     {
-      "description": "Held while the CI matrix keeps Node 22, which is still in maintenance. Moving the floor to Node 24 is a supported-range decision tracked in #143, not an automatic bump.",
-      "matchPackageNames": ["node"],
+      "description": "Held while the CI matrix keeps Node 22, which is still in maintenance. Moving the floor to Node 24 is a supported-range decision tracked in #143, not an automatic bump. Matched on depName, since the CI matrix reads as depName `node` with packageName `actions/node-versions`, and matchPackageNames compares the latter.",
+      "matchDepNames": ["node"],
       "matchUpdateTypes": ["major"],
       "enabled": false
     },
