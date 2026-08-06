@@ -21,6 +21,11 @@
       "schedule": ["before 6am on monday"]
     },
     {
+      "description": "Actions are kept individual. Each one gates every CI job, so a grouped failure would not say which bump broke it. They fall outside the dev tooling group already, since an action's depType is `action` or `uses-with` rather than `devDependencies`, but that is a side effect of how the group is written rather than a decision. Stating it here holds even if the group above widens later.",
+      "matchManagers": ["github-actions"],
+      "groupName": null
+    },
+    {
       "description": "Held while the CI matrix keeps Node 22, which is still in maintenance. Moving the floor to Node 24 is a supported-range decision tracked in #143, not an automatic bump. Matched on depName, since the CI matrix reads as depName `node` with packageName `actions/node-versions`, and matchPackageNames compares the latter. A working hold shows as the absence of a node major on the Dependency Dashboard, which is the only way to tell it fired, since config validation checks the schema rather than whether a rule matches anything.",
       "matchDepNames": ["node"],
       "matchUpdateTypes": ["major"],
