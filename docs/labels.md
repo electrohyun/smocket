@@ -2,7 +2,8 @@
 
 > **TL;DR** Three groups. Work-type (what kind of change), outside-contribution
 > (who it is shaped for), and triage (how it was resolved). The work-type label
-> is applied automatically by the issue form. The rest are applied by hand.
+> is applied automatically, by the issue form on an issue and from the title on
+> a pull request. The rest are applied by hand.
 
 The labels already exist on the repository with the colors below. This file is
 the record of what they mean and how each one gets applied, so the scheme does
@@ -25,6 +26,22 @@ opened through a form arrives already labeled.
 The three kinds of maintenance are separate forms rather than one form with a
 type dropdown, so each carries its own work-type label and none needs a label
 applied by hand.
+
+On a pull request the same label comes from the title, which already names the
+type because titles follow Conventional Commits. `.github/workflows/pr-label.yml`
+maps the commit types in [CONTRIBUTING.md](../CONTRIBUTING.md) to the labels
+above, keeps exactly one of them on the pull request so a corrected title does
+not leave the old one behind, and fails when the title starts with something
+that has no label, which is also the check that the title follows the format.
+
+| Commit type | Label           |
+| ----------- | --------------- |
+| `feat`      | `enhancement`   |
+| `fix`       | `bug`           |
+| `docs`      | `documentation` |
+| `refactor`  | `refactor`      |
+| `test`      | `test`          |
+| `chore`     | `chore`         |
 
 ## Outside-contribution
 

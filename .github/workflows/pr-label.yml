@@ -1,0 +1,81 @@
+name: PR label
+
+# The work-type label on a pull request comes from its title, which already
+# carries the type because titles follow Conventional Commits. Applying it by
+# hand is a step that can be skipped or done wrong, and it was both.
+#
+# pull_request_target rather than pull_request, because a pull_request run from
+# a fork gets a read-only token and could not label at all, which would fail
+# every outside contribution. Nothing here checks out or runs the pull request's
+# code. It reads the title out of the event payload, so the elevated token never
+# meets anything the author controls beyond that string.
+on:
+  pull_request_target:
+    types: [opened, edited, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  label:
+    name: label from title
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v9
+        with:
+          script: |
+            // The commit types in CONTRIBUTING.md, mapped to the work-type
+            // labels in docs/labels.md. The two lists are named differently,
+            // since the labels predate the type table, so the mapping is
+            // spelled out rather than assumed to be identity.
+            const LABELS = {
+              feat: 'enhancement',
+              fix: 'bug',
+              docs: 'documentation',
+              refactor: 'refactor',
+              test: 'test',
+              chore: 'chore',
+            };
+
+            const pr = context.payload.pull_request;
+            // `!` marks a breaking change in Conventional Commits. Scopes are
+            // not used here, so `feat(core):` is rejected along with anything
+            // else that does not match the documented `<type>: <description>`.
+            const match = /^([a-z]+)(!)?: .+/.exec(pr.title);
+            const type = match?.[1];
+            const wanted = type ? LABELS[type] : undefined;
+
+            if (!wanted) {
+              core.setFailed(
+                `The title "${pr.title}" does not start with a known commit type. ` +
+                  `Use "<type>: <description>" with one of: ${Object.keys(LABELS).join(', ')}. ` +
+                  `See the Commits section of CONTRIBUTING.md.`,
+              );
+              return;
+            }
+
+            // Exactly one work-type label, so a corrected title does not leave
+            // the old one behind. Outside-contribution and triage labels are
+            // applied by hand and are none of this job's business.
+            const workType = new Set(Object.values(LABELS));
+            const current = pr.labels.map((label) => label.name);
+            const stale = current.filter((name) => workType.has(name) && name !== wanted);
+
+            for (const name of stale) {
+              await github.rest.issues.removeLabel({
+                ...context.repo,
+                issue_number: pr.number,
+                name,
+              });
+            }
+
+            if (!current.includes(wanted)) {
+              await github.rest.issues.addLabels({
+                ...context.repo,
+                issue_number: pr.number,
+                labels: [wanted],
+              });
+            }
+
+            core.info(`${pr.title} -> ${wanted}`);
