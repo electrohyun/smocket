@@ -1,26 +1,31 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended", ":dependencyDashboard"],
+  "timezone": "Asia/Seoul",
+  "semanticCommitScope": null,
   "minimumReleaseAge": "3 days",
   "internalChecksFilter": "strict",
   "packageRules": [
     {
       "description": "The oracle. A socket.io version change is a conformance signal to read, not a chore, so each lands as its own PR and never auto-merges.",
       "matchPackageNames": ["socket.io", "socket.io-client"],
+      "groupName": null,
       "automerge": false
     },
     {
-      "description": "All build and test tooling in one weekly PR.",
+      "description": "All build and test tooling in one weekly PR, with the patch stream separated so patches can be told apart from minors.",
       "matchDepTypes": ["devDependencies"],
       "matchPackageNames": ["!socket.io", "!socket.io-client"],
       "groupName": "dev tooling",
+      "separateMinorPatch": true,
       "schedule": ["before 6am on monday"]
     },
     {
-      "description": "Patch updates to tooling auto-merge once CI is green.",
+      "description": "Patch updates of stable 1.0 and up tooling auto-merge once CI is green. Pre-1.0 tooling stays on manual review, since 0.x can break in a patch.",
       "matchDepTypes": ["devDependencies"],
       "matchPackageNames": ["!socket.io", "!socket.io-client"],
       "matchUpdateTypes": ["patch"],
+      "matchCurrentVersion": "!/^0/",
       "automerge": true
     }
   ]
