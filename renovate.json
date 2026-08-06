@@ -21,14 +21,14 @@
       "schedule": ["before 6am on monday"]
     },
     {
-      "description": "Held while the CI matrix keeps Node 22, which is still in maintenance. Moving the floor to Node 24 is a supported-range decision tracked in #143, not an automatic bump. Matched on depName, since the CI matrix reads as depName `node` with packageName `actions/node-versions`, and matchPackageNames compares the latter.",
+      "description": "Held while the CI matrix keeps Node 22, which is still in maintenance. Moving the floor to Node 24 is a supported-range decision tracked in #143, not an automatic bump. Matched on depName, since the CI matrix reads as depName `node` with packageName `actions/node-versions`, and matchPackageNames compares the latter. A working hold shows as the absence of a node major on the Dependency Dashboard, which is the only way to tell it fired, since config validation checks the schema rather than whether a rule matches anything.",
       "matchDepNames": ["node"],
       "matchUpdateTypes": ["major"],
       "enabled": false
     },
     {
-      "description": "Held so a TypeScript major is adopted by hand rather than by the bot. A compiler major can surface new type errors under noUncheckedIndexedAccess, which both dual-run targets exercise.",
-      "matchPackageNames": ["typescript"],
+      "description": "Held so a TypeScript major is adopted by hand rather than by the bot. A compiler major can surface new type errors under noUncheckedIndexedAccess, which both dual-run targets exercise. On depName like the rule above, so the hold keeps working if the same name ever arrives from another manager. A working hold shows as the absence of a typescript major on the Dependency Dashboard, which is the only way to tell it fired.",
+      "matchDepNames": ["typescript"],
       "matchUpdateTypes": ["major"],
       "enabled": false
     }
