@@ -27,6 +27,18 @@
       "matchUpdateTypes": ["patch"],
       "matchCurrentVersion": "!/^0/",
       "automerge": true
+    },
+    {
+      "description": "Held while the CI matrix keeps Node 22, which is still in maintenance. Moving the floor to Node 24 is a supported-range decision tracked in #143, not an automatic bump.",
+      "matchPackageNames": ["node"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+    {
+      "description": "Held so a TypeScript major is adopted by hand rather than by the bot. A compiler major can surface new type errors under noUncheckedIndexedAccess, which both dual-run targets exercise.",
+      "matchPackageNames": ["typescript"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
     }
   ]
 }
