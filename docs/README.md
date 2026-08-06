@@ -10,6 +10,7 @@
 - **Why the code is shaped the way it is:** [decisions/](./decisions/README.md)
 - **Where smocket differs from real socket.io:** [differences.md](./differences.md)
 - **How to register a custom adapter, and why:** [adapter-registration.md](./adapter-registration.md)
+- **What the issue and pull request labels mean:** [labels.md](./labels.md)
 
 A Korean version of a document, where one exists, sits beside it as
 `<name>.ko.md`, with the English version authoritative on any divergence.
