@@ -13,7 +13,7 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
@@ -55,7 +55,7 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Install Chromium for Playwright
@@ -78,7 +78,7 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Pin socket.io ${{ matrix.socketio }}
@@ -92,7 +92,7 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       # Coverage of smocket's own code, which only the mock target exercises; it
@@ -117,7 +117,7 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       # publint checks the published manifest; arethetypeswrong checks that the
