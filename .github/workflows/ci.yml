@@ -104,7 +104,7 @@ jobs:
       # repository, since a tokenless upload is rejected. It never fails the job,
       # so a Codecov outage or a missing token costs the report and not the run.
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           files: ./coverage/lcov.info
           token: ${{ secrets.CODECOV_TOKEN }}
