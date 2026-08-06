@@ -40,7 +40,7 @@
     }
   },
   "sideEffects": false,
-  "packageManager": "pnpm@11.19.0",
+  "packageManager": "pnpm@11.20.0",
   "scripts": {
     "build": "tsup",
     "prepublishOnly": "pnpm run build",
