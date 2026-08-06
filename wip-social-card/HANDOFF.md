@@ -11,8 +11,20 @@ smocket 레포의 소셜 프리뷰 이미지(1280x640)를 만드는 중입니다
 
 ## 지금 상태
 
-- 현재 시안은 `social-v5-current.png` 입니다(이 폴더 안). 랜딩페이지에 맞춘 버전이고, `social-card.mjs` 를 그대로 돌리면 이게 나옵니다.
-- `social-v1-dark-rejected.png` 는 처음 만든 다크 버전인데 방향이 안 맞아 버렸습니다. 참고용으로만 둡니다.
+**확정됐습니다. 최종본은 `social-final.png` 이고, `social-card.mjs` 를 그대로 돌리면 이게 나옵니다.** 남은 일은 GitHub 설정에 손으로 업로드하는 것뿐입니다.
+
+시안 흐름은 `renders/` 안에 남겨뒀습니다.
+
+- `social-v1-dark-rejected.png` — 다크. 방향이 안 맞아 버렸습니다.
+- `renders/social-v2.png` — 배경 있는 png 를 쓰던 때. 노즈가 허옇게 뜨고 위가 잘리고, 제목 뒤에 토큰이 깔립니다.
+- `renders/social-v3.png` — 로켓을 줄여 프레임에 넣었으나 배경 png 의 사각형 이음매가 그대로 보입니다.
+- `renders/social-v4.png` — 투명 컷아웃으로 갈아타 이음매가 사라졌습니다. 구도가 여기서 잡혔습니다.
+- `social-v5-current.png` — v4 에서 로켓을 600 으로 키우다 노즈가 잘리고 토큰이 겹쳤습니다. 후퇴한 버전입니다.
+- `renders/social-v6.png` — v5 의 두 문제만 고친 것. 로켓이 아직 커서 여백이 부족합니다.
+- `renders/social-v7.png` — v4 지오메트리로 복귀. 로켓 380 / `right:120`, 글로우 480 / `right:64`.
+- `renders/social-v8.png` — 토큰을 6 개에서 14 개로 늘리고 진하게. 제목 굵기는 안 먹었습니다(아래 폰트 항목 참고).
+- `renders/social-v9.png` — Inter 도입. weight 900 은 과했습니다.
+- `renders/social-v10-w800.png`, `renders/social-v10-w700.png` — 굵기 비교용. **700 채택.**
 
 ## 방향 (되짚기)
 
@@ -28,17 +40,16 @@ smocket 레포의 소셜 프리뷰 이미지(1280x640)를 만드는 중입니다
 | 텍스트 진브라운    | `#241608`               |
 | 오렌지 포인트      | `#f4a259`               |
 | 흐린 코드 토큰     | `#cf9a55`               |
-| 제목 폰트          | system-ui, weight 800   |
+| 제목 폰트          | Inter, weight 700       |
 | 워드마크·토큰 폰트 | JetBrains Mono          |
 
-## 다음 할 일 (v6)
+제목 폰트는 원래 랜딩과 같이 system-ui 였는데 **Inter 웹폰트로 바꿨습니다.** headless Chromium 이 system-ui 를 단일 face 로만 잡아서, weight 를 400 으로 두든 900 으로 두든 폭이 1264px 로 똑같이 나옵니다. 굵기 지정이 아예 안 먹고 렌더하는 컴마다 제목 모양이 달라집니다. Inter 를 구글 폰트에서 불러오면 굵기가 실제로 먹고 어느 컴에서 돌려도 결과가 같습니다. 랜딩은 여전히 system-ui 이므로 카드와 사이트의 제목 서체가 미세하게 다릅니다. 맞추려면 랜딩 쪽(별도 레포)도 Inter 로 옮겨야 합니다.
 
-v5 에 남은 문제 두 가지입니다.
+## 남은 일
 
-1. 로켓이 커서 위쪽 그레이엄 노즈가 프레임 위로 살짝 잘립니다.
-2. 로켓이 오른쪽 배경 토큰(`namespace`, `io.to('room-1')`)과 겹칩니다.
+**GitHub Settings > General > Social preview 에 `social-final.png` 를 손으로 업로드하면 끝입니다.** 그러고 나서 이 브랜치를 삭제하세요.
 
-고치는 법. `social-card.mjs` 에서 `.rocket` 의 `width` 를 600 에서 약 520 으로 줄이고 `transform` 을 `translateY(-50%)` 로 두어 로켓 전체가 프레임 안에 들어오게 합니다. 겹치는 오른쪽 토큰 몇 개(`namespace`, `io.to`, `join`)는 필요하면 `tokens` 배열에서 빼세요. `.glow` 의 `width` 도 로켓 크기에 맞춰 줄이면 됩니다.
+파일은 2560x1280(2배 렌더), 0.69MB 입니다. GitHub 업로드 제한 1MB 안에 들어옵니다.
 
 ## 렌더 방법
 
@@ -55,7 +66,8 @@ v5 에 남은 문제 두 가지입니다.
 
 ## 카드 밖, 세션 전체 상태 (참고)
 
-- 열린 PR 은 **#157 (contrib.rocks 기여자 이미지)** 하나이고 머지 대기입니다. all-contributors 봇 대신 이걸 채택했습니다.
-- **#116 커뮤니티 인프라**는 거의 끝났고 이 소셜 프리뷰만 남았습니다.
+- #157 은 머지됐고, 열린 PR 은 없습니다.
+- **#116 커뮤니티 인프라**는 이 소셜 프리뷰 업로드로 닫힙니다.
 - Renovate 설정은 #149·#153·#154 로 끝났고, typescript·node 메이저는 hold 규칙으로 막아뒀습니다.
+- **main 에 버그가 하나 있습니다.** `package.json` 의 `packageManager` 는 `pnpm@11.19.0` 인데 `devEngines.packageManager` 는 `11.15.1` 로 남아 있어, 두 값이 어긋나 `pnpm exec ...` 가 거부됩니다. #150 이 한쪽만 올려서 생겼습니다. 임시로는 `pnpm --pm-on-fail=ignore exec ...` 로 우회합니다.
 - 다음에 잡을 만한 이슈는 **#143 (Node 범위 정하기)**, **#115 (ADR 0016)** 정도입니다.

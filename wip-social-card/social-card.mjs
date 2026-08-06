@@ -19,10 +19,15 @@ const cat = 'data:image/webp;base64,' + readFileSync(here('./assets/cat.webp')).
 // Faint background code tokens (JetBrains Mono). Left-column tokens were removed
 // so nothing sits behind the heading. [text, x, y, fontSize].
 const tokens = [
+  // Top band, above the rocket nose (it starts around y 115).
   ['disconnect', 150, 42, 22], ['rooms', 452, 96, 20], ["socket.on('event')", 656, 40, 22],
-  ['namespace', 902, 66, 20], ["io.to('room-1')", 1096, 118, 22],
-  ['broadcast', 176, 596, 22], ['ack', 452, 604, 20], ['emit', 560, 560, 20],
-  ['join', 1188, 470, 20],
+  ['namespace', 944, 96, 20], ["io.to('room-1')", 1000, 40, 22],
+  // Left, clear of the heading block (x 96-700, y 165-475).
+  ['socket.id', 96, 138, 20],
+  ['leave', 96, 506, 20], ['volatile', 286, 548, 20], ['broadcast', 176, 596, 22],
+  ['ack', 452, 604, 20], ['emit', 560, 560, 20], ['middleware', 688, 594, 20],
+  // Below the rocket's lower fin (it ends around y 525).
+  ['socket.rooms', 896, 566, 20], ['join', 1150, 592, 20],
 ];
 const tokenHtml = tokens.map(([t, x, y, s]) =>
   `<span class="tok" style="left:${x}px;top:${y}px;font-size:${s}px">${t}</span>`).join('');
@@ -31,29 +36,33 @@ const html = `<!doctype html>
 <html><head><meta charset="utf-8">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700;800&family=Inter:wght@700;800;900&display=swap" rel="stylesheet">
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
   html,body{width:1280px;height:640px}
   /* Brand values, measured off the landing page (smocket-site.vercel.app):
      bg #f5ecdb, text #241608, orange #f4a259, muted token #cf9a55,
      heading = system-ui weight 800, wordmark/tokens = JetBrains Mono. */
+  /* Inter is loaded rather than left to system-ui: headless Chromium resolves
+     system-ui to a single face, so weight 800 renders no heavier than 400 and
+     the heading looks different on every machine. Inter keeps the landing
+     page's grotesk look and makes the render deterministic. */
   body{background:#f5ecdb;color:#241608;width:1280px;height:640px;position:relative;overflow:hidden;
-    font-family:-apple-system,system-ui,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
-  .tok{position:absolute;font-family:"JetBrains Mono",ui-monospace,monospace;font-weight:500;
-    color:#cf9a55;opacity:.30;white-space:nowrap}
+    font-family:"Inter",-apple-system,system-ui,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  .tok{position:absolute;font-family:"JetBrains Mono",ui-monospace,monospace;font-weight:700;
+    color:#cf9a55;opacity:.42;white-space:nowrap}
   .dot{position:absolute;width:9px;height:9px;border-radius:50%;background:#f4a259;opacity:.55}
-  .glow{position:absolute;right:70px;top:50%;transform:translateY(-50%);width:660px;height:660px;border-radius:50%;
+  .glow{position:absolute;right:64px;top:50%;transform:translateY(-50%);width:480px;height:480px;border-radius:50%;
     background:radial-gradient(circle,rgba(255,251,242,.85),rgba(255,251,242,.35) 45%,transparent 70%)}
-  .rocket{position:absolute;right:70px;top:50%;transform:translateY(-52%);width:600px;
+  .rocket{position:absolute;right:120px;top:50%;transform:translateY(-50%);width:380px;
     filter:drop-shadow(0 18px 30px rgba(120,80,30,.16))}
   .col{position:absolute;left:96px;top:50%;transform:translateY(-50%);width:600px;z-index:3}
   .lockup{display:flex;align-items:center;gap:16px;margin-bottom:34px}
   .avatar{width:60px;height:60px;border-radius:50%;object-fit:cover}
   .wm{font-family:"JetBrains Mono",ui-monospace,monospace;font-weight:700;font-size:32px;letter-spacing:-.5px}
-  h1{font-weight:800;font-size:66px;line-height:1.05;letter-spacing:-1.5px}
+  h1{font-weight:700;font-size:66px;line-height:1.05;letter-spacing:-1.5px}
   h1 .o{color:#f4a259}
-  .tag{margin-top:30px;font-weight:800;font-size:27px;color:#f4a259;letter-spacing:.2px}
+  .tag{margin-top:30px;font-weight:700;font-size:27px;color:#f4a259;letter-spacing:.2px}
   .tag .s{margin-right:8px}
 </style></head>
 <body>
