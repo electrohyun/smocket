@@ -1,0 +1,23 @@
+# Codecov posts the coverage report as a PR comment, but it does not gate. The
+# gate is the Vitest thresholds in vitest.config.ts, enforced by the `coverage`
+# CI job; a second status judging the same coverage would mean two places can
+# turn a PR red on the same number, and the moment their bases disagree, one
+# failing while the other passes forces a "which red do I trust" call on every
+# run. `informational: true` keeps the status a comment, not a check.
+coverage:
+  status:
+    project:
+      default:
+        informational: true
+    patch:
+      default:
+        informational: true
+
+# `require_changes: true` is what keeps this quiet: without it every PR that
+# touches no `src/` file (coverage measures `src/` only) collects a "modified
+# lines are covered" comment with nothing to say. `flags` is left out because
+# one coverage job raises one number (the mock target); a flags table would be a
+# single cell.
+comment:
+  layout: 'reach, diff, files'
+  require_changes: true
