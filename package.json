@@ -58,13 +58,6 @@
     "assert:no-imports": "node scripts/assert-no-imports.js",
     "check:package": "pnpm build && pnpm assert:no-imports && pnpm publint && pnpm attw"
   },
-  "devEngines": {
-    "packageManager": {
-      "name": "pnpm",
-      "version": "11.15.1",
-      "onFail": "download"
-    }
-  },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.5",
     "@eslint/js": "^10.0.1",
