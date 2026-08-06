@@ -75,9 +75,11 @@ smocket follows [Conventional Commits](https://www.conventionalcommits.org).
 | `docs`     | README, examples, API documentation                  |
 | `refactor` | Restructuring with no change in behavior             |
 | `chore`    | Build config, CI, dependencies, tooling              |
-| `perf`     | A change made for performance reasons                |
 
 Scopes are not used. smocket is a single package, so `feat:` rather than `feat(core):`.
+
+Each type maps to a label, and a pull request is labelled from its title, so a
+type outside this table fails the check. See [docs/labels.md](docs/labels.md).
 
 An imperative description of around 70 characters is plenty. There is no need to put issue numbers in the subject line; link the issue from the pull request body instead.
 
