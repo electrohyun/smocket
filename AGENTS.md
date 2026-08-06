@@ -12,8 +12,10 @@ to write docs. This file links to those and summarizes none.
 
 ## Tests
 
-- `pnpm test` runs the suite against the real socket.io target.
-- `SMOCKET_TARGET=mock pnpm vitest run` (`pnpm test:mock`) runs it against smocket.
+- The two targets are vitest projects, so `pnpm test` watches both and
+  `pnpm vitest run` runs both once.
+- `pnpm test:real` and `pnpm test:mock` run one target each, for when a failure
+  needs isolating.
 - Done means both targets are green. Running one target alone defeats the dual-run
   comparison the project rests on.
 - Never assert non-receipt with a timeout. Use the marker pattern in

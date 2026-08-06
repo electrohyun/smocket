@@ -1,13 +1,20 @@
 import { defineConfig } from 'vitest/config';
 
-// Label every run with the target it exercised, so a pass or a failure is never
-// ambiguous about which engine produced it. `real` unless SMOCKET_TARGET asks
-// for the mock, the same rule the setup-server dispatcher uses.
-const target = process.env.SMOCKET_TARGET === 'mock' ? 'mock' : 'real';
-
 export default defineConfig({
   test: {
-    name: target,
+    // The dual run, as two projects of one config. `vitest` with no filter runs
+    // both, so running both is what the tool does rather than a convention a
+    // contributor has to know, and `--project` picks one when that is wanted.
+    //
+    // The target reaches `setup-server` through the environment, and each
+    // project names it rather than only the mock, so an ambient SMOCKET_TARGET
+    // in the caller's shell cannot make `--project=real` run the mock under a
+    // `real` label. Anything other than `mock` is real to the dispatcher, so
+    // the value here is the label and the switch at once.
+    projects: [
+      { test: { name: 'real', env: { SMOCKET_TARGET: 'real' } } },
+      { test: { name: 'mock', env: { SMOCKET_TARGET: 'mock' } } },
+    ],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],
