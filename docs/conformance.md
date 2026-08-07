@@ -179,6 +179,7 @@ What `volatile` delivers in steady state, and the one window where it drops.
 - [socket.volatile.broadcast reaches everyone except the sender in steady state](../src/volatile.test.ts#L45)
 - [a volatile emit still carries an ack, which round-trips when delivered](../src/volatile.test.ts#L61)
 - [a volatile emit to a recipient still in the pre-connect window is dropped](../src/volatile.test.ts#L72)
+- [a volatile emit from a client still in the pre-connect window is dropped](../src/volatile.test.ts#L97)
 
 ### Catch-all listeners
 
