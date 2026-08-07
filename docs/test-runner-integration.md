@@ -122,17 +122,25 @@ That part is not smocket-specific.
 
 ## A fresh server per test
 
-Construct a new `Server` on the same url in `beforeEach`. There is no teardown call
-to pair it with, and none is needed: the url is the key in smocket's origin registry,
+Construct a new `Server` on the same url in `beforeEach`. There is no teardown call to
+pair it with and there is none to call: the url is the key in smocket's origin registry,
 so constructing again replaces the entry, and the next `connect(url)` reaches the new
-server. The previous one keeps its own sockets and stops receiving anything, so no
-state crosses from one test to the next.
+server, whose rooms are empty because its adapter is new too.
+
+What the registry decides is only who `connect(url)` finds. The previous server no longer
+answers it, so a new client reaches the new one. Sockets already paired with the previous
+server keep working in both directions, because a pairing is a reference between the two
+sides rather than a lookup, so a client held across tests still talks to the server it
+connected to. Constructing the clients per test as well is what keeps state from crossing.
 
 ```ts
 import { connect, Server, type ServerSocketContract } from 'smocket';
 import { beforeEach, expect, test } from 'vitest';
 
 const URL = 'http://localhost:3000';
+// The class is its own type, which is all a variable declared beside the `new` needs.
+// `SmocketServer` is for the positions where the class is not in hand, such as a helper
+// that takes a server as a parameter.
 let io: Server;
 
 beforeEach(() => {
@@ -140,31 +148,49 @@ beforeEach(() => {
   // The socket parameter is annotated because the listener type erases it. See
   // "Annotating the connection listener" below.
   io.on('connection', (socket: ServerSocketContract) => {
-    socket.on('join', (room: string) => socket.join(room));
+    socket.on('join', (room: string, ack: () => void) => {
+      void socket.join(room);
+      ack();
+    });
   });
 });
 
-test('each test starts from an empty server', async () => {
+async function join(room: string) {
   const client = connect(URL);
   await new Promise<void>((done) => client.once('connect', () => done()));
-  expect(client.connected).toBe(true);
+  await new Promise<void>((done) => client.emit('join', room, () => done()));
+}
+
+test('a room joined here holds its member', async () => {
+  await join('lobby');
+  expect(io.of('/').adapter.rooms.get('lobby')?.size).toBe(1);
+});
+
+test('and is gone by the next test, because the server is a new one', () => {
+  expect(io.of('/').adapter.rooms.get('lobby')).toBeUndefined();
 });
 ```
 
+The second test is the assertion that matters. It reads the room the first one filled and
+finds nothing, which is only true because `beforeEach` replaced the server.
+
 One thing this does not reset. An acknowledgement timeout armed by a previous test,
-through `socket.timeout(ms)` or `io.timeout(ms)`, holds its own reference and still
-fires on schedule, which can be during a later test. Replacing the server routes new
-connections away from the old one but does not disarm what it already scheduled. A
-suite that arms ack timeouts should let them settle before the test ends, either by
-awaiting the acknowledgement or by driving the timer with fake timers. A `close()`
-that disarms them is not implemented yet.
+through `socket.timeout(ms)` or `io.timeout(ms)`, holds its own reference and still fires
+on schedule, which can be during a later test. Replacing the server routes new connections
+away from the old one but does not disarm what it already scheduled. A suite that arms ack
+timeouts should let them settle before the test ends, either by awaiting the
+acknowledgement or by driving the timer with fake timers. A `close()` that disarms them is
+[not implemented yet](https://github.com/electrohyun/smocket/issues/193).
 
 ## Annotating the connection listener
 
 `io.on('connection', ...)` gives its listener no parameter type. The contract declares
 listeners as `(...args: never[]) => void`, which is what lets a handler of any arity be
-passed without the call site fighting the compiler, and the cost is that an
-unannotated parameter is inferred as `never`. Reading a member off it does not compile.
+passed without the call site fighting the compiler, and the cost is that an unannotated
+parameter is inferred as `never`. Reading a member off it does not compile. Whether the
+listener side can be narrowed at all is measured in
+[#171](https://github.com/electrohyun/smocket/issues/171), which found no alternative to
+keeping this shape.
 
 ```ts
 io.on('connection', (socket) => {
