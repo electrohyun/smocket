@@ -24,25 +24,43 @@ What is major is what this project stated on its own authority: a divergence it 
 type it published, the range of Node it declared. Those are ours to promise and ours to
 break.
 
-The first row that matches wins.
+The first row that matches wins, so the three the paragraph above just named are the three
+that go on top. Withdrawing something this project declared has to be judged before
+anything else, because a withdrawal is nearly always a move toward real socket.io as well
+and a fidelity row would otherwise catch it on the way past. Dropping a §A entry means
+smocket stopped diverging on purpose, which is a correction toward measured behaviour;
+raising `engines.node` usually rides along with one. Judged as corrections they come out a
+minor, and the reason for declaring them in the first place was that they are ours to break
+rather than ours to quietly improve.
+
+**Declared on our own authority**
+
+| Change                                                                | Bump         |
+| --------------------------------------------------------------------- | ------------ |
+| Removing or altering a [`differences.md`](../differences.md) §A entry | major        |
+| Raising `engines.node`, lowering it                                   | major, minor |
+| A public type change that still compiles at existing call sites, else | minor, major |
+
+**Fidelity, and everything else**
 
 | Change                                                                | Bump            |
 | --------------------------------------------------------------------- | --------------- |
 | A correction toward measured real behaviour with an observable change | minor           |
 | A correction toward measured real behaviour with no observable change | patch           |
 | Newly covered socket.io surface                                       | minor           |
-| Removing or altering a [`differences.md`](../differences.md) §A entry | major           |
 | Adding a `differences.md` §A entry                                    | none            |
 | Changing something the documentation marks unspecified                | patch           |
-| A public type change that still compiles at existing call sites, else | minor, major    |
-| Raising `engines.node`, lowering it                                   | major, minor    |
 | A change to a smocket-only API (§B)                                   | ordinary semver |
 
-The first row does not ride in a patch. The old result was not a promise, but a green
-suite can turn red, and a patch is understood as safe to take without reading anything. It
-says observable rather than delivered because the two are not the same set: the return value
-of `emit` changes nothing about who receives an event, and a caller still reads it. Anything
-a user's code can see belongs on this row, whether or not it moved a packet.
+Read the first table, then the second. A change that matches nothing in the first is judged
+entirely by the second, which is the ordinary case.
+
+The first fidelity row does not ride in a patch. The old result was not a promise, but a
+green suite can turn red, and a patch is understood as safe to take without reading
+anything. It says observable rather than delivered because the two are not the same set:
+the return value of `emit` changes nothing about who receives an event, and a caller still
+reads it. Anything a user's code can see belongs on that row, whether or not it moved a
+packet.
 
 Before 1.0.0 the rules apply one place to the right, as npm reads a `0.x` range: major
 becomes minor, minor and patch become patch. They apply from now rather than from the tag,
@@ -74,9 +92,18 @@ socket, and `9b0ae90` kept listeners in arrays so a duplicate registration fires
 `a7be4fb` is the one that tests the rules rather than confirming them. It dropped
 `node:crypto` from `newId`; nothing it delivers changed and the id keeps the shape
 [0011](./0011-socket-id-format.md) fixed, so by output alone it is a patch. But moving the
-entropy source to `globalThis.crypto` raised the lowest Node the package runs on, which is
-why the `engines` row sits above the no-observable-change row. The judgement is retroactive.
-`engines` was declared later, so at the time the effect was real and unstated.
+entropy source to `globalThis.crypto` raised the lowest Node the package runs on, and that
+is the whole reason the declared table is read first. Reached in the other order it takes
+the no-observable-change row and answers patch, which is the answer the rest of this
+document argues against. The judgement is retroactive. `engines` was declared later, so at
+the time the effect was real and unstated.
+
+The same trap sat under the §A row until the tables were split. Removing a §A entry means
+smocket stopped diverging deliberately, which is a correction toward measured behaviour and
+an observable one, so a single table with the fidelity rows on top answered minor for the
+row that says major. `emit` returning the socket rather than `undefined` (#189) is the case
+that surfaced it: it closed a gap rather than a §A entry, and asking which row it took is
+what showed the two could not be told apart by a table in that order.
 
 ## Alternatives rejected
 
