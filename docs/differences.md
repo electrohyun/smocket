@@ -70,10 +70,8 @@ promise the project made on purpose. Closing one of these withdraws nothing. It 
 correction toward measured real behaviour and takes that row instead, so the same fix does
 not change bump depending on which list it was written on.
 
-- **`emit` and the listener methods return nothing.** socket.io returns the socket from
-  `socket.emit(...)`, `socket.on(...)`, `socket.once(...)`, and the rest of the listener
-  methods, so the calls chain, while `Server#emit`, a namespace's `emit`, and a broadcast
-  operator's `emit` return `true`. smocket returns `undefined` in every one of those
-  positions, so `socket.on('a', f).on('b', g)` throws and a caller reading the result sees
-  a falsy value where socket.io gives a truthy one. Found by installing the package and
-  using it from outside rather than by the suite, which never read a return value.
+Nothing is listed here right now. The section stays because the rule above is worth keeping
+written down, and because an empty list is itself a statement: no gap of this kind is known
+today. Its first entry was the `emit` and listener return values, closed in #189, which the
+[emitter return values](./conformance.md#emitter-return-values) cases now pin on both
+targets.
