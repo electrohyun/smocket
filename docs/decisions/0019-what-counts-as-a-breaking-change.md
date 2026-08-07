@@ -49,7 +49,10 @@ The shift costs a signal. Two rows that differ above 1.0.0 arrive at the same nu
 it, so a `0.x` patch can be a delivery correction or a typo in a comment and the number does
 not say which. The release notes carry that instead: every release below 1.0.0 names the row
 it landed on, so a reader who needs to know reads one line rather than guessing from the
-digit that moved.
+digit that moved. That is one line and it is owed by every `0.x` release, including the ones
+that changed nothing a user can see. It adds to the Announcement rules below rather than
+standing in for them: a delivery correction still owes the full treatment there, and while
+`0.x` lasts it owes the row name on top.
 
 ### Announcement
 
