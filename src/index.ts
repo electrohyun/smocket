@@ -16,6 +16,11 @@ export { Adapter, connect, connect as io, DelayingAdapter, Server } from './mock
 // shape, not an app-facing surface. Whether any of these is also aliased to
 // socket.io's own `Socket` name is a separate question (#178), since one package
 // cannot give that name to both the server and the client socket.
+//
+// `SmocketServer` is the one name here that is not a socket.io subset. `ServerContract`
+// stops where socket.io stops, so annotating with it drops `adapter` and `nextConnection`,
+// the two server members `differences.md` section B documents as smocket's own. That type
+// carries them; it is what a `new Server(url)` should be written down as.
 export type {
   AdapterContract,
   AdapterFactory,
@@ -31,6 +36,7 @@ export type {
   ServerContract,
   ServerSocketContract,
   SmocketAdapter,
+  SmocketServer,
   SocketTimeoutContract,
   TimeoutBroadcastContract,
   TimeoutEmitterContract,

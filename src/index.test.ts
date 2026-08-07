@@ -1,5 +1,6 @@
 import { expect, it } from 'vitest';
 import {
+  Adapter,
   connect,
   io,
   Server,
@@ -12,6 +13,7 @@ import {
   type NamespaceContract,
   type ServerContract,
   type ServerSocketContract,
+  type SmocketServer,
   type SocketTimeoutContract,
   type TimeoutBroadcastContract,
   type TimeoutEmitterContract,
@@ -81,4 +83,28 @@ it('exports the contract types, so the swap keeps an app annotations to use', as
     volatileServer,
     volatileClient,
   ]).not.toContain(undefined);
+});
+
+it('exports a server type that keeps the two smocket-only members', async () => {
+  // `ServerContract` stops where socket.io stops, so annotating with it drops `adapter`
+  // and `nextConnection`, which `differences.md` section B documents as public. Both calls
+  // below are the assertion: they stop compiling if `SmocketServer` loses either member.
+  const server: SmocketServer = new Server('http://localhost');
+
+  let built = 0;
+  server.adapter(() => {
+    built += 1;
+    return new Adapter();
+  });
+
+  const pending = server.nextConnection('/');
+  const client = connect('http://localhost');
+  const serverSocket: ServerSocketContract = await pending;
+
+  expect(serverSocket.id).toBe(client.id);
+  expect(built).toBeGreaterThan(0);
+
+  // The narrower type is still assignable from it, so existing annotations keep working.
+  const narrowed: ServerContract = server;
+  expect(narrowed.of('/').name).toBe('/');
 });

@@ -249,6 +249,32 @@ export interface ServerContract {
 }
 
 /**
+ * `ServerContract` plus the two server members socket.io has no equivalent for, so an
+ * application can annotate a smocket server without losing them. `new Server(url)` already
+ * carries both; this is the name to write down when that value goes into a typed position.
+ *
+ * They cannot join `ServerContract` itself. That interface is the subset real socket.io is
+ * verified against, and the `Ensure<>` proofs at the bottom of this file stop compiling the
+ * moment it names a member socket.io lacks, so widening it would trade the proof for a
+ * convenience. The smocket-only surface extends it from outside instead, and deliberately
+ * gets no `Ensure<>` line of its own: there is nothing on socket.io's side to prove it
+ * against, which is why both members sit in `differences.md` section B.
+ */
+export interface SmocketServer extends ServerContract {
+  /**
+   * Replace the routing adapter for every namespace on this server. See
+   * [adapter-registration.md](../docs/adapter-registration.md) and {@link AdapterFactory}.
+   */
+  adapter(factory: AdapterFactory): void;
+  /**
+   * Resolve with the server-side socket of the next client to connect on `namespace`,
+   * which defaults to `/`. Pairs a connect with its server side when the caller drives
+   * the connection itself rather than through a helper.
+   */
+  nextConnection(namespace?: string): Promise<ServerSocketContract>;
+}
+
+/**
  * The connection [handshake](../docs/glossary.md#handshake), read as
  * `socket.handshake`. Only the fields a mock has a source for are declared (0006):
  * `auth` and `query` are caller-supplied, `url` is the normalized origin the client
