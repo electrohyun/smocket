@@ -309,9 +309,10 @@ The encoder behind the id shape the dual run pins.
 
 What the package exports, including the `io` name the substitution path needs.
 
-- [connecting pairs the client and server socket with the same id](../src/index.test.ts#L22)
-- [exports `io` as socket.io-client's name for connect, so a module swap works](../src/index.test.ts#L32)
-- [exports the contract types, so the swap keeps an app annotations to use](../src/index.test.ts#L44)
+- [connecting pairs the client and server socket with the same id](../src/index.test.ts#L24)
+- [exports `io` as socket.io-client's name for connect, so a module swap works](../src/index.test.ts#L34)
+- [exports the contract types, so the swap keeps an app annotations to use](../src/index.test.ts#L46)
+- [exports a server type that keeps the two smocket-only members](../src/index.test.ts#L88)
 
 <!-- conformance:generated end -->
 
