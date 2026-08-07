@@ -120,6 +120,69 @@ An application module written as TypeScript ESM still needs whatever transform
 the project already uses (babel-jest with `@babel/preset-typescript`, or ts-jest).
 That part is not smocket-specific.
 
+## A fresh server per test
+
+Construct a new `Server` on the same url in `beforeEach`. There is no teardown call
+to pair it with, and none is needed: the url is the key in smocket's origin registry,
+so constructing again replaces the entry, and the next `connect(url)` reaches the new
+server. The previous one keeps its own sockets and stops receiving anything, so no
+state crosses from one test to the next.
+
+```ts
+import { connect, Server, type ServerSocketContract } from 'smocket';
+import { beforeEach, expect, test } from 'vitest';
+
+const URL = 'http://localhost:3000';
+let io: Server;
+
+beforeEach(() => {
+  io = new Server(URL);
+  // The socket parameter is annotated because the listener type erases it. See
+  // "Annotating the connection listener" below.
+  io.on('connection', (socket: ServerSocketContract) => {
+    socket.on('join', (room: string) => socket.join(room));
+  });
+});
+
+test('each test starts from an empty server', async () => {
+  const client = connect(URL);
+  await new Promise<void>((done) => client.once('connect', () => done()));
+  expect(client.connected).toBe(true);
+});
+```
+
+One thing this does not reset. An acknowledgement timeout armed by a previous test,
+through `socket.timeout(ms)` or `io.timeout(ms)`, holds its own reference and still
+fires on schedule, which can be during a later test. Replacing the server routes new
+connections away from the old one but does not disarm what it already scheduled. A
+suite that arms ack timeouts should let them settle before the test ends, either by
+awaiting the acknowledgement or by driving the timer with fake timers. A `close()`
+that disarms them is not implemented yet.
+
+## Annotating the connection listener
+
+`io.on('connection', ...)` gives its listener no parameter type. The contract declares
+listeners as `(...args: never[]) => void`, which is what lets a handler of any arity be
+passed without the call site fighting the compiler, and the cost is that an
+unannotated parameter is inferred as `never`. Reading a member off it does not compile.
+
+```ts
+io.on('connection', (socket) => {
+  socket.on('join', handler); // Property 'on' does not exist on type 'never'
+});
+```
+
+Annotate it, and the rest follows from there.
+
+```ts
+io.on('connection', (socket: ServerSocketContract) => {
+  socket.on('join', handler); // fine
+});
+```
+
+This is a type-level detail only. The unannotated form runs correctly, so JavaScript
+suites never meet it, and a TypeScript suite meets it on the first line it writes.
+
 ## What keeps its types
 
 The application keeps socket.io-client's own types, because the alias is a
