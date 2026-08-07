@@ -1,9 +1,10 @@
 # Issue and pull request labels
 
-> **TL;DR** Three groups. Work-type (what kind of change), outside-contribution
-> (who it is shaped for), and triage (how it was resolved). The work-type label
-> is applied automatically, by the issue form on an issue and from the title on
-> a pull request. The rest are applied by hand.
+> **TL;DR** Four groups. Work-type (what kind of change), outside-contribution
+> (who it is shaped for), scope and readiness (what it touches and whether it can
+> start), and triage (how it was resolved). The work-type label is applied
+> automatically, by the issue form on an issue and from the title on a pull
+> request. The rest are applied by hand.
 
 The labels already exist on the repository with the colors below. This file is
 the record of what they mean and how each one gets applied, so the scheme does
@@ -52,6 +53,42 @@ shaped for someone arriving from outside.
 | ------------------ | --------- | ------------------------- |
 | `good first issue` | `#7057ff` | Good for newcomers        |
 | `help wanted`      | `#008672` | Extra attention is needed |
+
+## Scope and readiness
+
+Applied by hand during triage, on top of a work-type label. Two of these say what
+the work touches, and two say whether it can start. None of them can come from a
+Conventional Commits prefix, which carries only the kind of change, so none of
+them is applied by `.github/workflows/pr-label.yml`.
+
+| Label            | Color     | Meaning                                     |
+| ---------------- | --------- | ------------------------------------------- |
+| `fidelity`       | `#c05621` | Answering it means observing real socket.io |
+| `breaking`       | `#7b341e` | Major under decision 0019                   |
+| `needs decision` | `#ed8936` | A decision is needed before any code        |
+| `blocked`        | `#fbd38d` | Cannot start until another issue settles    |
+
+The four share one shade family so the group reads as a group next to the reds,
+blues and greens above. The shade within the family carries no meaning.
+
+`fidelity` needs a boundary sharp enough to stop it spreading. Every delivery
+change is checked against socket.io, so "was verified against socket.io" would
+catch all of them and mark nothing. The line is whether observing socket.io _is_
+the work, which holds when the issue cannot be answered from a decision taken
+here and only real socket.io settles it.
+
+`breaking` is the label for a change that
+[decision 0019](./decisions/0019-what-counts-as-a-breaking-change.md) puts in the
+major row. That is removing or altering a [`differences.md`](./differences.md)
+§A entry, a public type change that stops existing call sites compiling, and
+raising `engines.node`. A conformance correction is not one of these, however
+much it moves, which is the point 0019 settles. Before 1.0.0 those changes ship
+as minor, so the label marks what was touched rather than which number moved.
+
+`needs decision` does not overlap with the Issues column in
+[decisions/README.md](./decisions/README.md). That column is backward-looking,
+listing the issues an existing decision record came out of. This label is
+forward-looking, on an issue where no record exists yet.
 
 ## Triage
 
