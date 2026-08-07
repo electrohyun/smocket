@@ -3,6 +3,11 @@
 **Status:** Accepted · 2026-08-07 · #115
 **Governed by:** [0000](./0000-do-not-invent-what-has-no-source.md)
 
+_Over the 60 lines [CONTRIBUTING-docs](../CONTRIBUTING-docs.md) asks for. The TL;DR and the
+two tables are the rule and are enough to judge a release; the rest is what the rule was
+tested against, kept because both ordering mistakes the tables have had were found by
+re-deriving a real commit and not by reading them._
+
 > **TL;DR** A correction that moves the mock toward measured real behaviour is a minor
 > release, even when it turns a passing test red. What is major is a change to something
 > this project stated on its own authority: a documented divergence, an incompatible type,
@@ -24,14 +29,9 @@ What is major is what this project stated on its own authority: a divergence it 
 type it published, the range of Node it declared. Those are ours to promise and ours to
 break.
 
-The first row that matches wins, so the three the paragraph above just named are the three
-that go on top. Withdrawing something this project declared has to be judged before
-anything else, because a withdrawal is nearly always a move toward real socket.io as well
-and a fidelity row would otherwise catch it on the way past. Dropping a §A entry means
-smocket stopped diverging on purpose, which is a correction toward measured behaviour;
-raising `engines.node` usually rides along with one. Judged as corrections they come out a
-minor, and the reason for declaring them in the first place was that they are ours to break
-rather than ours to quietly improve.
+The first row that matches wins, so the three the paragraph above named go on top. A
+withdrawal is nearly always a move toward real socket.io as well, and a fidelity row would
+catch it on the way past.
 
 **Declared on our own authority**
 
@@ -51,9 +51,6 @@ rather than ours to quietly improve.
 | Adding a `differences.md` §A entry                                    | none            |
 | Changing something the documentation marks unspecified                | patch           |
 | A change to a smocket-only API (§B)                                   | ordinary semver |
-
-Read the first table, then the second. A change that matches nothing in the first is judged
-entirely by the second, which is the ordinary case.
 
 The first fidelity row does not ride in a patch. The old result was not a promise, but a
 green suite can turn red, and a patch is understood as safe to take without reading
@@ -98,12 +95,10 @@ the no-observable-change row and answers patch, which is the answer the rest of 
 document argues against. The judgement is retroactive. `engines` was declared later, so at
 the time the effect was real and unstated.
 
-The same trap sat under the §A row until the tables were split. Removing a §A entry means
-smocket stopped diverging deliberately, which is a correction toward measured behaviour and
-an observable one, so a single table with the fidelity rows on top answered minor for the
-row that says major. `emit` returning the socket rather than `undefined` (#189) is the case
-that surfaced it: it closed a gap rather than a §A entry, and asking which row it took is
-what showed the two could not be told apart by a table in that order.
+The same trap sat under the §A row until the tables were split. Removing a §A entry is
+smocket giving up a divergence on purpose, which is a correction and an observable one, so
+fidelity rows on top answered minor for the row that says major. #189 surfaced it by
+closing a gap rather than a §A entry, which raised the question of which row each takes.
 
 ## Alternatives rejected
 
