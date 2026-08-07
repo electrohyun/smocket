@@ -76,6 +76,18 @@ it('a volatile emit follows its own side: true on the server, the socket on the 
   expect(view.emit('a', 1)).toBe(view);
 });
 
+it('a dropped volatile emit still returns the emitter it was called on', async () => {
+  // The pre-connect window (0016) is the branch where a client volatile emit is dropped
+  // instead of sent. The packet goes nowhere and the call still chains, so returning is not
+  // conditional on delivery. Only the return value is asserted here; whether the emit is
+  // dropped is volatile.test.ts's subject.
+  const client = ctx.openClient();
+  expect(client.connected).toBe(false);
+
+  const view = client.volatile;
+  expect(view.emit('vol', 'dropped')).toBe(view);
+});
+
 it('the client listener methods return the socket, so they chain', async () => {
   const { client } = await ctx.connectClient();
   const noop = () => {};
