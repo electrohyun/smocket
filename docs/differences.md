@@ -5,6 +5,12 @@
 > socket.io has no equivalent for (section B). Each entry links to the decision
 > that explains it; the reasoning lives there, not here.
 
+This page exists because of how much else matches. A mock that answers correctly almost
+everywhere gives a reader no reason to keep checking, and the reader who has stopped
+checking is the one a divergence reaches. The closer the fidelity gets, the more the
+remaining gaps depend on being written down. What to keep doubting is read here rather
+than discovered in a failing suite.
+
 ## A. Where smocket deliberately differs
 
 - **No retry when the server is absent.** Real socket.io retries a failed
@@ -26,6 +32,13 @@
   `String(...)` and are not guaranteed to match real socket.io's encoding: that edge
   has no measured reference, so smocket does not invent one.
   See [0006](./decisions/0006-handshake-fields.md).
+- **`emit` and `on` return nothing.** socket.io returns the socket from
+  `socket.emit(...)`, `socket.on(...)`, and `socket.once(...)`, so the calls chain, and
+  `Server#emit` and a broadcast operator's `emit` return `true`. Every one of these returns
+  `undefined` in smocket, so `socket.on('a', f).on('b', g)` throws and a caller that reads
+  the result sees a falsy value where socket.io gives a truthy one. Unlike the entries above
+  this is not a decision, it is a gap, found by using the package from outside and recorded
+  here until it is corrected. No decision record covers it.
 
 ## B. What smocket adds that socket.io has no equivalent for
 
