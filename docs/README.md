@@ -1,9 +1,12 @@
 # smocket docs
 
-> **TL;DR** Where to look: which behaviours are verified against real socket.io,
-> the conventions for writing docs, a glossary of socket.io terms, the scope
-> boundary, the design decisions, and the list of differences from real socket.io.
+> **TL;DR** Where to look: how to run smocket inside a test runner, which
+> behaviours are verified against real socket.io, the conventions for writing
+> docs, a glossary of socket.io terms, the scope boundary, the design decisions,
+> and the list of differences from real socket.io.
 
+- **How to run smocket inside a test runner:**
+  [test-runner-integration.md](./test-runner-integration.md)
 - **Which behaviours are verified against real socket.io:**
   [conformance.md](./conformance.md)
 - **How to write docs here:** [CONTRIBUTING-docs.md](./CONTRIBUTING-docs.md)

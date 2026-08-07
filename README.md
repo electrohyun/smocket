@@ -71,6 +71,10 @@ b.emit('join', 'room-1');
 // b joins after a, so a receives 'user-joined' (b's id); b does not, since it is the sender.
 ```
 
+To run an existing app against smocket without touching the app's own code, point
+`socket.io-client` at smocket in your test runner. [Test-runner integration](docs/test-runner-integration.md)
+has the Vitest and Jest setups.
+
 ## Features
 
 - Socket ID assignment and tracking
