@@ -6,10 +6,34 @@
 // Only the named export is provided; a default export (`import io from ...`) waits
 // on the CJS interop it needs across tsup's dual output.
 export { Adapter, connect, connect as io, DelayingAdapter, Server } from './mock-server';
+// The contract types are exported under their own names, so an app that swapped
+// socket.io-client for smocket still has something to annotate with: the value side
+// of the substitution already resolved, and only the type side was missing. The five
+// entry points (`ServerContract`, `ServerSocketContract`, `ClientSocketContract`,
+// `NamespaceContract`, `Handshake`) reach the rest through their own members, so
+// those are exported too rather than left reachable but unnameable. `ConnectedClient`
+// and `ServerContext` are deliberately absent: they are the dual-run test setup's
+// shape, not an app-facing surface. Whether any of these is also aliased to
+// socket.io's own `Socket` name is a separate question (#178), since one package
+// cannot give that name to both the server and the client socket.
 export type {
+  AdapterContract,
   AdapterFactory,
   AuthCallback,
+  BroadcastContract,
+  ClientSocketContract,
+  ConnectionMiddleware,
   ConnectOptions,
   DeliveryTimer,
+  Handshake,
+  MiddlewareError,
+  NamespaceContract,
+  ServerContract,
+  ServerSocketContract,
   SmocketAdapter,
+  SocketTimeoutContract,
+  TimeoutBroadcastContract,
+  TimeoutEmitterContract,
+  VolatileClientSocket,
+  VolatileServerSocket,
 } from './contract';
