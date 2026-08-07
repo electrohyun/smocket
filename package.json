@@ -61,7 +61,9 @@
     "publint": "publint",
     "attw": "attw --pack .",
     "assert:no-imports": "node scripts/assert-no-imports.js",
-    "check:package": "pnpm build && pnpm assert:no-imports && pnpm publint && pnpm attw"
+    "check:package": "pnpm build && pnpm assert:no-imports && pnpm publint && pnpm attw",
+    "conformance": "node scripts/conformance-report.mjs",
+    "check:conformance": "node scripts/conformance-report.mjs --check"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.5",

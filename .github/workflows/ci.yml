@@ -159,6 +159,28 @@ jobs:
         run: pnpm add -D socket.io@${{ matrix.socketio }} socket.io-client@${{ matrix.socketio }}
       - run: pnpm test:real
 
+  conformance:
+    name: conformance report
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # docs/conformance.md is generated from a dual run, so it is only true as
+      # long as it matches the suite. This runs the same generation and fails if
+      # the committed file has drifted, which is what keeps the report evidence
+      # rather than a claim someone forgot to update. It runs both targets again
+      # rather than reusing the `test` job, because the report needs the two
+      # results side by side and that job reports them separately per platform.
+      - name: Check the conformance report is current
+        run: pnpm check:conformance
+
   coverage:
     runs-on: ubuntu-latest
     steps:
