@@ -31,6 +31,8 @@ Socket.IO delivery is more than event propagation. Room membership, namespace is
 
 smocket aims to reproduce that delivery logic faithfully. Every behavior is specified by a conformance suite that runs against a real Socket.IO server first — smocket is implemented to match it. It fills the gap left by existing mock libraries, none of which support rooms, namespaces, and broadcasts in full.
 
+The [conformance report](docs/conformance.md) lists every behavior that comparison covers, each linking to the test that pins it, along with the surface it does not reach yet. It is generated from the run, so a behavior is listed only because both targets passed it.
+
 ## Install
 
 ```bash

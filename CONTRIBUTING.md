@@ -100,7 +100,7 @@ A few things worth checking before you ask for review:
 - New behavior has a test that would fail without your change
 - Behavior matches real Socket.IO, and you can say where you verified that
 
-The last one matters most here. A test asserting that smocket does what smocket already does does not tell us much, so tests that encode what Socket.IO does are the most useful kind.
+The last one matters most here. A test asserting that smocket does what smocket already does does not tell us much, so tests that encode what Socket.IO does are the most useful kind. [docs/conformance.md](docs/conformance.md) lists what is already encoded, what is not yet, and the steps a new case goes through; if you added or renamed one, run `pnpm conformance` so that page keeps matching the suite.
 
 Pull requests are rebase merged, so please tidy up your commit history before asking for review. Every commit lands on `main` as-is, so following the commit conventions above helps.
 
