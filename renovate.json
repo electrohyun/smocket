@@ -36,6 +36,13 @@
       "matchDepNames": ["typescript"],
       "matchUpdateTypes": ["major"],
       "enabled": false
+    },
+    {
+      "description": "The two node-version pins in the `node-floor` job are held at every update type, not just major. They are not a toolchain choice that should track the latest release: 20.0.0 is the exact floor `engines.node` declares, and 20.13.0 is the lowest Node 20 that can run vitest 4. Raising either erases what the job proves, and raising both to the same number collapses the two tiers into one, which is how #175 arrived proposing to turn `declared node floor` into a job that verifies nothing. The rule above holds majors for the whole matrix; this one holds these two files' minors and patches as well. A working hold shows as the absence of a node PR touching ci.yml on the Dependency Dashboard. The reason each number was chosen is in a comment beside it in ci.yml, and moving either is a decision to take there rather than a bump to accept.",
+      "matchManagers": ["github-actions"],
+      "matchDepNames": ["node"],
+      "matchCurrentValue": "/^20\\.(0\\.0|13\\.0)$/",
+      "enabled": false
     }
   ]
 }
