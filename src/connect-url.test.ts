@@ -170,6 +170,13 @@ it('the socket from a failed connect still chains', async () => {
   const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
   try {
     const client = connect('http://localhost:9998');
+    // The failure report is deferred to the next tick (0005), and every assertion below is
+    // synchronous, so without awaiting it the spy would be restored first and the
+    // `console.error` would land outside it. Awaited here, so the mock covers the whole
+    // failure and the report is asserted rather than merely tolerated.
+    const failed = new Promise<void>((resolve) => {
+      client.once('connect_error', () => resolve());
+    });
 
     expect(client.emit('a', 1)).toBe(client);
 
@@ -178,6 +185,9 @@ it('the socket from a failed connect still chains', async () => {
 
     const volatile = client.volatile;
     expect(volatile.emit('a', 1)).toBe(volatile);
+
+    await failed;
+    expect(consoleError).toHaveBeenCalledOnce();
   } finally {
     consoleError.mockRestore();
   }
