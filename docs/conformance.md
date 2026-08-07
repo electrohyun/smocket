@@ -256,17 +256,18 @@ Room cleanup, the reason each side reports, and what happens to a pending ack.
 What `emit` and the listener methods hand back, and which of them chain.
 
 - [the client emit returns the socket, so it chains](../src/emitter-returns.test.ts#L14)
-- [the server socket emit returns true rather than the socket](../src/emitter-returns.test.ts#L19)
-- [the server emit returns true](../src/emitter-returns.test.ts#L26)
-- [a namespace emit returns true](../src/emitter-returns.test.ts#L31)
-- [a broadcast emit returns true](../src/emitter-returns.test.ts#L36)
-- [a timed broadcast emit returns true](../src/emitter-returns.test.ts#L42)
-- [a timed server socket emit returns true, where the client one chains](../src/emitter-returns.test.ts#L53)
-- [a volatile emit follows its own side: true on the server, the socket on the client](../src/emitter-returns.test.ts#L64)
-- [the client listener methods return the socket, so they chain](../src/emitter-returns.test.ts#L71)
-- [the server socket listener methods return the socket, so they chain](../src/emitter-returns.test.ts#L84)
-- [chained registrations both take effect](../src/emitter-returns.test.ts#L97)
-- [a namespace on returns the namespace, so it chains](../src/emitter-returns.test.ts#L112)
+- [a buffered emit returns the socket too, before the connection completes](../src/emitter-returns.test.ts#L19)
+- [the server socket emit returns true rather than the socket](../src/emitter-returns.test.ts#L27)
+- [the server emit returns true](../src/emitter-returns.test.ts#L34)
+- [a namespace emit returns true](../src/emitter-returns.test.ts#L39)
+- [a broadcast emit returns true](../src/emitter-returns.test.ts#L44)
+- [a timed broadcast emit returns true](../src/emitter-returns.test.ts#L50)
+- [a timed server socket emit returns true, where the client one chains](../src/emitter-returns.test.ts#L61)
+- [a volatile emit follows its own side: true on the server, the socket on the client](../src/emitter-returns.test.ts#L72)
+- [the client listener methods return the socket, so they chain](../src/emitter-returns.test.ts#L79)
+- [the server socket listener methods return the socket, so they chain](../src/emitter-returns.test.ts#L92)
+- [chained registrations both take effect](../src/emitter-returns.test.ts#L105)
+- [a namespace on returns the namespace, so it chains](../src/emitter-returns.test.ts#L120)
 
 ## smocket only
 
@@ -292,6 +293,7 @@ Resolving a url to a server, and what the url contributes to the handshake.
 - [the url's path selects the namespace](../src/connect-url.test.ts#L121)
 - [a relative url resolves against location.origin](../src/connect-url.test.ts#L130)
 - [connect(url) to an unregistered origin fires connect_error, without throwing](../src/connect-url.test.ts#L148)
+- [the socket from a failed connect still chains](../src/connect-url.test.ts#L166)
 
 ### Adapter API
 
