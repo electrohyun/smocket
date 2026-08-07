@@ -45,6 +45,12 @@ Before 1.0.0 the rules apply one place to the right, as npm reads a `0.x` range:
 becomes minor, minor and patch become patch. They apply from now rather than from the tag,
 because the first conformance fix after 1.0 is a poor place to learn a rule decides nothing.
 
+The shift costs a signal. Two rows that differ above 1.0.0 arrive at the same number below
+it, so a `0.x` patch can be a delivery correction or a typo in a comment and the number does
+not say which. The release notes carry that instead: every release below 1.0.0 names the row
+it landed on, so a reader who needs to know reads one line rather than guessing from the
+digit that moved.
+
 ### Announcement
 
 The version number says how much care an upgrade needs, not what moved. A correction that
