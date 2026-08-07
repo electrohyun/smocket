@@ -72,6 +72,11 @@ jobs:
       # it, and with it the badge.
       - name: Run the suite against smocket
         run: pnpm test:mock
+      # The example is documentation that executes, so it rots the moment nothing
+      # runs it. This builds `dist/` and runs the program, which fails the job if
+      # the example stops working against the package it demonstrates.
+      - name: Run the chat room example
+        run: pnpm example:chat-room
 
   browser:
     name: browser (chromium)
