@@ -8,9 +8,9 @@ import type {
   Handshake,
   MiddlewareError,
   NamespaceContract,
-  ServerContract,
   ServerSocketContract,
   SmocketAdapter,
+  SmocketServer,
   SocketTimeoutContract,
   TimeoutBroadcastContract,
   TimeoutEmitterContract,
@@ -808,7 +808,9 @@ export function resetRegistry(): void {
   servers.clear();
 }
 
-export class Server implements ServerContract {
+// `SmocketServer` rather than `ServerContract`, so the wider interface an application
+// annotates with is checked against this class rather than trusted to stay in step.
+export class Server implements SmocketServer {
   /**
    * This server's normalized origin, its key in the module `servers` registry.
    * Private: it is internal bookkeeping with no counterpart on real socket.io, so
