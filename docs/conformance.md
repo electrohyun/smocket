@@ -251,6 +251,23 @@ Room cleanup, the reason each side reports, and what happens to a pending ack.
 - [serverSocket.disconnect() reports io server disconnect to the client and server namespace disconnect to the server](../src/disconnect.test.ts#L171)
 - [disconnecting carries the same reason and fires before disconnect](../src/disconnect.test.ts#L187)
 
+### Emitter return values
+
+What `emit` and the listener methods hand back, and which of them chain.
+
+- [the client emit returns the socket, so it chains](../src/emitter-returns.test.ts#L14)
+- [the server socket emit returns true rather than the socket](../src/emitter-returns.test.ts#L19)
+- [the server emit returns true](../src/emitter-returns.test.ts#L26)
+- [a namespace emit returns true](../src/emitter-returns.test.ts#L31)
+- [a broadcast emit returns true](../src/emitter-returns.test.ts#L36)
+- [a timed broadcast emit returns true](../src/emitter-returns.test.ts#L42)
+- [a timed server socket emit returns true, where the client one chains](../src/emitter-returns.test.ts#L53)
+- [a volatile emit follows its own side: true on the server, the socket on the client](../src/emitter-returns.test.ts#L64)
+- [the client listener methods return the socket, so they chain](../src/emitter-returns.test.ts#L71)
+- [the server socket listener methods return the socket, so they chain](../src/emitter-returns.test.ts#L84)
+- [chained registrations both take effect](../src/emitter-returns.test.ts#L97)
+- [a namespace on returns the namespace, so it chains](../src/emitter-returns.test.ts#L112)
+
 ## smocket only
 
 These have no oracle to compare against: they cover the API smocket adds
