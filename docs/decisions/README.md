@@ -30,3 +30,4 @@ these are written.
 | [0016](./0016-volatile-drops-only-pre-connect.md)                | volatile is accepted and drops only in the pre-connect window                           | Accepted | #110          |
 | [0017](./0017-off-follows-the-emitter.md)                        | off follows the underlying emitter: Node on the server, component-emitter on the client | Accepted | #103          |
 | [0018](./0018-delivery-scheduling-adapter-hook.md)               | Per-socket delivery delay is an adapter scheduling hook, keyed by sid, preserving FIFO  | Accepted | #78           |
+| [0019](./0019-what-counts-as-a-breaking-change.md)               | A version number promises fidelity, not the current result                              | Accepted | #115          |
