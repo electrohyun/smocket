@@ -94,11 +94,37 @@ it('a volatile emit to a recipient still in the pre-connect window is dropped', 
   expect(vol.received).toBe(false);
 });
 
-// The client-side pre-connect window (a volatile emit before the client's own connection
-// opens) is the mirror of the case above, but it is not cleanly reachable through the shared
-// harness: `connectClient` only hands back a client that has already connected, and the one
-// public route into a disconnected client, a reconnect, is not that window. Measured against
-// real socket.io-client 4.8.3, a volatile emit issued on a disconnected client is buffered and
-// delivered on reconnect (reconnection buffering, out of smocket's scope), not dropped, so a
-// dual-run test of it would compare two different behaviours. The server-side case above is
-// the one place the 0016 window is observable on both targets, so it is the one asserted here.
+it('a volatile emit from a client still in the pre-connect window is dropped', async () => {
+  // The mirror of the case above, from the client's side of the same window. `openClient`
+  // returns before the connection completes (0004), so an emit issued right after it is in
+  // the window: the volatile one is dropped and the plain one is buffered and replayed on
+  // connect. The plain emit is the marker. Had the volatile one been buffered instead of
+  // dropped it would sit ahead of the marker in the same queue and arrive first, so what the
+  // server ends up seeing is the proof and no timeout is involved.
+  const seen: string[] = [];
+  const delivered = new Promise<void>((resolve) => {
+    ctx.io.on('connection', (socket: ServerSocketContract) => {
+      socket.on('vol', (value: string) => seen.push(`vol:${value}`));
+      socket.on('marker', (value: string) => {
+        seen.push(`marker:${value}`);
+        resolve();
+      });
+    });
+  });
+
+  const client = ctx.openClient();
+  expect(client.connected).toBe(false);
+
+  client.volatile.emit('vol', 'dropped'); // pre-connect: dropped
+  client.emit('marker', 'ok'); // pre-connect: buffered, then delivered
+
+  await delivered;
+  expect(seen).toEqual(['marker:ok']);
+});
+
+// The reconnect window is the one left unasserted, and it is not the window above. A
+// volatile emit on a client that connected and then disconnected is buffered by real
+// socket.io-client and replayed on reconnect, which is reconnection behaviour and outside
+// smocket's scope (docs/scope.md), so a dual-run case there would compare two different
+// things. Before the first connection completes both targets drop, which is why that half
+// is asserted.
