@@ -66,6 +66,48 @@ jobs:
       - name: Run the mock target in a browser
         run: pnpm test:browser
 
+  node-floor:
+    name: declared node floor
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      # Install and build on a version the toolchain runs on. pnpm 11 needs
+      # 22.13, so this half cannot move down and does not need to: what it
+      # produces is `dist/`, and `dist/` is what the two steps below run.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      # Lower tier: the exact floor `engines.node` declares. Nothing installed
+      # is invoked here, not even pnpm, because pnpm 11 would not start on this
+      # version either. `scripts/smoke.mjs` imports `node:assert` and `dist/`
+      # and nothing else, so whatever Node can run the package can run it. It
+      # drives one room broadcast rather than only importing the module, so a
+      # `>=20` that delivers nothing fails here instead of shipping.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 20.0.0
+      - run: node scripts/smoke.mjs
+      # Upper tier: the whole mock suite against `dist/`, on the lowest Node 20
+      # that can run it. That is 20.13.0 and not 20.0.0 because vitest 4 pulls
+      # in rolldown, rolldown calls `util.styleText`, and Node 20 grew that
+      # mid-line: it is absent through 20.11, and 20.12 rejects the array of
+      # formats rolldown passes. Both fail before a single test is collected.
+      # Do not lower this to match `engines.node`. The number is a fact about
+      # our runner, and keeping it out of `engines` is the point of the split:
+      # a consumer does not run our vitest.
+      #
+      # The `node_modules` installed above is reused as-is. It is pnpm's
+      # symlink tree and Node 20 resolves through it fine, so no reinstall and
+      # no artifact hand-off is needed.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 20.13.0
+      - run: node node_modules/vitest/vitest.mjs run --config vitest.dist.config.ts
+
   compat:
     name: real target (socket.io ${{ matrix.socketio }})
     runs-on: ubuntu-latest
