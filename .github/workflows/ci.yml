@@ -30,8 +30,8 @@ jobs:
       - run: pnpm format:check
 
   test:
-    name: test (node ${{ matrix.node }})
-    runs-on: ubuntu-latest
+    name: test (${{ matrix.os }}, node ${{ matrix.node }})
+    runs-on: ${{ matrix.os }}
     strategy:
       # One version failing should not hide the others.
       fail-fast: false
@@ -39,8 +39,23 @@ jobs:
         # The versions still in maintenance. Node 20 left it in April 2026, which
         # is why it is not here; that pnpm 11 cannot install on it either is a
         # consequence, not the reason, so raising pnpm does not raise this list.
-        # What the published package supports is a wider question, settled in #143.
+        # What the published package supports is a separate question, answered by
+        # `engines.node` and guarded by the `node-floor` job below.
+        os: [ubuntu-latest]
         node: [22, 24]
+        # Every Node version on Linux, and one job each for the other two systems
+        # rather than a full cross product, which would be six jobs to answer a
+        # question two can. smocket ships as a devDependency and runs on
+        # contributors' machines rather than on a server, so an operating system
+        # the dual run has never been executed on is a gap in the central claim,
+        # not a convenience. `lts/*` tracks the current LTS so this does not need
+        # editing every October; it is a toolchain choice and deliberately not
+        # tied to `engines.node`, which a consumer's own runner honors instead.
+        include:
+          - os: windows-latest
+            node: lts/*
+          - os: macOS-latest
+            node: lts/*
     steps:
       - uses: actions/checkout@v7
         with:
