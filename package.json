@@ -49,6 +49,7 @@
     "test:mock": "vitest run --project=mock",
     "test:browser": "vitest run --config vitest.browser.config.ts",
     "test:dist": "vitest run --config vitest.dist.config.ts",
+    "smoke": "node scripts/smoke.mjs",
     "coverage": "vitest run --project=mock --coverage",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
