@@ -33,6 +33,7 @@ than discovered in a failing suite.
   `String(...)` and are not guaranteed to match real socket.io's encoding: that edge
   has no measured reference, so smocket does not invent one.
   See [0006](./decisions/0006-handshake-fields.md).
+
 ## B. What smocket adds that socket.io has no equivalent for
 
 - **`server.nextConnection(namespace)`.** Not a socket.io API. It resolves with the
