@@ -1,9 +1,11 @@
 # smocket docs
 
-> **TL;DR** Where to look: the conventions for writing docs, a glossary of
-> socket.io terms, the scope boundary, the design decisions, and the list of
-> differences from real socket.io.
+> **TL;DR** Where to look: which behaviours are verified against real socket.io,
+> the conventions for writing docs, a glossary of socket.io terms, the scope
+> boundary, the design decisions, and the list of differences from real socket.io.
 
+- **Which behaviours are verified against real socket.io:**
+  [conformance.md](./conformance.md)
 - **How to write docs here:** [CONTRIBUTING-docs.md](./CONTRIBUTING-docs.md)
 - **A socket.io term you do not know:** [glossary.md](./glossary.md)
 - **Whether something is in scope for smocket:** [scope.md](./scope.md)

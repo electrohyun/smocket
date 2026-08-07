@@ -20,6 +20,10 @@ to write docs. This file links to those and summarizes none.
   comparison the project rests on.
 - Never assert non-receipt with a timeout. Use the marker pattern in
   `src/test-events.ts`: send a later event and prove ordering instead.
+- Adding, renaming, or removing a case changes `docs/conformance.md`. Run
+  `pnpm conformance` and commit the result; CI fails when it has drifted. A new
+  test file also needs an entry in the area table in
+  `scripts/conformance-report.mjs`.
 - `pnpm test:browser` runs the mock target in Chromium and needs
   `pnpm exec playwright install chromium` once. Not part of the dual run: a page
   cannot host a socket.io server, so it only asks whether the mock behaves in a
