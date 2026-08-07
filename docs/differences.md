@@ -1,9 +1,10 @@
 # Differences from real socket.io
 
 > **TL;DR** The short list of where smocket and real socket.io do not line up: the
-> places smocket deliberately diverges (section A) and the API smocket adds that
-> socket.io has no equivalent for (section B). Each entry links to the decision
-> that explains it; the reasoning lives there, not here.
+> places smocket deliberately diverges (section A), the API smocket adds that
+> socket.io has no equivalent for (section B), and the gaps that are nobody's decision
+> and are waiting to be closed (section C). A section A entry links to the decision that
+> explains it; the reasoning lives there, not here.
 
 This page exists because of how much else matches. A mock that answers correctly almost
 everywhere gives a reader no reason to keep checking, and the reader who has stopped
@@ -32,14 +33,6 @@ than discovered in a failing suite.
   `String(...)` and are not guaranteed to match real socket.io's encoding: that edge
   has no measured reference, so smocket does not invent one.
   See [0006](./decisions/0006-handshake-fields.md).
-- **`emit` and `on` return nothing.** socket.io returns the socket from
-  `socket.emit(...)`, `socket.on(...)`, and `socket.once(...)`, so the calls chain, and
-  `Server#emit` and a broadcast operator's `emit` return `true`. Every one of these returns
-  `undefined` in smocket, so `socket.on('a', f).on('b', g)` throws and a caller that reads
-  the result sees a falsy value where socket.io gives a truthy one. Unlike the entries above
-  this is not a decision, it is a gap, found by using the package from outside and recorded
-  here until it is corrected. No decision record covers it.
-
 ## B. What smocket adds that socket.io has no equivalent for
 
 - **`server.nextConnection(namespace)`.** Not a socket.io API. It resolves with the
@@ -63,3 +56,23 @@ than discovered in a failing suite.
   next tick. Order within the delayed stream is preserved, and scheduling runs through an
   injectable timer so a test drives it with fake timers rather than the wall clock. See
   [0018](./decisions/0018-delivery-scheduling-adapter-hook.md).
+
+## C. Known gaps, not deliberate, recorded until corrected
+
+Section A is where smocket chose to differ and section B is what it adds. This section is
+neither. These are places smocket does not match socket.io and no one decided that it
+should not, so they carry no decision record and are expected to disappear.
+
+The distinction is not only editorial. Removing a section A entry is a major under
+[0019](./decisions/0019-what-counts-as-a-breaking-change.md), because it withdraws a
+promise the project made on purpose. Closing one of these withdraws nothing. It is a
+correction toward measured real behaviour and takes that row instead, so the same fix does
+not change bump depending on which list it was written on.
+
+- **`emit` and the listener methods return nothing.** socket.io returns the socket from
+  `socket.emit(...)`, `socket.on(...)`, `socket.once(...)`, and the rest of the listener
+  methods, so the calls chain, while `Server#emit`, a namespace's `emit`, and a broadcast
+  operator's `emit` return `true`. smocket returns `undefined` in every one of those
+  positions, so `socket.on('a', f).on('b', g)` throws and a caller reading the result sees
+  a falsy value where socket.io gives a truthy one. Found by installing the package and
+  using it from outside rather than by the suite, which never read a return value.
