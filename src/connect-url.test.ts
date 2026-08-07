@@ -162,3 +162,23 @@ it('connect(url) to an unregistered origin fires connect_error, without throwing
     consoleError.mockRestore();
   }
 });
+
+it('the socket from a failed connect still chains', async () => {
+  // The socket a failed connect hands back is inert (0005), but it is still a client
+  // socket, and the client emitters chain. App code that wrote `socket.emit(a).emit(b)`
+  // should not start throwing because no server was registered for the origin.
+  const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+  try {
+    const client = connect('http://localhost:9998');
+
+    expect(client.emit('a', 1)).toBe(client);
+
+    const timed = client.timeout(50);
+    expect(timed.emit('a', 1)).toBe(timed);
+
+    const volatile = client.volatile;
+    expect(volatile.emit('a', 1)).toBe(volatile);
+  } finally {
+    consoleError.mockRestore();
+  }
+});
