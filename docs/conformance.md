@@ -264,10 +264,11 @@ What `emit` and the listener methods hand back, and which of them chain.
 - [a timed broadcast emit returns true](../src/emitter-returns.test.ts#L50)
 - [a timed server socket emit returns true, where the client one chains](../src/emitter-returns.test.ts#L61)
 - [a volatile emit follows its own side: true on the server, the socket on the client](../src/emitter-returns.test.ts#L72)
-- [the client listener methods return the socket, so they chain](../src/emitter-returns.test.ts#L79)
-- [the server socket listener methods return the socket, so they chain](../src/emitter-returns.test.ts#L92)
-- [chained registrations both take effect](../src/emitter-returns.test.ts#L105)
-- [a namespace on returns the namespace, so it chains](../src/emitter-returns.test.ts#L120)
+- [a dropped volatile emit still returns the emitter it was called on](../src/emitter-returns.test.ts#L79)
+- [the client listener methods return the socket, so they chain](../src/emitter-returns.test.ts#L91)
+- [the server socket listener methods return the socket, so they chain](../src/emitter-returns.test.ts#L104)
+- [chained registrations both take effect](../src/emitter-returns.test.ts#L117)
+- [a namespace on returns the namespace, so it chains](../src/emitter-returns.test.ts#L132)
 
 ## smocket only
 
