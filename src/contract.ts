@@ -33,7 +33,7 @@ type Listener = (...args: never[]) => void;
  * `to` / `in` / `except` / `timeout` compose in any order (#137).
  */
 export interface BroadcastContract {
-  emit(event: string, ...args: unknown[]): void;
+  emit(event: string, ...args: unknown[]): boolean;
   to(room: string | string[]): BroadcastContract;
   /** An alias of `to`, as at the entry points. */
   in(room: string | string[]): BroadcastContract;
@@ -50,11 +50,15 @@ export interface BroadcastContract {
  * the race, and a lone `Error('operation has timed out')` when the timer wins, with a
  * late ack then dropped so the callback fires exactly once. A callback-less `emit` is a
  * plain emit that arms no timer. `emitWithAck` is the same race as a promise, resolving
- * with the response and rejecting with that same timeout `Error`. Real socket.io returns
- * the decorated socket here; the subset it is held to is just these two emit forms.
+ * with the response and rejecting with that same timeout `Error`.
+ *
+ * This is the client side of `timeout(ms)`, where the emit returns the socket so the call
+ * chains. The server side returns `true` instead and is {@link SocketTimeoutContract};
+ * the two used to share this interface, which stopped working once the return types were
+ * measured rather than left as `void`.
  */
 export interface TimeoutEmitterContract {
-  emit(event: string, ...args: unknown[]): void;
+  emit(event: string, ...args: unknown[]): this;
   emitWithAck(event: string, ...args: unknown[]): Promise<unknown>;
 }
 
@@ -69,7 +73,7 @@ export interface TimeoutEmitterContract {
  * `io.timeout(ms).to(a).except(b)` collects from the survivors only (#137).
  */
 export interface TimeoutBroadcastContract {
-  emit(event: string, ...args: unknown[]): void;
+  emit(event: string, ...args: unknown[]): boolean;
   to(room: string | string[]): TimeoutBroadcastContract;
   /** An alias of `to`, as at the entry points. */
   in(room: string | string[]): TimeoutBroadcastContract;
@@ -83,8 +87,15 @@ export interface TimeoutBroadcastContract {
  * first still reaches `socket.timeout(ms).to(room)` / `.broadcast` / `.except(room)`, each
  * an ack-collecting {@link TimeoutBroadcastContract}. Real socket.io returns the socket
  * itself here, so this is a subset of its surface and the `Ensure<>` guards below hold.
+ *
+ * It declares the two emit forms rather than extending {@link TimeoutEmitterContract},
+ * because the server's timed `emit` returns `true` where the client's returns the socket.
+ * An interface cannot narrow an inherited return type to an unrelated one, so the shared
+ * parent went away when the two were measured apart.
  */
-export interface SocketTimeoutContract extends TimeoutEmitterContract {
+export interface SocketTimeoutContract {
+  emit(event: string, ...args: unknown[]): boolean;
+  emitWithAck(event: string, ...args: unknown[]): Promise<unknown>;
   broadcast: TimeoutBroadcastContract;
   to(room: string | string[]): TimeoutBroadcastContract;
   except(room: string | string[]): TimeoutBroadcastContract;
@@ -99,7 +110,7 @@ export interface SocketTimeoutContract extends TimeoutEmitterContract {
  * carry the volatile flag through the same routing.
  */
 export interface VolatileServerSocket {
-  emit(event: string, ...args: unknown[]): void;
+  emit(event: string, ...args: unknown[]): boolean;
   emitWithAck(event: string, ...args: unknown[]): Promise<unknown>;
   broadcast: BroadcastContract;
   to(room: string | string[]): BroadcastContract;
@@ -108,7 +119,7 @@ export interface VolatileServerSocket {
 
 /** The client-side counterpart of {@link VolatileServerSocket}; a client has no broadcast surface. */
 export interface VolatileClientSocket {
-  emit(event: string, ...args: unknown[]): void;
+  emit(event: string, ...args: unknown[]): this;
   emitWithAck(event: string, ...args: unknown[]): Promise<unknown>;
 }
 
@@ -150,13 +161,13 @@ export interface NamespaceContract {
    * for connections on that namespace. `io.on('connection')` is the `/` case of
    * this, so both go through the same surface.
    */
-  on(event: string, listener: Listener): void;
+  on(event: string, listener: Listener): this;
   /**
    * Register a connection middleware on this namespace; see {@link ConnectionMiddleware}.
    * Called once per incoming connection here, in registration order.
    */
   use(middleware: ConnectionMiddleware): void;
-  emit(event: string, ...args: unknown[]): void;
+  emit(event: string, ...args: unknown[]): boolean;
   to(room: string | string[]): BroadcastContract;
   /** A timed broadcast to this namespace; see {@link TimeoutBroadcastContract}. */
   timeout(ms: number): TimeoutBroadcastContract;
@@ -230,6 +241,14 @@ export interface ServerContract {
    * each new server-side socket, socket.io's primary way to wire per-socket
    * handlers. The `nextConnection` harness path resolves the same socket; this is
    * the on-based path code written for real socket.io actually uses.
+   *
+   * The return stays `void` while every other `on` in this file narrowed to `this`,
+   * because this is the one position where socket.io disagrees with itself. Its
+   * declaration says `this`, so the type promises the `Server` back, and at runtime it
+   * hands back `io.of('/')`, a `Namespace`. Both chain, so nobody notices, but a contract
+   * cannot name a single return that is honest about both. Narrowing to `NamespaceContract`
+   * fails the `Ensure<>` proof below, since socket.io's declared `Server` has no `name`,
+   * and narrowing to `this` would copy a promise its own runtime does not keep.
    */
   on(event: string, listener: Listener): void;
   /**
@@ -237,7 +256,7 @@ export interface ServerContract {
    * connections on `/`, exactly as `io.of('/').use` would. See {@link ConnectionMiddleware}.
    */
   use(middleware: ConnectionMiddleware): void;
-  emit(event: string, ...args: unknown[]): void;
+  emit(event: string, ...args: unknown[]): boolean;
   to(room: string | string[]): BroadcastContract;
   in(room: string | string[]): BroadcastContract;
   except(room: string | string[]): BroadcastContract;
@@ -308,21 +327,21 @@ export interface ServerSocketContract {
    * client, and tied to the socket: a reconnection is a fresh socket with a fresh `data`.
    */
   data: Record<string, unknown>;
-  on(event: string, listener: Listener): void;
-  once(event: string, listener: Listener): void;
+  on(event: string, listener: Listener): this;
+  once(event: string, listener: Listener): this;
   /** Remove one registration. The server is Node's emitter, so a listener is required (0017). */
-  off(event: string, listener: (...args: unknown[]) => void): void;
+  off(event: string, listener: (...args: unknown[]) => void): this;
   /** Remove every listener for `event`, or all of them when called with no argument. */
-  removeAllListeners(event?: string): void;
+  removeAllListeners(event?: string): this;
   /** Catch-all for incoming events; the listener receives the event name then its args. */
-  onAny(listener: (...args: unknown[]) => void): void;
+  onAny(listener: (...args: unknown[]) => void): this;
   /** Remove one catch-all listener, or all of them when called with no argument. */
-  offAny(listener?: (...args: unknown[]) => void): void;
+  offAny(listener?: (...args: unknown[]) => void): this;
   /** Catch-all for outgoing events this socket sends; receives the event name then its args. */
-  onAnyOutgoing(listener: (...args: unknown[]) => void): void;
+  onAnyOutgoing(listener: (...args: unknown[]) => void): this;
   /** Remove one outgoing catch-all, or all of them when called with no argument. */
-  offAnyOutgoing(listener?: (...args: unknown[]) => void): void;
-  emit(event: string, ...args: unknown[]): void;
+  offAnyOutgoing(listener?: (...args: unknown[]) => void): this;
+  emit(event: string, ...args: unknown[]): boolean;
   emitWithAck(event: string, ...args: unknown[]): Promise<unknown>;
   /**
    * Arm a per-emit ack timer. Its `emit` / `emitWithAck` are the single-ack forms
@@ -351,24 +370,24 @@ export interface ClientSocketContract {
   id: string | undefined;
   /** The shared Manager; compared only by identity across namespaces. */
   io: unknown;
-  on(event: string, listener: Listener): void;
-  once(event: string, listener: Listener): void;
+  on(event: string, listener: Listener): this;
+  once(event: string, listener: Listener): this;
   /**
    * The client is component-emitter's: `off()` clears every listener, `off(event)`
    * clears that event, and `off(event, listener)` removes one. No form throws (0017).
    */
-  off(event?: string, listener?: (...args: unknown[]) => void): void;
+  off(event?: string, listener?: (...args: unknown[]) => void): this;
   /** Remove every listener for `event`, or all of them when called with no argument. */
-  removeAllListeners(event?: string): void;
+  removeAllListeners(event?: string): this;
   /** Catch-all for incoming events; the listener receives the event name then its args. */
-  onAny(listener: (...args: unknown[]) => void): void;
+  onAny(listener: (...args: unknown[]) => void): this;
   /** Remove one catch-all listener, or all of them when called with no argument. */
-  offAny(listener?: (...args: unknown[]) => void): void;
+  offAny(listener?: (...args: unknown[]) => void): this;
   /** Catch-all for outgoing events this socket sends; receives the event name then its args. */
-  onAnyOutgoing(listener: (...args: unknown[]) => void): void;
+  onAnyOutgoing(listener: (...args: unknown[]) => void): this;
   /** Remove one outgoing catch-all, or all of them when called with no argument. */
-  offAnyOutgoing(listener?: (...args: unknown[]) => void): void;
-  emit(event: string, ...args: unknown[]): void;
+  offAnyOutgoing(listener?: (...args: unknown[]) => void): this;
+  emit(event: string, ...args: unknown[]): this;
   emitWithAck(event: string, ...args: unknown[]): Promise<unknown>;
   /** Arm a per-emit ack timer on the next emit; see {@link TimeoutEmitterContract}. */
   timeout(ms: number): TimeoutEmitterContract;

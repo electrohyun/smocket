@@ -437,14 +437,14 @@ class BroadcastOperator implements BroadcastContract, TimeoutBroadcastContract {
     return out;
   }
 
-  emit(event: string, ...args: unknown[]): void {
+  emit(event: string, ...args: unknown[]): boolean {
     const recipients = this.recipients();
     const last = args.at(-1);
     // A plain broadcast unless a timeout is armed and a trailing callback is present:
     // then it collects one ack per recipient and answers the callback once (#112).
     if (this.timeoutMs === undefined || typeof last !== 'function') {
       for (const socket of recipients) socket.emit(event, ...args);
-      return;
+      return true;
     }
     this.collect(
       event,
@@ -453,6 +453,7 @@ class BroadcastOperator implements BroadcastContract, TimeoutBroadcastContract {
       recipients,
       this.timeoutMs,
     );
+    return true;
   }
 
   /**
@@ -680,10 +681,11 @@ class Namespace implements NamespaceContract {
    * app listening on either works. Other events are accepted but never fire, since a
    * mock has nothing else to raise here.
    */
-  on(event: string, listener: Listener): void {
+  on(event: string, listener: Listener): this {
     if (event === 'connection' || event === 'connect') {
       addListener(this.connectionListeners, event, listener);
     }
+    return this;
   }
 
   /**
@@ -716,9 +718,9 @@ class Namespace implements NamespaceContract {
     }
   }
 
-  emit(event: string, ...args: unknown[]): void {
+  emit(event: string, ...args: unknown[]): boolean {
     // No target rooms (everyone) and no exclusion: reaches every socket here.
-    new BroadcastOperator(this.adapter, this.sockets, [], []).emit(event, ...args);
+    return new BroadcastOperator(this.adapter, this.sockets, [], []).emit(event, ...args);
   }
   to(room: string | string[]): BroadcastContract {
     return new BroadcastOperator(this.adapter, this.sockets, asRooms(room), []);
@@ -902,8 +904,8 @@ export class Server implements SmocketServer {
   // The server's own broadcast surface is the default namespace's: `io.emit()` is
   // exactly `io.of('/').emit()`, so "everyone" means everyone on `/` and never
   // reaches another namespace. Each form delegates rather than reimplements.
-  emit(event: string, ...args: unknown[]): void {
-    this.of('/').emit(event, ...args);
+  emit(event: string, ...args: unknown[]): boolean {
+    return this.of('/').emit(event, ...args);
   }
   to(room: string | string[]): BroadcastContract {
     return this.of('/').to(room);
@@ -944,11 +946,12 @@ class Emitter {
   /** Outgoing catch-all listeners, fired for every event this socket sends (#111). */
   private readonly anyOutgoingListeners: Listener[] = [];
 
-  on(event: string, listener: Listener): void {
+  on(event: string, listener: Listener): this {
     addListener(this.listeners, event, listener);
+    return this;
   }
 
-  once(event: string, listener: Listener): void {
+  once(event: string, listener: Listener): this {
     const wrapper = ((...args: never[]) => {
       removeFirst(this.listeners.get(event), wrapper);
       listener(...args);
@@ -957,29 +960,34 @@ class Emitter {
     // its wrapper, the way socket.io's emitters do.
     (wrapper as { listener?: Listener }).listener = listener;
     addListener(this.listeners, event, wrapper);
+    return this;
   }
 
-  onAny(listener: Listener): void {
+  onAny(listener: Listener): this {
     this.anyListeners.push(listener);
+    return this;
   }
 
-  offAny(listener?: Listener): void {
+  offAny(listener?: Listener): this {
     // Remove the first matching registration, the way `off` removes one specific
     // listener; with no argument, clear every catch-all. socket.io's `offAny`
     // splices the first occurrence out of its `_anyListeners` array (#125).
     if (listener) removeFirst(this.anyListeners, listener);
     else this.anyListeners.length = 0;
+    return this;
   }
 
-  onAnyOutgoing(listener: Listener): void {
+  onAnyOutgoing(listener: Listener): this {
     this.anyOutgoingListeners.push(listener);
+    return this;
   }
 
-  offAnyOutgoing(listener?: Listener): void {
+  offAnyOutgoing(listener?: Listener): this {
     // The outgoing catch-all's removal mirrors `offAny` (#111): drop the first match,
     // or clear all with no argument.
     if (listener) removeFirst(this.anyOutgoingListeners, listener);
     else this.anyOutgoingListeners.length = 0;
+    return this;
   }
 
   /**
@@ -1037,9 +1045,10 @@ class Emitter {
   }
 
   /** Clear every listener for `event`, or every listener on the socket with no argument. */
-  removeAllListeners(event?: string): void {
+  removeAllListeners(event?: string): this {
     if (event === undefined) this.listeners.clear();
     else this.listeners.delete(event);
+    return this;
   }
 
   /**
@@ -1079,7 +1088,7 @@ class Emitter {
  * both the connected client and the failed-connection client.
  */
 class ClientEmitter extends Emitter {
-  off(event?: string, listener?: Listener): void {
+  off(event?: string, listener?: Listener): this {
     if (event === undefined) {
       this.removeAllListeners();
     } else if (listener === undefined) {
@@ -1087,6 +1096,7 @@ class ClientEmitter extends Emitter {
     } else {
       this.removeOne(event, listener);
     }
+    return this;
   }
 }
 
@@ -1177,9 +1187,10 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
     this.teardown('server namespace disconnect');
   }
 
-  emit(event: string, ...args: unknown[]): void {
+  emit(event: string, ...args: unknown[]): boolean {
     this.emitOutgoing(event, args);
     send(this.peer, event, args);
+    return true;
   }
   emitWithAck(event: string, ...args: unknown[]): Promise<unknown> {
     this.emitOutgoing(event, args);
@@ -1195,7 +1206,12 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
   timeout(ms: number): SocketTimeoutContract {
     const single = new TimeoutEmitter((event, args) => this.emit(event, ...args), ms);
     return {
-      emit: (event, ...args) => single.emit(event, ...args),
+      emit: (event, ...args) => {
+        // The server side of `timeout(ms)` answers `true`, where the client side hands
+        // back the socket; `single` is the shared emitter, so the value is adapted here.
+        single.emit(event, ...args);
+        return true;
+      },
       emitWithAck: (event, ...args) => single.emitWithAck(event, ...args),
       broadcast: new BroadcastOperator(
         this.nsp.adapter,
@@ -1246,9 +1262,12 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
       emit: (event, ...args) => {
         // A dropped (pre-connect) volatile emit is never sent, so it fires no outgoing
         // catch-all; a connected one delivers and runs it, like a plain emit (#111).
-        if (!this.peer.connected) return;
+        // Either way it answers `true`, as socket.io's server-side emit does whether or
+        // not anything received the packet.
+        if (!this.peer.connected) return true;
         this.emitOutgoing(event, args);
         send(this.peer, event, args);
+        return true;
       },
       emitWithAck: (event, ...args) => {
         if (!this.peer.connected) return new Promise<unknown>(() => {});
@@ -1274,11 +1293,12 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
    * requires a listener: `off(event)` with none throws rather than clearing the
    * event, so bulk removal here is `removeAllListeners` (0017).
    */
-  off(event: string, listener: Listener): void {
+  off(event: string, listener: Listener): this {
     if (typeof listener !== 'function') {
       throw new TypeError('The "listener" argument must be of type function. Received undefined');
     }
     this.removeLast(event, listener);
+    return this;
   }
 
   get broadcast(): BroadcastContract {
@@ -1399,7 +1419,7 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
     defer(() => this.dispatch('connect_error', [err]));
   }
 
-  emit(event: string, ...args: unknown[]): void {
+  emit(event: string, ...args: unknown[]): this {
     // The outgoing catch-all fires at the send site, before the packet leaves and
     // regardless of whether it is buffered first (#111).
     this.emitOutgoing(event, args);
@@ -1407,9 +1427,10 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
     // replayed in order at `completeConnection`, matching socket.io-client.
     if (!this.connected) {
       this.sendBuffer.push([event, args]);
-      return;
+      return this;
     }
     send(this.serverSocket, event, args);
+    return this;
   }
   emitWithAck(event: string, ...args: unknown[]): Promise<unknown> {
     // The outgoing catch-all fires for emitWithAck too (#111); the internally added
@@ -1454,13 +1475,16 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
    * an ordinary emit. `this.connected` / `this.serverSocket` are read at emit time, not now.
    */
   get volatile(): VolatileClientSocket {
-    return {
+    // Named, so the emit can hand the view back: the client side of `volatile.emit`
+    // chains, where the server side answers `true`.
+    const view: VolatileClientSocket = {
       emit: (event, ...args) => {
         // Dropped (pre-connect) volatile emits are never sent, so they fire no outgoing
         // catch-all; a connected one delivers and runs it, like a plain emit (#111).
-        if (!this.connected) return;
+        if (!this.connected) return view;
         this.emitOutgoing(event, args);
         send(this.serverSocket, event, args);
+        return view;
       },
       emitWithAck: (event, ...args) => {
         if (!this.connected) return new Promise<unknown>(() => {});
@@ -1468,6 +1492,7 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
         return emitWithAck(this.serverSocket, event, args);
       },
     };
+    return view;
   }
 
   connect(): void {
@@ -1532,8 +1557,9 @@ class FailedClientSocket extends ClientEmitter implements ClientSocketContract {
 
   // A failed connection never completes, so there is nothing to send, ack, or tear
   // down, and `connect()` does not retry: the failure was already reported (0005).
-  emit(): void {
+  emit(): this {
     /* inert: never connected */
+    return this;
   }
   emitWithAck(): Promise<unknown> {
     // No server will ever answer, so this stays pending, matching a client whose
@@ -1543,20 +1569,20 @@ class FailedClientSocket extends ClientEmitter implements ClientSocketContract {
   timeout(): TimeoutEmitterContract {
     // Inert like the rest of this socket: the emit never leaves and the promise never
     // settles, so no timer is armed and the terminal failure stays terminal (0005).
-    return {
-      emit() {
-        /* inert: never connected */
-      },
+    const inert: TimeoutEmitterContract = {
+      emit: () => inert,
       emitWithAck: () => new Promise<unknown>(() => {}),
     };
+    return inert;
   }
   get volatile(): VolatileClientSocket {
     // Never connected, so a volatile emit is always in the pre-connect window: dropped,
     // and its ack stays pending, exactly like the inert `emit` / `emitWithAck` above (0016).
-    return {
-      emit: () => {},
+    const inert: VolatileClientSocket = {
+      emit: () => inert,
       emitWithAck: () => new Promise<unknown>(() => {}),
     };
+    return inert;
   }
   connect(): void {
     /* inert: the failure is terminal, no retry (0005) */
@@ -1588,12 +1614,12 @@ class TimeoutEmitter implements TimeoutEmitterContract {
     private readonly ms: number,
   ) {}
 
-  emit(event: string, ...args: unknown[]): void {
+  emit(event: string, ...args: unknown[]): this {
     const last = args.at(-1);
     // No trailing callback: a plain emit that delivers and arms no timer (measured).
     if (typeof last !== 'function') {
       this.deliver(event, args);
-      return;
+      return this;
     }
     const callback = last as (...received: unknown[]) => void;
     const data = args.slice(0, -1);
@@ -1616,6 +1642,7 @@ class TimeoutEmitter implements TimeoutEmitterContract {
         callback(null, answer[0]);
       },
     ]);
+    return this;
   }
 
   emitWithAck(event: string, ...args: unknown[]): Promise<unknown> {
