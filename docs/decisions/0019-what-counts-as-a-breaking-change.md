@@ -26,20 +26,23 @@ break.
 
 The first row that matches wins.
 
-| Change                                                                     | Bump            |
-| -------------------------------------------------------------------------- | --------------- |
-| A correction toward measured real behaviour that changes what is delivered | minor           |
-| A correction toward measured real behaviour with no observable change      | patch           |
-| Newly covered socket.io surface                                            | minor           |
-| Removing or altering a [`differences.md`](../differences.md) §A entry      | major           |
-| Adding a `differences.md` §A entry                                         | none            |
-| Changing something the documentation marks unspecified                     | patch           |
-| A public type change that still compiles at existing call sites, else      | minor, major    |
-| Raising `engines.node`, lowering it                                        | major, minor    |
-| A change to a smocket-only API (§B)                                        | ordinary semver |
+| Change                                                                | Bump            |
+| --------------------------------------------------------------------- | --------------- |
+| A correction toward measured real behaviour with an observable change | minor           |
+| A correction toward measured real behaviour with no observable change | patch           |
+| Newly covered socket.io surface                                       | minor           |
+| Removing or altering a [`differences.md`](../differences.md) §A entry | major           |
+| Adding a `differences.md` §A entry                                    | none            |
+| Changing something the documentation marks unspecified                | patch           |
+| A public type change that still compiles at existing call sites, else | minor, major    |
+| Raising `engines.node`, lowering it                                   | major, minor    |
+| A change to a smocket-only API (§B)                                   | ordinary semver |
 
 The first row does not ride in a patch. The old result was not a promise, but a green
-suite can turn red, and a patch is understood as safe to take without reading anything.
+suite can turn red, and a patch is understood as safe to take without reading anything. It
+says observable rather than delivered because the two are not the same set: the return value
+of `emit` changes nothing about who receives an event, and a caller still reads it. Anything
+a user's code can see belongs on this row, whether or not it moved a packet.
 
 Before 1.0.0 the rules apply one place to the right, as npm reads a `0.x` range: major
 becomes minor, minor and patch become patch. They apply from now rather than from the tag,
