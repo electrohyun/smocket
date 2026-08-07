@@ -59,7 +59,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "publint": "publint",
-    "attw": "attw \"$(pnpm pack 2>/dev/null | tail -1)\"",
+    "attw": "attw --pack .",
     "assert:no-imports": "node scripts/assert-no-imports.js",
     "check:package": "pnpm build && pnpm assert:no-imports && pnpm publint && pnpm attw"
   },
