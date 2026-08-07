@@ -104,7 +104,7 @@ jobs:
       # `>=20` that delivers nothing fails here instead of shipping.
       - uses: actions/setup-node@v7
         with:
-          node-version: 20.0.0
+          node-version: 20.20.2
       - run: node scripts/smoke.mjs
       # Upper tier: the whole mock suite against `dist/`, on the lowest Node 20
       # that can run it. That is 20.13.0 and not 20.0.0 because vitest 4 pulls
@@ -120,7 +120,7 @@ jobs:
       # no artifact hand-off is needed.
       - uses: actions/setup-node@v7
         with:
-          node-version: 20.13.0
+          node-version: 20.20.2
       - run: node node_modules/vitest/vitest.mjs run --config vitest.dist.config.ts
 
   compat:
