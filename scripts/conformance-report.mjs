@@ -146,6 +146,11 @@ const AREAS = [
     title: 'Public entry points',
     blurb: 'What the package exports, including the `io` name the substitution path needs.',
   },
+  {
+    file: 'src/emitter-returns.test.ts',
+    title: 'Emitter return values',
+    blurb: 'What `emit` and the listener methods hand back, and which of them chain.',
+  },
 ];
 
 /** Run one vitest project and return its JSON report. */
