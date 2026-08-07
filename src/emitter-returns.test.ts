@@ -16,6 +16,14 @@ it('the client emit returns the socket, so it chains', async () => {
   expect(client.emit('a', 1)).toBe(client);
 });
 
+it('a buffered emit returns the socket too, before the connection completes', async () => {
+  // The pre-connect branch is a separate path: the emit is queued rather than sent, and
+  // it still answers with the socket, so chaining does not depend on being connected yet.
+  const client = ctx.openClient();
+  expect(client.connected).toBe(false);
+  expect(client.emit('a', 1)).toBe(client);
+});
+
 it('the server socket emit returns true rather than the socket', async () => {
   const { serverSocket } = await ctx.connectClient();
   const returned = serverSocket.emit('a', 1);
