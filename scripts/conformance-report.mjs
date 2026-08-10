@@ -120,6 +120,11 @@ const AREAS = [
     title: 'Disconnect',
     blurb: 'Room cleanup, the reason each side reports, and what happens to a pending ack.',
   },
+  {
+    file: 'src/server-close.test.ts',
+    title: 'Server close',
+    blurb: 'Server-wide teardown, its reasons, and what happens to pending acknowledgements.',
+  },
 
   {
     file: 'src/connect-url.test.ts',

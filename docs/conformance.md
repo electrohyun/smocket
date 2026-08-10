@@ -252,6 +252,17 @@ Room cleanup, the reason each side reports, and what happens to a pending ack.
 - [serverSocket.disconnect() reports io server disconnect to the client and server namespace disconnect to the server](../src/disconnect.test.ts#L171)
 - [disconnecting carries the same reason and fires before disconnect](../src/disconnect.test.ts#L187)
 
+### Server close
+
+Server-wide teardown, its reasons, and what happens to pending acknowledgements.
+
+- [close invokes its callback and reports when called again](../src/server-close.test.ts#L12)
+- [close rejects a connection started immediately before it](../src/server-close.test.ts#L19)
+- [close disconnects every namespace with the shutdown reasons](../src/server-close.test.ts#L32)
+- [close rejects a pending client emitWithAck](../src/server-close.test.ts#L66)
+- [close leaves a pending server emitWithAck pending](../src/server-close.test.ts#L78)
+- [close does not cancel an armed server acknowledgement timeout](../src/server-close.test.ts#L102)
+
 ### Emitter return values
 
 What `emit` and the listener methods hand back, and which of them chain.
@@ -295,7 +306,9 @@ Resolving a url to a server, and what the url contributes to the handshake.
 - [the url's path selects the namespace](../src/connect-url.test.ts#L121)
 - [a relative url resolves against location.origin](../src/connect-url.test.ts#L130)
 - [connect(url) to an unregistered origin fires connect_error, without throwing](../src/connect-url.test.ts#L148)
-- [the socket from a failed connect still chains](../src/connect-url.test.ts#L166)
+- [close unregisters the server so later connect(url) reports a missing server](../src/connect-url.test.ts#L166)
+- [closing a replaced server does not unregister its replacement](../src/connect-url.test.ts#L187)
+- [the socket from a failed connect still chains](../src/connect-url.test.ts#L199)
 
 ### Adapter API
 
