@@ -87,6 +87,24 @@ it('a rejected connection never fires connection and is absent from the roster',
   expect(rooms.size).toBe(1);
 });
 
+it('io.of(nsp).use() runs only for connections on that namespace', async () => {
+  let runs = 0;
+  ctx.io.of('/admin').use((_socket, next) => {
+    runs += 1;
+    next();
+  });
+
+  // Connect on the default namespace first, and fully await it. Had that
+  // connection passed through the /admin middleware, `runs` would already be
+  // non-zero here, so the completed connection proves the isolation by
+  // ordering rather than by waiting out a timeout.
+  await ctx.connectClient();
+  expect(runs).toBe(0);
+
+  await ctx.connectClient({ namespace: '/admin' });
+  expect(runs).toBe(1);
+});
+
 it('two middlewares run in registration order', async () => {
   const order: string[] = [];
   ctx.io.use((_socket, next) => {
