@@ -409,7 +409,9 @@ Each row is answered by a CI job rather than by a claim, so the evidence is in
 The socket.io row is what lets the report speak for more than one version. The cases
 encode socket.io's behaviour, the `real target` job passes them on both 4.7 and 4.8, and
 the ordinary dual run passes the same cases on smocket. A behaviour the two socket.io
-versions disagreed on would fail that job before it could be published here as settled.
+versions disagreed on cannot become a shared case, and the compatibility typecheck requires
+the contract to admit both measured declarations. The `Server.close()` return difference is
+recorded in [differences.md](./differences.md).
 
 The browser row is narrower on purpose. A page cannot host a socket.io server, so there
 is no real target to compare against there, and the job asks only whether the mock
