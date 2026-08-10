@@ -163,6 +163,39 @@ it('connect(url) to an unregistered origin fires connect_error, without throwing
   }
 });
 
+it('close unregisters the server so later connect(url) reports a missing server', async () => {
+  const server = new Server('http://localhost');
+  const closing = server.close();
+
+  expect(closing).toBeInstanceOf(Promise);
+  await closing;
+
+  const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+  try {
+    const client = connect('http://localhost');
+    const error = new Promise<Error>((resolve) => client.once('connect_error', resolve));
+
+    await expect(error).resolves.toMatchObject({
+      message: expect.stringContaining('no server registered'),
+    });
+    expect(consoleError).toHaveBeenCalledOnce();
+  } finally {
+    consoleError.mockRestore();
+  }
+});
+
+it('closing a replaced server does not unregister its replacement', async () => {
+  const oldServer = new Server('http://localhost');
+  const replacement = new Server('http://localhost');
+
+  await oldServer.close();
+  const pending = replacement.nextConnection();
+  const client = connect('http://localhost');
+  const serverSocket = await pending;
+
+  expect(client.id).toBe(serverSocket.id);
+});
+
 it('the socket from a failed connect still chains', async () => {
   // The socket a failed connect hands back is inert (0005), but it is still a client
   // socket, and the client emitters chain. App code that wrote `socket.emit(a).emit(b)`
