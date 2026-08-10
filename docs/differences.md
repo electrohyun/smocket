@@ -24,6 +24,10 @@ than discovered in a failing suite.
 - **No delay before reporting an absent server.** smocket fires `connect_error` on
   the next tick with no network wait, because a round-trip delay has no source in a
   mock. See [0005](./decisions/0005-missing-server-behavior.md).
+- **`Server.close()` always returns a promise.** Socket.IO 4.7 returns `void`, while
+  4.8 returns `Promise<void>`. The shared contract accepts either result; smocket
+  exposes the 4.8 promise so its in-memory teardown can be awaited. See
+  [0020](./decisions/0020-close-follows-socket-lifecycle.md).
 - **Handshake `headers`, `address`, `xdomain`, and `secure` are left unset.** These
   describe a real transport a mock does not have, so smocket leaves them rather
   than invent values. See [0006](./decisions/0006-handshake-fields.md).

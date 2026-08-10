@@ -283,10 +283,12 @@ is the same thing any mock leaves to a contract or integration test.
 <details>
 <summary>What happens when socket.io releases a new version?</summary>
 
-The suite runs against more than one. A CI job runs the real target on socket.io
-4.7 and 4.8, so a behaviour those versions disagreed on fails before it could be
-published as settled. Widening that range is how a new version is taken on, and it
-is a change to a matrix rather than to the mock.
+The suite runs against more than one. A CI job typechecks and runs the real target
+on socket.io 4.7 and 4.8, so a case or shared contract that does not hold for both
+fails before it can be published as settled. Where the versions differ, the
+contract admits the measured alternatives and the difference is recorded. Widening
+that range is how a new version is taken on, and it is a change to a matrix rather
+than to the mock.
 
 </details>
 
