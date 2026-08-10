@@ -86,13 +86,14 @@ npm install -D smocket
 ```ts
 // chat.test.ts
 import { connect, Server } from 'smocket';
-import { beforeEach, expect, test } from 'vitest';
+import { afterEach, beforeEach, expect, test } from 'vitest';
 
 const URL = 'http://localhost:3000';
+let io: Server;
 
 beforeEach(() => {
   // The server your app talks to, wired exactly as in socket.io.
-  const io = new Server(URL);
+  io = new Server(URL);
 
   io.on('connection', (socket) => {
     socket.on('join', async (room: string, ack: () => void) => {
@@ -103,6 +104,10 @@ beforeEach(() => {
       socket.to(room).emit('said', text);
     });
   });
+});
+
+afterEach(async () => {
+  await io.close();
 });
 
 test('a broadcast reaches the other member of the room', async () => {
@@ -122,6 +127,10 @@ test('a broadcast reaches the other member of the room', async () => {
 ```bash
 npx vitest run
 ```
+
+The `afterEach` waits for `close()` to disconnect both clients and remove the
+server from smocket's [origin registry](docs/glossary.md#origin-registry), so the
+next test starts without this server or its room state.
 
 That run is green. The file above is a vitest test because the suite here is
 vitest, and a project without a runner installs one the way it always would.
