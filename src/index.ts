@@ -30,6 +30,7 @@ export type {
   ConnectionMiddleware,
   ConnectOptions,
   DeliveryTimer,
+  DefaultEventsMap,
   Handshake,
   MiddlewareError,
   NamespaceContract,

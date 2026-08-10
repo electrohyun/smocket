@@ -1,6 +1,159 @@
 import type { Server, Socket as IoServerSocket } from 'socket.io';
 import type { Socket as IoClientSocket } from 'socket.io-client';
 
+/** Socket.IO's untyped default: every string event accepts any argument list. */
+export interface DefaultEventsMap {
+  // A function-valued `any` index is required for ordinary interface event maps to
+  // satisfy the constraint without declaring their own index signature.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [event: string]: (...args: any[]) => void;
+}
+
+export interface EventsMap {
+  // Socket.IO uses the same `any` constraint. `unknown` would reject a map such as
+  // `{ chat: (message: string) => void }` because it has no string index signature.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [event: string]: any;
+}
+
+/** Socket.IO's default when an application does not declare a socket data shape. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type DefaultSocketData = any;
+
+export type EventName<Map extends EventsMap> = keyof Map & string;
+export type EventParams<Map extends EventsMap, Event extends EventName<Map>> = Parameters<
+  Map[Event]
+>;
+export type Last<Values extends readonly unknown[]> = Values extends readonly [infer Only]
+  ? Only
+  : Values extends readonly [unknown, ...infer Tail]
+    ? Last<Tail>
+    : Values extends ReadonlyArray<infer Value>
+      ? Value
+      : never;
+// This mirrors Socket.IO's tuple helper exactly. Its `any[]` fallback is what
+// keeps the untyped default accepting arbitrary arguments.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type AllButLast<Values extends any[]> = Values extends [...infer Head, unknown]
+  ? Head
+  : // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    any[];
+type FirstNonErrorTuple<Values extends unknown[]> = Values[0] extends Error ? Values[1] : Values[0];
+export type FirstAckValue<Callback> = Callback extends (
+  ...args: infer Values
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+) => any
+  ? FirstNonErrorTuple<Values>
+  : // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    any;
+// Socket.IO's helper infers the return type even though it only returns the first argument.
+type FirstClientAckValue<Callback> = Callback extends (arg: infer Value) => infer Result
+  ? [Result] extends [unknown]
+    ? Value
+    : never
+  : // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    any;
+type IsAny<Value> = 0 extends 1 & Value ? true : false;
+type IfAny<Value, IfTrue, IfFalse> = IsAny<Value> extends true ? IfTrue : IfFalse;
+// Socket.IO client uses tuple helpers whose empty-tuple fallbacks differ from
+// the server helpers above. Keeping them separate preserves its public surface.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ClientLast<Values extends any[]> = Values extends [...infer Head, infer Tail]
+  ? Head extends unknown[]
+    ? Tail
+    : never
+  : // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ClientAllButLast<Values extends any[]> = Values extends [...infer Head, infer Tail]
+  ? [Tail] extends [unknown]
+    ? Head
+    : never
+  : // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    any[];
+export type EventNameWithAck<
+  Map extends EventsMap,
+  Event extends EventName<Map> = EventName<Map>,
+> = IfAny<
+  Last<EventParams<Map, Event>> | Map[Event],
+  Event,
+  Event extends Event
+    ? Last<EventParams<Map, Event>> extends (...args: never[]) => unknown
+      ? // Socket.IO uses `void` here so both `undefined` and an explicit `void` response are excluded.
+        // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
+        FirstAckValue<Last<EventParams<Map, Event>>> extends void
+        ? never
+        : Event
+      : never
+    : never
+>;
+export type EventNameWithoutAck<
+  Map extends EventsMap,
+  Event extends EventName<Map> = EventName<Map>,
+> = IfAny<
+  Last<EventParams<Map, Event>> | Map[Event],
+  Event,
+  Event extends Event
+    ? EventParams<Map, Event> extends never[]
+      ? Event
+      : Last<EventParams<Map, Event>> extends (...args: never[]) => unknown
+        ? never
+        : Event
+    : never
+>;
+
+type PrependTimeoutError<Values extends unknown[]> = {
+  [Key in keyof Values]: Values[Key] extends (...args: infer Params) => infer Result
+    ? Params[0] extends Error
+      ? Values[Key]
+      : (error: Error, ...args: Params) => Result
+    : Values[Key];
+};
+type MultiplyArray<Values extends unknown[]> = { [Key in keyof Values]: Values[Key][] };
+type FirstTupleValue<Values extends unknown[]> = Values extends [infer First, ...unknown[]]
+  ? [First]
+  : [];
+type ExpectMultipleResponses<Values extends unknown[]> = {
+  [Key in keyof Values]: Values[Key] extends (...args: infer Params) => infer Result
+    ? Params extends [Error]
+      ? (error: Error) => Result
+      : Params extends [Error, ...infer Rest]
+        ? (error: Error, ...args: FirstTupleValue<MultiplyArray<Rest>>) => Result
+        : Params extends []
+          ? () => Result
+          : (...args: FirstTupleValue<MultiplyArray<Params>>) => Result
+    : Values[Key];
+};
+export type DecorateAcknowledgements<Map extends EventsMap> = {
+  [Event in keyof Map]: Map[Event] extends (...args: infer Params) => infer Result
+    ? (...args: PrependTimeoutError<Params>) => Result
+    : Map[Event];
+};
+export type DecorateAcknowledgementsWithMultipleResponses<Map extends EventsMap> = {
+  [Event in keyof Map]: Map[Event] extends (...args: infer Params) => infer Result
+    ? (...args: ExpectMultipleResponses<Params>) => Result
+    : Map[Event];
+};
+
+export type ReservedOrUserEventName<
+  ReservedEvents extends EventsMap,
+  UserEvents extends EventsMap,
+> = EventName<ReservedEvents> | EventName<UserEvents>;
+export type ReservedOrUserListener<
+  ReservedEvents extends EventsMap,
+  UserEvents extends EventsMap,
+  Event extends ReservedOrUserEventName<ReservedEvents, UserEvents>,
+> =
+  Event extends EventName<ReservedEvents>
+    ? ReservedEvents[Event]
+    : Event extends EventName<UserEvents>
+      ? UserEvents[Event]
+      : never;
+
+export type SupportedServerListenerEvents<Map extends EventsMap> = string extends keyof Map
+  ? DefaultEventsMap
+  : Record<never, never>;
+
 /**
  * The slice of the socket.io / socket.io-client API that the test suite actually
  * touches. This is the shared contract the tests are written against: `real`
@@ -12,35 +165,32 @@ import type { Socket as IoClientSocket } from 'socket.io-client';
  * at the bottom prove socket.io itself still satisfies each contract, so the
  * subset can never claim a member or shape that the real library lacks.
  *
- * Methods are declared with method syntax on purpose: it keeps their parameters
- * bivariant, which is what lets a loosely-typed contract (`...args: unknown[]`)
- * stay assignable from socket.io's precisely-generic signatures.
+ * Generic event maps keep names, payloads, acknowledgements and socket data through
+ * this shared surface. Their defaults retain the original accept-any-event shape.
+ * Socket.IO's private listener fallback is the one structural exception, explained
+ * beside the parity projections at the bottom.
  */
-
-/**
- * An event listener. Its parameters are `never[]` so callbacks of any argument
- * shape are accepted; parameters are contravariant, so a `never` slot admits a
- * `string`, a `number`, an ack function, anything. This mirrors socket.io's
- * `(...args: any[])` listeners without the `any` the lint config forbids. (In
- * `emit` the args go the other way (values passed in), so those stay
- * `unknown[]`, which a caller's concrete arguments satisfy.)
- */
-type Listener = (...args: never[]) => void;
 
 /**
  * Result of `io.to()` / `socket.broadcast` / `socket.to()` and friends. Every way of
  * narrowing a broadcast lives on the operator itself, not only on the entry points, so
  * `to` / `in` / `except` / `timeout` compose in any order (#137).
  */
-export interface BroadcastContract {
-  emit(event: string, ...args: unknown[]): boolean;
-  to(room: string | string[]): BroadcastContract;
+export interface BroadcastContract<
+  EmitEvents extends EventsMap = DefaultEventsMap,
+  SocketData = DefaultSocketData,
+> {
+  emit<Event extends EventName<EmitEvents>>(
+    event: Event,
+    ...args: EventParams<EmitEvents, Event>
+  ): boolean;
+  to(room: string | string[]): BroadcastContract<EmitEvents, SocketData>;
   /** An alias of `to`, as at the entry points. */
-  in(room: string | string[]): BroadcastContract;
+  in(room: string | string[]): BroadcastContract<EmitEvents, SocketData>;
   /** Exclude a room from this broadcast, on top of any exclusion it already carries. */
-  except(room: string | string[]): BroadcastContract;
+  except(room: string | string[]): BroadcastContract<EmitEvents, SocketData>;
   /** Add an ack timeout to this broadcast; see {@link TimeoutBroadcastContract}. */
-  timeout(ms: number): TimeoutBroadcastContract;
+  timeout(ms: number): TimeoutBroadcastContract<DecorateAcknowledgements<EmitEvents>, SocketData>;
 }
 
 /**
@@ -57,9 +207,15 @@ export interface BroadcastContract {
  * the two used to share this interface, which stopped working once the return types were
  * measured rather than left as `void`.
  */
-export interface TimeoutEmitterContract {
-  emit(event: string, ...args: unknown[]): this;
-  emitWithAck(event: string, ...args: unknown[]): Promise<unknown>;
+export interface TimeoutEmitterContract<EmitEvents extends EventsMap = DefaultEventsMap> {
+  emit<Event extends EventName<EmitEvents>>(
+    event: Event,
+    ...args: EventParams<EmitEvents, Event>
+  ): this;
+  emitWithAck<Event extends EventName<EmitEvents>>(
+    event: Event,
+    ...args: ClientAllButLast<EventParams<EmitEvents, Event>>
+  ): Promise<FirstClientAckValue<ClientLast<EventParams<EmitEvents, Event>>>>;
 }
 
 /**
@@ -72,13 +228,19 @@ export interface TimeoutEmitterContract {
  * and keep the timeout, so `io.timeout(ms).to(a).to(b)` targets the union and
  * `io.timeout(ms).to(a).except(b)` collects from the survivors only (#137).
  */
-export interface TimeoutBroadcastContract {
-  emit(event: string, ...args: unknown[]): boolean;
-  to(room: string | string[]): TimeoutBroadcastContract;
+export interface TimeoutBroadcastContract<
+  EmitEvents extends EventsMap = DefaultEventsMap,
+  SocketData = DefaultSocketData,
+> {
+  emit<Event extends EventName<EmitEvents>>(
+    event: Event,
+    ...args: EventParams<EmitEvents, Event>
+  ): boolean;
+  to(room: string | string[]): TimeoutBroadcastContract<EmitEvents, SocketData>;
   /** An alias of `to`, as at the entry points. */
-  in(room: string | string[]): TimeoutBroadcastContract;
+  in(room: string | string[]): TimeoutBroadcastContract<EmitEvents, SocketData>;
   /** Exclude a room from this broadcast, on top of any exclusion it already carries. */
-  except(room: string | string[]): TimeoutBroadcastContract;
+  except(room: string | string[]): TimeoutBroadcastContract<EmitEvents, SocketData>;
 }
 
 /**
@@ -93,12 +255,34 @@ export interface TimeoutBroadcastContract {
  * An interface cannot narrow an inherited return type to an unrelated one, so the shared
  * parent went away when the two were measured apart.
  */
-export interface SocketTimeoutContract {
-  emit(event: string, ...args: unknown[]): boolean;
-  emitWithAck(event: string, ...args: unknown[]): Promise<unknown>;
-  broadcast: TimeoutBroadcastContract;
-  to(room: string | string[]): TimeoutBroadcastContract;
-  except(room: string | string[]): TimeoutBroadcastContract;
+export interface SocketTimeoutContract<
+  EmitEvents extends EventsMap = DefaultEventsMap,
+  SocketData = DefaultSocketData,
+> {
+  emit<Event extends EventName<EmitEvents>>(
+    event: Event,
+    ...args: EventParams<EmitEvents, Event>
+  ): boolean;
+  emitWithAck<Event extends EventNameWithAck<EmitEvents>>(
+    event: Event,
+    ...args: AllButLast<EventParams<EmitEvents, Event>>
+  ): Promise<FirstAckValue<Last<EventParams<EmitEvents, Event>>>>;
+  broadcast: TimeoutBroadcastContract<
+    DecorateAcknowledgementsWithMultipleResponses<EmitEvents>,
+    SocketData
+  >;
+  to(
+    room: string | string[],
+  ): TimeoutBroadcastContract<
+    DecorateAcknowledgementsWithMultipleResponses<EmitEvents>,
+    SocketData
+  >;
+  except(
+    room: string | string[],
+  ): TimeoutBroadcastContract<
+    DecorateAcknowledgementsWithMultipleResponses<EmitEvents>,
+    SocketData
+  >;
 }
 
 /**
@@ -109,18 +293,43 @@ export interface SocketTimeoutContract {
  * the broadcast forms so `socket.volatile.broadcast.emit(...)` and `socket.volatile.to(room)`
  * carry the volatile flag through the same routing.
  */
-export interface VolatileServerSocket {
-  emit(event: string, ...args: unknown[]): boolean;
-  emitWithAck(event: string, ...args: unknown[]): Promise<unknown>;
-  broadcast: BroadcastContract;
-  to(room: string | string[]): BroadcastContract;
-  except(room: string | string[]): BroadcastContract;
+export interface VolatileServerSocket<
+  EmitEvents extends EventsMap = DefaultEventsMap,
+  SocketData = DefaultSocketData,
+> {
+  emit<Event extends EventName<EmitEvents>>(
+    event: Event,
+    ...args: EventParams<EmitEvents, Event>
+  ): boolean;
+  emitWithAck<Event extends EventNameWithAck<EmitEvents>>(
+    event: Event,
+    ...args: AllButLast<EventParams<EmitEvents, Event>>
+  ): Promise<FirstAckValue<Last<EventParams<EmitEvents, Event>>>>;
+  broadcast: BroadcastContract<
+    DecorateAcknowledgementsWithMultipleResponses<EmitEvents>,
+    SocketData
+  >;
+  to(
+    room: string | string[],
+  ): BroadcastContract<DecorateAcknowledgementsWithMultipleResponses<EmitEvents>, SocketData>;
+  except(
+    room: string | string[],
+  ): BroadcastContract<DecorateAcknowledgementsWithMultipleResponses<EmitEvents>, SocketData>;
 }
 
 /** The client-side counterpart of {@link VolatileServerSocket}; a client has no broadcast surface. */
-export interface VolatileClientSocket {
-  emit(event: string, ...args: unknown[]): this;
-  emitWithAck(event: string, ...args: unknown[]): Promise<unknown>;
+export interface VolatileClientSocket<
+  ListenEvents extends EventsMap = DefaultEventsMap,
+  EmitEvents extends EventsMap = ListenEvents,
+> {
+  emit<Event extends EventName<EmitEvents>>(
+    event: Event,
+    ...args: EventParams<EmitEvents, Event>
+  ): this;
+  emitWithAck<Event extends EventName<EmitEvents>>(
+    event: Event,
+    ...args: ClientAllButLast<EventParams<EmitEvents, Event>>
+  ): Promise<FirstClientAckValue<ClientLast<EventParams<EmitEvents, Event>>>>;
 }
 
 /** The room bookkeeping the tests reach into for observation only. */
@@ -138,6 +347,56 @@ export interface MiddlewareError extends Error {
   data?: unknown;
 }
 
+type ServerDisconnectReason =
+  | 'transport error'
+  | 'transport close'
+  | 'forced close'
+  | 'ping timeout'
+  | 'parse error'
+  | 'server shutting down'
+  | 'forced server close'
+  | 'client namespace disconnect'
+  | 'server namespace disconnect';
+
+type ClientDisconnectReason =
+  | 'io server disconnect'
+  | 'io client disconnect'
+  | 'ping timeout'
+  | 'transport close'
+  | 'transport error'
+  | 'parse error';
+
+type ClientDisconnectDescription = Error | { description: string; context?: unknown };
+
+interface ServerSocketReservedEvents {
+  // Socket.IO deliberately leaves this transport-specific detail untyped.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  disconnect: (reason: ServerDisconnectReason, description?: any) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  disconnecting: (reason: ServerDisconnectReason, description?: any) => void;
+  error: (error: Error) => void;
+}
+
+interface ClientSocketReservedEvents {
+  connect: () => void;
+  connect_error: (error: Error) => void;
+  disconnect: (reason: ClientDisconnectReason, description?: ClientDisconnectDescription) => void;
+}
+
+export interface NamespaceReservedEvents<
+  ListenEvents extends EventsMap,
+  EmitEvents extends EventsMap,
+  ServerSideEvents extends EventsMap,
+  SocketData,
+> {
+  connect: (
+    socket: ServerSocketContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
+  ) => void;
+  connection: (
+    socket: ServerSocketContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
+  ) => void;
+}
+
 /**
  * A connection middleware, registered through `io.use()`. It runs after the handshake
  * is built and before the socket is considered connected: `next()` admits the
@@ -147,13 +406,23 @@ export interface MiddlewareError extends Error {
  * reaches a `connection` handler. Registration order is execution order, and the first
  * middleware to reject short-circuits the rest.
  */
-export type ConnectionMiddleware = (
-  socket: ServerSocketContract,
+export type ConnectionMiddleware<
+  ListenEvents extends EventsMap = DefaultEventsMap,
+  EmitEvents extends EventsMap = ListenEvents,
+  ServerSideEvents extends EventsMap = DefaultEventsMap,
+  SocketData = DefaultSocketData,
+> = (
+  socket: ServerSocketContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
   next: (err?: MiddlewareError) => void,
 ) => void;
 
 /** A namespace, as returned by `io.of()` and read via `socket.nsp`. */
-export interface NamespaceContract {
+export interface NamespaceContract<
+  ListenEvents extends EventsMap = DefaultEventsMap,
+  EmitEvents extends EventsMap = ListenEvents,
+  ServerSideEvents extends EventsMap = DefaultEventsMap,
+  SocketData = DefaultSocketData,
+> {
   name: string;
   adapter: AdapterContract;
   /**
@@ -161,18 +430,52 @@ export interface NamespaceContract {
    * for connections on that namespace. `io.on('connection')` is the `/` case of
    * this, so both go through the same surface.
    */
-  on(event: string, listener: Listener): this;
+  on<
+    Event extends ReservedOrUserEventName<
+      NamespaceReservedEvents<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
+      SupportedServerListenerEvents<ServerSideEvents>
+    >,
+  >(
+    event: Event,
+    listener: ReservedOrUserListener<
+      NamespaceReservedEvents<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
+      SupportedServerListenerEvents<ServerSideEvents>,
+      Event
+    >,
+  ): this;
   /**
    * Register a connection middleware on this namespace; see {@link ConnectionMiddleware}.
    * Called once per incoming connection here, in registration order.
    */
-  use(middleware: ConnectionMiddleware): void;
-  emit(event: string, ...args: unknown[]): boolean;
-  to(room: string | string[]): BroadcastContract;
+  use(
+    middleware: ConnectionMiddleware<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
+  ): void;
+  emit<Event extends EventNameWithoutAck<EmitEvents>>(
+    event: Event,
+    ...args: EventParams<EmitEvents, Event>
+  ): boolean;
+  to(
+    room: string | string[],
+  ): BroadcastContract<DecorateAcknowledgementsWithMultipleResponses<EmitEvents>, SocketData>;
+  /** An alias of `to`, as on the server and broadcast operator. */
+  in(
+    room: string | string[],
+  ): BroadcastContract<DecorateAcknowledgementsWithMultipleResponses<EmitEvents>, SocketData>;
+  except(
+    room: string | string[],
+  ): BroadcastContract<DecorateAcknowledgementsWithMultipleResponses<EmitEvents>, SocketData>;
   /** A timed broadcast to this namespace; see {@link TimeoutBroadcastContract}. */
-  timeout(ms: number): TimeoutBroadcastContract;
+  timeout(
+    ms: number,
+  ): TimeoutBroadcastContract<
+    DecorateAcknowledgements<DecorateAcknowledgementsWithMultipleResponses<EmitEvents>>,
+    SocketData
+  >;
   /** Namespace-wide volatile broadcast: `io.of(ns).volatile.emit(...)`; see {@link VolatileServerSocket}. */
-  volatile: BroadcastContract;
+  volatile: BroadcastContract<
+    DecorateAcknowledgementsWithMultipleResponses<EmitEvents>,
+    SocketData
+  >;
 }
 
 /**
@@ -218,7 +521,14 @@ export interface SmocketAdapter {
  * built-in routing with a custom one; called once per namespace with that
  * namespace, so the adapter can read per-namespace state such as its name.
  */
-export type AdapterFactory = (nsp: NamespaceContract) => SmocketAdapter;
+export type AdapterFactory<
+  ListenEvents extends EventsMap = DefaultEventsMap,
+  EmitEvents extends EventsMap = ListenEvents,
+  ServerSideEvents extends EventsMap = DefaultEventsMap,
+  SocketData = DefaultSocketData,
+> = (
+  nsp: NamespaceContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
+) => SmocketAdapter;
 
 /**
  * The clock and scheduler a `DelayingAdapter` uses (#78), the seam for injecting a fake
@@ -235,7 +545,12 @@ export interface DeliveryTimer {
 }
 
 /** The socket.io `Server`, as `ctx.io`. */
-export interface ServerContract {
+export interface ServerContract<
+  ListenEvents extends EventsMap = DefaultEventsMap,
+  EmitEvents extends EventsMap = ListenEvents,
+  ServerSideEvents extends EventsMap = DefaultEventsMap,
+  SocketData = DefaultSocketData,
+> {
   /**
    * The app-facing server entry point: `io.on('connection', cb)` fires `cb` with
    * each new server-side socket, socket.io's primary way to wire per-socket
@@ -250,21 +565,52 @@ export interface ServerContract {
    * fails the `Ensure<>` proof below, since socket.io's declared `Server` has no `name`,
    * and narrowing to `this` would copy a promise its own runtime does not keep.
    */
-  on(event: string, listener: Listener): void;
+  on<
+    Event extends ReservedOrUserEventName<
+      NamespaceReservedEvents<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
+      SupportedServerListenerEvents<ServerSideEvents>
+    >,
+  >(
+    event: Event,
+    listener: ReservedOrUserListener<
+      NamespaceReservedEvents<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
+      SupportedServerListenerEvents<ServerSideEvents>,
+      Event
+    >,
+  ): void;
   /**
    * `io.use` is the default namespace's `use`: it registers a connection middleware for
    * connections on `/`, exactly as `io.of('/').use` would. See {@link ConnectionMiddleware}.
    */
-  use(middleware: ConnectionMiddleware): void;
-  emit(event: string, ...args: unknown[]): boolean;
-  to(room: string | string[]): BroadcastContract;
-  in(room: string | string[]): BroadcastContract;
-  except(room: string | string[]): BroadcastContract;
+  use(
+    middleware: ConnectionMiddleware<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
+  ): void;
+  emit<Event extends EventNameWithoutAck<EmitEvents>>(
+    event: Event,
+    ...args: EventParams<EmitEvents, Event>
+  ): boolean;
+  to(
+    room: string | string[],
+  ): BroadcastContract<DecorateAcknowledgementsWithMultipleResponses<EmitEvents>, SocketData>;
+  in(
+    room: string | string[],
+  ): BroadcastContract<DecorateAcknowledgementsWithMultipleResponses<EmitEvents>, SocketData>;
+  except(
+    room: string | string[],
+  ): BroadcastContract<DecorateAcknowledgementsWithMultipleResponses<EmitEvents>, SocketData>;
   /** A timed broadcast to `/`: `io.timeout(ms).to(room).emit(...)`; see {@link TimeoutBroadcastContract}. */
-  timeout(ms: number): TimeoutBroadcastContract;
+  timeout(
+    ms: number,
+  ): TimeoutBroadcastContract<
+    DecorateAcknowledgements<DecorateAcknowledgementsWithMultipleResponses<EmitEvents>>,
+    SocketData
+  >;
   /** Server-wide volatile broadcast: `io.volatile.to(room).emit(...)`; see {@link VolatileServerSocket}. */
-  volatile: BroadcastContract;
-  of(namespace: string): NamespaceContract;
+  volatile: BroadcastContract<
+    DecorateAcknowledgementsWithMultipleResponses<EmitEvents>,
+    SocketData
+  >;
+  of(namespace: string): NamespaceContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>;
   /** Shut down every namespace and socket. Socket.IO 4.7 returns void; 4.8 returns a promise. */
   close(fn?: (err?: Error) => void): void | Promise<void>;
 }
@@ -281,18 +627,25 @@ export interface ServerContract {
  * gets no `Ensure<>` line of its own: there is nothing on socket.io's side to prove it
  * against, which is why both members sit in `differences.md` section B.
  */
-export interface SmocketServer extends ServerContract {
+export interface SmocketServer<
+  ListenEvents extends EventsMap = DefaultEventsMap,
+  EmitEvents extends EventsMap = ListenEvents,
+  ServerSideEvents extends EventsMap = DefaultEventsMap,
+  SocketData = DefaultSocketData,
+> extends ServerContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData> {
   /**
    * Replace the routing adapter for every namespace on this server. See
    * [adapter-registration.md](../docs/adapter-registration.md) and {@link AdapterFactory}.
    */
-  adapter(factory: AdapterFactory): void;
+  adapter(factory: AdapterFactory<ListenEvents, EmitEvents, ServerSideEvents, SocketData>): void;
   /**
    * Resolve with the server-side socket of the next client to connect on `namespace`,
    * which defaults to `/`. Pairs a connect with its server side when the caller drives
    * the connection itself rather than through a helper.
    */
-  nextConnection(namespace?: string): Promise<ServerSocketContract>;
+  nextConnection(
+    namespace?: string,
+  ): Promise<ServerSocketContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>>;
 }
 
 /**
@@ -314,12 +667,20 @@ export interface Handshake {
 }
 
 /** A server-side socket, as `serverSocket`. */
-export interface ServerSocketContract {
+export interface ServerSocketContract<
+  ListenEvents extends EventsMap = DefaultEventsMap,
+  EmitEvents extends EventsMap = ListenEvents,
+  ServerSideEvents extends EventsMap = DefaultEventsMap,
+  SocketData = DefaultSocketData,
+> {
   id: string;
   /** Server-only view of room membership; a live Set emptied in place on teardown. */
   rooms: Set<string>;
-  nsp: NamespaceContract;
-  broadcast: BroadcastContract;
+  nsp: NamespaceContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>;
+  broadcast: BroadcastContract<
+    DecorateAcknowledgementsWithMultipleResponses<EmitEvents>,
+    SocketData
+  >;
   /** The connection handshake; see {@link Handshake}. */
   handshake: Handshake;
   /**
@@ -328,9 +689,15 @@ export interface ServerSocketContract {
    * carry what middleware resolved from the handshake. Server-only, never sent to the
    * client, and tied to the socket: a reconnection is a fresh socket with a fresh `data`.
    */
-  data: Record<string, unknown>;
-  on(event: string, listener: Listener): this;
-  once(event: string, listener: Listener): this;
+  data: SocketData;
+  on<Event extends ReservedOrUserEventName<ServerSocketReservedEvents, ListenEvents>>(
+    event: Event,
+    listener: ReservedOrUserListener<ServerSocketReservedEvents, ListenEvents, Event>,
+  ): this;
+  once<Event extends ReservedOrUserEventName<ServerSocketReservedEvents, ListenEvents>>(
+    event: Event,
+    listener: ReservedOrUserListener<ServerSocketReservedEvents, ListenEvents, Event>,
+  ): this;
   /** Remove one registration. The server is Node's emitter, so a listener is required (0017). */
   off(event: string, listener: (...args: unknown[]) => void): this;
   /** Remove every listener for `event`, or all of them when called with no argument. */
@@ -343,20 +710,30 @@ export interface ServerSocketContract {
   onAnyOutgoing(listener: (...args: unknown[]) => void): this;
   /** Remove one outgoing catch-all, or all of them when called with no argument. */
   offAnyOutgoing(listener?: (...args: unknown[]) => void): this;
-  emit(event: string, ...args: unknown[]): boolean;
-  emitWithAck(event: string, ...args: unknown[]): Promise<unknown>;
+  emit<Event extends EventName<EmitEvents>>(
+    event: Event,
+    ...args: EventParams<EmitEvents, Event>
+  ): boolean;
+  emitWithAck<Event extends EventNameWithAck<EmitEvents>>(
+    event: Event,
+    ...args: AllButLast<EventParams<EmitEvents, Event>>
+  ): Promise<FirstAckValue<Last<EventParams<EmitEvents, Event>>>>;
   /**
    * Arm a per-emit ack timer. Its `emit` / `emitWithAck` are the single-ack forms
    * ({@link TimeoutEmitterContract}); its `to` / `broadcast` / `except` are the
    * ack-collecting broadcast forms ({@link TimeoutBroadcastContract}).
    */
-  timeout(ms: number): SocketTimeoutContract;
+  timeout(ms: number): SocketTimeoutContract<DecorateAcknowledgements<EmitEvents>, SocketData>;
   /** The volatile emitter (0016): a plain emit once connected, dropped in the pre-connect window. */
-  volatile: VolatileServerSocket;
+  volatile: VolatileServerSocket<EmitEvents, SocketData>;
   join(room: string | string[]): Promise<void> | void;
   leave(room: string): Promise<void> | void;
-  to(room: string | string[]): BroadcastContract;
-  except(room: string | string[]): BroadcastContract;
+  to(
+    room: string | string[],
+  ): BroadcastContract<DecorateAcknowledgementsWithMultipleResponses<EmitEvents>, SocketData>;
+  except(
+    room: string | string[],
+  ): BroadcastContract<DecorateAcknowledgementsWithMultipleResponses<EmitEvents>, SocketData>;
   /**
    * Server-initiated disconnect. `close` decides whether the underlying transport
    * is closed too; a mock has no transport, so it has no effect there. Fires
@@ -366,14 +743,23 @@ export interface ServerSocketContract {
 }
 
 /** A client-side socket, as `client`. */
-export interface ClientSocketContract {
+export interface ClientSocketContract<
+  ListenEvents extends EventsMap = DefaultEventsMap,
+  EmitEvents extends EventsMap = ListenEvents,
+> {
   connected: boolean;
   /** Undefined until connected, matching socket.io-client. */
   id: string | undefined;
   /** The shared Manager; compared only by identity across namespaces. */
   io: unknown;
-  on(event: string, listener: Listener): this;
-  once(event: string, listener: Listener): this;
+  on<Event extends ReservedOrUserEventName<ClientSocketReservedEvents, ListenEvents>>(
+    event: Event,
+    listener: ReservedOrUserListener<ClientSocketReservedEvents, ListenEvents, Event>,
+  ): this;
+  once<Event extends ReservedOrUserEventName<ClientSocketReservedEvents, ListenEvents>>(
+    event: Event,
+    listener: ReservedOrUserListener<ClientSocketReservedEvents, ListenEvents, Event>,
+  ): this;
   /**
    * The client is component-emitter's: `off()` clears every listener, `off(event)`
    * clears that event, and `off(event, listener)` removes one. No form throws (0017).
@@ -389,12 +775,18 @@ export interface ClientSocketContract {
   onAnyOutgoing(listener: (...args: unknown[]) => void): this;
   /** Remove one outgoing catch-all, or all of them when called with no argument. */
   offAnyOutgoing(listener?: (...args: unknown[]) => void): this;
-  emit(event: string, ...args: unknown[]): this;
-  emitWithAck(event: string, ...args: unknown[]): Promise<unknown>;
+  emit<Event extends EventName<EmitEvents>>(
+    event: Event,
+    ...args: EventParams<EmitEvents, Event>
+  ): this;
+  emitWithAck<Event extends EventName<EmitEvents>>(
+    event: Event,
+    ...args: ClientAllButLast<EventParams<EmitEvents, Event>>
+  ): Promise<FirstClientAckValue<ClientLast<EventParams<EmitEvents, Event>>>>;
   /** Arm a per-emit ack timer on the next emit; see {@link TimeoutEmitterContract}. */
-  timeout(ms: number): TimeoutEmitterContract;
+  timeout(ms: number): TimeoutEmitterContract<DecorateAcknowledgements<EmitEvents>>;
   /** The volatile emitter (0016): a plain emit once connected, dropped in the pre-connect window. */
-  volatile: VolatileClientSocket;
+  volatile: VolatileClientSocket<ListenEvents, EmitEvents>;
   connect(): void;
   disconnect(): void;
 }
@@ -429,26 +821,38 @@ export interface ConnectOptions {
   query?: Record<string, unknown>;
 }
 
-export interface ConnectedClient {
-  client: ClientSocketContract;
-  serverSocket: ServerSocketContract;
+export interface ConnectedClient<
+  ListenEvents extends EventsMap = DefaultEventsMap,
+  EmitEvents extends EventsMap = ListenEvents,
+  ServerSideEvents extends EventsMap = DefaultEventsMap,
+  SocketData = DefaultSocketData,
+> {
+  client: ClientSocketContract<EmitEvents, ListenEvents>;
+  serverSocket: ServerSocketContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>;
 }
 
 /**
  * The shape both `setupRealServer` and `setupMockServer` return. Selecting the
  * target is a one-import swap in the test files; nothing else changes.
  */
-export interface ServerContext {
-  io: ServerContract;
+export interface ServerContext<
+  ListenEvents extends EventsMap = DefaultEventsMap,
+  EmitEvents extends EventsMap = ListenEvents,
+  ServerSideEvents extends EventsMap = DefaultEventsMap,
+  SocketData = DefaultSocketData,
+> {
+  io: ServerContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>;
   /** Connect one more client and return it paired with its server-side socket. */
-  connectClient: (options?: ConnectOptions) => Promise<ConnectedClient>;
+  connectClient: (
+    options?: ConnectOptions,
+  ) => Promise<ConnectedClient<ListenEvents, EmitEvents, ServerSideEvents, SocketData>>;
   /**
    * Open a connection and return the client immediately, without waiting for it to
    * connect. Needed for a connection expected to fail (a middleware rejection): its
    * `connect` never fires, so `connectClient` would hang, whereas a test drives this
    * and awaits the client's `connect_error` instead.
    */
-  openClient: (options?: ConnectOptions) => ClientSocketContract;
+  openClient: (options?: ConnectOptions) => ClientSocketContract<EmitEvents, ListenEvents>;
   /**
    * Connect `count` clients and return them paired with their server-side
    * sockets, in connection order. Sugar over `connectClient` for the recurring
@@ -456,13 +860,18 @@ export interface ServerContext {
    * pairs each connect with the next `connection`, so connecting concurrently
    * would mismatch the pairs.
    */
-  connectClients: (count: number, options?: ConnectOptions) => Promise<ConnectedClient[]>;
+  connectClients: (
+    count: number,
+    options?: ConnectOptions,
+  ) => Promise<ConnectedClient<ListenEvents, EmitEvents, ServerSideEvents, SocketData>[]>;
   /**
    * Resolve with the server-side socket of the next client to connect on
    * `namespace`. Needed when the connection is not started by `connectClient`,
    * as with a reconnect of a client already known to the test.
    */
-  nextConnection: (namespace?: string) => Promise<ServerSocketContract>;
+  nextConnection: (
+    namespace?: string,
+  ) => Promise<ServerSocketContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>>;
 }
 
 /**
@@ -477,6 +886,85 @@ export interface ServerContext {
  */
 type Ensure<Contract, Actual extends Contract> = Actual;
 
+// Socket.IO's listener declarations use an internal conditional fallback that
+// TypeScript cannot compare structurally with an equivalent public contract once
+// event maps are still generic. Keep listener inference covered by the consumer
+// typecheck file, and keep the structural proof for every other member here.
+type NamespaceParityContract<
+  ListenEvents extends EventsMap = DefaultEventsMap,
+  EmitEvents extends EventsMap = ListenEvents,
+  ServerSideEvents extends EventsMap = DefaultEventsMap,
+  SocketData = DefaultSocketData,
+> = Omit<
+  NamespaceContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
+  'on' | 'use'
+> & {
+  use(
+    middleware: (
+      socket: ServerSocketParityContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
+      next: (error?: MiddlewareError) => void,
+    ) => void,
+  ): void;
+};
+
+type ServerParityContract<
+  ListenEvents extends EventsMap = DefaultEventsMap,
+  EmitEvents extends EventsMap = ListenEvents,
+  ServerSideEvents extends EventsMap = DefaultEventsMap,
+  SocketData = DefaultSocketData,
+> = Omit<
+  ServerContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
+  'of' | 'on' | 'use'
+> & {
+  of(
+    namespace: string,
+  ): NamespaceParityContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>;
+  use(
+    middleware: (
+      socket: ServerSocketParityContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
+      next: (error?: MiddlewareError) => void,
+    ) => void,
+  ): void;
+};
+
+type ServerSocketParityContract<
+  ListenEvents extends EventsMap = DefaultEventsMap,
+  EmitEvents extends EventsMap = ListenEvents,
+  ServerSideEvents extends EventsMap = DefaultEventsMap,
+  SocketData = DefaultSocketData,
+> = Pick<
+  ServerSocketContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
+  | 'broadcast'
+  | 'data'
+  | 'disconnect'
+  | 'emit'
+  | 'emitWithAck'
+  | 'except'
+  | 'handshake'
+  | 'id'
+  | 'join'
+  | 'leave'
+  | 'rooms'
+  | 'timeout'
+  | 'to'
+  | 'volatile'
+> & {
+  nsp: NamespaceParityContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>;
+};
+
+type ClientSocketParityContract<
+  ListenEvents extends EventsMap = DefaultEventsMap,
+  EmitEvents extends EventsMap = ListenEvents,
+> = Pick<
+  ClientSocketContract<ListenEvents, EmitEvents>,
+  'connect' | 'connected' | 'disconnect' | 'emitWithAck' | 'id' | 'io' | 'timeout' | 'volatile'
+> & {
+  emit<Event extends EventName<EmitEvents>>(
+    event: Event,
+    ...args: EventParams<EmitEvents, Event>
+  ): ClientSocketParityContract<ListenEvents, EmitEvents>;
+};
+
 // Socket.io reference types, derived by indexing so no generic arguments (and no
 // `any`) are written by hand.
 type IoNamespace = ReturnType<Server['of']>;
@@ -485,9 +973,79 @@ type IoAdapter = IoNamespace['adapter'];
 
 // Exported only so `noUnusedLocals` treats them as used (an unused local type
 // alias is TS6196); they are compile-time guards, not meant to be imported.
-export type AssertServerContract = Ensure<ServerContract, Server>;
-export type AssertServerSocketContract = Ensure<ServerSocketContract, IoServerSocket>;
-export type AssertClientSocketContract = Ensure<ClientSocketContract, IoClientSocket>;
-export type AssertNamespaceContract = Ensure<NamespaceContract, IoNamespace>;
+export type AssertServerContract = Ensure<ServerParityContract, Server>;
+export type AssertServerSocketContract = Ensure<ServerSocketParityContract, IoServerSocket>;
+export type AssertClientSocketContract = Ensure<ClientSocketParityContract, IoClientSocket>;
+export type AssertNamespaceContract = Ensure<NamespaceParityContract, IoNamespace>;
 export type AssertBroadcastContract = Ensure<BroadcastContract, IoBroadcast>;
 export type AssertAdapterContract = Ensure<AdapterContract, IoAdapter>;
+
+interface AssertClientToServerEvents {
+  request: (value: string, ack: (accepted: boolean) => void) => void;
+}
+
+interface AssertServerToClientEvents {
+  notice: (value: string) => void;
+  question: (value: string, ack: (answer: number) => void) => void;
+}
+
+interface AssertServerSideEvents {
+  health: () => void;
+}
+
+interface AssertSocketData {
+  userId: string;
+}
+
+type ConcreteIoServer = Server<
+  AssertClientToServerEvents,
+  AssertServerToClientEvents,
+  AssertServerSideEvents,
+  AssertSocketData
+>;
+type ConcreteIoNamespace = ReturnType<ConcreteIoServer['of']>;
+type ConcreteIoBroadcast = ReturnType<ConcreteIoServer['to']>;
+
+export type AssertConcreteServerContract = Ensure<
+  ServerParityContract<
+    AssertClientToServerEvents,
+    AssertServerToClientEvents,
+    AssertServerSideEvents,
+    AssertSocketData
+  >,
+  ConcreteIoServer
+>;
+export type AssertConcreteServerSocketContract = Ensure<
+  ServerSocketParityContract<
+    AssertClientToServerEvents,
+    AssertServerToClientEvents,
+    AssertServerSideEvents,
+    AssertSocketData
+  >,
+  IoServerSocket<
+    AssertClientToServerEvents,
+    AssertServerToClientEvents,
+    AssertServerSideEvents,
+    AssertSocketData
+  >
+>;
+export type AssertConcreteClientSocketContract = Ensure<
+  ClientSocketParityContract<AssertServerToClientEvents, AssertClientToServerEvents>,
+  IoClientSocket<AssertServerToClientEvents, AssertClientToServerEvents>
+>;
+export type AssertConcreteNamespaceContract = Ensure<
+  NamespaceParityContract<
+    AssertClientToServerEvents,
+    AssertServerToClientEvents,
+    AssertServerSideEvents,
+    AssertSocketData
+  >,
+  ConcreteIoNamespace
+>;
+export type AssertConcreteBroadcastContract = Ensure<
+  BroadcastContract<
+    DecorateAcknowledgementsWithMultipleResponses<AssertServerToClientEvents>,
+    AssertSocketData
+  >,
+  ConcreteIoBroadcast
+>;
