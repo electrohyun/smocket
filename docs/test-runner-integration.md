@@ -27,9 +27,9 @@ export function joinChat(url: string, name: string, room: string) {
 }
 ```
 
-The test supplies the server the application would otherwise talk to. A fresh
-`Server` on the same url in `beforeEach` replaces the one the previous test
-registered for that origin, so nothing carries over between tests.
+The test supplies the server the application would otherwise talk to. `beforeEach`
+creates it and `afterEach` closes it, so connection and adapter state do not carry
+over between tests.
 
 ```ts
 // the test file, identical under all three setups below
@@ -37,9 +37,10 @@ import { Server, type ServerSocketContract } from 'smocket';
 import { joinChat } from '../src/chat';
 
 const url = 'http://localhost:3000';
+let io: Server;
 
 beforeEach(() => {
-  const io = new Server(url);
+  io = new Server(url);
   io.on('connection', (socket: ServerSocketContract) => {
     socket.on('join', (room: string, ack: () => void) => {
       socket.join(room);
@@ -49,6 +50,10 @@ beforeEach(() => {
       });
     });
   });
+});
+
+afterEach(async () => {
+  await io.close();
 });
 
 it('delivers a room message to the other member', async () => {
@@ -122,20 +127,14 @@ That part is not smocket-specific.
 
 ## A fresh server per test
 
-Construct a new `Server` on the same url in `beforeEach`. There is no teardown call to
-pair it with and there is none to call: the url is the key in smocket's origin registry,
-so constructing again replaces the entry, and the next `connect(url)` reaches the new
-server, whose rooms are empty because its adapter is new too.
-
-What the registry decides is only who `connect(url)` finds. The previous server no longer
-answers it, so a new client reaches the new one. Sockets already paired with the previous
-server keep working in both directions, because a pairing is a reference between the two
-sides rather than a lookup, so a client held across tests still talks to the server it
-connected to. Constructing the clients per test as well is what keeps state from crossing.
+Construct a new `Server` on the same url in `beforeEach`, then close it in `afterEach`.
+Construction puts the server in smocket's origin registry. `close()` disconnects its clients,
+closes the old server, and removes that registry entry. The next `beforeEach` creates a new
+server with a new adapter, so its rooms are empty.
 
 ```ts
 import { connect, Server, type ServerSocketContract } from 'smocket';
-import { beforeEach, expect, test } from 'vitest';
+import { afterEach, beforeEach, expect, test } from 'vitest';
 
 const URL = 'http://localhost:3000';
 // The class is its own type, which is all a variable declared beside the `new` needs.
@@ -155,6 +154,10 @@ beforeEach(() => {
   });
 });
 
+afterEach(async () => {
+  await io.close();
+});
+
 async function join(room: string) {
   const client = connect(URL);
   await new Promise<void>((done) => client.once('connect', () => done()));
@@ -171,16 +174,18 @@ test('and is gone by the next test, because the server is a new one', () => {
 });
 ```
 
-The second test is the assertion that matters. It reads the room the first one filled and
-finds nothing, which is only true because `beforeEach` replaced the server.
+The second test is the assertion that matters. `afterEach` closed the server that held the
+room, and `beforeEach` supplied a new server with a new adapter, so the lookup finds nothing.
 
 One thing this does not reset. An acknowledgement timeout armed by a previous test,
 through `socket.timeout(ms)` or `io.timeout(ms)`, holds its own reference and still fires
-on schedule, which can be during a later test. Replacing the server routes new connections
-away from the old one but does not disarm what it already scheduled. A suite that arms ack
-timeouts should let them settle before the test ends, either by awaiting the
-acknowledgement or by driving the timer with fake timers. A `close()` that disarms them is
-[not implemented yet](https://github.com/electrohyun/smocket/issues/193).
+on schedule, which can be during a later test. Closing the server disconnects its sockets
+and removes its registry entry but does not disarm what it already scheduled. A suite that
+arms ack timeouts should let them settle before the test ends, either by awaiting the
+acknowledgement or by driving the timer with fake timers. `io.close()` does not disarm an
+already-armed timeout: real socket.io leaves that timer running too, so smocket keeps the
+same lifecycle rather than making `close()` a timer-reset API. See
+[decision 0020](./decisions/0020-close-follows-socket-lifecycle.md).
 
 ## Annotating the connection listener
 
