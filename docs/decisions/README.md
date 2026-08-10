@@ -32,3 +32,4 @@ these are written.
 | [0018](./0018-delivery-scheduling-adapter-hook.md)               | Per-socket delivery delay is an adapter scheduling hook, keyed by sid, preserving FIFO  | Accepted | #78           |
 | [0019](./0019-what-counts-as-a-breaking-change.md)               | A version number promises fidelity, not the current result                              | Accepted | #115          |
 | [0020](./0020-close-follows-socket-lifecycle.md)                 | `close()` tears down sockets and unregisters only the current server                    | Accepted | #193          |
+| [0021](./0021-event-maps-cross-the-substitution-seam.md)         | Event maps and socket data survive the server substitution seam                         | Accepted | #171          |
