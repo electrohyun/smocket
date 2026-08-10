@@ -33,7 +33,7 @@ over between tests.
 
 ```ts
 // the test file, identical under all three setups below
-import { Server, type ServerSocketContract } from 'smocket';
+import { Server } from 'smocket';
 import { joinChat } from '../src/chat';
 
 const url = 'http://localhost:3000';
@@ -41,7 +41,7 @@ let io: Server;
 
 beforeEach(() => {
   io = new Server(url);
-  io.on('connection', (socket: ServerSocketContract) => {
+  io.on('connection', (socket) => {
     socket.on('join', (room: string, ack: () => void) => {
       socket.join(room);
       ack();
@@ -68,9 +68,8 @@ it('delivers a room message to the other member', async () => {
 });
 ```
 
-The connection callback carries an annotation because the listener type is not
-event-specific yet (#171). The rest is the server wiring an application already
-knows from socket.io.
+The connection callback infers smocket's server socket. The rest is the server wiring an
+application already knows from socket.io.
 
 ## Vitest, whole suite
 
@@ -133,7 +132,7 @@ closes the old server, and removes that registry entry. The next `beforeEach` cr
 server with a new adapter, so its rooms are empty.
 
 ```ts
-import { connect, Server, type ServerSocketContract } from 'smocket';
+import { connect, Server } from 'smocket';
 import { afterEach, beforeEach, expect, test } from 'vitest';
 
 const URL = 'http://localhost:3000';
@@ -144,9 +143,7 @@ let io: Server;
 
 beforeEach(() => {
   io = new Server(URL);
-  // The socket parameter is annotated because the listener type erases it. See
-  // "Annotating the connection listener" below.
-  io.on('connection', (socket: ServerSocketContract) => {
+  io.on('connection', (socket) => {
     socket.on('join', (room: string, ack: () => void) => {
       void socket.join(room);
       ack();
@@ -187,32 +184,35 @@ already-armed timeout: real socket.io leaves that timer running too, so smocket 
 same lifecycle rather than making `close()` a timer-reset API. See
 [decision 0020](./decisions/0020-close-follows-socket-lifecycle.md).
 
-## Annotating the connection listener
+## Preserving application event maps
 
-`io.on('connection', ...)` gives its listener no parameter type. The contract declares
-listeners as `(...args: never[]) => void`, which is what lets a handler of any arity be
-passed without the call site fighting the compiler, and the cost is that an unannotated
-parameter is inferred as `never`. Reading a member off it does not compile. Whether the
-listener side can be narrowed at all is measured in
-[#171](https://github.com/electrohyun/smocket/issues/171), which found no alternative to
-keeping this shape.
+The server accepts Socket.IO's event-map order. Its connection callback infers a socket
+that listens to the client-to-server map and emits the server-to-client map.
 
 ```ts
-io.on('connection', (socket) => {
-  socket.on('join', handler); // Property 'on' does not exist on type 'never'
+interface ClientToServerEvents {
+  join: (room: string, ack: (accepted: boolean) => void) => void;
+}
+
+interface ServerToClientEvents {
+  message: (line: string) => void;
+}
+
+const typedIo = new Server<ClientToServerEvents, ServerToClientEvents>(URL);
+
+typedIo.on('connection', (socket) => {
+  socket.on('join', (room, ack) => {
+    void socket.join(room);
+    ack(true);
+  });
+  socket.emit('message', 'ready');
 });
 ```
 
-Annotate it, and the rest follows from there.
-
-```ts
-io.on('connection', (socket: ServerSocketContract) => {
-  socket.on('join', handler); // fine
-});
-```
-
-This is a type-level detail only. The unannotated form runs correctly, so JavaScript
-suites never meet it, and a TypeScript suite meets it on the first line it writes.
+Misspelled events and wrong payloads fail at compile time. Omitting the maps keeps the
+existing untyped form, so the quick setup does not require event interfaces. The full
+four-slot decision, including `SocketData` and the type-only `ServerSideEvents` position,
+is recorded in [decision 0021](./decisions/0021-event-maps-cross-the-substitution-seam.md).
 
 ## What keeps its types
 
