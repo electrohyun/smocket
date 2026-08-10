@@ -265,6 +265,8 @@ export interface ServerContract {
   /** Server-wide volatile broadcast: `io.volatile.to(room).emit(...)`; see {@link VolatileServerSocket}. */
   volatile: BroadcastContract;
   of(namespace: string): NamespaceContract;
+  /** Shut down every namespace and socket. Socket.IO 4.7 returns void; 4.8 returns a promise. */
+  close(fn?: (err?: Error) => void): void | Promise<void>;
 }
 
 /**
