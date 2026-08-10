@@ -30,8 +30,6 @@
 </p>
 
 <p align="center">
-  <!-- The landing site. Its interactive demo is still being built, so this points
-       at the site and not at a demo. -->
   <a href="https://smocket-site.vercel.app">smocket-site.vercel.app</a>
 </p>
 
