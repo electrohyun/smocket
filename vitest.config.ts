@@ -24,6 +24,7 @@ export default defineConfig({
       include: ['src/**/*.ts'],
       exclude: [
         'src/**/*.test.ts',
+        'src/**/*.typecheck.ts',
         'src/contract.ts',
         'src/setup-real-server.ts',
         'src/setup-mock-server.ts',
