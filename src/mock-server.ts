@@ -547,6 +547,8 @@ class Namespace implements NamespaceContract {
    * hand a `nextConnection('/game')` a socket that connected on `/`.
    */
   private readonly waiters: Waiter[] = [];
+  /** Once closed, no pending or later pairing may enter this namespace. */
+  private closed: boolean;
 
   constructor(
     readonly name: string,
@@ -556,7 +558,9 @@ class Namespace implements NamespaceContract {
     private readonly origin: string,
     /** The custom adapter factory registered on the server, if any; see `useAdapter`. */
     adapterFactory?: AdapterFactory,
+    closed = false,
   ) {
+    this.closed = closed;
     this.adapter = adapterFactory ? adapterFactory(this) : new Adapter();
   }
 
@@ -596,10 +600,12 @@ class Namespace implements NamespaceContract {
    * is the caller's `auth` / `query`, folded into this socket's handshake (0006).
    */
   pair(client: ClientSocket, source?: ConnectOptions): void {
+    if (this.rejectIfClosed(client)) return;
     // Resolve the auth first, then pair. For an object auth this runs synchronously, so
     // the timing is unchanged; a function auth may call back later, and the connection
     // is held until it does (real socket.io holds the connect until the callback fires).
     resolveAuth(source?.auth, (auth) => {
+      if (this.rejectIfClosed(client)) return;
       const handshake = buildHandshake(this.origin, auth, source?.query);
       const serverSocket = new ServerSocket(newId(), this, handshake);
       serverSocket.attachPeer(client);
@@ -615,7 +621,9 @@ class Namespace implements NamespaceContract {
           client.failConnection(err);
           return;
         }
+        if (this.rejectIfClosed(client)) return;
         defer(() => {
+          if (this.rejectIfClosed(client)) return;
           // Register the socket before offering it, so a broadcast triggered from a
           // `connection` handler can already resolve this sid to its socket.
           this.sockets.set(serverSocket.id, serverSocket);
@@ -636,6 +644,13 @@ class Namespace implements NamespaceContract {
         });
       });
     });
+  }
+
+  /** Reject a connection at whichever async boundary observes that close has started. */
+  private rejectIfClosed(client: ClientSocket): boolean {
+    if (!this.closed) return false;
+    client.failConnection(new Error('server is closed'));
+    return true;
   }
 
   /**
@@ -716,6 +731,13 @@ class Namespace implements NamespaceContract {
     } else {
       this.ready.push(serverSocket);
     }
+  }
+
+  /** Close every connected socket in this namespace and discard unclaimed connections. */
+  async close(): Promise<void> {
+    this.closed = true;
+    this.ready.length = 0;
+    await Promise.all([...this.sockets.values()].map((socket) => socket.closeFromServer()));
   }
 
   emit(event: string, ...args: unknown[]): boolean {
@@ -833,6 +855,10 @@ export class Server implements SmocketServer {
    * which case each namespace uses the built-in `Adapter`.
    */
   private adapterFactory: AdapterFactory | undefined;
+  /** Set before teardown starts, so no namespace created during or after close can accept. */
+  private closed = false;
+  /** The first close owns teardown; repeated calls return the same completed work. */
+  private closePromise: Promise<void> | undefined;
 
   /**
    * The url is required, with no argument-less form: socket.io always takes a
@@ -864,7 +890,7 @@ export class Server implements SmocketServer {
   of(name: string): Namespace {
     const existing = this.namespaces.get(name);
     if (existing) return existing;
-    const namespace = new Namespace(name, this, this.origin, this.adapterFactory);
+    const namespace = new Namespace(name, this, this.origin, this.adapterFactory, this.closed);
     this.namespaces.set(name, namespace);
     return namespace;
   }
@@ -923,6 +949,32 @@ export class Server implements SmocketServer {
   get volatile(): BroadcastContract {
     // `io.volatile` is the default namespace's: `io.volatile.to(room)` reaches only `/`.
     return this.of('/').volatile;
+  }
+
+  /**
+   * Shut down this server, matching socket.io's observable socket lifecycle. The
+   * registry deletion is conditional: constructing a newer server for the same
+   * origin replaces this one, and closing the old object must not unregister the
+   * replacement. Timers already armed by an acknowledgement are deliberately left
+   * alone, as real socket.io does (#193, 0020).
+   */
+  close(fn?: (err?: Error) => void): Promise<void> {
+    const alreadyClosing = this.closed;
+    this.closed = true;
+    if (servers.get(this.origin) === this) servers.delete(this.origin);
+    this.closePromise ??= Promise.all(
+      [...this.namespaces.values()].map((namespace) => namespace.close()),
+    ).then(() => undefined);
+    if (fn) {
+      void this.closePromise.then(() => {
+        if (!alreadyClosing) return fn();
+
+        const error = new Error('Server is not running.') as Error & { code: string };
+        error.code = 'ERR_SERVER_NOT_RUNNING';
+        fn(error);
+      });
+    }
+    return this.closePromise;
   }
 }
 
@@ -1117,6 +1169,8 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
    * and the fields smocket derives from the connection itself.
    */
   readonly handshake: Handshake;
+  /** The first teardown owns the lifecycle; later disconnect paths await the same work. */
+  private teardownPromise: Promise<void> | undefined;
   /**
    * The per-socket store (#108): an empty object at creation that middleware writes and a
    * handler reads, to carry what middleware resolved from the handshake. A fresh socket
@@ -1151,19 +1205,24 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
    * and notify them; `disconnect` fires once they are gone. Both carry `reason`,
    * the string real socket.io reports on this side (pinned in the tests).
    */
-  private teardown(reason: string): void {
-    defer(() => {
-      this.dispatch('disconnecting', [reason]);
-      for (const room of this.rooms) this.nsp.adapter.del(this.id, room);
-      // Empty the live Set in place (contract: "emptied in place on teardown")
-      // rather than replacing it, so any held reference sees it clear.
-      this.rooms.clear();
-      // Drop the socket from the namespace roster too: otherwise `io.emit()`
-      // (empty target rooms means the whole `sockets` map) keeps delivering to a
-      // socket that is already gone.
-      this.nsp.sockets.delete(this.id);
-      this.dispatch('disconnect', [reason]);
+  private teardown(reason: string): Promise<void> {
+    if (this.teardownPromise) return this.teardownPromise;
+    this.teardownPromise = new Promise((resolve) => {
+      defer(() => {
+        this.dispatch('disconnecting', [reason]);
+        for (const room of this.rooms) this.nsp.adapter.del(this.id, room);
+        // Empty the live Set in place (contract: "emptied in place on teardown")
+        // rather than replacing it, so any held reference sees it clear.
+        this.rooms.clear();
+        // Drop the socket from the namespace roster too: otherwise `io.emit()`
+        // (empty target rooms means the whole `sockets` map) keeps delivering to a
+        // socket that is already gone.
+        this.nsp.sockets.delete(this.id);
+        this.dispatch('disconnect', [reason]);
+        resolve();
+      });
     });
+    return this.teardownPromise;
   }
 
   /**
@@ -1172,7 +1231,14 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
    * server reports `client namespace disconnect`, real socket.io's reason here.
    */
   handleDisconnect(): void {
-    this.teardown('client namespace disconnect');
+    void this.teardown('client namespace disconnect');
+  }
+
+  /** Server-wide close: transport loss on the client, shutdown lifecycle here. */
+  async closeFromServer(): Promise<void> {
+    if (this.teardownPromise) return this.teardownPromise;
+    await this.teardown('server shutting down');
+    if (this.peer.connected) this.peer.markDisconnected('transport close');
   }
 
   /**
@@ -1184,7 +1250,7 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
    */
   disconnect(_close?: boolean): void {
     this.peer.markDisconnected('io server disconnect');
-    this.teardown('server namespace disconnect');
+    void this.teardown('server namespace disconnect');
   }
 
   emit(event: string, ...args: unknown[]): boolean {

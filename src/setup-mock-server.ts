@@ -21,13 +21,12 @@ export function setupMockServer(): ServerContext {
     ctx.io = server;
   });
 
-  // Disconnect every client the test opened, mirroring the real target's
-  // teardown. The in-memory server holds no port or socket and a fresh one
-  // replaces it each test, so no current test needs this. Its value is symmetry:
-  // the two targets' teardown shape stays identical, so a future test that
-  // depends on teardown cannot pass on one target and fail on the other.
-  afterEach(() => {
+  // Disconnect every client the test opened, then close the server, mirroring the
+  // real target's teardown. Closing also removes this server from the origin registry;
+  // doing it here keeps the harness from relying on a later construction to replace it.
+  afterEach(async () => {
     for (const client of clients) client.disconnect();
+    await server.close();
   });
 
   ctx.nextConnection = (namespace = '/') => server.nextConnection(namespace);
