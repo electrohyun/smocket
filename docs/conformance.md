@@ -146,8 +146,9 @@ Collecting an ack from every recipient of a broadcast, and answering on expiry.
 - [next(err) makes the client observe connect_error with the error message](../src/middleware.test.ts#L34)
 - [the rejecting error's data passes through to the client](../src/middleware.test.ts#L45)
 - [a rejected connection never fires connection and is absent from the roster](../src/middleware.test.ts#L59)
-- [two middlewares run in registration order](../src/middleware.test.ts#L90)
-- [an error in the first middleware short-circuits the second](../src/middleware.test.ts#L105)
+- [io.of(nsp).use() runs only for connections on that namespace](../src/middleware.test.ts#L90)
+- [two middlewares run in registration order](../src/middleware.test.ts#L108)
+- [an error in the first middleware short-circuits the second](../src/middleware.test.ts#L123)
 
 ### Handshake
 
@@ -365,8 +366,6 @@ has not been measured, not that it is missing from socket.io.
   is that the chained call still delivers.
 - **`socket.use(fn)`.** Per-packet middleware on one socket, which is a different seam
   from the connection middleware `io.use` covered above.
-- **Namespace-level `io.of(nsp).use(fn)`.** smocket implements it and no case pins it
-  against socket.io.
 - **`prependAny`, `prependAnyOutgoing`, `listenersAny`, `listenersAnyOutgoing`.** The
   rest of the catch-all surface.
 - **Listener introspection.** `listeners`, `listenerCount`, and `eventNames`.
