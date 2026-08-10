@@ -4,14 +4,25 @@ import type {
   ClientSocketContract,
   ConnectionMiddleware,
   ConnectOptions,
+  DecorateAcknowledgements,
+  DecorateAcknowledgementsWithMultipleResponses,
+  DefaultEventsMap,
+  DefaultSocketData,
   DeliveryTimer,
+  EventNameWithoutAck,
+  EventParams,
+  EventsMap,
   Handshake,
   MiddlewareError,
+  NamespaceReservedEvents,
   NamespaceContract,
+  ReservedOrUserEventName,
+  ReservedOrUserListener,
   ServerSocketContract,
   SmocketAdapter,
   SmocketServer,
   SocketTimeoutContract,
+  SupportedServerListenerEvents,
   TimeoutBroadcastContract,
   TimeoutEmitterContract,
   VolatileClientSocket,
@@ -834,7 +845,12 @@ export function resetRegistry(): void {
 
 // `SmocketServer` rather than `ServerContract`, so the wider interface an application
 // annotates with is checked against this class rather than trusted to stay in step.
-export class Server implements SmocketServer {
+export class Server<
+  ListenEvents extends EventsMap = DefaultEventsMap,
+  EmitEvents extends EventsMap = ListenEvents,
+  ServerSideEvents extends EventsMap = DefaultEventsMap,
+  SocketData = DefaultSocketData,
+> implements SmocketServer<ListenEvents, EmitEvents, ServerSideEvents, SocketData> {
   /**
    * This server's normalized origin, its key in the module `servers` registry.
    * Private: it is internal bookkeeping with no counterpart on real socket.io, so
@@ -869,7 +885,7 @@ export class Server implements SmocketServer {
    */
   constructor(url: string) {
     this.origin = parseUrl(url).origin;
-    servers.set(this.origin, this);
+    servers.set(this.origin, this as Server);
   }
 
   /**
@@ -881,18 +897,35 @@ export class Server implements SmocketServer {
    * `docs/differences.md` §B); call it during setup, before connecting clients,
    * since it installs a fresh adapter on every namespace, including existing ones.
    */
-  adapter(factory: AdapterFactory): void {
-    this.adapterFactory = factory;
-    for (const namespace of this.namespaces.values()) namespace.useAdapter(factory);
+  adapter(factory: AdapterFactory<ListenEvents, EmitEvents, ServerSideEvents, SocketData>): void {
+    const runtimeFactory = factory as AdapterFactory;
+    this.adapterFactory = runtimeFactory;
+    for (const namespace of this.namespaces.values()) namespace.useAdapter(runtimeFactory);
+  }
+
+  /** Get the runtime namespace by name, creating it on first use. */
+  private getNamespace(name: string): Namespace {
+    const existing = this.namespaces.get(name);
+    if (existing) return existing;
+    const namespace = new Namespace(
+      name,
+      this as Server,
+      this.origin,
+      this.adapterFactory,
+      this.closed,
+    );
+    this.namespaces.set(name, namespace);
+    return namespace;
   }
 
   /** Get the namespace by name, creating it on first use (socket.io's lazy `of`). */
-  of(name: string): Namespace {
-    const existing = this.namespaces.get(name);
-    if (existing) return existing;
-    const namespace = new Namespace(name, this, this.origin, this.adapterFactory, this.closed);
-    this.namespaces.set(name, namespace);
-    return namespace;
+  of(name: string): NamespaceContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData> {
+    return this.getNamespace(name) as NamespaceContract<
+      ListenEvents,
+      EmitEvents,
+      ServerSideEvents,
+      SocketData
+    >;
   }
 
   /**
@@ -900,8 +933,20 @@ export class Server implements SmocketServer {
    * `io.of('/').on('connection')`, socket.io's primary server entry point, so it
    * wires handlers for connections on `/` and never sees another namespace's.
    */
-  on(event: string, listener: Listener): void {
-    this.of('/').on(event, listener);
+  on<
+    Event extends ReservedOrUserEventName<
+      NamespaceReservedEvents<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
+      SupportedServerListenerEvents<ServerSideEvents>
+    >,
+  >(
+    event: Event,
+    listener: ReservedOrUserListener<
+      NamespaceReservedEvents<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
+      SupportedServerListenerEvents<ServerSideEvents>,
+      Event
+    >,
+  ): void {
+    this.getNamespace('/').on(event, listener as Listener);
   }
 
   /**
@@ -910,45 +955,89 @@ export class Server implements SmocketServer {
    * place to authenticate a connection. Middleware on another namespace is registered
    * through `io.of(name).use(fn)`.
    */
-  use(middleware: ConnectionMiddleware): void {
-    this.of('/').use(middleware);
+  use(
+    middleware: ConnectionMiddleware<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
+  ): void {
+    this.getNamespace('/').use(middleware as ConnectionMiddleware);
   }
 
   /**
    * Attach a client on `namespace` (`/` by default); see `Namespace.connect`.
    * `source` carries the caller's `auth` / `query` onto the connection's handshake.
    */
-  connect(namespace = '/', source?: ConnectOptions): ClientSocket {
-    return this.of(namespace).connect(source);
+  connect(
+    namespace = '/',
+    source?: ConnectOptions,
+  ): ClientSocketContract<EmitEvents, ListenEvents> {
+    return this.getNamespace(namespace).connect(source) as ClientSocketContract<
+      EmitEvents,
+      ListenEvents
+    >;
   }
 
   /** Resolve with the server socket of the next client to connect on `namespace`. */
-  nextConnection(namespace = '/'): Promise<ServerSocket> {
-    return this.of(namespace).nextConnection();
+  nextConnection(
+    namespace = '/',
+  ): Promise<ServerSocketContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>> {
+    return this.getNamespace(namespace).nextConnection() as Promise<
+      ServerSocketContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>
+    >;
   }
 
   // The server's own broadcast surface is the default namespace's: `io.emit()` is
   // exactly `io.of('/').emit()`, so "everyone" means everyone on `/` and never
   // reaches another namespace. Each form delegates rather than reimplements.
-  emit(event: string, ...args: unknown[]): boolean {
-    return this.of('/').emit(event, ...args);
+  emit<Event extends EventNameWithoutAck<EmitEvents>>(
+    event: Event,
+    ...args: EventParams<EmitEvents, Event>
+  ): boolean {
+    return this.getNamespace('/').emit(event, ...args);
   }
-  to(room: string | string[]): BroadcastContract {
-    return this.of('/').to(room);
+  to(
+    room: string | string[],
+  ): BroadcastContract<DecorateAcknowledgementsWithMultipleResponses<EmitEvents>, SocketData> {
+    return this.getNamespace('/').to(room) as BroadcastContract<
+      DecorateAcknowledgementsWithMultipleResponses<EmitEvents>,
+      SocketData
+    >;
   }
-  in(room: string | string[]): BroadcastContract {
-    return this.of('/').in(room);
+  in(
+    room: string | string[],
+  ): BroadcastContract<DecorateAcknowledgementsWithMultipleResponses<EmitEvents>, SocketData> {
+    return this.getNamespace('/').in(room) as BroadcastContract<
+      DecorateAcknowledgementsWithMultipleResponses<EmitEvents>,
+      SocketData
+    >;
   }
-  except(room: string | string[]): BroadcastContract {
-    return this.of('/').except(room);
+  except(
+    room: string | string[],
+  ): BroadcastContract<DecorateAcknowledgementsWithMultipleResponses<EmitEvents>, SocketData> {
+    return this.getNamespace('/').except(room) as BroadcastContract<
+      DecorateAcknowledgementsWithMultipleResponses<EmitEvents>,
+      SocketData
+    >;
   }
-  timeout(ms: number): TimeoutBroadcastContract {
+  timeout(
+    ms: number,
+  ): TimeoutBroadcastContract<
+    DecorateAcknowledgements<DecorateAcknowledgementsWithMultipleResponses<EmitEvents>>,
+    SocketData
+  > {
     // `io.timeout(ms)` is the default namespace's: `io.timeout(ms).to(room)` reaches only `/`.
-    return this.of('/').timeout(ms);
+    return this.getNamespace('/').timeout(ms) as TimeoutBroadcastContract<
+      DecorateAcknowledgements<DecorateAcknowledgementsWithMultipleResponses<EmitEvents>>,
+      SocketData
+    >;
   }
-  get volatile(): BroadcastContract {
+  get volatile(): BroadcastContract<
+    DecorateAcknowledgementsWithMultipleResponses<EmitEvents>,
+    SocketData
+  > {
     // `io.volatile` is the default namespace's: `io.volatile.to(room)` reaches only `/`.
-    return this.of('/').volatile;
+    return this.getNamespace('/').volatile as BroadcastContract<
+      DecorateAcknowledgementsWithMultipleResponses<EmitEvents>,
+      SocketData
+    >;
   }
 
   /**

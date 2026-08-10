@@ -3,7 +3,7 @@ import type { AddressInfo } from 'node:net';
 import { Server, type Socket as ServerSocket } from 'socket.io';
 import { io, type Socket as ClientSocket } from 'socket.io-client';
 import { afterEach, beforeEach } from 'vitest';
-import type { ConnectOptions, ServerContext } from './contract';
+import type { ConnectOptions, ServerContext, ServerContract } from './contract';
 import { makeConnectClients } from './connect-clients';
 
 /**
@@ -29,7 +29,11 @@ export function setupRealServer(): ServerContext {
     port = (httpServer.address() as AddressInfo).port;
 
     clients = [];
-    ctx.io = ioServer;
+    // Socket.IO's internal listener fallback cannot be compared structurally with
+    // the equivalent public generic contract. Only listener registration members
+    // are omitted from the parity projections in contract.ts; consumer typechecks
+    // cover their inference on both shapes.
+    ctx.io = ioServer as unknown as ServerContract;
   });
 
   afterEach(async () => {
