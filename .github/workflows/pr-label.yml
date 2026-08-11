@@ -1,8 +1,8 @@
 name: PR label
 
-# The work-type label on a pull request comes from its title, which already
-# carries the type because titles follow Conventional Commits. Applying it by
-# hand is a step that can be skipped or done wrong, and it was both.
+# The work-type label comes from the title, the size label comes from the current
+# diff, and good first issue comes from a linked closing issue. Each source is
+# observable, so none of these labels needs a hand-maintained estimate.
 #
 # pull_request_target rather than pull_request, because a pull_request run from
 # a fork gets a read-only token and could not label at all, which would fail
@@ -11,10 +11,11 @@ name: PR label
 # meets anything the author controls beyond that string.
 on:
   pull_request_target:
-    types: [opened, edited, reopened]
+    types: [opened, edited, reopened, synchronize]
 
 permissions:
   contents: read
+  issues: read
   pull-requests: write
 
 jobs:
@@ -38,7 +39,21 @@ jobs:
               chore: 'chore',
             };
 
-            const pr = context.payload.pull_request;
+            const SIZE_LABELS = [
+              { name: 'size/xs', max: 9 },
+              { name: 'size/s', max: 49 },
+              { name: 'size/m', max: 199 },
+              { name: 'size/l', max: 999 },
+              { name: 'size/xl', max: Infinity },
+            ];
+
+            // Fetch the pull request instead of trusting the event payload so a
+            // synchronize event sees the latest additions and deletions.
+            const { data: pr } = await github.rest.pulls.get({
+              ...context.repo,
+              pull_number: context.payload.pull_request.number,
+            });
+
             // `!` marks a breaking change in Conventional Commits. Scopes are
             // not used here, so `feat(core):` is rejected along with anything
             // else that does not match the documented `<type>: <description>`.
@@ -56,8 +71,7 @@ jobs:
             }
 
             // Exactly one work-type label, so a corrected title does not leave
-            // the old one behind. Outside-contribution and triage labels are
-            // applied by hand and are none of this job's business.
+            // the old one behind.
             const workType = new Set(Object.values(LABELS));
             const current = pr.labels.map((label) => label.name);
             const stale = current.filter((name) => workType.has(name) && name !== wanted);
@@ -78,4 +92,69 @@ jobs:
               });
             }
 
-            core.info(`${pr.title} -> ${wanted}`);
+            // Size is PR-only and always comes from additions + deletions. Keep
+            // exactly one so a synchronize event replaces a stale size.
+            const changedLines = pr.additions + pr.deletions;
+            const wantedSize = SIZE_LABELS.find(({ max }) => changedLines <= max).name;
+            const sizeNames = new Set(SIZE_LABELS.map(({ name }) => name));
+            const staleSizes = current.filter(
+              (name) => sizeNames.has(name) && name !== wantedSize,
+            );
+
+            for (const name of staleSizes) {
+              await github.rest.issues.removeLabel({
+                ...context.repo,
+                issue_number: pr.number,
+                name,
+              });
+            }
+
+            if (!current.includes(wantedSize)) {
+              await github.rest.issues.addLabels({
+                ...context.repo,
+                issue_number: pr.number,
+                labels: [wantedSize],
+              });
+            }
+
+            // GitHub resolves closingIssuesReferences from closing keywords and
+            // linked development work. Copy good first issue only when at least
+            // one of those issues carries it.
+            const linked = await github.graphql(
+              `query($owner: String!, $repo: String!, $number: Int!) {
+                repository(owner: $owner, name: $repo) {
+                  pullRequest(number: $number) {
+                    closingIssuesReferences(first: 50) {
+                      nodes {
+                        labels(first: 100) { nodes { name } }
+                      }
+                    }
+                  }
+                }
+              }`,
+              { ...context.repo, number: pr.number },
+            );
+            const closingIssues =
+              linked.repository.pullRequest.closingIssuesReferences.nodes;
+            const shouldBeGoodFirst = closingIssues.some((issue) =>
+              issue.labels.nodes.some((label) => label.name === 'good first issue'),
+            );
+            const isGoodFirst = current.includes('good first issue');
+
+            if (shouldBeGoodFirst && !isGoodFirst) {
+              await github.rest.issues.addLabels({
+                ...context.repo,
+                issue_number: pr.number,
+                labels: ['good first issue'],
+              });
+            } else if (!shouldBeGoodFirst && isGoodFirst) {
+              await github.rest.issues.removeLabel({
+                ...context.repo,
+                issue_number: pr.number,
+                name: 'good first issue',
+              });
+            }
+
+            core.info(
+              `${pr.title} -> ${wanted}, ${wantedSize}, good first issue: ${shouldBeGoodFirst}`,
+            );
