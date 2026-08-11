@@ -61,13 +61,13 @@ Exactly one per pull request and never applied to an issue. The PR label workflo
 adds additions and deletions, applies the matching black label, and replaces it
 when the diff changes.
 
-| Label     | Color     | Changed lines |
-| --------- | --------- | ------------: |
-| `size/xs` | `#000000` |           0–9 |
-| `size/s`  | `#000000` |         10–49 |
-| `size/m`  | `#000000` |        50–199 |
-| `size/l`  | `#000000` |       200–999 |
-| `size/xl` | `#000000` | 1,000 or more |
+| Label   | Color     | Changed lines |
+| ------- | --------- | ------------: |
+| `📏 xs` | `#000000` |           0–9 |
+| `📏 s`  | `#000000` |         10–49 |
+| `📏 m`  | `#000000` |        50–199 |
+| `📏 l`  | `#000000` |       200–999 |
+| `📏 xl` | `#000000` | 1,000 or more |
 
 ## Scope and readiness
 
