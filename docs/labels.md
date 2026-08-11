@@ -1,10 +1,9 @@
 # Issue and pull request labels
 
-> **TL;DR** Four groups. Work-type (what kind of change), outside-contribution
-> (who it is shaped for), scope and readiness (what it touches and whether it can
-> start), and triage (how it was resolved). The work-type label is applied
-> automatically, by the issue form on an issue and from the title on a pull
-> request. The rest are applied by hand.
+> **TL;DR** Five groups: work-type, outside-contribution, pull request size,
+> scope and readiness, and triage. Work-type and pull request size are automatic.
+> A pull request inherits `good first issue` from a linked closing issue; the
+> remaining labels are applied by hand.
 
 The labels already exist on the repository with the colors below. This file is
 the record of what they mean and how each one gets applied, so the scheme does
@@ -46,13 +45,29 @@ that has no label, which is also the check that the title follows the format.
 
 ## Outside-contribution
 
-Applied by hand during triage, on top of a work-type label, to mark issues
-shaped for someone arriving from outside.
+Applied by hand to issues during triage, on top of a work-type label, to mark
+work shaped for someone arriving from outside. A pull request inherits
+`good first issue` when it closes an issue carrying that label. `help wanted`
+stays on the issue.
 
 | Label              | Color     | Meaning                   |
 | ------------------ | --------- | ------------------------- |
 | `good first issue` | `#7057ff` | Good for newcomers        |
 | `help wanted`      | `#008672` | Extra attention is needed |
+
+## Pull request size
+
+Exactly one per pull request and never applied to an issue. The PR label workflow
+adds additions and deletions, applies the matching black label, and replaces it
+when the diff changes.
+
+| Label     | Color     | Changed lines |
+| --------- | --------- | ------------: |
+| `size/xs` | `#000000` |           0–9 |
+| `size/s`  | `#000000` |         10–49 |
+| `size/m`  | `#000000` |        50–199 |
+| `size/l`  | `#000000` |       200–999 |
+| `size/xl` | `#000000` | 1,000 or more |
 
 ## Scope and readiness
 
