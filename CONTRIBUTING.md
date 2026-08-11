@@ -2,20 +2,40 @@
 
 Thanks for taking the time to contribute.
 
-smocket aims to reproduce the delivery and routing layer of Socket.IO. When you propose a change, it helps a lot if you can also say how real Socket.IO behaves in that situation. Where smocket and Socket.IO disagree, we treat Socket.IO as the reference.
+> [!NOTE]
+> smocket is working toward a v1.0.0 release by the end of August 2026.
+> During this stabilization period, public APIs, documentation, and work priorities may change as
+> decisions are made. Small documentation changes and clear bug fixes can go straight to a pull
+> request. For a new feature or a larger change, please align on direction in a related
+> [issue](https://github.com/electrohyun/smocket/issues/new/choose) or
+> [Discussion](https://github.com/electrohyun/smocket/discussions) first to avoid duplicate work.
+>
+> For the direction and priorities toward v1.0.0, see
+> [Discussion #219](https://github.com/electrohyun/smocket/discussions/219). Concrete decisions and
+> work in progress are tracked in [Issue #213](https://github.com/electrohyun/smocket/issues/213)
+> and the [v1.0.0 milestone](https://github.com/electrohyun/smocket/milestone/3).
+
+smocket aims to reproduce the [delivery and routing layer](docs/scope.md) of
+[Socket.IO](https://socket.io/). When you propose a change, it helps a lot if you can also say how
+real Socket.IO behaves in that situation. Where smocket and Socket.IO disagree, we treat Socket.IO
+as the reference.
 
 ## Getting started
 
-smocket uses [pnpm](https://pnpm.io).
+smocket uses [pnpm](https://pnpm.io). First,
+[fork smocket](https://github.com/electrohyun/smocket/fork) on GitHub, then clone your fork.
 
 ```bash
-git clone https://github.com/electrohyun/smocket.git
+git clone https://github.com/YOUR_USERNAME/smocket.git
 cd smocket
+git remote add upstream https://github.com/electrohyun/smocket.git
 pnpm install
 pnpm test
 ```
 
-`pnpm test` runs Vitest in watch mode, and it is handy to leave open while you work. There is no dev server to look at, so the test output is the feedback loop.
+Push your working branch to your fork, then open a pull request against `main` in the original smocket repository.
+
+`pnpm test` runs [Vitest](https://vitest.dev/) in watch mode, and it is handy to leave open while you work. There is no dev server to look at, so the test output is the feedback loop.
 
 | Command           | What it does                       |
 | ----------------- | ---------------------------------- |
@@ -27,37 +47,39 @@ Vitest is a development dependency only. It is not imported from `src/`, and ins
 
 ## Scope
 
-smocket reproduces the delivery and routing layer: which sockets receive a given event, and why. As currently planned, the following are outside that boundary:
+The [scope boundary](docs/scope.md) explains which parts of Socket.IO smocket reproduces and why
+network reliability behavior stays outside the project. Features and extension points can still
+grow inside that boundary without contradicting Socket.IO behavior.
 
-- Reconnection
-- Transport fallback
-- Heartbeat
-- Multi-server setups via the Redis adapter
-- Binary encoding
+If you are not sure whether an idea fits, open an
+[issue](https://github.com/electrohyun/smocket/issues/new/choose) or start a
+[Discussion](https://github.com/electrohyun/smocket/discussions) before writing code.
 
-If you have an idea and are not sure whether it fits, please open an issue before writing code. We can work out together how far it can go.
+## Where to contribute
+
+| Situation                                                                                      | Use                                                                                                                       |
+| ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| smocket behaves differently from real Socket.IO                                                | [Bug report](https://github.com/electrohyun/smocket/issues/new?template=bug_report.yml)                                   |
+| A required Socket.IO behavior is missing                                                       | [Feature request](https://github.com/electrohyun/smocket/issues/new?template=feature_request.yml)                         |
+| A concrete convenience feature or adapter change would help                                    | [Feature request](https://github.com/electrohyun/smocket/issues/new?template=feature_request.yml)                         |
+| You want to discuss API direction, a user workflow, or repeated setup and maintenance friction | [Discussion](https://github.com/electrohyun/smocket/discussions)                                                          |
+| Documentation is incorrect, incomplete, or hard to find                                        | [Documentation issue](https://github.com/electrohyun/smocket/issues/new?template=documentation.yml)                       |
+| Tooling, CI, tests, or refactoring need work                                                   | [Maintenance issue](https://github.com/electrohyun/smocket/issues/new/choose)                                             |
+| You want to share a real use case or reproduction without proposing a specific change          | [Discussion](https://github.com/electrohyun/smocket/discussions), or a bug report when it demonstrates incorrect behavior |
+
+A useful report can be short. Describe the situation, the result you expected, and what happened.
+You do not need a research plan or a complete implementation before sharing it.
 
 ## Where to start
 
-Issues labelled `good first issue` are scoped so that you do not need to understand the whole codebase to finish them. `help wanted` marks work that matters but that nobody is currently working on.
+Issues labelled
+[`good first issue`](https://github.com/electrohyun/smocket/issues?q=state%3Aopen%20label%3A%22good%20first%20issue%22)
+are scoped so that you do not need to understand the whole codebase to finish them.
+[`help wanted`](https://github.com/electrohyun/smocket/issues?q=state%3Aopen%20label%3A%22help%20wanted%22)
+marks work that matters but that nobody is currently working on.
 
-Tests, tooling, CI, and refactoring are all welcome. The Maintenance issue template is the place for those.
-
-## Branches
-
-Work happens on short-lived branches off `main`. There is no `develop` branch.
-
-Branch names follow the commit type of the work:
-
-```
-feat/room-join
-fix/disconnect-cleanup
-test/broadcast-exclusion
-docs/usage-examples
-chore/ci-typecheck
-```
-
-If an issue already exists, `gh issue develop <number> --checkout` creates and checks out a branch in one step.
+Tests, tooling, CI, and refactoring are all welcome. Use the
+[Maintenance issue templates](https://github.com/electrohyun/smocket/issues/new/choose) for those.
 
 ## Commits
 
@@ -67,14 +89,14 @@ smocket follows [Conventional Commits](https://www.conventionalcommits.org).
 <type>: <description>
 ```
 
-| Type       | When to use                                          |
-| ---------- | ---------------------------------------------------- |
-| `feat`     | A new capability or API                              |
-| `fix`      | Behavior that did not match Socket.IO, now corrected |
-| `test`     | Test cases, fixtures, parity checks                  |
-| `docs`     | README, examples, API documentation                  |
-| `refactor` | Restructuring with no change in behavior             |
-| `chore`    | Build config, CI, dependencies, tooling              |
+| Type       | When to use                                                     |
+| ---------- | --------------------------------------------------------------- |
+| `feat`     | A new capability or API                                         |
+| `fix`      | Behavior that did not match Socket.IO, now corrected            |
+| `test`     | Test cases, fixtures, [conformance checks](docs/conformance.md) |
+| `docs`     | README, examples, API documentation                             |
+| `refactor` | Restructuring with no change in behavior                        |
+| `chore`    | Build config, CI, dependencies, tooling                         |
 
 Scopes are not used. smocket is a single package, so `feat:` rather than `feat(core):`.
 
@@ -106,10 +128,14 @@ Pull requests are rebase merged, so please tidy up your commit history before as
 
 ## Reporting bugs
 
-Please use the Bug report template. A reproduction snippet is the fastest route to a fix. Delivery bugs are hard to diagnose from a description alone, because the question is always which socket received what, and in which room or namespace.
+Please use the [Bug report template](https://github.com/electrohyun/smocket/issues/new?template=bug_report.yml).
+A reproduction snippet is the fastest route to a fix. Delivery bugs are hard to diagnose from a
+description alone, because the question is always which socket received what, and in which
+[room](docs/glossary.md#room) or [namespace](docs/glossary.md#namespace).
 
 Setting up the sockets, performing the emit, and noting which socket you expected to receive the event and which one actually did is enough.
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the MIT License.
+By contributing, you agree that your contributions will be licensed under the
+[MIT License](LICENSE).
