@@ -40,11 +40,11 @@ jobs:
             };
 
             const SIZE_LABELS = [
-              { name: 'size/xs', max: 9 },
-              { name: 'size/s', max: 49 },
-              { name: 'size/m', max: 199 },
-              { name: 'size/l', max: 999 },
-              { name: 'size/xl', max: Infinity },
+              { name: '📏 xs', max: 9 },
+              { name: '📏 s', max: 49 },
+              { name: '📏 m', max: 199 },
+              { name: '📏 l', max: 999 },
+              { name: '📏 xl', max: Infinity },
             ];
 
             // Fetch the pull request instead of trusting the event payload so a
