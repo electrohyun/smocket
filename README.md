@@ -35,7 +35,8 @@
 
 > **Status: pre-1.0.** The delivery core is complete and checked against real
 > socket.io by a dual-run conformance suite. The public API can still change before
-> 1.0.0. See [what a version number promises](docs/conformance.md#what-a-version-number-promises).
+> 1.0.0. See the [roadmap to v1.0.0](docs/roadmap.md) and
+> [what a version number promises](docs/conformance.md#what-a-version-number-promises).
 
 ## The problem
 
@@ -339,6 +340,7 @@ already cover the first question well. See
 | Document                                                      | What it holds                                                            |
 | ------------------------------------------------------------- | ------------------------------------------------------------------------ |
 | [docs/README.md](docs/README.md)                              | the documentation map, by the question you arrived with                  |
+| [roadmap.md](docs/roadmap.md)                                 | the guarantees, dependencies, and release path toward v1.0.0             |
 | [test-runner-integration.md](docs/test-runner-integration.md) | running smocket inside Vitest or Jest, and what keeps its types          |
 | [conformance.md](docs/conformance.md)                         | every behaviour verified against real socket.io, generated from the run  |
 | [scope.md](docs/scope.md)                                     | the boundary, and the layer split it follows                             |

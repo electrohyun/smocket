@@ -1,14 +1,17 @@
 # smocket docs
 
 > **TL;DR** Where to look: how to run smocket inside a test runner, which
-> behaviours are verified against real socket.io, the conventions for writing
-> docs, a glossary of socket.io terms, the scope boundary, the design decisions,
-> and the list of differences from real socket.io.
+> behaviours are verified against real socket.io, the road to the first stable
+> release, the conventions for writing docs, a glossary of socket.io terms, the
+> scope boundary, the design decisions, and the list of differences from real
+> socket.io.
 
 - **How to run smocket inside a test runner:**
   [test-runner-integration.md](./test-runner-integration.md)
 - **Which behaviours are verified against real socket.io:**
   [conformance.md](./conformance.md)
+- **What must happen before the first stable release:**
+  [roadmap.md](./roadmap.md)
 - **How to write docs here:** [CONTRIBUTING-docs.md](./CONTRIBUTING-docs.md)
 - **How to contribute code, reports, ideas, or documentation:**
   [CONTRIBUTING.md](../CONTRIBUTING.md) · [한국어](../CONTRIBUTING.ko.md)
