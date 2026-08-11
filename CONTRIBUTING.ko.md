@@ -2,20 +2,42 @@
 
 시간을 내어 기여해 주셔서 감사합니다.
 
-smocket은 Socket.IO의 전달(delivery)·라우팅 계층을 최대한 그대로 재현하는 것을 목표로 합니다. 변경을 제안하실 때는 해당 상황에서 실제 Socket.IO가 어떻게 동작하는지도 함께 알려주시면 큰 도움이 됩니다. smocket과 Socket.IO의 동작이 다르다면, 항상 Socket.IO 쪽을 기준으로 삼습니다.
+> [!NOTE]
+> smocket은 2026년 8월 말 v1.0.0 릴리즈를 목표로 안정화 작업을 진행하고 있습니다.
+> 이 기간에는 공개 API와 문서, 작업 우선순위가 논의 결과에 따라 조정될 수 있습니다.
+> 작은 문서 수정이나 명확한 버그 수정은 바로 PR로 제안해도 괜찮습니다. 새로운 기능이나
+> 범위가 큰 변경은 중복 작업을 막기 위해 먼저 관련
+> [Issue](https://github.com/electrohyun/smocket/issues/new/choose)나
+> [Discussion](https://github.com/electrohyun/smocket/discussions)에서 방향을 맞춰 주세요.
+>
+> smocket이 v1.0.0까지 어떤 방향과 우선순위를 두고 있는지 궁금하다면
+> [Discussion #219](https://github.com/electrohyun/smocket/discussions/219)을 참고해 주세요.
+> 구체적인 결정과 진행 중인 작업은
+> [Issue #213](https://github.com/electrohyun/smocket/issues/213)과
+> [v1.0.0 마일스톤](https://github.com/electrohyun/smocket/milestone/3)에서 확인할 수 있습니다.
+
+smocket은 [Socket.IO](https://socket.io/)의
+[전달(delivery)·라우팅 계층](docs/scope.ko.md)을 최대한 그대로 재현하는 것을 목표로
+합니다. 변경을 제안하실 때는 해당 상황에서 실제 Socket.IO가 어떻게 동작하는지도 함께
+알려주시면 큰 도움이 됩니다. smocket과 Socket.IO의 동작이 다르다면, 항상 Socket.IO 쪽을
+기준으로 삼습니다.
 
 ## 시작하기
 
-smocket은 [pnpm](https://pnpm.io)을 사용합니다.
+smocket은 [pnpm](https://pnpm.io)을 사용합니다. 먼저 GitHub에서
+[smocket을 fork](https://github.com/electrohyun/smocket/fork)한 다음, 자신의 fork를 clone해 주세요.
 
 ```bash
-git clone https://github.com/electrohyun/smocket.git
+git clone https://github.com/YOUR_USERNAME/smocket.git
 cd smocket
+git remote add upstream https://github.com/electrohyun/smocket.git
 pnpm install
 pnpm test
 ```
 
-`pnpm test`는 Vitest를 watch 모드로 돌리는 명령이라, 작업하는 동안 켜 두면 편합니다. 따로 확인할 개발 서버가 없다 보니, 테스트 출력 자체가 곧 피드백 루프인 셈입니다.
+작업한 브랜치는 자신의 fork에 push하고, 원본 smocket 저장소의 `main` 브랜치를 대상으로 PR을 열어 주세요.
+
+`pnpm test`는 [Vitest](https://vitest.dev/)를 watch 모드로 돌리는 명령이라, 작업하는 동안 켜 두면 편합니다. 따로 확인할 개발 서버가 없다 보니, 테스트 출력 자체가 곧 피드백 루프인 셈입니다.
 
 | 명령어            | 설명                             |
 | ----------------- | -------------------------------- |
@@ -27,37 +49,38 @@ Vitest는 어디까지나 개발 의존성일 뿐입니다. `src/` 어디에서�
 
 ## 다루는 범위
 
-smocket이 재현하는 건 전달·라우팅 계층입니다 — 즉 어떤 소켓이 특정 이벤트를 받는지, 그리고 왜 받는지가 핵심입니다. 지금 계획상 다음 항목들은 이 범위 밖에 있습니다.
+[범위 문서](docs/scope.ko.md)는 smocket이 Socket.IO의 어느 부분을 재현하는지와 네트워크
+신뢰성 동작이 프로젝트 범위 밖에 머무는 이유를 설명합니다. 이 경계 안에서는 Socket.IO
+동작과 어긋나지 않는 기능과 확장 지점이 계속 추가될 수 있습니다.
 
-- 재연결(Reconnection)
-- 트랜스포트 폴백
-- 하트비트
-- Redis 어댑터를 통한 멀티 서버 구성
-- 바이너리 인코딩
+새로운 제안이 이 범위에 맞는지 애매하다면 코드부터 작성하지 마시고, 먼저
+[Issue](https://github.com/electrohyun/smocket/issues/new/choose)나
+[Discussion](https://github.com/electrohyun/smocket/discussions)에서 함께 방향을 정해 주세요.
 
-떠오른 아이디어가 이 범위에 맞는지 애매하다면, 코드부터 쓰지 마시고 이슈를 먼저 열어 주세요. 어디까지 다룰 수 있을지는 함께 이야기하며 정하면 됩니다.
+## 어디에 남기면 좋을까
+
+| 상황                                                                 | 이용할 곳                                                                                             |
+| -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| smocket이 실제 Socket.IO와 다르게 동작함                             | [Bug report](https://github.com/electrohyun/smocket/issues/new?template=bug_report.yml)               |
+| 필요한 Socket.IO 동작을 smocket이 지원하지 않음                      | [Feature request](https://github.com/electrohyun/smocket/issues/new?template=feature_request.yml)     |
+| 구체적인 편의 기능이나 adapter 변경을 제안하고 싶음                  | [Feature request](https://github.com/electrohyun/smocket/issues/new?template=feature_request.yml)     |
+| API 방향, 사용 흐름, 반복되는 설정이나 유지보수 불편을 논의하고 싶음 | [Discussion](https://github.com/electrohyun/smocket/discussions)                                      |
+| 문서가 잘못됐거나 부족하거나 찾기 어려움                             | [Documentation issue](https://github.com/electrohyun/smocket/issues/new?template=documentation.yml)   |
+| 툴링, CI, 테스트, 리팩토링 작업을 제안하고 싶음                      | [Maintenance issue](https://github.com/electrohyun/smocket/issues/new/choose)                         |
+| 구체적인 변경안 없이 실제 사용 사례나 재현 코드를 공유하고 싶음      | [Discussion](https://github.com/electrohyun/smocket/discussions). 잘못된 동작을 보여준다면 Bug report |
+
+유용한 제보는 짧아도 괜찮습니다. 어떤 상황이었는지, 무엇을 기대했는지, 실제로는 어떻게
+동작했는지만 알려주세요. 연구 계획이나 완성된 구현을 준비할 필요는 없습니다.
 
 ## 어디서부터 시작하면 좋을까
 
-`good first issue` 라벨이 붙은 이슈는 코드베이스 전체를 몰라도 끝낼 수 있을 만큼 범위를 좁혀 둔 것들입니다. `help wanted`는 중요하긴 한데 아직 아무도 손대고 있지 않은 작업에 붙는 라벨이고요.
+[`good first issue`](https://github.com/electrohyun/smocket/issues?q=state%3Aopen%20label%3A%22good%20first%20issue%22)
+라벨이 붙은 이슈는 코드베이스 전체를 몰라도 끝낼 수 있을 만큼 범위를 좁혀 둔 것들입니다.
+[`help wanted`](https://github.com/electrohyun/smocket/issues?q=state%3Aopen%20label%3A%22help%20wanted%22)는
+중요하긴 하지만 아직 아무도 작업하고 있지 않은 이슈에 붙습니다.
 
-테스트, 툴링, CI, 리팩토링 — 이런 작업도 모두 환영합니다. 이럴 땐 Maintenance 이슈 템플릿을 사용해 주세요.
-
-## Branches
-
-작업은 `main`에서 갈라져 나온, 오래 살지 않는 브랜치 위에서 이루어집니다. `develop` 브랜치는 따로 두지 않습니다.
-
-브랜치 이름은 작업의 커밋 타입을 그대로 따릅니다.
-
-```
-feat/room-join
-fix/disconnect-cleanup
-test/broadcast-exclusion
-docs/usage-examples
-chore/ci-typecheck
-```
-
-이슈가 이미 있다면 `gh issue develop <number> --checkout` 한 줄로 브랜치 생성과 체크아웃을 동시에 끝낼 수 있습니다.
+테스트, 툴링, CI, 리팩토링 작업도 모두 환영합니다. 이럴 땐
+[Maintenance 이슈 템플릿](https://github.com/electrohyun/smocket/issues/new/choose)을 사용해 주세요.
 
 ## commit
 
@@ -67,14 +90,14 @@ smocket은 [Conventional Commits](https://www.conventionalcommits.org) 규칙을
 <type>: <description>
 ```
 
-| 타입       | 사용 시점                                      |
-| ---------- | ---------------------------------------------- |
-| `feat`     | 새 기능이나 API를 추가할 때                    |
-| `fix`      | Socket.IO와 어긋나던 동작을 바로잡았을 때      |
-| `test`     | 테스트 케이스, 픽스처, 패리티 검증을 추가할 때 |
-| `docs`     | README, 예제, API 문서를 손볼 때               |
-| `refactor` | 동작은 그대로 두고 구조만 정리할 때            |
-| `chore`    | 빌드 설정, CI, 의존성, 툴링을 만질 때          |
+| 타입       | 사용 시점                                                             |
+| ---------- | --------------------------------------------------------------------- |
+| `feat`     | 새 기능이나 API를 추가할 때                                           |
+| `fix`      | Socket.IO와 어긋나던 동작을 바로잡았을 때                             |
+| `test`     | 테스트 케이스, 픽스처, [정합성 검증](docs/conformance.md)을 추가할 때 |
+| `docs`     | README, 예제, API 문서를 손볼 때                                      |
+| `refactor` | 동작은 그대로 두고 구조만 정리할 때                                   |
+| `chore`    | 빌드 설정, CI, 의존성, 툴링을 만질 때                                 |
 
 scope는 쓰지 않습니다. smocket은 단일 패키지라서 `feat(core):`가 아니라 그냥 `feat:`이면 됩니다.
 
@@ -105,10 +128,14 @@ PR은 rebase 방식으로 머지되니, 리뷰를 요청하기 전에 커밋 히
 
 ## 버그 신고
 
-Bug report 템플릿을 이용해 주세요. 재현 가능한 코드 스니펫만큼 빠른 해결책은 없습니다. 전달 관련 버그는 설명만으로 파악하기가 특히 어려운데, 결국 어떤 소켓이 무엇을 받았는지, 어느 room이나 namespace에서 그랬는지가 관건이기 때문입니다.
+[Bug report 템플릿](https://github.com/electrohyun/smocket/issues/new?template=bug_report.yml)을 이용해 주세요.
+재현 가능한 코드 스니펫만큼 빠른 해결책은 없습니다. 전달 관련 버그는 설명만으로 파악하기가
+특히 어렵습니다. 결국 어떤 소켓이 무엇을 받았는지, 어느
+[room](docs/glossary.ko.md#room)이나 [namespace](docs/glossary.ko.md#namespace)에서
+그랬는지가 관건이기 때문입니다.
 
 소켓을 설정하고, emit을 실행한 다음, 어떤 소켓이 이벤트를 받을 거라 예상했는지와 실제로 어떤 소켓이 받았는지만 적어 주셔도 충분합니다.
 
 ## License
 
-기여하신다는 건, 그 기여물이 MIT 라이선스로 배포되는 데 동의하신다는 뜻입니다.
+기여하신다는 건, 그 기여물이 [MIT 라이선스](LICENSE)로 배포되는 데 동의하신다는 뜻입니다.

@@ -5,4 +5,7 @@ contact_links:
     about: Ask a question or start a discussion. The issue tracker is for bugs and concrete work.
   - name: Contributing guide
     url: https://github.com/electrohyun/smocket/blob/main/CONTRIBUTING.md
-    about: Setup, commit conventions, and how to open a pull request
+    about: Where to report or propose work, setup, commits, and pull requests
+  - name: 한국어 기여 가이드
+    url: https://github.com/electrohyun/smocket/blob/main/CONTRIBUTING.ko.md
+    about: 제보와 제안 경로, 개발 환경 설정, 커밋과 Pull Request 안내

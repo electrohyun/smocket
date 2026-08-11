@@ -368,9 +368,10 @@ The [milestones](https://github.com/electrohyun/smocket/milestones) show what ea
 release is aiming for, and the
 [issue tracker](https://github.com/electrohyun/smocket/issues) carries the rest.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for branch naming, commit conventions, and
-how pull requests are merged, and [AGENTS.md](AGENTS.md) for how to run the two
-test targets.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, where to report or propose work,
+commit conventions, and how pull requests are merged. The
+[Korean guide](CONTRIBUTING.ko.md) covers the same path. See
+[AGENTS.md](AGENTS.md) for how to run the two test targets.
 
 ## Contributors
 

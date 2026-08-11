@@ -10,6 +10,8 @@
 - **Which behaviours are verified against real socket.io:**
   [conformance.md](./conformance.md)
 - **How to write docs here:** [CONTRIBUTING-docs.md](./CONTRIBUTING-docs.md)
+- **How to contribute code, reports, ideas, or documentation:**
+  [CONTRIBUTING.md](../CONTRIBUTING.md) · [한국어](../CONTRIBUTING.ko.md)
 - **A socket.io term you do not know:** [glossary.md](./glossary.md)
 - **Whether something is in scope for smocket:** [scope.md](./scope.md)
 - **Why the code is shaped the way it is:** [decisions/](./decisions/README.md)
