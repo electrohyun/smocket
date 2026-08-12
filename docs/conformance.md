@@ -103,6 +103,37 @@ What a namespace isolates: connections, emits, rooms, and socket ids.
 - [a client attached to two namespaces has a different socket id per namespace](../src/namespace.test.ts#L145)
 - [socket.broadcast stays inside the namespace of the sender](../src/namespace.test.ts#L160)
 
+### Dynamic namespace parents
+
+Parent admission, concrete child lifecycle, setup snapshots, and direct broadcasts.
+Narrowed operator construction is covered, while narrowed delivery remains unverified
+under [0029](./decisions/0029-narrowed-parent-broadcasts-stay-unverified.md).
+
+- [emits new_namespace synchronously once for static namespaces but not root or parents](../src/dynamic-namespace.test.ts#L7)
+- [admits RegExp children, caches them, and attaches manual children to the parent](../src/dynamic-namespace.test.ts#L24)
+- [preserves stateful RegExp lastIndex across dynamic admission attempts](../src/dynamic-namespace.test.ts#L45)
+- [does not re-evaluate a stateful RegExp parent when reading cached namespaces](../src/dynamic-namespace.test.ts#L65)
+- [preserves sticky RegExp lastIndex across dynamic admission attempts](../src/dynamic-namespace.test.ts#L79)
+- [resets caller-assigned RegExp lastIndex after a failed manual attachment match](../src/dynamic-namespace.test.ts#L99)
+- [uses admission order but the latest duplicate RegExp parent for manual attachment](../src/dynamic-namespace.test.ts#L114)
+- [reuses one child for concurrent admission and supports the of listener overload](../src/dynamic-namespace.test.ts#L130)
+- [tries function matchers in order with normalized names and auth until one allows](../src/dynamic-namespace.test.ts#L145)
+- [rejects an unmatched dynamic namespace as Invalid namespace](../src/dynamic-namespace.test.ts#L178)
+- [retries dynamic admission after an earlier matcher rejection](../src/dynamic-namespace.test.ts#L191)
+- [creates a child before middleware and snapshots parent setup at creation](../src/dynamic-namespace.test.ts#L209)
+- [copies the parent connect synonym to a concrete child](../src/dynamic-namespace.test.ts#L246)
+- [ignores duplicate client connect calls while async dynamic admission is pending](../src/dynamic-namespace.test.ts#L257)
+- [cancels dynamic admission while callback-form auth is unresolved](../src/dynamic-namespace.test.ts#L283)
+- [cancels unresolved dynamic matching with shared Manager disconnect(true)](../src/dynamic-namespace.test.ts#L320)
+- [continues parent matching after a cancelled parent rejects late](../src/dynamic-namespace.test.ts#L364)
+- [reuses one child for concurrent async same-name admissions](../src/dynamic-namespace.test.ts#L419)
+- [broadcasts directly across children while child rooms and lifecycle stay isolated](../src/dynamic-namespace.test.ts#L448)
+- [exposes narrowed parent operators without selecting their delivery result](../src/dynamic-namespace.test.ts#L483)
+- [keeps shared Manager teardown connection-wide across dynamic children](../src/dynamic-namespace.test.ts#L494)
+- [uses one concrete child for nextConnection, lookup, and Manager grouping](../src/dynamic-namespace.test.ts#L515)
+- [creates a RegExp child when nextConnection observes it before a client connects](../src/dynamic-namespace.test.ts#L532)
+- [keeps new_namespace available as an ordinary Socket payload event](../src/dynamic-namespace.test.ts#L549)
+
 ### Acknowledgements
 
 The trailing callback and `emitWithAck`, in both directions.
@@ -426,6 +457,7 @@ Registering an adapter that changes the routing decision.
 - [io.adapter registers a custom adapter that observes the routing decision](../src/adapter.test.ts#L41)
 - [a custom adapter can drop a socket from the target set, and per-socket order still holds](../src/adapter.test.ts#L64)
 - [registering a custom adapter preserves per-socket delivery order](../src/adapter.test.ts#L92)
+- [builds an independent registered adapter for each dynamic concrete child](../src/adapter.test.ts#L116)
 
 ### DelayingAdapter
 
@@ -475,7 +507,6 @@ has not been measured, not that it is missing from socket.io.
 - **`socket.use(fn)`.** Per-packet middleware on one socket, which is a different seam
   from the connection middleware `io.use` covered above.
 - **Listener introspection.** `listeners`, `listenerCount`, and `eventNames`.
-- **Dynamic namespaces.** `io.of(/regex/)` and the `new_namespace` event.
 
 What is deliberately absent instead of merely uncovered is in
 [scope.md](./scope.md), and where smocket and socket.io disagree on purpose is in
