@@ -29,6 +29,13 @@ interface ReservedServerToClientEvents {
   disconnect: () => void;
 }
 
+// Socket.IO intentionally exposes catch-all lookups as a permissive callback array.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyListener = (...args: any[]) => void;
+
+const annotatedIncomingCatchAll = (_event: string, _value: number): void => {};
+const annotatedOutgoingCatchAll = (_event: string, _value: number): void => {};
+
 export function assertTypedEventMapsCompile(): void {
   const io = new Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>(
     'http://localhost:3000',
@@ -73,6 +80,18 @@ export function assertTypedEventMapsCompile(): void {
     });
 
     socket.emit('chat', 'hello');
+    socket
+      .onAny(annotatedIncomingCatchAll)
+      .prependAny(annotatedIncomingCatchAll)
+      .offAny(annotatedIncomingCatchAll)
+      .onAnyOutgoing(annotatedOutgoingCatchAll)
+      .prependAnyOutgoing(annotatedOutgoingCatchAll)
+      .offAnyOutgoing(annotatedOutgoingCatchAll);
+    const returnedFromCatchAlls: typeof socket = socket
+      .prependAny((_event, ..._args) => {})
+      .prependAnyOutgoing((_event, ..._args) => {});
+    const incomingAnyListeners: AnyListener[] = socket.listenersAny();
+    const outgoingAnyListeners: AnyListener[] = socket.listenersAnyOutgoing();
     const returnedServerSocket: typeof socket = socket.disconnect();
     socket.to('room').volatile.emit('chat', 'hello');
     socket.broadcast.to('room').volatile.emit('chat', 'hello');
@@ -85,6 +104,9 @@ export function assertTypedEventMapsCompile(): void {
     void answer;
     void timedAnswer;
     void volatileAnswer;
+    void returnedFromCatchAlls;
+    void incomingAnyListeners;
+    void outgoingAnyListeners;
     void returnedServerSocket;
 
     // @ts-expect-error unknown incoming event
@@ -136,6 +158,18 @@ export function assertTypedEventMapsCompile(): void {
     void disconnectReason;
     void disconnectDescription;
   });
+  const returnedFromClientCatchAlls: typeof client = client
+    .prependAny((_event, ..._args) => {})
+    .prependAnyOutgoing((_event, ..._args) => {});
+  const clientIncomingAnyListeners: AnyListener[] = client.listenersAny();
+  const clientOutgoingAnyListeners: AnyListener[] = client.listenersAnyOutgoing();
+  client
+    .onAny(annotatedIncomingCatchAll)
+    .prependAny(annotatedIncomingCatchAll)
+    .offAny(annotatedIncomingCatchAll)
+    .onAnyOutgoing(annotatedOutgoingCatchAll)
+    .prependAnyOutgoing(annotatedOutgoingCatchAll)
+    .offAnyOutgoing(annotatedOutgoingCatchAll);
   const accepted: Promise<boolean> = client.emitWithAck('guess', 'answer');
   const timedAccepted: Promise<Error> = client.timeout(100).emitWithAck('guess', 'answer');
   const volatileAccepted: Promise<boolean> = client.volatile.emitWithAck('guess', 'answer');
@@ -149,6 +183,9 @@ export function assertTypedEventMapsCompile(): void {
   void returnedNamespace;
   void returnedFromConnect;
   void returnedFromDisconnect;
+  void returnedFromClientCatchAlls;
+  void clientIncomingAnyListeners;
+  void clientOutgoingAnyListeners;
 
   // @ts-expect-error unknown server event
   io.emit('caht', 'hello');
@@ -250,12 +287,27 @@ export function assertRealSocketIoListenerInferenceCompiles(
     const answer: Promise<number> = socket.emitWithAck('question', 'value?');
     const timedAnswer: Promise<number> = socket.timeout(100).emitWithAck('question', 'value?');
     const volatileAnswer: Promise<number> = socket.volatile.emitWithAck('question', 'value?');
+    const returnedFromCatchAlls: typeof socket = socket
+      .prependAny((_event, ..._args) => {})
+      .prependAnyOutgoing((_event, ..._args) => {});
+    const incomingAnyListeners: AnyListener[] = socket.listenersAny();
+    const outgoingAnyListeners: AnyListener[] = socket.listenersAnyOutgoing();
+    socket
+      .onAny(annotatedIncomingCatchAll)
+      .prependAny(annotatedIncomingCatchAll)
+      .offAny(annotatedIncomingCatchAll)
+      .onAnyOutgoing(annotatedOutgoingCatchAll)
+      .prependAnyOutgoing(annotatedOutgoingCatchAll)
+      .offAnyOutgoing(annotatedOutgoingCatchAll);
     const returnedServerSocket: typeof socket = socket.disconnect();
     // @ts-expect-error an ack with no response value cannot back emitWithAck
     socket.emitWithAck('done');
     void answer;
     void timedAnswer;
     void volatileAnswer;
+    void returnedFromCatchAlls;
+    void incomingAnyListeners;
+    void outgoingAnyListeners;
     void returnedServerSocket;
   });
 
@@ -300,6 +352,18 @@ export function assertRealSocketIoClientAckTypesCompile(
 ): void {
   const returnedFromConnect: typeof client = client.connect();
   const returnedFromDisconnect: typeof client = client.disconnect();
+  const returnedFromCatchAlls: typeof client = client
+    .prependAny((_event, ..._args) => {})
+    .prependAnyOutgoing((_event, ..._args) => {});
+  const incomingAnyListeners: AnyListener[] = client.listenersAny();
+  const outgoingAnyListeners: AnyListener[] = client.listenersAnyOutgoing();
+  client
+    .onAny(annotatedIncomingCatchAll)
+    .prependAny(annotatedIncomingCatchAll)
+    .offAny(annotatedIncomingCatchAll)
+    .onAnyOutgoing(annotatedOutgoingCatchAll)
+    .prependAnyOutgoing(annotatedOutgoingCatchAll)
+    .offAnyOutgoing(annotatedOutgoingCatchAll);
   const accepted: Promise<boolean> = client.emitWithAck('guess', 'answer');
   const timedAccepted: Promise<Error> = client.timeout(100).emitWithAck('guess', 'answer');
   const volatileAccepted: Promise<boolean> = client.volatile.emitWithAck('guess', 'answer');
@@ -310,6 +374,9 @@ export function assertRealSocketIoClientAckTypesCompile(
   void nonAck;
   void returnedFromConnect;
   void returnedFromDisconnect;
+  void returnedFromCatchAlls;
+  void incomingAnyListeners;
+  void outgoingAnyListeners;
 }
 
 export function assertRealSocketIoMappedReservedNamesCompile(

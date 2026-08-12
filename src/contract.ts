@@ -16,6 +16,10 @@ export interface EventsMap {
   [event: string]: any;
 }
 
+/** Socket.IO's permissive public shape for catch-all listener lookups. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyListener = (...args: any[]) => void;
+
 /** Socket.IO's default when an application does not declare a socket data shape. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type DefaultSocketData = any;
@@ -713,13 +717,21 @@ export interface ServerSocketContract<
   /** Remove every listener for `event`, or all of them when called with no argument. */
   removeAllListeners(event?: string): this;
   /** Catch-all for incoming events; the listener receives the event name then its args. */
-  onAny(listener: (...args: unknown[]) => void): this;
+  onAny(listener: AnyListener): this;
+  /** Add an incoming catch-all ahead of every existing catch-all listener. */
+  prependAny(listener: AnyListener): this;
+  /** The live incoming catch-all backing array. */
+  listenersAny(): AnyListener[];
   /** Remove one catch-all listener, or all of them when called with no argument. */
-  offAny(listener?: (...args: unknown[]) => void): this;
+  offAny(listener?: AnyListener): this;
   /** Catch-all for outgoing events this socket sends; receives the event name then its args. */
-  onAnyOutgoing(listener: (...args: unknown[]) => void): this;
+  onAnyOutgoing(listener: AnyListener): this;
+  /** Add an outgoing catch-all ahead of every existing catch-all listener. */
+  prependAnyOutgoing(listener: AnyListener): this;
+  /** The live outgoing catch-all backing array. */
+  listenersAnyOutgoing(): AnyListener[];
   /** Remove one outgoing catch-all, or all of them when called with no argument. */
-  offAnyOutgoing(listener?: (...args: unknown[]) => void): this;
+  offAnyOutgoing(listener?: AnyListener): this;
   emit<Event extends EventName<EmitEvents>>(
     event: Event,
     ...args: EventParams<EmitEvents, Event>
@@ -778,13 +790,21 @@ export interface ClientSocketContract<
   /** Remove every listener for `event`, or all of them when called with no argument. */
   removeAllListeners(event?: string): this;
   /** Catch-all for incoming events; the listener receives the event name then its args. */
-  onAny(listener: (...args: unknown[]) => void): this;
+  onAny(listener: AnyListener): this;
+  /** Add an incoming catch-all ahead of every existing catch-all listener. */
+  prependAny(listener: AnyListener): this;
+  /** The live incoming catch-all backing array. */
+  listenersAny(): AnyListener[];
   /** Remove one catch-all listener, or all of them when called with no argument. */
-  offAny(listener?: (...args: unknown[]) => void): this;
+  offAny(listener?: AnyListener): this;
   /** Catch-all for outgoing events this socket sends; receives the event name then its args. */
-  onAnyOutgoing(listener: (...args: unknown[]) => void): this;
+  onAnyOutgoing(listener: AnyListener): this;
+  /** Add an outgoing catch-all ahead of every existing catch-all listener. */
+  prependAnyOutgoing(listener: AnyListener): this;
+  /** The live outgoing catch-all backing array. */
+  listenersAnyOutgoing(): AnyListener[];
   /** Remove one outgoing catch-all, or all of them when called with no argument. */
-  offAnyOutgoing(listener?: (...args: unknown[]) => void): this;
+  offAnyOutgoing(listener?: AnyListener): this;
   emit<Event extends EventName<EmitEvents>>(
     event: Event,
     ...args: EventParams<EmitEvents, Event>

@@ -130,3 +130,203 @@ it('the client side carries offAnyOutgoing too', async () => {
   client.emit('e2');
   expect(fired).toBe(1);
 });
+
+it('server prependAnyOutgoing listeners run newest-first before onAnyOutgoing listeners', async () => {
+  const { serverSocket } = await ctx.connectClient();
+  const order: string[] = [];
+  serverSocket.onAnyOutgoing(() => order.push('on'));
+  serverSocket.prependAnyOutgoing(() => order.push('first prepend'));
+  serverSocket.prependAnyOutgoing(() => order.push('second prepend'));
+
+  serverSocket.emit('ordered');
+
+  expect(order).toEqual(['second prepend', 'first prepend', 'on']);
+});
+
+it('client prependAnyOutgoing listeners run newest-first before onAnyOutgoing listeners', async () => {
+  const { client } = await ctx.connectClient();
+  const order: string[] = [];
+  client.onAnyOutgoing(() => order.push('on'));
+  client.prependAnyOutgoing(() => order.push('first prepend'));
+  client.prependAnyOutgoing(() => order.push('second prepend'));
+
+  client.emit('ordered');
+
+  expect(order).toEqual(['second prepend', 'first prepend', 'on']);
+});
+
+it('server listenersAnyOutgoing is live and removes the first matching duplicate', async () => {
+  const { serverSocket } = await ctx.connectClient();
+  const seen: string[] = [];
+  const duplicate = () => seen.push('duplicate');
+  const middle = () => seen.push('middle');
+  const injected = () => seen.push('injected');
+  serverSocket.onAnyOutgoing(duplicate).onAnyOutgoing(middle).onAnyOutgoing(duplicate);
+
+  const listeners = serverSocket.listenersAnyOutgoing();
+  expect(serverSocket.listenersAnyOutgoing()).toBe(listeners);
+  serverSocket.offAnyOutgoing(duplicate);
+  expect(listeners).toEqual([middle, duplicate]);
+  listeners.push(injected);
+  serverSocket.emit('live');
+
+  expect(seen).toEqual(['middle', 'duplicate', 'injected']);
+});
+
+it('client listenersAnyOutgoing is live and removes the first matching duplicate', async () => {
+  const { client } = await ctx.connectClient();
+  const seen: string[] = [];
+  const duplicate = () => seen.push('duplicate');
+  const middle = () => seen.push('middle');
+  const injected = () => seen.push('injected');
+  client.onAnyOutgoing(duplicate).onAnyOutgoing(middle).onAnyOutgoing(duplicate);
+
+  const listeners = client.listenersAnyOutgoing();
+  expect(client.listenersAnyOutgoing()).toBe(listeners);
+  client.offAnyOutgoing(duplicate);
+  expect(listeners).toEqual([middle, duplicate]);
+  listeners.push(injected);
+  client.emit('live');
+
+  expect(seen).toEqual(['middle', 'duplicate', 'injected']);
+});
+
+it('offAnyOutgoing replaces both sides backing arrays and detaches earlier lookups', async () => {
+  const { client, serverSocket } = await ctx.connectClient();
+  const serverSeen: string[] = [];
+  const clientSeen: string[] = [];
+  serverSocket.onAnyOutgoing(() => serverSeen.push('old'));
+  client.onAnyOutgoing(() => clientSeen.push('old'));
+  const oldServerListeners = serverSocket.listenersAnyOutgoing();
+  const oldClientListeners = client.listenersAnyOutgoing();
+
+  serverSocket.offAnyOutgoing().onAnyOutgoing(() => serverSeen.push('current'));
+  client.offAnyOutgoing().onAnyOutgoing(() => clientSeen.push('current'));
+  oldServerListeners.push(() => serverSeen.push('detached'));
+  oldClientListeners.push(() => clientSeen.push('detached'));
+  expect(serverSocket.listenersAnyOutgoing()).not.toBe(oldServerListeners);
+  expect(client.listenersAnyOutgoing()).not.toBe(oldClientListeners);
+
+  serverSocket.emit('server-outgoing');
+  client.emit('client-outgoing');
+
+  expect(serverSeen).toEqual(['current']);
+  expect(clientSeen).toEqual(['current']);
+});
+
+it('outgoing catch-all dispatch snapshots listener mutations on both sides', async () => {
+  const { client, serverSocket } = await ctx.connectClient();
+  const serverSeen: string[] = [];
+  const clientSeen: string[] = [];
+  const serverLate = (event: unknown) => serverSeen.push(`late:${String(event)}`);
+  const clientLate = (event: unknown) => clientSeen.push(`late:${String(event)}`);
+  serverSocket.onAnyOutgoing((event) => {
+    serverSeen.push(`existing:${String(event)}`);
+    serverSocket.listenersAnyOutgoing().push(serverLate);
+  });
+  client.onAnyOutgoing((event) => {
+    clientSeen.push(`existing:${String(event)}`);
+    client.listenersAnyOutgoing().push(clientLate);
+  });
+
+  serverSocket.emit('server-first');
+  client.emit('client-first');
+  serverSocket.emit('server-second');
+  client.emit('client-second');
+
+  expect(serverSeen).toEqual([
+    'existing:server-first',
+    'existing:server-second',
+    'late:server-second',
+  ]);
+  expect(clientSeen).toEqual([
+    'existing:client-first',
+    'existing:client-second',
+    'late:client-second',
+  ]);
+});
+
+it('the client outgoing catch-all omits ack callbacks for emit and emitWithAck', async () => {
+  const { client, serverSocket } = await ctx.connectClient();
+  const seen: unknown[][] = [];
+  client.onAnyOutgoing((...args: unknown[]) => seen.push(args));
+  serverSocket.on('ask-client', (_q: unknown, ack: (v: string) => void) => ack('ok'));
+
+  client.emit('ask-client', 'q1', () => undefined);
+  const answer = await client.emitWithAck('ask-client', 'q2');
+
+  expect(answer).toBe('ok');
+  expect(seen).toEqual([
+    ['ask-client', 'q1'],
+    ['ask-client', 'q2'],
+  ]);
+});
+
+it('empty listenersAnyOutgoing lookups are fresh and cannot install listeners on either side', async () => {
+  const { client, serverSocket } = await ctx.connectClient();
+  const serverSeen: string[] = [];
+  const clientSeen: string[] = [];
+  const firstServerLookup = serverSocket.listenersAnyOutgoing();
+  const firstClientLookup = client.listenersAnyOutgoing();
+  firstServerLookup.push(() => serverSeen.push('injected'));
+  firstClientLookup.push(() => clientSeen.push('injected'));
+
+  expect(serverSocket.listenersAnyOutgoing()).not.toBe(firstServerLookup);
+  expect(client.listenersAnyOutgoing()).not.toBe(firstClientLookup);
+  expect(serverSocket.listenersAnyOutgoing()).toEqual([]);
+  expect(client.listenersAnyOutgoing()).toEqual([]);
+
+  serverSocket.emit('server-marker');
+  client.emit('client-marker');
+
+  expect(serverSeen).toEqual([]);
+  expect(clientSeen).toEqual([]);
+});
+
+it('offAnyOutgoing on untouched sockets keeps empty lookups fresh and inert', async () => {
+  const { client, serverSocket } = await ctx.connectClient();
+  const serverSeen: string[] = [];
+  const clientSeen: string[] = [];
+
+  serverSocket.offAnyOutgoing();
+  client.offAnyOutgoing();
+  const firstServerLookup = serverSocket.listenersAnyOutgoing();
+  const firstClientLookup = client.listenersAnyOutgoing();
+  firstServerLookup.push(() => serverSeen.push('injected'));
+  firstClientLookup.push(() => clientSeen.push('injected'));
+
+  expect(serverSocket.listenersAnyOutgoing()).not.toBe(firstServerLookup);
+  expect(client.listenersAnyOutgoing()).not.toBe(firstClientLookup);
+
+  serverSocket.emit('server-marker');
+  client.emit('client-marker');
+
+  expect(serverSeen).toEqual([]);
+  expect(clientSeen).toEqual([]);
+});
+
+it('offAnyOutgoing detaches the old arrays and installs stable empty replacements', async () => {
+  const { client, serverSocket } = await ctx.connectClient();
+  const serverSeen: string[] = [];
+  const clientSeen: string[] = [];
+  serverSocket.onAnyOutgoing(() => {});
+  client.onAnyOutgoing(() => {});
+  const oldServerLookup = serverSocket.listenersAnyOutgoing();
+  const oldClientLookup = client.listenersAnyOutgoing();
+
+  serverSocket.offAnyOutgoing();
+  client.offAnyOutgoing();
+
+  expect(serverSocket.listenersAnyOutgoing()).not.toBe(oldServerLookup);
+  expect(client.listenersAnyOutgoing()).not.toBe(oldClientLookup);
+  expect(serverSocket.listenersAnyOutgoing()).toBe(serverSocket.listenersAnyOutgoing());
+  expect(client.listenersAnyOutgoing()).toBe(client.listenersAnyOutgoing());
+  serverSocket.listenersAnyOutgoing().push(() => serverSeen.push('replacement'));
+  client.listenersAnyOutgoing().push(() => clientSeen.push('replacement'));
+
+  serverSocket.emit('server-marker');
+  client.emit('client-marker');
+
+  expect(serverSeen).toEqual(['replacement']);
+  expect(clientSeen).toEqual(['replacement']);
+});
