@@ -145,10 +145,11 @@ Collecting an ack from every recipient of a broadcast, and answering on expiry.
 - [the middleware reads the connecting socket handshake](../src/middleware.test.ts#L21)
 - [next(err) makes the client observe connect_error with the error message](../src/middleware.test.ts#L34)
 - [the rejecting error's data passes through to the client](../src/middleware.test.ts#L45)
-- [a rejected connection never fires connection and is absent from the roster](../src/middleware.test.ts#L59)
-- [io.of(nsp).use() runs only for connections on that namespace](../src/middleware.test.ts#L90)
-- [two middlewares run in registration order](../src/middleware.test.ts#L108)
-- [an error in the first middleware short-circuits the second](../src/middleware.test.ts#L123)
+- [a rejected connection cleans temporary membership and stays out of the roster](../src/middleware.test.ts#L59)
+- [a cancelled connection attempt cannot be admitted by a late middleware callback](../src/middleware.test.ts#L97)
+- [io.of(nsp).use() runs only for connections on that namespace](../src/middleware.test.ts#L148)
+- [two middlewares run in registration order](../src/middleware.test.ts#L166)
+- [an error in the first middleware short-circuits the second](../src/middleware.test.ts#L181)
 
 ### Handshake
 

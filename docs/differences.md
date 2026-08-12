@@ -77,9 +77,6 @@ not change bump depending on which list it was written on.
 - **Static namespace registration and admission.** smocket does not normalize all static
   namespace names the way socket.io does, and a connection can enter a namespace that the
   server did not register. See [#228](https://github.com/electrohyun/smocket/issues/228).
-- **Abandoned connection attempts.** A rejected or cancelled attempt can retain temporary
-  room membership or finish connecting after it was abandoned. See
-  [#229](https://github.com/electrohyun/smocket/issues/229).
 - **Volatile broadcast narrowing.** A broadcast narrowed with `to`, `in`, `except`, or
   `timeout` does not expose the next `volatile` operator. See
   [#231](https://github.com/electrohyun/smocket/issues/231).
