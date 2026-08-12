@@ -111,6 +111,11 @@ const AREAS = [
     blurb: '`onAnyOutgoing` / `offAnyOutgoing`, and where in the send path they fire.',
   },
   {
+    file: 'src/reserved-events.test.ts',
+    title: 'Reserved event names',
+    blurb: 'Which public emit names throw before delivery or outgoing observation.',
+  },
+  {
     file: 'src/remove-listeners.test.ts',
     title: 'Listener removal',
     blurb: '`off` and `removeAllListeners`, including the places the two sides disagree.',

@@ -21,6 +21,14 @@ interface SocketData {
   userId: string;
 }
 
+interface ReservedClientToServerEvents {
+  disconnect: () => void;
+}
+
+interface ReservedServerToClientEvents {
+  disconnect: () => void;
+}
+
 export function assertTypedEventMapsCompile(): void {
   const io = new Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>(
     'http://localhost:3000',
@@ -149,6 +157,36 @@ export function assertSocketDataDefaultMatchesSocketIo(): void {
   void io.close();
 }
 
+export function assertMappedReservedNamesStaySocketIoCompatible(): void {
+  const io = new Server<ReservedClientToServerEvents, ReservedServerToClientEvents>(
+    'http://localhost:3003',
+  );
+
+  io.emit('disconnect');
+  io.of('/').emit('disconnect');
+  io.to('room').emit('disconnect');
+  io.timeout(100).emit('disconnect');
+  io.volatile.emit('disconnect');
+
+  io.on('connection', (socket) => {
+    socket.emit('disconnect');
+    socket.timeout(100).emit('disconnect');
+    socket.volatile.emit('disconnect');
+  });
+
+  const client = io.connect();
+  client.emit('disconnect');
+  client.timeout(100).emit('disconnect');
+  client.volatile.emit('disconnect');
+  const direct = client.emitWithAck('disconnect');
+  const timed = client.timeout(100).emitWithAck('disconnect');
+  const volatile = client.volatile.emitWithAck('disconnect');
+  void direct;
+  void timed;
+  void volatile;
+  void io.close();
+}
+
 export function assertRealSocketIoListenerInferenceCompiles(
   io: IoServer<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
 ): void {
@@ -218,6 +256,33 @@ export function assertRealSocketIoClientAckTypesCompile(
   void timedAccepted;
   void volatileAccepted;
   void nonAck;
+}
+
+export function assertRealSocketIoMappedReservedNamesCompile(
+  io: IoServer<ReservedClientToServerEvents, ReservedServerToClientEvents>,
+  client: IoClientSocket<ReservedServerToClientEvents, ReservedClientToServerEvents>,
+): void {
+  io.emit('disconnect');
+  io.of('/').emit('disconnect');
+  io.to('room').emit('disconnect');
+  io.timeout(100).emit('disconnect');
+  io.volatile.emit('disconnect');
+
+  io.on('connection', (socket) => {
+    socket.emit('disconnect');
+    socket.timeout(100).emit('disconnect');
+    socket.volatile.emit('disconnect');
+  });
+
+  client.emit('disconnect');
+  client.timeout(100).emit('disconnect');
+  client.volatile.emit('disconnect');
+  const direct = client.emitWithAck('disconnect');
+  const timed = client.timeout(100).emitWithAck('disconnect');
+  const volatile = client.volatile.emitWithAck('disconnect');
+  void direct;
+  void timed;
+  void volatile;
 }
 
 export type AssertDefaultEventsMapIsPublic = DefaultEventsMap;

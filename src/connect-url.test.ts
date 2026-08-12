@@ -194,6 +194,27 @@ it('connect(url) to an unregistered origin fires connect_error, without throwing
   }
 });
 
+it('a failed client still rejects reserved names on every emit wrapper', async () => {
+  const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+  try {
+    const client = connect('http://localhost:9997');
+    const failed = new Promise<void>((resolve) => client.once('connect_error', () => resolve()));
+    const reserved = new Error('"disconnect" is a reserved event name');
+
+    expect(() => client.emit('disconnect')).toThrowError(reserved);
+    expect(() => client.timeout(20).emit('disconnect')).toThrowError(reserved);
+    expect(() => client.volatile.emit('disconnect')).toThrowError(reserved);
+    await expect(client.emitWithAck('disconnect')).rejects.toThrowError(reserved);
+    await expect(client.timeout(20).emitWithAck('disconnect')).rejects.toThrowError(reserved);
+    await expect(client.volatile.emitWithAck('disconnect')).rejects.toThrowError(reserved);
+
+    await failed;
+    expect(consoleError).toHaveBeenCalledOnce();
+  } finally {
+    consoleError.mockRestore();
+  }
+});
+
 it('close unregisters the server so later connect(url) reports a missing server', async () => {
   const server = new Server('http://localhost');
   const closing = server.close();

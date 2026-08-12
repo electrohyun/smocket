@@ -193,6 +193,21 @@ it('a volatile emit still carries an ack, which round-trips when delivered', asy
   expect(answer).toBe(10);
 });
 
+it('volatile emitWithAck delivers and fires outgoing catch-alls in both directions', async () => {
+  const { client, serverSocket } = await ctx.connectClient();
+  const serverOutgoing: string[] = [];
+  const clientOutgoing: string[] = [];
+  serverSocket.onAnyOutgoing((event) => serverOutgoing.push(String(event)));
+  client.onAnyOutgoing((event) => clientOutgoing.push(String(event)));
+  client.on('server-q', (n: number, ack: (r: number) => void) => ack(n * 2));
+  serverSocket.on('client-q', (n: number, ack: (r: number) => void) => ack(n + 3));
+
+  await expect(serverSocket.volatile.emitWithAck('server-q', 5)).resolves.toBe(10);
+  await expect(client.volatile.emitWithAck('client-q', 7)).resolves.toBe(10);
+  expect(serverOutgoing).toEqual(['server-q']);
+  expect(clientOutgoing).toEqual(['client-q']);
+});
+
 it('a volatile emit to a recipient still in the pre-connect window is dropped', async () => {
   // Inside the connection handler the paired client has not yet completed its connection
   // (0004), so a volatile emit to it is dropped while a normal one is delivered. Reached
@@ -205,10 +220,12 @@ it('a volatile emit to a recipient still in the pre-connect window is dropped', 
   await disconnected;
 
   const vol = track(client, 'vol');
+  const volAck = track(client, 'vol-ack');
   const marker = receive(client, 'marker');
 
   ctx.io.on('connection', (socket: ServerSocketContract) => {
     socket.volatile.emit('vol', 'dropped'); // pre-connect: dropped
+    void socket.volatile.emitWithAck('vol-ack'); // pre-connect: dropped, ack stays pending
     socket.emit('marker', 'ok'); // pre-connect: buffered, then delivered
   });
 
@@ -216,6 +233,7 @@ it('a volatile emit to a recipient still in the pre-connect window is dropped', 
 
   await expect(marker).resolves.toBe('ok');
   expect(vol.received).toBe(false);
+  expect(volAck.received).toBe(false);
 });
 
 it('a volatile emit from a client still in the pre-connect window is dropped', async () => {
@@ -229,6 +247,7 @@ it('a volatile emit from a client still in the pre-connect window is dropped', a
   const delivered = new Promise<void>((resolve) => {
     ctx.io.on('connection', (socket: ServerSocketContract) => {
       socket.on('vol', (value: string) => seen.push(`vol:${value}`));
+      socket.on('vol-ack', () => seen.push('vol-ack'));
       socket.on('marker', (value: string) => {
         seen.push(`marker:${value}`);
         resolve();
@@ -240,6 +259,8 @@ it('a volatile emit from a client still in the pre-connect window is dropped', a
   expect(client.connected).toBe(false);
 
   client.volatile.emit('vol', 'dropped'); // pre-connect: dropped
+  // Real socket.io-client rejects this pending ack during fixture teardown.
+  void client.volatile.emitWithAck('vol-ack').catch(() => undefined); // pre-connect: dropped
   client.emit('marker', 'ok'); // pre-connect: buffered, then delivered
 
   await delivered;

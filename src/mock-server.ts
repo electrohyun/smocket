@@ -470,6 +470,7 @@ class BroadcastOperator implements BroadcastContract, TimeoutBroadcastContract {
   }
 
   emit(event: string, ...args: unknown[]): boolean {
+    assertNotReservedEvent(event);
     const recipients = this.recipients();
     const last = args.at(-1);
     // A plain broadcast unless a timeout is armed and a trailing callback is present:
@@ -1125,11 +1126,25 @@ export class Server<
 }
 
 /**
- * Events smocket dispatches locally rather than receiving from the peer. A
- * catch-all (`onAny`) skips them, matching socket.io, whose catch-all fires only
- * for events that arrive as packets, never for the lifecycle ones.
+ * Socket.IO's public-emit reserved names. The four lifecycle names are dispatched
+ * locally by smocket and skipped by catch-alls; the final two belong to Node's emitter.
+ * Application emit paths reject the whole set before observation or delivery.
  */
-const RESERVED_EVENTS = new Set(['connect', 'connect_error', 'disconnect', 'disconnecting']);
+const RESERVED_EVENTS = new Set([
+  'connect',
+  'connect_error',
+  'disconnect',
+  'disconnecting',
+  'newListener',
+  'removeListener',
+]);
+
+/** Reject names Socket.IO reserves for its own emitter and connection lifecycle. */
+function assertNotReservedEvent(event: string): void {
+  if (RESERVED_EVENTS.has(event)) {
+    throw new Error(`"${event}" is a reserved event name`);
+  }
+}
 
 /**
  * A minimal event target shared by both socket sides: a listener registry, the
@@ -1421,13 +1436,13 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
   }
 
   emit(event: string, ...args: unknown[]): boolean {
+    assertNotReservedEvent(event);
     this.emitOutgoing(event, args);
     send(this.peer, event, args);
     return true;
   }
   emitWithAck(event: string, ...args: unknown[]): Promise<unknown> {
-    this.emitOutgoing(event, args);
-    return emitWithAck(this.peer, event, args);
+    return emitWithAck(this.peer, event, args, () => this.emitOutgoing(event, args));
   }
   /**
    * Arm a per-emit ack timer. `emit` / `emitWithAck` are the single-ack forms, sent to the
@@ -1493,6 +1508,7 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
   get volatile(): VolatileServerSocket {
     return {
       emit: (event, ...args) => {
+        assertNotReservedEvent(event);
         // A dropped (pre-connect) volatile emit is never sent, so it fires no outgoing
         // catch-all; a connected one delivers and runs it, like a plain emit (#111).
         // Either way it answers `true`, as socket.io's server-side emit does whether or
@@ -1503,9 +1519,9 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
         return true;
       },
       emitWithAck: (event, ...args) => {
-        if (!this.peer.connected) return new Promise<unknown>(() => {});
-        this.emitOutgoing(event, args);
-        return emitWithAck(this.peer, event, args);
+        return emitWithAck(this.peer.connected ? this.peer : undefined, event, args, () =>
+          this.emitOutgoing(event, args),
+        );
       },
       broadcast: new BroadcastOperator(this.nsp.adapter, this.nsp.sockets, [], [this.id], true),
       to: (room) =>
@@ -1711,6 +1727,7 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
   }
 
   emit(event: string, ...args: unknown[]): this {
+    assertNotReservedEvent(event);
     // The outgoing catch-all fires at the send site, before the packet leaves and
     // regardless of whether it is buffered first (#111).
     this.emitOutgoing(event, args);
@@ -1724,13 +1741,16 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
     return this;
   }
   emitWithAck(event: string, ...args: unknown[]): Promise<unknown> {
-    // The outgoing catch-all fires for emitWithAck too (#111); the internally added
-    // ack never reaches it, and neither does a caller's, since `emitOutgoing` strips
-    // a trailing function.
-    this.emitOutgoing(event, args);
     // Like the free `emitWithAck`, but the rejecter is registered so `disconnect`
     // can settle a still-pending ack, matching socket.io-client.
     return new Promise((resolve, reject) => {
+      // Socket.IO's emitWithAck calls emit inside its Promise executor. A reserved name
+      // therefore rejects the Promise rather than escaping as a synchronous throw.
+      assertNotReservedEvent(event);
+      // The outgoing catch-all fires for emitWithAck too (#111); the internally added
+      // ack never reaches it, and neither does a caller's, since `emitOutgoing` strips
+      // a trailing function.
+      this.emitOutgoing(event, args);
       this.pendingAcks.add(reject);
       const answer = (value: unknown) => {
         this.pendingAcks.delete(reject);
@@ -1770,6 +1790,7 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
     // chains, where the server side answers `true`.
     const view: VolatileClientSocket = {
       emit: (event, ...args) => {
+        assertNotReservedEvent(event);
         // Dropped (pre-connect) volatile emits are never sent, so they fire no outgoing
         // catch-all; a connected one delivers and runs it, like a plain emit (#111).
         if (!this.connected) return view;
@@ -1778,9 +1799,9 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
         return view;
       },
       emitWithAck: (event, ...args) => {
-        if (!this.connected) return new Promise<unknown>(() => {});
-        this.emitOutgoing(event, args);
-        return emitWithAck(this.serverSocket, event, args);
+        return emitWithAck(this.connected ? this.serverSocket : undefined, event, args, () =>
+          this.emitOutgoing(event, args),
+        );
       },
     };
     return view;
@@ -1857,21 +1878,26 @@ class FailedClientSocket extends ClientEmitter implements ClientSocketContract {
 
   // A failed connection never completes, so there is nothing to send, ack, or tear
   // down, and `connect()` does not retry: the failure was already reported (0005).
-  emit(): this {
+  emit(event: string): this {
+    assertNotReservedEvent(event);
     /* inert: never connected */
     return this;
   }
-  emitWithAck(): Promise<unknown> {
+  emitWithAck(event: string, ...args: unknown[]): Promise<unknown> {
     // No server will ever answer, so this stays pending, matching a client whose
     // connection never completes rather than inventing a rejection shape.
-    return new Promise<unknown>(() => {});
+    return emitWithAck(undefined, event, args, Function.prototype as () => void);
   }
   timeout(): TimeoutEmitterContract {
     // Inert like the rest of this socket: the emit never leaves and the promise never
     // settles, so no timer is armed and the terminal failure stays terminal (0005).
     const inert: TimeoutEmitterContract = {
-      emit: () => inert,
-      emitWithAck: () => new Promise<unknown>(() => {}),
+      emit: (event) => {
+        assertNotReservedEvent(event);
+        return inert;
+      },
+      emitWithAck: (event, ...args) =>
+        emitWithAck(undefined, event, args, Function.prototype as () => void),
     };
     return inert;
   }
@@ -1879,8 +1905,12 @@ class FailedClientSocket extends ClientEmitter implements ClientSocketContract {
     // Never connected, so a volatile emit is always in the pre-connect window: dropped,
     // and its ack stays pending, exactly like the inert `emit` / `emitWithAck` above (0016).
     const inert: VolatileClientSocket = {
-      emit: () => inert,
-      emitWithAck: () => new Promise<unknown>(() => {}),
+      emit: (event) => {
+        assertNotReservedEvent(event);
+        return inert;
+      },
+      emitWithAck: (event, ...args) =>
+        emitWithAck(undefined, event, args, Function.prototype as () => void),
     };
     return inert;
   }
@@ -1915,6 +1945,7 @@ class TimeoutEmitter implements TimeoutEmitterContract {
   ) {}
 
   emit(event: string, ...args: unknown[]): this {
+    assertNotReservedEvent(event);
     const last = args.at(-1);
     // No trailing callback: a plain emit that delivers and arms no timer (measured).
     if (typeof last !== 'function') {
@@ -1997,8 +2028,18 @@ function scheduleDelivery(adapter: SmocketAdapter, sid: string, deliver: () => v
  * that resolves the promise with the peer's answer. The single-value resolve
  * shape is what the conformance suite pins against real socket.io.
  */
-function emitWithAck(target: Emitter, event: string, args: unknown[]): Promise<unknown> {
+function emitWithAck(
+  target: Emitter | undefined,
+  event: string,
+  args: unknown[],
+  beforeSend: () => void,
+): Promise<unknown> {
   return new Promise((resolve) => {
+    // The guard lives inside the executor to preserve Socket.IO's rejected-Promise
+    // shape for emitWithAck, while ordinary emit throws synchronously.
+    assertNotReservedEvent(event);
+    if (!target) return;
+    beforeSend();
     send(target, event, [...args, (...answer: unknown[]) => resolve(answer[0])]);
   });
 }
