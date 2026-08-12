@@ -65,6 +65,9 @@
     "example:chat-room": "pnpm build && pnpm --filter chat-room-example test && pnpm --filter chat-room-example start",
     "consumer:chat-room:published": "node scripts/run-chat-room-consumer.mjs published",
     "consumer:chat-room:candidate": "node scripts/run-chat-room-consumer.mjs candidate",
+    "case-study:chat-room": "node scripts/run-chat-room-case-study.mjs",
+    "case-study:chat-room:record": "node scripts/run-chat-room-case-study.mjs --write",
+    "case-study:chat-room:check": "node scripts/run-chat-room-case-study.mjs --check",
     "conformance": "node scripts/conformance-report.mjs",
     "check:conformance": "node scripts/conformance-report.mjs --check"
   },
