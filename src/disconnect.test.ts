@@ -50,6 +50,40 @@ it('a room disappears from the adapter when its last member disconnects', async 
   expect(adapter.rooms.has(socket2.id)).toBe(true);
 });
 
+it('whole-socket cleanup removes the sid from adapter membership', async () => {
+  const { client, serverSocket } = await ctx.connectClient();
+  await serverSocket.join('room');
+  const adapter = ctx.io.of('/').adapter;
+  const sids = (adapter as typeof adapter & { sids: Map<string, Set<string>> }).sids;
+  const sid = serverSocket.id;
+
+  const { disconnected } = observeDisconnect(serverSocket);
+  client.disconnect();
+  await disconnected;
+
+  expect(sids.has(sid)).toBe(false);
+});
+
+it('a disconnected socket cannot join rooms again', async () => {
+  const { client, serverSocket } = await ctx.connectClient();
+  await serverSocket.join('before-disconnect');
+  const adapter = ctx.io.of('/').adapter;
+  const sids = (adapter as typeof adapter & { sids: Map<string, Set<string>> }).sids;
+  const sid = serverSocket.id;
+
+  const { disconnected } = observeDisconnect(serverSocket);
+  client.disconnect();
+  await disconnected;
+
+  expect(serverSocket.join('late-single')).toBeUndefined();
+  expect(serverSocket.join(['late-a', 'late-b'])).toBeUndefined();
+  expect(serverSocket.rooms.size).toBe(0);
+  expect(sids.has(sid)).toBe(false);
+  expect(adapter.rooms.has('late-single')).toBe(false);
+  expect(adapter.rooms.has('late-a')).toBe(false);
+  expect(adapter.rooms.has('late-b')).toBe(false);
+});
+
 it('a reconnected socket does not automatically rejoin its previous rooms', async () => {
   const { client: client1, serverSocket: socket1 } = await ctx.connectClient();
   const { client: client2, serverSocket: socket2 } = await ctx.connectClient();

@@ -80,9 +80,6 @@ not change bump depending on which list it was written on.
 - **Abandoned connection attempts.** A rejected or cancelled attempt can retain temporary
   room membership or finish connecting after it was abandoned. See
   [#229](https://github.com/electrohyun/smocket/issues/229).
-- **Post-disconnect membership.** A disconnected socket can leave an empty adapter entry
-  behind and can join rooms again. See
-  [#230](https://github.com/electrohyun/smocket/issues/230).
 - **Volatile broadcast narrowing.** A broadcast narrowed with `to`, `in`, `except`, or
   `timeout` does not expose the next `volatile` operator. See
   [#231](https://github.com/electrohyun/smocket/issues/231).

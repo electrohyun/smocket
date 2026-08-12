@@ -1260,6 +1260,8 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
   readonly handshake: Handshake;
   /** The first teardown owns the lifecycle; later disconnect paths await the same work. */
   private teardownPromise: Promise<void> | undefined;
+  /** Cleared by whole-socket cleanup so a disconnected socket cannot recreate membership. */
+  private acceptsRoomJoins = true;
   /**
    * The per-socket store (#108): an empty object at creation that middleware writes and a
    * handler reads, to carry what middleware resolved from the handshake. A fresh socket
@@ -1300,6 +1302,10 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
       defer(() => {
         this.dispatch('disconnecting', [reason]);
         for (const room of this.rooms) this.nsp.adapter.del(this.id, room);
+        // `del` removes one room and intentionally leaves the sid entry alone. Whole-socket
+        // cleanup owns the reverse-index deletion, matching socket.io-adapter's `delAll`
+        // without adding that still-undecided method to smocket's public adapter seam (#238).
+        this.nsp.adapter.sids.delete(this.id);
         // Empty the live Set in place (contract: "emptied in place on teardown")
         // rather than replacing it, so any held reference sees it clear.
         this.rooms.clear();
@@ -1307,6 +1313,7 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
         // (empty target rooms means the whole `sockets` map) keeps delivering to a
         // socket that is already gone.
         this.nsp.sockets.delete(this.id);
+        this.acceptsRoomJoins = false;
         this.dispatch('disconnect', [reason]);
         resolve();
       });
@@ -1461,6 +1468,7 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
     return new BroadcastOperator(this.nsp.adapter, this.nsp.sockets, [], [this.id]);
   }
   join(room: string | string[]): void {
+    if (!this.acceptsRoomJoins) return;
     // `join` takes one room or many; `leave` is always one, matching socket.io.
     // Each room is recorded in the adapter (both directions) and mirrored into
     // this socket's own `rooms`, the server-only view the tests observe.
