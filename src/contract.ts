@@ -745,8 +745,8 @@ export interface ServerSocketContract<
     room: string | string[],
   ): BroadcastContract<DecorateAcknowledgementsWithMultipleResponses<EmitEvents>, SocketData>;
   /**
-   * Server-initiated disconnect. `close` decides whether the underlying transport
-   * is closed too; a mock has no transport, so it has no effect there. Fires
+   * Server-initiated disconnect. `false` closes this namespace socket; `true`
+   * closes every namespace socket sharing its logical Manager (0028). Fires
    * `disconnect` on both sides with real socket.io's reason for this path.
    */
   disconnect(close?: boolean): this;
@@ -829,6 +829,10 @@ export interface ConnectOptions {
   auth?: Record<string, unknown> | AuthCallback;
   /** Client-supplied handshake query, read on the server as `socket.handshake.query`. */
   query?: Record<string, unknown>;
+  /** Open this namespace on an independent Manager instead of the origin's cached one. */
+  forceNew?: boolean;
+  /** `false` opts this namespace out of sharing the origin's cached Manager. */
+  multiplex?: boolean;
 }
 
 export interface ConnectedClient<
