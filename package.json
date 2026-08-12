@@ -63,6 +63,8 @@
     "assert:no-imports": "node scripts/assert-no-imports.js",
     "check:package": "pnpm build && pnpm assert:no-imports && pnpm publint && pnpm attw",
     "example:chat-room": "pnpm build && pnpm --filter chat-room-example test && pnpm --filter chat-room-example start",
+    "consumer:chat-room:published": "node scripts/run-chat-room-consumer.mjs published",
+    "consumer:chat-room:candidate": "node scripts/run-chat-room-consumer.mjs candidate",
     "conformance": "node scripts/conformance-report.mjs",
     "check:conformance": "node scripts/conformance-report.mjs --check"
   },

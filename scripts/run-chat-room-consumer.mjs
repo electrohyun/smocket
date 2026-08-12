@@ -1,0 +1,172 @@
+import assert from 'node:assert/strict';
+import { spawn } from 'node:child_process';
+import {
+  access,
+  copyFile,
+  mkdir,
+  mkdtemp,
+  readFile,
+  readdir,
+  rm,
+  writeFile,
+} from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { dirname, join, relative, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const modes = new Set(['candidate', 'published']);
+const mode = process.argv[2];
+
+if (!modes.has(mode)) {
+  throw new Error('Usage: node scripts/run-chat-room-consumer.mjs <candidate|published>');
+}
+
+const repositoryRoot = dirname(dirname(fileURLToPath(import.meta.url)));
+const consumerRoot = join(repositoryRoot, 'consumers', 'chat-room');
+const exampleRoot = join(repositoryRoot, 'examples', 'chat-room');
+const applicationFiles = ['app.js', 'index.js', 'scenario.js', 'scenario.test.js'];
+
+function run(command, args, cwd) {
+  return new Promise((resolve, reject) => {
+    const environment = { ...process.env, npm_config_update_notifier: 'false' };
+    delete environment.npm_config_manage_package_manager_versions;
+
+    const child = spawn(command, args, {
+      cwd,
+      env: environment,
+      stdio: 'inherit',
+    });
+
+    child.on('error', reject);
+    child.on('exit', (code, signal) => {
+      if (code === 0) {
+        resolve();
+        return;
+      }
+
+      reject(
+        new Error(
+          signal ? `${command} was terminated by ${signal}` : `${command} exited with code ${code}`,
+        ),
+      );
+    });
+  });
+}
+
+async function readJson(path) {
+  return JSON.parse(await readFile(path, 'utf8'));
+}
+
+function isInside(parent, child) {
+  const pathFromParent = relative(parent, child);
+  return (
+    pathFromParent === '' || (!pathFromParent.startsWith(`..${sep}`) && pathFromParent !== '..')
+  );
+}
+
+function asFileDependency(pathFromProject) {
+  return `file:${pathFromProject.split(sep).join('/')}`;
+}
+
+async function assembleProject(projectRoot, includeLockfile) {
+  await mkdir(projectRoot, { recursive: true });
+  await copyFile(join(consumerRoot, 'package.json'), join(projectRoot, 'package.json'));
+
+  if (includeLockfile) {
+    await copyFile(join(consumerRoot, 'package-lock.json'), join(projectRoot, 'package-lock.json'));
+  }
+
+  await Promise.all(
+    applicationFiles.map((file) => copyFile(join(exampleRoot, file), join(projectRoot, file))),
+  );
+}
+
+async function installPublished(projectRoot) {
+  const manifest = await readJson(join(projectRoot, 'package.json'));
+  const expectedVersion = manifest.dependencies.smocket;
+
+  assert.match(
+    expectedVersion,
+    /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/,
+    'the published consumer must pin an exact Smocket version',
+  );
+
+  await run('npm', ['ci', '--ignore-scripts', '--no-audit', '--no-fund'], projectRoot);
+
+  const lockfile = await readJson(join(projectRoot, 'package-lock.json'));
+  const lockedPackage = lockfile.packages['node_modules/smocket'];
+  const installedPackage = await readJson(
+    join(projectRoot, 'node_modules', 'smocket', 'package.json'),
+  );
+
+  assert.equal(lockfile.packages[''].dependencies.smocket, expectedVersion);
+  assert.equal(lockedPackage.version, expectedVersion);
+  assert.match(lockedPackage.resolved, /^https:\/\/registry\.npmjs\.org\/smocket\//);
+  assert.equal(installedPackage.version, expectedVersion);
+}
+
+async function installCandidate(projectRoot, temporaryRoot) {
+  const rootManifest = await readJson(join(repositoryRoot, 'package.json'));
+  const archiveRoot = join(temporaryRoot, 'package');
+
+  await access(join(repositoryRoot, 'dist', 'index.js'));
+  await mkdir(archiveRoot);
+  await run(
+    'npm',
+    ['pack', '.', '--ignore-scripts', '--pack-destination', archiveRoot],
+    repositoryRoot,
+  );
+
+  const archives = (await readdir(archiveRoot)).filter((file) => file.endsWith('.tgz'));
+  assert.equal(archives.length, 1, 'npm pack must produce exactly one tarball');
+
+  const archivePath = join(archiveRoot, archives[0]);
+  const manifestPath = join(projectRoot, 'package.json');
+  const manifest = await readJson(manifestPath);
+  const packageInput = asFileDependency(relative(projectRoot, archivePath));
+
+  manifest.dependencies.smocket = packageInput;
+  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  await run('npm', ['install', '--ignore-scripts', '--no-audit', '--no-fund'], projectRoot);
+
+  const lockfile = await readJson(join(projectRoot, 'package-lock.json'));
+  const lockedPackage = lockfile.packages['node_modules/smocket'];
+  const installedPackage = await readJson(
+    join(projectRoot, 'node_modules', 'smocket', 'package.json'),
+  );
+
+  assert.equal(lockfile.packages[''].dependencies.smocket, packageInput);
+  assert.equal(lockedPackage.resolved, packageInput);
+  assert.equal(installedPackage.version, rootManifest.version);
+}
+
+const nodeMajor = Number.parseInt(process.versions.node.split('.')[0], 10);
+assert.ok(
+  nodeMajor >= 20,
+  `the consumer requires Node.js 20 or later, received ${process.version}`,
+);
+
+const temporaryRoot = await mkdtemp(join(tmpdir(), 'smocket-chat-room-consumer-'));
+const projectRoot = join(temporaryRoot, 'project');
+process.env.npm_config_cache = join(temporaryRoot, 'npm-cache');
+
+try {
+  assert.equal(
+    isInside(repositoryRoot, temporaryRoot),
+    false,
+    'the independent consumer must run outside the repository checkout',
+  );
+  await assembleProject(projectRoot, mode === 'published');
+
+  if (mode === 'published') {
+    await installPublished(projectRoot);
+  } else {
+    await installCandidate(projectRoot, temporaryRoot);
+  }
+
+  await run('npm', ['test'], projectRoot);
+  await run('npm', ['start'], projectRoot);
+  console.log(`${mode} chat-room consumer passed`);
+} finally {
+  await rm(temporaryRoot, { recursive: true, force: true });
+}

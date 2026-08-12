@@ -233,3 +233,5 @@ jobs:
       # depends on it).
       - name: Verify packaging (publint + arethetypeswrong)
         run: pnpm check:package
+      - name: Run the candidate-package consumer
+        run: pnpm consumer:chat-room:candidate

@@ -1,0 +1,40 @@
+name: Published consumer
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/published-consumer.yml
+      - .stackblitzrc
+      - consumers/chat-room/**
+      - examples/chat-room/**
+      - package.json
+      - scripts/run-chat-room-consumer.mjs
+  pull_request:
+    paths:
+      - .github/workflows/published-consumer.yml
+      - .stackblitzrc
+      - consumers/chat-room/**
+      - examples/chat-room/**
+      - package.json
+      - scripts/run-chat-room-consumer.mjs
+  schedule:
+    - cron: '17 3 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  published-consumer:
+    name: published package consumer
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 20
+      - name: Install and run the published-package consumer
+        run: node scripts/run-chat-room-consumer.mjs published
