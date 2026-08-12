@@ -405,6 +405,9 @@ export interface NamespaceReservedEvents<
  * `err`. A rejected socket never joins its id-room, never enters the roster, and never
  * reaches a `connection` handler. Registration order is execution order, and the first
  * middleware to reject short-circuits the rest.
+ * Any room membership created while middleware runs is removed when the attempt is
+ * rejected or cancelled before admission, without firing a disconnect lifecycle for a
+ * socket that never connected.
  */
 export type ConnectionMiddleware<
   ListenEvents extends EventsMap = DefaultEventsMap,
