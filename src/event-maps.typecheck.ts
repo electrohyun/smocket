@@ -99,6 +99,14 @@ export function assertTypedEventMapsCompile(): void {
     const answer: Promise<number> = socket.emitWithAck('question', 'value?');
     const timedAnswer: Promise<number> = socket.timeout(100).emitWithAck('question', 'value?');
     const volatileAnswer: Promise<number> = socket.volatile.emitWithAck('question', 'value?');
+    socket.timeout(100).volatile.on('guess', (_text, ack) => ack(true));
+    socket.volatile.timeout(100).join('room');
+    socket.timeout(100).volatile.emit('question', 'value?', (error, answer) => {
+      const timeoutError: Error = error;
+      const value: number = answer;
+      void timeoutError;
+      void value;
+    });
     // @ts-expect-error an ack with no response value cannot back emitWithAck
     socket.emitWithAck('done');
     void answer;
@@ -173,6 +181,14 @@ export function assertTypedEventMapsCompile(): void {
   const accepted: Promise<boolean> = client.emitWithAck('guess', 'answer');
   const timedAccepted: Promise<Error> = client.timeout(100).emitWithAck('guess', 'answer');
   const volatileAccepted: Promise<boolean> = client.volatile.emitWithAck('guess', 'answer');
+  client.timeout(100).volatile.on('chat', (message) => void message);
+  client.volatile.timeout(100).connect().disconnect();
+  client.timeout(100).volatile.emit('guess', 'answer', (error, accepted) => {
+    const timeoutError: Error = error;
+    const value: boolean = accepted;
+    void timeoutError;
+    void value;
+  });
   // Socket.IO client permits every mapped event here, including one without an ack.
   const nonAck: Promise<unknown> = client.emitWithAck('fire');
   void accepted;
@@ -299,6 +315,14 @@ export function assertRealSocketIoListenerInferenceCompiles(
       .onAnyOutgoing(annotatedOutgoingCatchAll)
       .prependAnyOutgoing(annotatedOutgoingCatchAll)
       .offAnyOutgoing(annotatedOutgoingCatchAll);
+    socket.timeout(100).volatile.on('guess', (_text, ack) => ack(true));
+    socket.volatile.timeout(100).join('room');
+    socket.timeout(100).volatile.emit('question', 'value?', (error, answer) => {
+      const timeoutError: Error = error;
+      const value: number = answer;
+      void timeoutError;
+      void value;
+    });
     const returnedServerSocket: typeof socket = socket.disconnect();
     // @ts-expect-error an ack with no response value cannot back emitWithAck
     socket.emitWithAck('done');
@@ -367,6 +391,14 @@ export function assertRealSocketIoClientAckTypesCompile(
   const accepted: Promise<boolean> = client.emitWithAck('guess', 'answer');
   const timedAccepted: Promise<Error> = client.timeout(100).emitWithAck('guess', 'answer');
   const volatileAccepted: Promise<boolean> = client.volatile.emitWithAck('guess', 'answer');
+  client.timeout(100).volatile.on('chat', (message) => void message);
+  client.volatile.timeout(100).connect().disconnect();
+  client.timeout(100).volatile.emit('guess', 'answer', (error, accepted) => {
+    const timeoutError: Error = error;
+    const value: boolean = accepted;
+    void timeoutError;
+    void value;
+  });
   const nonAck: Promise<unknown> = client.emitWithAck('fire');
   void accepted;
   void timedAccepted;

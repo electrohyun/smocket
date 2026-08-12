@@ -1,4 +1,4 @@
-import { expect, it } from 'vitest';
+import { expect, it, vi } from 'vitest';
 import { setupServer } from './setup-server';
 import { observeDisconnect, receive, track } from './test-events';
 
@@ -144,6 +144,59 @@ it('a pending client.emitWithAck rejects when the connection drops', async () =>
   client.disconnect();
 
   await expect(pending).rejects.toThrow(/disconnected/);
+});
+
+it('disconnect clears a pending client timeout before rejecting emitWithAck', async () => {
+  vi.useFakeTimers();
+  try {
+    const { client, serverSocket } = await ctx.connectClient();
+    serverSocket.on('slow', () => {
+      /* never acks */
+    });
+    const timersBeforeEmit = vi.getTimerCount();
+    const pending = client.timeout(1000).emitWithAck('slow');
+    const outcome = pending.then(
+      () => undefined,
+      (error: unknown) => error,
+    );
+    expect(vi.getTimerCount()).toBe(timersBeforeEmit + 1);
+
+    client.disconnect();
+
+    await expect(outcome).resolves.toMatchObject({
+      message: expect.stringMatching(/disconnected/),
+    });
+    expect(vi.getTimerCount()).toBe(timersBeforeEmit);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+it('a disconnect from an outgoing observer clears the current emitWithAck timeout', async () => {
+  vi.useFakeTimers();
+  try {
+    const { client, serverSocket } = await ctx.connectClient();
+    serverSocket.on('slow', () => {
+      /* never acks */
+    });
+    client.onAnyOutgoing(() => client.disconnect());
+    const timersBeforeEmit = vi.getTimerCount();
+
+    const outcome = client
+      .timeout(60_000)
+      .emitWithAck('slow')
+      .then(
+        () => undefined,
+        (error: unknown) => error,
+      );
+
+    await expect(outcome).resolves.toMatchObject({
+      message: expect.stringMatching(/disconnected/),
+    });
+    expect(vi.getTimerCount()).toBe(timersBeforeEmit);
+  } finally {
+    vi.useRealTimers();
+  }
 });
 
 it('a trailing-callback ack is silently discarded when the connection drops', async () => {
