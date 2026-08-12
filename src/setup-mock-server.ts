@@ -32,11 +32,12 @@ export function setupMockServer(): ServerContext {
   ctx.nextConnection = (namespace = '/') => server.nextConnection(namespace);
 
   ctx.connectClient = async ({ namespace = '/', auth, query }: ConnectOptions = {}) => {
-    // `connect` creates the paired server socket synchronously and offers it to
-    // `nextConnection`, so the socket awaited here is the one this connect made,
-    // not a fresh connection that would never come. See Server.connect.
+    // Observing the namespace first intentionally registers it, matching the real
+    // helper's `ioServer.of(namespace)`. The separate unregistered fixture below
+    // skips this step so admission tests cannot register their own subject.
+    const pendingConnection = ctx.nextConnection(namespace);
     const client = server.connect(namespace, { auth, query });
-    const serverSocket = await ctx.nextConnection(namespace);
+    const serverSocket = await pendingConnection;
     clients.push(client);
     return { client, serverSocket };
   };
@@ -46,6 +47,14 @@ export function setupMockServer(): ServerContext {
   // `connect`, so a test drives this and awaits the error rather than the connect.
   ctx.openClient = ({ namespace = '/', auth, query }: ConnectOptions = {}) => {
     const client = server.connect(namespace, { auth, query });
+    clients.push(client);
+    return client;
+  };
+
+  // Mirrors the real fixture's registration-free path. `Server.connect` must decide
+  // admission from the namespaces already registered through `of`, not create one here.
+  ctx.openUnregisteredClient = (namespace: string) => {
+    const client = server.connect(namespace);
     clients.push(client);
     return client;
   };

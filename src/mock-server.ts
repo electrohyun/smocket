@@ -811,6 +811,12 @@ class Namespace implements NamespaceContract {
  */
 const servers = new Map<string, Server>();
 
+/** Socket.IO's static namespace key: root for empty, otherwise add a leading slash if absent. */
+function normalizeNamespace(name: string): string {
+  if (name === '' || name === '/') return '/';
+  return name.startsWith('/') ? name : `/${name}`;
+}
+
 /**
  * Split a url into its origin (the registry key), namespace path, and query string,
  * normalizing the way socket.io's `url.js` does so two spellings of one origin
@@ -884,8 +890,8 @@ export class Server<
   /**
    * The namespace registry. Every connection, room and broadcast lives on a
    * `Namespace`; the server is the front door that routes to one. `of` is
-   * get-or-create and returns the *same* `Namespace` on repeat calls, so the
-   * `connect` path and an `of()` observation in a test reach one object.
+   * get-or-create and returns the *same* normalized `Namespace` on repeat calls.
+   * Admission only reads this registry, so a client cannot create a namespace.
    */
   private readonly namespaces = new Map<string, Namespace>();
 
@@ -909,6 +915,9 @@ export class Server<
    */
   constructor(url: string) {
     this.origin = parseUrl(url).origin;
+    // Socket.IO constructs the root namespace with the server. It is the one static
+    // namespace a client may enter without an earlier public `of()` registration.
+    this.getNamespace('/');
     servers.set(this.origin, this as Server);
   }
 
@@ -929,20 +938,21 @@ export class Server<
 
   /** Get the runtime namespace by name, creating it on first use. */
   private getNamespace(name: string): Namespace {
-    const existing = this.namespaces.get(name);
+    const normalized = normalizeNamespace(name);
+    const existing = this.namespaces.get(normalized);
     if (existing) return existing;
     const namespace = new Namespace(
-      name,
+      normalized,
       this as Server,
       this.origin,
       this.adapterFactory,
       this.closed,
     );
-    this.namespaces.set(name, namespace);
+    this.namespaces.set(normalized, namespace);
     return namespace;
   }
 
-  /** Get the namespace by name, creating it on first use (socket.io's lazy `of`). */
+  /** Register or read a normalized static namespace (socket.io's lazy `of`). */
   of(name: string): NamespaceContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData> {
     return this.getNamespace(name) as NamespaceContract<
       ListenEvents,
@@ -986,17 +996,25 @@ export class Server<
   }
 
   /**
-   * Attach a client on `namespace` (`/` by default); see `Namespace.connect`.
-   * `source` carries the caller's `auth` / `query` onto the connection's handshake.
+   * Attach a client to an already registered `namespace` (`/` by default); see
+   * `Namespace.connect`. `source` carries the caller's `auth` / `query` onto the
+   * connection's handshake. An unregistered name reports `Invalid namespace`
+   * without creating registry or adapter state.
    */
   connect(
     namespace = '/',
     source?: ConnectOptions,
   ): ClientSocketContract<EmitEvents, ListenEvents> {
-    return this.getNamespace(namespace).connect(source) as ClientSocketContract<
-      EmitEvents,
-      ListenEvents
-    >;
+    const registered = this.namespaces.get(normalizeNamespace(namespace));
+    if (!registered) {
+      const normalized = normalizeNamespace(namespace);
+      const client = new ClientSocket(this as Server, undefined, source, () =>
+        this.namespaces.get(normalized),
+      );
+      client.failInvalidNamespace();
+      return client as ClientSocketContract<EmitEvents, ListenEvents>;
+    }
+    return registered.connect(source) as ClientSocketContract<EmitEvents, ListenEvents>;
   }
 
   /** Resolve with the server socket of the next client to connect on `namespace`. */
@@ -1546,7 +1564,7 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
    * The namespace this client is attached to. Held so `connect` (a reconnect) can
    * re-pair on the same namespace without routing through the dead server socket.
    */
-  private readonly nsp: Namespace;
+  private nsp: Namespace | undefined;
   /**
    * The current paired server socket. Assigned at `completeConnection`, not at
    * construction, and not readonly: a reconnect swaps in a new socket with a new
@@ -1572,12 +1590,23 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
    * connection's auth and query on every reattach.
    */
   private readonly handshakeSource?: ConnectOptions;
+  /**
+   * Re-read a namespace after `Invalid namespace`. Socket.IO lets the same client
+   * connect manually once the server registers that static name.
+   */
+  private readonly resolveNamespace?: () => Namespace | undefined;
 
-  constructor(server: Server, nsp: Namespace, source?: ConnectOptions) {
+  constructor(
+    server: Server,
+    nsp: Namespace | undefined,
+    source?: ConnectOptions,
+    resolveNamespace?: () => Namespace | undefined,
+  ) {
     super();
     this.io = server;
     this.nsp = nsp;
     this.handshakeSource = source;
+    this.resolveNamespace = resolveNamespace;
   }
 
   /**
@@ -1630,6 +1659,11 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
     attempt.serverSocket?.cleanupConnectionAttempt();
     this.connectionAttempt = undefined;
     defer(() => this.dispatch('connect_error', [err]));
+  }
+
+  /** Report static namespace admission failure without making the client terminal. */
+  failInvalidNamespace(): void {
+    defer(() => this.dispatch('connect_error', [new Error('Invalid namespace')]));
   }
 
   /** Start one pairing, or reject a duplicate `connect()` while one is already pending. */
@@ -1742,7 +1776,13 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
     // our namespace: a brand-new server socket and id, none of the old rooms, and the
     // same handshake source, so the reattached socket carries the original auth/query.
     if (this.connected) return;
-    this.nsp.pair(this, this.handshakeSource);
+    const namespace = this.nsp ?? this.resolveNamespace?.();
+    if (!namespace) {
+      this.failInvalidNamespace();
+      return;
+    }
+    this.nsp = namespace;
+    namespace.pair(this, this.handshakeSource);
   }
 
   disconnect(): void {

@@ -5,6 +5,63 @@ import { receive, track } from './test-events';
 
 const ctx = setupServer();
 
+it('io.of normalizes empty and bare static namespace names', () => {
+  const root = ctx.io.of('/');
+  const game = ctx.io.of('/game');
+
+  expect(ctx.io.of('')).toBe(root);
+  expect(root.name).toBe('/');
+  expect(ctx.io.of('game')).toBe(game);
+  expect(game.name).toBe('/game');
+});
+
+it('a registered static namespace admits the normalized harness name', async () => {
+  const game = ctx.io.of('game');
+  const { client, serverSocket } = await ctx.connectClient({ namespace: 'game' });
+
+  expect(serverSocket.nsp).toBe(game);
+  expect(serverSocket.nsp.name).toBe('/game');
+  expect(client.id).toBe(serverSocket.id);
+});
+
+it('an unregistered static namespace is rejected without membership', async () => {
+  const client = ctx.openUnregisteredClient('/private');
+  const disconnected = track(client, 'disconnect');
+  const outcome = await Promise.race([
+    receive(client, 'connect').then(() => 'connect' as const),
+    receive(client, 'connect_error'),
+  ]);
+
+  expect(outcome).toBeInstanceOf(Error);
+  expect((outcome as Error).message).toBe('Invalid namespace');
+  expect(client.connected).toBe(false);
+  expect(client.id).toBeUndefined();
+  expect(disconnected.received).toBe(false);
+
+  // Register only after the rejection marker has arrived. If the failed attempt had
+  // created or joined anything, `of` would return that existing namespace and expose it.
+  const namespace = ctx.io.of('/private');
+  const adapter = namespace.adapter;
+  const sids = (adapter as typeof adapter & { sids: Map<string, Set<string>> }).sids;
+  expect(adapter.rooms.size).toBe(0);
+  expect(sids.size).toBe(0);
+});
+
+it('a client can retry after its static namespace is registered', async () => {
+  const client = ctx.openUnregisteredClient('/private');
+  await receive(client, 'connect_error');
+
+  const namespace = ctx.io.of('/private');
+  const serverConnection = ctx.nextConnection('/private');
+  const connected = receive(client, 'connect');
+  client.connect();
+  const [serverSocket] = await Promise.all([serverConnection, connected]);
+
+  expect(serverSocket.nsp).toBe(namespace);
+  expect(client.connected).toBe(true);
+  expect(client.id).toBe(serverSocket.id);
+});
+
 it("io.of(nsp).on('connection') fires only for connections on that namespace", async () => {
   const seen = new Promise<ServerSocketContract>((resolve) => {
     ctx.io.of('/game').on('connection', (socket: ServerSocketContract) => resolve(socket));
