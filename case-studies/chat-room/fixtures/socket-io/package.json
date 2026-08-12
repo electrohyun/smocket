@@ -1,0 +1,15 @@
+{
+  "name": "chat-room-case-study-socket-io",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "observe": "node observe.js"
+  },
+  "dependencies": {
+    "socket.io": "4.8.3",
+    "socket.io-client": "4.8.3"
+  }
+}
