@@ -170,10 +170,10 @@ setups.
 ## Examples
 
 Runnable programs live in [examples/](examples/), outside the published package.
-[chat-room](examples/chat-room/) is one room, two clients, and one broadcast, the
-smallest thing that shows an event reaching someone other than the sender. From a
-clean checkout, `pnpm install` then `pnpm example:chat-room`. CI runs it on every
-push, so it fails rather than rots.
+[chat-room](examples/chat-room/) follows three participants through two rooms, a
+moderated announcement, and a disconnect. From a clean checkout, `pnpm install`
+then `pnpm example:chat-room`. CI runs it on every push, so it fails rather than
+rots.
 
 ## How it compares
 
