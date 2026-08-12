@@ -1,0 +1,15 @@
+{
+  "name": "smocket-chat-room-consumer",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "smocket": "0.4.2"
+  }
+}
