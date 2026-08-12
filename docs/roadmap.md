@@ -93,7 +93,7 @@ implementation promises by default.
 Only dependencies that affect release order belong here; issue bodies own their detailed
 requirements and progress.
 
-- The realistic application in [#113] and published-package environment in [#208] feed
+- The application workflow in [#113] and published-package environment in [#208] feed
   the application validation and productivity reports in [#218].
 - [Decision 0022](./decisions/0022-root-socket-names-server-socket.md) assigns root
   `Socket` to the server and the client type to `smocket-client`; [#235] must settle the

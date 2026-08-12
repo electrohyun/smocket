@@ -175,10 +175,10 @@ socket.io-client와 같은 이름의 `io`를 내보냅니다. 테스트 러너�
 ## 예제
 
 실행 가능한 프로그램은 배포 패키지와 분리된 [examples/](examples/)에 있습니다.
-[chat-room](examples/chat-room/)은 room 하나, 클라이언트 둘, broadcast 하나만으로 이벤트가
-발신자 외의 사용자에게 도달하는 과정을 보여 줍니다. 저장소를 새로 clone했다면
-`pnpm install` 다음 `pnpm example:chat-room`을 실행하면 됩니다. CI에서도 push마다 같은
-예제를 실행하므로 예제가 깨지면 바로 드러납니다.
+[chat-room](examples/chat-room/)은 세 참여자가 두 room에서 대화하고, 운영자 공지를 보내고,
+연결 종료를 확인하는 흐름을 보여 줍니다. 저장소를 새로 clone했다면 `pnpm install` 다음
+`pnpm example:chat-room`을 실행하면 됩니다. CI에서도 push마다 같은 예제를 실행하므로
+예제가 깨지면 바로 드러납니다.
 
 ## 다른 방식과의 비교
 
