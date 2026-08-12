@@ -3,9 +3,9 @@ import { setupServer } from './setup-server';
 
 const ctx = setupServer();
 
-// What `emit` and the listener methods hand back. Every case here was read off a real
-// socket.io server first and the contract was written to match, so these run on both
-// targets and fail on either one that drifts.
+// What `emit`, listener, middleware, connect, and disconnect methods hand back. Every
+// case here was read off real socket.io first and the contract was written to match, so
+// these run on both targets and fail on either one that drifts.
 //
 // The shape is not uniform, which is the point of pinning it. The client's `emit` returns
 // the socket so calls chain; every server-side `emit` returns `true` instead. The listener
@@ -132,4 +132,33 @@ it('chained registrations both take effect', async () => {
 it('a namespace on returns the namespace, so it chains', async () => {
   const nsp = ctx.io.of('/chained');
   expect(nsp.on('connection', () => {})).toBe(nsp);
+});
+
+it('server and namespace use return the object they register on', () => {
+  const middleware = (_socket: unknown, next: () => void) => next();
+  expect(ctx.io.use(middleware)).toBe(ctx.io);
+
+  const nsp = ctx.io.of('/middleware-return');
+  expect(nsp.use(middleware)).toBe(nsp);
+});
+
+it('client connect returns the socket while connected and when reconnecting', async () => {
+  const { client } = await ctx.connectClient();
+  expect(client.connect()).toBe(client);
+
+  client.disconnect();
+  const connection = ctx.nextConnection();
+  expect(client.connect()).toBe(client);
+  await connection;
+});
+
+it('client disconnect returns the socket whether or not it is connected', async () => {
+  const { client } = await ctx.connectClient();
+  expect(client.disconnect()).toBe(client);
+  expect(client.disconnect()).toBe(client);
+});
+
+it('server socket disconnect returns that socket', async () => {
+  const { serverSocket } = await ctx.connectClient();
+  expect(serverSocket.disconnect()).toBe(serverSocket);
 });

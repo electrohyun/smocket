@@ -458,7 +458,7 @@ export interface NamespaceContract<
    */
   use(
     middleware: ConnectionMiddleware<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
-  ): void;
+  ): this;
   emit<Event extends EventNameWithoutAck<EmitEvents>>(
     event: Event,
     ...args: EventParams<EmitEvents, Event>
@@ -593,7 +593,7 @@ export interface ServerContract<
    */
   use(
     middleware: ConnectionMiddleware<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
-  ): void;
+  ): this;
   emit<Event extends EventNameWithoutAck<EmitEvents>>(
     event: Event,
     ...args: EventParams<EmitEvents, Event>
@@ -749,7 +749,7 @@ export interface ServerSocketContract<
    * is closed too; a mock has no transport, so it has no effect there. Fires
    * `disconnect` on both sides with real socket.io's reason for this path.
    */
-  disconnect(close?: boolean): void;
+  disconnect(close?: boolean): this;
 }
 
 /** A client-side socket, as `client`. */
@@ -797,8 +797,8 @@ export interface ClientSocketContract<
   timeout(ms: number): TimeoutEmitterContract<DecorateAcknowledgements<EmitEvents>>;
   /** The volatile emitter (0016): a plain emit once connected, dropped in the pre-connect window. */
   volatile: VolatileClientSocket<ListenEvents, EmitEvents>;
-  connect(): void;
-  disconnect(): void;
+  connect(): this;
+  disconnect(): this;
 }
 
 /**
@@ -920,7 +920,7 @@ type NamespaceParityContract<
       socket: ServerSocketParityContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
       next: (error?: MiddlewareError) => void,
     ) => void,
-  ): void;
+  ): NamespaceParityContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>;
 };
 
 type ServerParityContract<
@@ -940,7 +940,7 @@ type ServerParityContract<
       socket: ServerSocketParityContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
       next: (error?: MiddlewareError) => void,
     ) => void,
-  ): void;
+  ): ServerParityContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>;
 };
 
 type ServerSocketParityContract<
@@ -952,7 +952,6 @@ type ServerSocketParityContract<
   ServerSocketContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
   | 'broadcast'
   | 'data'
-  | 'disconnect'
   | 'emit'
   | 'emitWithAck'
   | 'except'
@@ -965,6 +964,9 @@ type ServerSocketParityContract<
   | 'to'
   | 'volatile'
 > & {
+  disconnect(
+    close?: boolean,
+  ): ServerSocketParityContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>;
   nsp: NamespaceParityContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>;
 };
 
@@ -973,8 +975,10 @@ type ClientSocketParityContract<
   EmitEvents extends EventsMap = ListenEvents,
 > = Pick<
   ClientSocketContract<ListenEvents, EmitEvents>,
-  'connect' | 'connected' | 'disconnect' | 'emitWithAck' | 'id' | 'io' | 'timeout' | 'volatile'
+  'connected' | 'emitWithAck' | 'id' | 'io' | 'timeout' | 'volatile'
 > & {
+  connect(): ClientSocketParityContract<ListenEvents, EmitEvents>;
+  disconnect(): ClientSocketParityContract<ListenEvents, EmitEvents>;
   emit<Event extends EventName<EmitEvents>>(
     event: Event,
     ...args: EventParams<EmitEvents, Event>

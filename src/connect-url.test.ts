@@ -186,6 +186,8 @@ it('connect(url) to an unregistered origin fires connect_error, without throwing
 
     expect(client.connected).toBe(false);
     await expect(error).resolves.toBeInstanceOf(Error);
+    expect(client.connect()).toBe(client);
+    expect(client.disconnect()).toBe(client);
     // A parallel console.error alongside the event, so a mistyped url is not
     // silent for the common case of no connect_error handler (0005).
     expect(consoleError).toHaveBeenCalledOnce();
