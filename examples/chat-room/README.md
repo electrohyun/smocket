@@ -1,50 +1,135 @@
-# Chat room example
+# Moderated chat room example
 
-One room, two clients, one broadcast. The smallest program that shows an event
-reaching someone other than the sender, which is the routing a mock without
-[rooms](../../docs/glossary.md#room) cannot reproduce.
+This example is a small scripted chat application with two
+[rooms](../../docs/glossary.md#room), participant roles, targeted messages, and a
+disconnect notification. It uses the workspace copy of Smocket, so CI exercises
+the source under review rather than an installed public release.
+
+## Participants and channels
+
+- Alice is the moderator and joins `general` and `support`.
+- Bob is a participant in `general`.
+- Carol is a participant in `support`.
+
+The server owns the moderator fixture:
+
+```js
+const moderators = new Set(['alice']);
+```
+
+This is demonstration data, not production authentication. A real application
+should derive the participant identity and authorization from a verified session
+or token. The server never trusts an `auth.role` value supplied by a client.
+
+## Application flow
+
+The shared scenario runs one workflow in a fixed order:
+
+1. Alice, Bob, and Carol connect.
+2. Each participant joins the appropriate rooms. Acknowledgements confirm every
+   join before the next action begins.
+3. After each join, the server sends a private welcome with
+   `io.to(socket.id)`.
+4. Bob sends a message to `general`; Alice receives it while Bob and Carol do
+   not.
+5. Bob attempts a moderator announcement and receives a `moderator-only`
+   rejection acknowledgement.
+6. Alice announces maintenance to both rooms.
+7. Alice belongs to both target rooms but receives the union broadcast once.
+8. Bob disconnects; Alice receives his `general` departure notification.
 
 ## Run it
 
-From the repository root, after `pnpm install`.
+From the repository root, after `pnpm install`:
 
 ```bash
 pnpm example:chat-room
 ```
 
+That command builds Smocket, runs the application test, and then runs the CLI.
+To run only the transcript-producing application:
+
+```bash
+pnpm --filter chat-room-example start
 ```
-[alice] bob joined
-[bob] alice: hello
+
+The transcript is deterministic:
+
+```text
+[alice] Welcome to #general.
+[alice] Welcome to #support.
+[bob] Welcome to #general.
+[carol] Welcome to #support.
+[alice] Bob in #general: Hello, everyone!
+[bob] Announcement rejected: moderator-only
+[alice] Alice to #general, #support: Maintenance starts at 18:00.
+[bob] Alice to #general, #support: Maintenance starts at 18:00.
+[carol] Alice to #general, #support: Maintenance starts at 18:00.
+[alice] Bob left #general.
 ```
 
-Both lines are fixed, and for two different reasons.
+## Test it
 
-The first one is ordering that the library already guarantees. Connection
-completion and every emit are scheduled through one FIFO defer
-([0004](../../docs/decisions/0004-connection-deferred-one-tick.md),
-[0010](../../docs/decisions/0010-single-defer-primitive-and-fifo.md)), so alice,
-created first, also joins first. That first join is broadcast the same way as the
-second, with `socket.to(room)`, which reaches the room and skips the sender. The
-room holds nobody else at that point, so `alice joined` is sent and received by no
-one, which is why the output opens with `bob joined` instead.
+The application test uses Node's built-in test runner and the same `runScenario`
+function as the CLI:
 
-The second line is what the acknowledgements are for. Awaiting both joins holds
-the message until bob is in the room. Without that, the message would sit in the
-queue directly behind alice's own join and reach the server while bob was still
-connecting, so the broadcast would find an empty room and the line would be lost.
+```bash
+pnpm --filter chat-room-example test
+```
 
-## What it uses
+It runs the scenario twice in one process. This checks the application results
+and verifies that a repeated run does not depend on state left by the previous run.
 
-- `new Server(url)` and `io.on('connection')`, the server entry point socket.io
-  applications already write against.
-- `connect(url, { auth })`, the client side, with the name read back on the
-  server as `socket.handshake.auth.name`.
-- `socket.join(room)` and `socket.to(room).emit(...)`, the
-  [broadcast](../../docs/glossary.md#broadcast) that reaches the room and skips
-  the sender.
-- `emitWithAck`, which is what makes the last line deterministic rather than
-  dependent on how far two clients happen to have got when the message is sent.
+## File responsibilities
 
-The server half is the code an application runs against real socket.io. Swapping
-a real client for smocket inside a test runner is a separate setup, documented
-under `docs/`.
+- `app.js` creates the server and owns join, message, welcome, authorization,
+  announcement, and departure behavior.
+- `scenario.js` creates the three clients, registers observers before actions,
+  executes the workflow, returns structured results, formats the transcript, and
+  cleans up every client and the server in `finally`.
+- `index.js` prints the transcript returned by the shared scenario.
+- `scenario.test.js` asserts the structured result with `node:test` and
+  `node:assert`.
+
+## Smocket APIs in the application
+
+- `new Server(url)` and `io.on('connection')` create the chat server and install
+  handlers for each participant.
+- `connect(url, { auth })` identifies the scripted participant to the server.
+  The identity is used only with the server-owned fixture described above.
+- `socket.join(room)` records channel membership.
+- `emitWithAck(...)` confirms joins, room-message acceptance, announcement
+  rejection, and announcement acceptance.
+- `io.to(socket.id).emit(...)` sends a welcome to one participant.
+- `socket.to(room).emit(...)` sends a room message or departure notification to
+  the other members without echoing it to the sender.
+- `io.to(['general', 'support']).emit(...)` targets the union of both rooms. A
+  socket in both rooms is included once.
+- `socket.rooms` is read during `disconnecting` to find the rooms that need a
+  departure notification.
+- `io.close()` tears down all sockets and unregisters the application origin.
+
+## Why the workflow does not sleep
+
+The scenario registers every listener before starting the action it observes.
+Expected deliveries are awaited directly, while application decisions use
+[acknowledgements](../../docs/glossary.md#ack) before the next step starts.
+
+Non-receipt and duplicate checks use a later private marker on the same client
+delivery stream. Once that marker arrives, per-socket FIFO ordering proves that
+an earlier event is no longer in flight. No arbitrary delay or timeout decides
+whether Bob or Carol missed the room message, whether Bob's rejected request was
+broadcast, or whether Alice received the two-room announcement more than once.
+
+The departure handler uses `disconnecting`, not `disconnect`, because the
+server-side socket still contains its current rooms during `disconnecting`.
+Socket.IO clears that set before `disconnect`, which would leave the application
+without the channels to notify.
+
+## Application example versus conformance
+
+This example shows already-verified APIs working together as one application. It
+does not create a new compatibility guarantee. The generated
+[dual-run conformance report](../../docs/conformance.md) remains the source of
+truth: each behavior listed there is run first against real Socket.IO and then
+against Smocket from the same test case.

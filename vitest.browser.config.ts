@@ -26,6 +26,9 @@ export default defineConfig({
   },
   test: {
     name: 'browser',
+    // The chat-room application uses Node's built-in test runner. Keep this
+    // browser project scoped to the existing Vitest suites.
+    include: ['src/**/*.test.ts', 'scripts/**/*.test.ts'],
     browser: {
       enabled: true,
       provider: playwright(),
