@@ -33,6 +33,10 @@
   <a href="https://smocket-site.vercel.app">smocket-site.vercel.app</a>
 </p>
 
+<p align="center">
+  <a href="README.ko.md">🇰🇷 한국어</a>
+</p>
+
 > **Status: pre-1.0.** The delivery core is complete and checked against real
 > socket.io by a dual-run conformance suite. The public API can still change before
 > 1.0.0. See the [roadmap to v1.0.0](docs/roadmap.md) and
