@@ -1,7 +1,11 @@
 import { defineConfig } from 'vitest/config';
 
+const vitestFiles = ['src/**/*.test.ts', 'scripts/**/*.test.ts'];
+
 export default defineConfig({
   test: {
+    // The application example has its own Node test runner. Keep these projects
+    // scoped to the existing Vitest suites.
     // The dual run, as two projects of one config. `vitest` with no filter runs
     // both, so running both is what the tool does rather than a convention a
     // contributor has to know, and `--project` picks one when that is wanted.
@@ -12,8 +16,20 @@ export default defineConfig({
     // `real` label. Anything other than `mock` is real to the dispatcher, so
     // the value here is the label and the switch at once.
     projects: [
-      { test: { name: 'real', env: { SMOCKET_TARGET: 'real' } } },
-      { test: { name: 'mock', env: { SMOCKET_TARGET: 'mock' } } },
+      {
+        test: {
+          name: 'real',
+          include: vitestFiles,
+          env: { SMOCKET_TARGET: 'real' },
+        },
+      },
+      {
+        test: {
+          name: 'mock',
+          include: vitestFiles,
+          env: { SMOCKET_TARGET: 'mock' },
+        },
+      },
     ],
     coverage: {
       provider: 'v8',
