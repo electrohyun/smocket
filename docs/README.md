@@ -10,6 +10,8 @@
   [test-runner-integration.md](./test-runner-integration.md)
 - **Which behaviours are verified against real socket.io:**
   [conformance.md](./conformance.md)
+- **How one chat application compares three test-support targets:**
+  [application-case-study.md](./application-case-study.md)
 - **What must happen before the first stable release:**
   [roadmap.md](./roadmap.md)
 - **How five lenses guide development toward v1.0.0:**
