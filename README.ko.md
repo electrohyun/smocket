@@ -18,6 +18,9 @@
   <a href="https://github.com/electrohyun/smocket/actions/workflows/ci.yml">
     <img src="https://github.com/electrohyun/smocket/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI (real + mock)" />
   </a>
+  <a href="https://github.com/electrohyun/smocket/actions/workflows/published-consumer.yml">
+    <img src="https://github.com/electrohyun/smocket/actions/workflows/published-consumer.yml/badge.svg?branch=main" alt="published package consumer" />
+  </a>
   <a href="https://www.npmjs.com/package/smocket">
     <img src="https://img.shields.io/npm/v/smocket" alt="npm version" />
   </a>
@@ -179,6 +182,11 @@ socket.io-client와 같은 이름의 `io`를 내보냅니다. 테스트 러너�
 연결 종료를 확인하는 흐름을 보여 줍니다. 저장소를 새로 clone했다면 `pnpm install` 다음
 `pnpm example:chat-room`을 실행하면 됩니다. CI에서도 push마다 같은 예제를 실행하므로
 예제가 깨지면 바로 드러납니다.
+
+[chat room package consumer](consumers/chat-room/)는 npm에서 배포 버전을 설치하거나 pull
+request에서 만든 tarball을 설치한 뒤 같은 애플리케이션을 실행합니다.
+[저장소 기반 StackBlitz 프로젝트](https://stackblitz.com/github/electrohyun/smocket)에서도
+실행할 수 있습니다.
 
 ## 다른 방식과의 비교
 

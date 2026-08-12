@@ -15,6 +15,9 @@
   <a href="https://github.com/electrohyun/smocket/actions/workflows/ci.yml">
     <img src="https://github.com/electrohyun/smocket/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI (real + mock)" />
   </a>
+  <a href="https://github.com/electrohyun/smocket/actions/workflows/published-consumer.yml">
+    <img src="https://github.com/electrohyun/smocket/actions/workflows/published-consumer.yml/badge.svg?branch=main" alt="published package consumer" />
+  </a>
   <a href="https://www.npmjs.com/package/smocket">
     <img src="https://img.shields.io/npm/v/smocket" alt="npm version" />
   </a>
@@ -174,6 +177,11 @@ Runnable programs live in [examples/](examples/), outside the published package.
 moderated announcement, and a disconnect. From a clean checkout, `pnpm install`
 then `pnpm example:chat-room`. CI runs it on every push, so it fails rather than
 rots.
+
+The [chat room package consumer](consumers/chat-room/) runs the same application
+after npm installs either the released package or a tarball built from a pull
+request. It is also available as a
+[repository-backed StackBlitz project](https://stackblitz.com/github/electrohyun/smocket).
 
 ## How it compares
 
