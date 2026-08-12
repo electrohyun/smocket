@@ -35,6 +35,12 @@ import type {
  */
 type Listener = (...args: never[]) => void;
 
+/** One client-to-namespace pairing from auth resolution through admission. */
+interface ConnectionAttempt {
+  state: 'pending' | 'cancelled' | 'rejected' | 'connected';
+  serverSocket?: ServerSocket;
+}
+
 /**
  * smocket's in-memory core. No HTTP server, no port, no transport: a client and
  * its server-side socket are paired directly in memory (decision ③). It is the
@@ -611,15 +617,22 @@ class Namespace implements NamespaceContract {
    * is the caller's `auth` / `query`, folded into this socket's handshake (0006).
    */
   pair(client: ClientSocket, source?: ConnectOptions): void {
-    if (this.rejectIfClosed(client)) return;
+    const attempt = client.beginConnectionAttempt();
+    if (!attempt) return;
+    if (this.rejectIfClosed(client, attempt)) return;
     // Resolve the auth first, then pair. For an object auth this runs synchronously, so
     // the timing is unchanged; a function auth may call back later, and the connection
     // is held until it does (real socket.io holds the connect until the callback fires).
     resolveAuth(source?.auth, (auth) => {
-      if (this.rejectIfClosed(client)) return;
+      if (!client.isConnectionAttemptPending(attempt)) return;
+      if (this.rejectIfClosed(client, attempt)) return;
       const handshake = buildHandshake(this.origin, auth, source?.query);
       const serverSocket = new ServerSocket(newId(), this, handshake);
       serverSocket.attachPeer(client);
+      if (!client.attachConnectionAttempt(attempt, serverSocket)) {
+        serverSocket.cleanupConnectionAttempt();
+        return;
+      }
 
       // Connection middleware runs here, after the handshake is built (so a middleware
       // reads the same fields a `connection` handler will) and before the socket is
@@ -629,12 +642,23 @@ class Namespace implements NamespaceContract {
       // `connect_error`; a reconnect re-runs `pair`, so the chain runs again for free.
       this.runMiddleware(serverSocket, (err) => {
         if (err) {
-          client.failConnection(err);
+          client.rejectConnectionAttempt(attempt, err);
           return;
         }
-        if (this.rejectIfClosed(client)) return;
+        if (!client.isConnectionAttemptPending(attempt)) {
+          if (attempt.state !== 'connected') serverSocket.cleanupConnectionAttempt();
+          return;
+        }
+        if (this.rejectIfClosed(client, attempt)) return;
         defer(() => {
-          if (this.rejectIfClosed(client)) return;
+          if (!client.isConnectionAttemptPending(attempt)) {
+            // A middleware can invoke `next` more than once. Once this attempt has
+            // connected, a later completion is only a duplicate and must not clean the
+            // live socket; cancelled and rejected attempts do need idempotent cleanup.
+            if (attempt.state !== 'connected') serverSocket.cleanupConnectionAttempt();
+            return;
+          }
+          if (this.rejectIfClosed(client, attempt)) return;
           // Register the socket before offering it, so a broadcast triggered from a
           // `connection` handler can already resolve this sid to its socket.
           this.sockets.set(serverSocket.id, serverSocket);
@@ -651,16 +675,16 @@ class Namespace implements NamespaceContract {
           // real socket.io uses. A handler here can already broadcast to the new
           // socket: it is registered in `sockets` and its id-room above.
           this.emitConnection(serverSocket);
-          client.completeConnection(serverSocket);
+          client.completeConnectionAttempt(attempt, serverSocket);
         });
       });
     });
   }
 
   /** Reject a connection at whichever async boundary observes that close has started. */
-  private rejectIfClosed(client: ClientSocket): boolean {
+  private rejectIfClosed(client: ClientSocket, attempt: ConnectionAttempt): boolean {
     if (!this.closed) return false;
-    client.failConnection(new Error('server is closed'));
+    client.rejectConnectionAttempt(attempt, new Error('server is closed'));
     return true;
   }
 
@@ -1301,24 +1325,38 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
     this.teardownPromise = new Promise((resolve) => {
       defer(() => {
         this.dispatch('disconnecting', [reason]);
-        for (const room of this.rooms) this.nsp.adapter.del(this.id, room);
-        // `del` removes one room and intentionally leaves the sid entry alone. Whole-socket
-        // cleanup owns the reverse-index deletion, matching socket.io-adapter's `delAll`
-        // without adding that still-undecided method to smocket's public adapter seam (#238).
-        this.nsp.adapter.sids.delete(this.id);
-        // Empty the live Set in place (contract: "emptied in place on teardown")
-        // rather than replacing it, so any held reference sees it clear.
-        this.rooms.clear();
-        // Drop the socket from the namespace roster too: otherwise `io.emit()`
-        // (empty target rooms means the whole `sockets` map) keeps delivering to a
-        // socket that is already gone.
-        this.nsp.sockets.delete(this.id);
-        this.acceptsRoomJoins = false;
+        this.cleanupMembership();
         this.dispatch('disconnect', [reason]);
         resolve();
       });
     });
     return this.teardownPromise;
+  }
+
+  /**
+   * Remove every trace a connection middleware could have created before admission.
+   * This path deliberately emits no lifecycle event: Socket.IO does not report a server
+   * `disconnect` for a socket that never connected. `cleanupMembership` is idempotent,
+   * so cancellation and a later middleware callback can both reach it safely.
+   */
+  cleanupConnectionAttempt(): void {
+    this.cleanupMembership();
+  }
+
+  /** Whole-socket membership cleanup shared by abandoned attempts and disconnect. */
+  private cleanupMembership(): void {
+    this.acceptsRoomJoins = false;
+    for (const room of this.rooms) this.nsp.adapter.del(this.id, room);
+    // `del` removes one room and intentionally leaves the sid entry alone. Whole-socket
+    // cleanup owns the reverse-index deletion, matching socket.io-adapter's `delAll`
+    // without adding that still-undecided method to smocket's public adapter seam (#238).
+    this.nsp.adapter.sids.delete(this.id);
+    // Empty the live Set in place (contract: "emptied in place on teardown")
+    // rather than replacing it, so any held reference sees it clear.
+    this.rooms.clear();
+    // A pending socket is not registered yet, but deleting is harmless and keeps this
+    // primitive complete when it is shared with connected-socket teardown.
+    this.nsp.sockets.delete(this.id);
   }
 
   /**
@@ -1515,6 +1553,8 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
    * id, since the id belongs to one connection, not to the client.
    */
   private serverSocket!: ServerSocket;
+  /** The only pairing still allowed to reach `connection` for this client. */
+  private connectionAttempt: ConnectionAttempt | undefined;
   /** Emits made before `connect`; flushed in order once connected (like sendBuffer). */
   private sendBuffer: Array<[string, unknown[]]> = [];
   /**
@@ -1546,7 +1586,13 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
    * and flushing after the swap sends the buffer (emits made while disconnected)
    * to the new socket, matching socket.io-client.
    */
-  completeConnection(serverSocket: ServerSocket): void {
+  completeConnectionAttempt(attempt: ConnectionAttempt, serverSocket: ServerSocket): void {
+    if (!this.isConnectionAttemptPending(attempt)) {
+      if (attempt.state !== 'connected') serverSocket.cleanupConnectionAttempt();
+      return;
+    }
+    attempt.state = 'connected';
+    this.connectionAttempt = undefined;
     this.serverSocket = serverSocket;
     this.connected = true;
     this.id = serverSocket.id;
@@ -1578,8 +1624,41 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
    * matches a successful connect's one-tick delay, so a `connect_error` handler added
    * on the next line is registered in time.
    */
-  failConnection(err: MiddlewareError): void {
+  rejectConnectionAttempt(attempt: ConnectionAttempt, err: MiddlewareError): void {
+    if (!this.isConnectionAttemptPending(attempt)) return;
+    attempt.state = 'rejected';
+    attempt.serverSocket?.cleanupConnectionAttempt();
+    this.connectionAttempt = undefined;
     defer(() => this.dispatch('connect_error', [err]));
+  }
+
+  /** Start one pairing, or reject a duplicate `connect()` while one is already pending. */
+  beginConnectionAttempt(): ConnectionAttempt | undefined {
+    if (this.connected || this.connectionAttempt?.state === 'pending') return undefined;
+    const attempt: ConnectionAttempt = { state: 'pending' };
+    this.connectionAttempt = attempt;
+    return attempt;
+  }
+
+  /** Attach the middleware-visible server socket to the still-current attempt. */
+  attachConnectionAttempt(attempt: ConnectionAttempt, serverSocket: ServerSocket): boolean {
+    if (!this.isConnectionAttemptPending(attempt) || attempt.serverSocket) return false;
+    attempt.serverSocket = serverSocket;
+    return true;
+  }
+
+  /** Whether a callback still belongs to the one attempt this client may complete. */
+  isConnectionAttemptPending(attempt: ConnectionAttempt): boolean {
+    return this.connectionAttempt === attempt && attempt.state === 'pending';
+  }
+
+  /** Cancel a pre-connect attempt without inventing client or server lifecycle events. */
+  private cancelConnectionAttempt(): void {
+    const attempt = this.connectionAttempt;
+    if (!attempt || attempt.state !== 'pending') return;
+    attempt.state = 'cancelled';
+    attempt.serverSocket?.cleanupConnectionAttempt();
+    this.connectionAttempt = undefined;
   }
 
   emit(event: string, ...args: unknown[]): this {
@@ -1667,7 +1746,10 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
   }
 
   disconnect(): void {
-    if (!this.connected) return;
+    if (!this.connected) {
+      this.cancelConnectionAttempt();
+      return;
+    }
     // Client-initiated: this side reports `io client disconnect`, then the server
     // side tears down and reports `client namespace disconnect`.
     this.markDisconnected('io client disconnect');
