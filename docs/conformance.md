@@ -114,6 +114,24 @@ The trailing callback and `emitWithAck`, in both directions.
 - [server-to-client emitWithAck works without a timeout](../src/ack.test.ts#L53)
 - [emitWithAck buffers while disconnected and settles after reconnect](../src/ack.test.ts#L59)
 
+### Payload serialization
+
+JSON results, snapshot timing, invalid data, and reference isolation.
+
+- [client-to-server payloads use JSON results and snapshot at emit](../src/payload-serialization.test.ts#L14)
+- [server-to-client payloads snapshot at emit and decode fresh values](../src/payload-serialization.test.ts#L47)
+- [client-to-server ack requests and responses cross independent snapshots](../src/payload-serialization.test.ts#L66)
+- [server-to-client ack requests and responses cross independent snapshots](../src/payload-serialization.test.ts#L90)
+- [a buffered client payload stays live until outgoing observation and flush](../src/payload-serialization.test.ts#L108)
+- [direct outgoing listeners mutate the live source before the snapshot](../src/payload-serialization.test.ts#L128)
+- [broadcast snapshots once before outgoing listeners and decodes per recipient](../src/payload-serialization.test.ts#L142)
+- [room ack broadcasts snapshot requests and responses per recipient](../src/payload-serialization.test.ts#L174)
+- [toJSON and enumerable own properties determine decoded object results](../src/payload-serialization.test.ts#L231)
+- [a plain toJSON result keeps an original binary property out of the packet](../src/payload-serialization.test.ts#L253)
+- [a broadcast encodes even when its room has no recipients](../src/payload-serialization.test.ts#L267)
+- [circular and BigInt payloads fail before delivery in both directions](../src/payload-serialization.test.ts#L273)
+- [timeout and connected volatile wrappers use the same payload boundary](../src/payload-serialization.test.ts#L295)
+
 ### Acknowledgement timeouts
 
 `timeout(ms)` on a single emit, and what a late ack does.
@@ -342,6 +360,13 @@ Resolving a url to a server, and what the url contributes to the handshake.
 - [close unregisters the server so later connect(url) reports a missing server](../src/connect-url.test.ts#L220)
 - [closing a replaced server does not unregister its replacement](../src/connect-url.test.ts#L241)
 - [the socket from a failed connect still chains](../src/connect-url.test.ts#L253)
+
+### Binary passthrough guard
+
+Keeping out-of-scope binary-containing packets on the existing in-memory path without an
+encoding claim.
+
+- [keeps binary-containing packets on the existing in-memory path](../src/binary-passthrough.test.ts#L5)
 
 ### Adapter API
 
