@@ -34,3 +34,4 @@ these are written.
 | [0020](./0020-close-follows-socket-lifecycle.md)                 | `close()` tears down sockets and unregisters only the current server                    | Accepted | #193          |
 | [0021](./0021-event-maps-cross-the-substitution-seam.md)         | Event maps and socket data survive the server substitution seam                         | Accepted | #171          |
 | [0022](./0022-root-socket-names-server-socket.md)                | Root `Socket` names the server type; `smocket-client` owns the client type              | Accepted | #178, #235    |
+| [0023](./0023-client-package-is-a-thin-facade.md)                | `smocket-client` re-exports one shared client lookup without owning connection state    | Accepted | #235          |

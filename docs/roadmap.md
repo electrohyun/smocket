@@ -95,9 +95,10 @@ requirements and progress.
 
 - The application workflow in [#113] and published-package environment in [#208] feed
   the application validation and productivity reports in [#218].
-- [Decision 0022](./decisions/0022-root-socket-names-server-socket.md) assigns root
-  `Socket` to the server and the client type to `smocket-client`; [#235] must settle the
-  facade and publication shape before the v1 public API guarantee is finalized.
+- [Decisions 0022](./decisions/0022-root-socket-names-server-socket.md) and
+  [0023](./decisions/0023-client-package-is-a-thin-facade.md) assign the server and client
+  package boundaries; their `smocket-client` facade must ship before the v1 public API
+  guarantee is finalized.
 - [development-lenses.md](./development-lenses.md) defines the five lenses used during
   review.
 - [#213] remains the parent direction discussion for roadmap feedback and new use cases.
