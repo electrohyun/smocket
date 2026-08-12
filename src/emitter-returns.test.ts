@@ -96,8 +96,10 @@ it('the client listener methods return the socket, so they chain', async () => {
   expect(client.off('a', noop)).toBe(client);
   expect(client.removeAllListeners('b')).toBe(client);
   expect(client.onAny(noop)).toBe(client);
+  expect(client.prependAny(noop)).toBe(client);
   expect(client.offAny(noop)).toBe(client);
   expect(client.onAnyOutgoing(noop)).toBe(client);
+  expect(client.prependAnyOutgoing(noop)).toBe(client);
   expect(client.offAnyOutgoing(noop)).toBe(client);
 });
 
@@ -109,8 +111,10 @@ it('the server socket listener methods return the socket, so they chain', async 
   expect(serverSocket.off('a', noop)).toBe(serverSocket);
   expect(serverSocket.removeAllListeners('b')).toBe(serverSocket);
   expect(serverSocket.onAny(noop)).toBe(serverSocket);
+  expect(serverSocket.prependAny(noop)).toBe(serverSocket);
   expect(serverSocket.offAny(noop)).toBe(serverSocket);
   expect(serverSocket.onAnyOutgoing(noop)).toBe(serverSocket);
+  expect(serverSocket.prependAnyOutgoing(noop)).toBe(serverSocket);
   expect(serverSocket.offAnyOutgoing(noop)).toBe(serverSocket);
 });
 

@@ -35,6 +35,10 @@ import type {
  */
 type Listener = (...args: never[]) => void;
 
+/** Socket.IO's permissive callback shape for the live catch-all lookup arrays. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyListener = (...args: any[]) => void;
+
 /** One client-to-namespace pairing from auth resolution through admission. */
 interface ConnectionAttempt {
   state: 'pending' | 'cancelled' | 'rejected' | 'connected';
@@ -1268,9 +1272,9 @@ function assertNotReservedEvent(event: string): void {
 class Emitter {
   private readonly listeners = new Map<string, Listener[]>();
   /** Catch-all listeners, fired for every non-reserved event before the specific ones. */
-  private readonly anyListeners: Listener[] = [];
+  private anyListeners: AnyListener[] | undefined;
   /** Outgoing catch-all listeners, fired for every event this socket sends (#111). */
-  private readonly anyOutgoingListeners: Listener[] = [];
+  private anyOutgoingListeners: AnyListener[] | undefined;
 
   on(event: string, listener: Listener): this {
     addListener(this.listeners, event, listener);
@@ -1289,30 +1293,48 @@ class Emitter {
     return this;
   }
 
-  onAny(listener: Listener): this {
-    this.anyListeners.push(listener);
+  onAny(listener: AnyListener): this {
+    (this.anyListeners ??= []).push(listener);
     return this;
   }
 
-  offAny(listener?: Listener): this {
+  prependAny(listener: AnyListener): this {
+    (this.anyListeners ??= []).unshift(listener);
+    return this;
+  }
+
+  listenersAny(): AnyListener[] {
+    return this.anyListeners ?? [];
+  }
+
+  offAny(listener?: AnyListener): this {
     // Remove the first matching registration, the way `off` removes one specific
-    // listener; with no argument, clear every catch-all. socket.io's `offAny`
-    // splices the first occurrence out of its `_anyListeners` array (#125).
+    // listener; with no argument, replace the backing array so earlier lookups detach.
+    // socket.io's `offAny` splices the first occurrence out of `_anyListeners` (#125).
     if (listener) removeFirst(this.anyListeners, listener);
-    else this.anyListeners.length = 0;
+    else if (this.anyListeners) this.anyListeners = [];
     return this;
   }
 
-  onAnyOutgoing(listener: Listener): this {
-    this.anyOutgoingListeners.push(listener);
+  onAnyOutgoing(listener: AnyListener): this {
+    (this.anyOutgoingListeners ??= []).push(listener);
     return this;
   }
 
-  offAnyOutgoing(listener?: Listener): this {
+  prependAnyOutgoing(listener: AnyListener): this {
+    (this.anyOutgoingListeners ??= []).unshift(listener);
+    return this;
+  }
+
+  listenersAnyOutgoing(): AnyListener[] {
+    return this.anyOutgoingListeners ?? [];
+  }
+
+  offAnyOutgoing(listener?: AnyListener): this {
     // The outgoing catch-all's removal mirrors `offAny` (#111): drop the first match,
-    // or clear all with no argument.
+    // or replace the backing array with no argument.
     if (listener) removeFirst(this.anyOutgoingListeners, listener);
-    else this.anyOutgoingListeners.length = 0;
+    else if (this.anyOutgoingListeners) this.anyOutgoingListeners = [];
     return this;
   }
 
@@ -1325,7 +1347,7 @@ class Emitter {
    * lifecycle events are skipped, exactly as the incoming catch-all skips them.
    */
   protected emitOutgoing(event: string, args: unknown[]): void {
-    if (this.anyOutgoingListeners.length === 0 || RESERVED_EVENTS.has(event)) return;
+    if (!this.anyOutgoingListeners?.length || RESERVED_EVENTS.has(event)) return;
     const last = args.at(-1);
     const outgoing = typeof last === 'function' ? args.slice(0, -1) : args;
     for (const any of [...this.anyOutgoingListeners]) {
@@ -1395,7 +1417,7 @@ class Emitter {
    * rather than received from the peer.
    */
   dispatch(event: string, args: unknown[]): void {
-    if (this.anyListeners.length > 0 && !RESERVED_EVENTS.has(event)) {
+    if (this.anyListeners?.length && !RESERVED_EVENTS.has(event)) {
       for (const any of [...this.anyListeners]) {
         (any as (...a: unknown[]) => void)(event, ...args);
       }
@@ -2256,7 +2278,7 @@ function addListener(map: Map<string, Listener[]>, event: string, listener: List
 }
 
 /** Remove the first occurrence of `listener` from `list` in place, if present. */
-function removeFirst(list: Listener[] | undefined, listener: Listener): void {
+function removeFirst<Entry>(list: Entry[] | undefined, listener: Entry): void {
   if (!list) return;
   const i = list.indexOf(listener);
   if (i !== -1) list.splice(i, 1);

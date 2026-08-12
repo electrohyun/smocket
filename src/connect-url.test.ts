@@ -305,3 +305,34 @@ it('the socket from a failed connect still chains', async () => {
     consoleError.mockRestore();
   }
 });
+
+it('a failed client carries the complete catch-all listener surface', async () => {
+  const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+  try {
+    const client = connect('http://localhost:9996');
+    const incoming = () => {};
+    const outgoing = () => {};
+    const failed = new Promise<void>((resolve) => client.once('connect_error', () => resolve()));
+
+    const emptyIncoming = client.listenersAny();
+    const emptyOutgoing = client.listenersAnyOutgoing();
+    expect(client.listenersAny()).not.toBe(emptyIncoming);
+    expect(client.listenersAnyOutgoing()).not.toBe(emptyOutgoing);
+
+    expect(client.prependAny(incoming)).toBe(client);
+    expect(client.prependAnyOutgoing(outgoing)).toBe(client);
+    expect(client.listenersAny()).toEqual([incoming]);
+    expect(client.listenersAnyOutgoing()).toEqual([outgoing]);
+    const oldIncoming = client.listenersAny();
+    const oldOutgoing = client.listenersAnyOutgoing();
+    expect(client.offAny()).toBe(client);
+    expect(client.offAnyOutgoing()).toBe(client);
+    expect(client.listenersAny()).not.toBe(oldIncoming);
+    expect(client.listenersAnyOutgoing()).not.toBe(oldOutgoing);
+
+    await failed;
+    expect(consoleError).toHaveBeenCalledOnce();
+  } finally {
+    consoleError.mockRestore();
+  }
+});
