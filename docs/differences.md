@@ -74,8 +74,21 @@ promise the project made on purpose. Closing one of these withdraws nothing. It 
 correction toward measured real behaviour and takes that row instead, so the same fix does
 not change bump depending on which list it was written on.
 
-Nothing is listed here right now. The section stays because the rule above is worth keeping
-written down, and because an empty list is itself a statement: no gap of this kind is known
-today. Its first entry was the `emit` and listener return values, closed in #189, which the
-[emitter return values](./conformance.md#emitter-return-values) cases now pin on both
-targets.
+- **Static namespace registration and admission.** smocket does not normalize all static
+  namespace names the way socket.io does, and a connection can enter a namespace that the
+  server did not register. See [#228](https://github.com/electrohyun/smocket/issues/228).
+- **Abandoned connection attempts.** A rejected or cancelled attempt can retain temporary
+  room membership or finish connecting after it was abandoned. See
+  [#229](https://github.com/electrohyun/smocket/issues/229).
+- **Post-disconnect membership.** A disconnected socket can leave an empty adapter entry
+  behind and can join rooms again. See
+  [#230](https://github.com/electrohyun/smocket/issues/230).
+- **Volatile broadcast narrowing.** A broadcast narrowed with `to`, `in`, `except`, or
+  `timeout` does not expose the next `volatile` operator. See
+  [#231](https://github.com/electrohyun/smocket/issues/231).
+- **Reserved event names on public emit surfaces.** Application code can emit reserved
+  lifecycle names that socket.io rejects before delivery. See
+  [#232](https://github.com/electrohyun/smocket/issues/232).
+- **Fluent `use`, `connect`, and `disconnect` returns.** These methods do not return the
+  server, namespace, or socket instance that socket.io returns. See
+  [#233](https://github.com/electrohyun/smocket/issues/233).
