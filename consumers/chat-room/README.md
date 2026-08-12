@@ -17,7 +17,7 @@ of the repository workspace doing so. It contains only:
 - this explanation of the two package inputs.
 
 The application stays in [`examples/chat-room`](../../examples/chat-room/). The runner
-copies its four JavaScript files and this package configuration into a temporary directory
+copies its six JavaScript files and this package configuration into a temporary directory
 outside the checkout. Nothing imports Smocket's local source or root `node_modules`.
 
 ## Run the published package

@@ -87,11 +87,15 @@ and verifies that a repeated run does not depend on state left by the previous r
 
 ## File responsibilities
 
-- `app.js` creates the server and owns join, message, welcome, authorization,
+- `app.js` configures the server and owns join, message, welcome, authorization,
   announcement, and departure behavior.
+- `bootstrap.js` creates the workspace-backed Smocket server and clients, then
+  supplies them to the shared scenario.
 - `scenario.js` creates the three clients, registers observers before actions,
   executes the workflow, returns structured results, formats the transcript, and
   cleans up every client and the server in `finally`.
+- `assertions.js` selects the observable result and owns the expected values shared
+  by the application test and case-study targets.
 - `index.js` prints the transcript returned by the shared scenario.
 - `scenario.test.js` asserts the structured result with `node:test` and
   `node:assert`.
