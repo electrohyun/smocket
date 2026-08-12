@@ -4,9 +4,10 @@
 **Governed by:** [0000](./0000-do-not-invent-what-has-no-source.md),
 [0010](./0010-single-defer-primitive-and-fifo.md)
 
-> **TL;DR** Server-side `socket.disconnect(true)` closes every namespace socket on
-> the same client Manager, while `false` closes only the current namespace and
-> independent Managers stay connected. Smocket models that group without a transport.
+> **TL;DR** Server-side `socket.disconnect(true)` closes every connected or pending
+> namespace socket on the same client Manager, while `false` closes only the current
+> namespace and independent Managers stay connected. Smocket models that group without
+> a transport.
 
 ## Decision
 
@@ -27,6 +28,8 @@ connected namespace socket in the same Manager closes in connection order. Each
 server socket fires `disconnecting` and then `disconnect`, both with `server
 namespace disconnect`, synchronously before the call returns. Their clients then
 observe `io server disconnect` through the shared defer boundary in the same order.
+An admission still waiting for auth or namespace middleware is cancelled with the
+Manager; a later callback cannot revive it or report a new connection result.
 
 Connection-wide here describes an observable namespace lifecycle, not a simulated
 transport. Each affected socket performs its ordinary acknowledgement, id, room,
