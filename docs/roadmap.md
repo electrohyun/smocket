@@ -82,11 +82,11 @@ must link to a concrete issue or decision record before it enters the v1.0.0 mil
 | Outside the documented scope                                      | Explicit non-goal                                                                   |
 
 The [v1.0.0 milestone] is the live list and release gate for required work. Deferred work
-with a target version uses that version's milestone; work without one stays in [#217] or a
-linked follow-up issue. “Post-v1” promises another review, not implementation in the next
-release. Work that decides, reviews, or documents the v1 guarantee may itself use the
-milestone; areas that are merely unverified do not become implementation promises by
-default.
+with a target version uses that version's milestone; work without one remains in its
+existing issue without a release commitment. “Post-v1” promises another review, not
+implementation in the next release. Work that decides, reviews, or documents the v1
+guarantee may itself use the milestone; areas that are merely unverified do not become
+implementation promises by default.
 
 ## Dependencies and decision points
 
@@ -98,7 +98,7 @@ requirements and progress.
 - The `Socket` export decision in [#178] must land before the v1 public API guarantee is
   finalized.
 - [development-lenses.md](./development-lenses.md) defines the five lenses used during
-  review, while [#217] defines how development and validation continue after v1.
+  review.
 - [#213] remains the parent direction discussion for roadmap feedback and new use cases.
 
 ## Pre-v1 release sequence
@@ -174,7 +174,6 @@ project determines that it affects the published scope or an explicit v1 guarant
 - Direction discussion: [#213]
 - Five development lenses: [development-lenses.md](./development-lenses.md)
 - This public roadmap: [#216]
-- Post-v1 development and validation: [#217]
 - Application validation and productivity reports: [#218]
 - Release gate: [v1.0.0 milestone]
 - Version compatibility: [ADR 0019](./decisions/0019-what-counts-as-a-breaking-change.md)
@@ -184,6 +183,5 @@ project determines that it affects the published scope or an explicit v1 guarant
 [#208]: https://github.com/electrohyun/smocket/issues/208
 [#213]: https://github.com/electrohyun/smocket/issues/213
 [#216]: https://github.com/electrohyun/smocket/issues/216
-[#217]: https://github.com/electrohyun/smocket/issues/217
 [#218]: https://github.com/electrohyun/smocket/issues/218
 [v1.0.0 milestone]: https://github.com/electrohyun/smocket/milestone/3
