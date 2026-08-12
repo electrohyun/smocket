@@ -244,14 +244,16 @@ Room cleanup, the reason each side reports, and what happens to a pending ack.
 
 - [a disconnected socket no longer receives emits for that room](../src/disconnect.test.ts#L7)
 - [a room disappears from the adapter when its last member disconnects](../src/disconnect.test.ts#L29)
-- [a reconnected socket does not automatically rejoin its previous rooms](../src/disconnect.test.ts#L53)
-- [rooms are still present at disconnecting and empty at disconnect](../src/disconnect.test.ts#L80)
-- [a pending client.emitWithAck rejects when the connection drops](../src/disconnect.test.ts#L103)
-- [a trailing-callback ack is silently discarded when the connection drops](../src/disconnect.test.ts#L115)
-- [a pending server.emitWithAck stays pending when the client disconnects](../src/disconnect.test.ts#L133)
-- [client.disconnect() reports io client disconnect to the client and client namespace disconnect to the server](../src/disconnect.test.ts#L155)
-- [serverSocket.disconnect() reports io server disconnect to the client and server namespace disconnect to the server](../src/disconnect.test.ts#L171)
-- [disconnecting carries the same reason and fires before disconnect](../src/disconnect.test.ts#L187)
+- [whole-socket cleanup removes the sid from adapter membership](../src/disconnect.test.ts#L53)
+- [a disconnected socket cannot join rooms again](../src/disconnect.test.ts#L67)
+- [a reconnected socket does not automatically rejoin its previous rooms](../src/disconnect.test.ts#L87)
+- [rooms are still present at disconnecting and empty at disconnect](../src/disconnect.test.ts#L114)
+- [a pending client.emitWithAck rejects when the connection drops](../src/disconnect.test.ts#L137)
+- [a trailing-callback ack is silently discarded when the connection drops](../src/disconnect.test.ts#L149)
+- [a pending server.emitWithAck stays pending when the client disconnects](../src/disconnect.test.ts#L167)
+- [client.disconnect() reports io client disconnect to the client and client namespace disconnect to the server](../src/disconnect.test.ts#L189)
+- [serverSocket.disconnect() reports io server disconnect to the client and server namespace disconnect to the server](../src/disconnect.test.ts#L205)
+- [disconnecting carries the same reason and fires before disconnect](../src/disconnect.test.ts#L221)
 
 ### Server close
 
