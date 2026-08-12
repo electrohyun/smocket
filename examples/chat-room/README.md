@@ -53,6 +53,11 @@ To run only the transcript-producing application:
 pnpm --filter chat-room-example start
 ```
 
+This workspace-backed command exercises the source under review. The
+[package consumer](../../consumers/chat-room/) assembles the same application outside
+the workspace and installs either a released package or a candidate tarball. It can also
+be opened through its [StackBlitz entry point](https://stackblitz.com/github/electrohyun/smocket).
+
 The transcript is deterministic:
 
 ```text
