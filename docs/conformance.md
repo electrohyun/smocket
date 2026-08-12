@@ -96,12 +96,12 @@ What a namespace isolates: connections, emits, rooms, and socket ids.
 - [a registered static namespace admits the normalized harness name](../src/namespace.test.ts#L18)
 - [an unregistered static namespace is rejected without membership](../src/namespace.test.ts#L27)
 - [a client can retry after its static namespace is registered](../src/namespace.test.ts#L50)
-- [io.of(nsp).on('connection') fires only for connections on that namespace](../src/namespace.test.ts#L65)
-- [io.of(nsp).emit() goes only to clients in that namespace](../src/namespace.test.ts#L81)
-- [io.emit() on the default namespace does not reach other namespaces](../src/namespace.test.ts#L97)
-- [a room of the same name is separate per namespace](../src/namespace.test.ts#L116)
-- [a client attached to two namespaces has a different socket id per namespace](../src/namespace.test.ts#L141)
-- [socket.broadcast stays inside the namespace of the sender](../src/namespace.test.ts#L156)
+- [io.of(nsp).on('connection') fires only for connections on that namespace](../src/namespace.test.ts#L69)
+- [io.of(nsp).emit() goes only to clients in that namespace](../src/namespace.test.ts#L85)
+- [io.emit() on the default namespace does not reach other namespaces](../src/namespace.test.ts#L101)
+- [a room of the same name is separate per namespace](../src/namespace.test.ts#L120)
+- [a client attached to two namespaces has a different socket id per namespace](../src/namespace.test.ts#L145)
+- [socket.broadcast stays inside the namespace of the sender](../src/namespace.test.ts#L160)
 
 ### Acknowledgements
 
@@ -289,9 +289,10 @@ Server-wide teardown, its reasons, and what happens to pending acknowledgements.
 - [close leaves a pending server emitWithAck pending](../src/server-close.test.ts#L78)
 - [close does not cancel an armed server acknowledgement timeout](../src/server-close.test.ts#L102)
 
-### Emitter return values
+### Return values
 
-What `emit` and the listener methods hand back, and which of them chain.
+What emit, listener, middleware, connect, and disconnect methods hand back, and which
+chain.
 
 - [the client emit returns the socket, so it chains](../src/emitter-returns.test.ts#L14)
 - [a buffered emit returns the socket too, before the connection completes](../src/emitter-returns.test.ts#L19)
@@ -307,6 +308,10 @@ What `emit` and the listener methods hand back, and which of them chain.
 - [the server socket listener methods return the socket, so they chain](../src/emitter-returns.test.ts#L104)
 - [chained registrations both take effect](../src/emitter-returns.test.ts#L117)
 - [a namespace on returns the namespace, so it chains](../src/emitter-returns.test.ts#L132)
+- [server and namespace use return the object they register on](../src/emitter-returns.test.ts#L137)
+- [client connect returns the socket while connected and when reconnecting](../src/emitter-returns.test.ts#L145)
+- [client disconnect returns the socket whether or not it is connected](../src/emitter-returns.test.ts#L155)
+- [server socket disconnect returns that socket](../src/emitter-returns.test.ts#L161)
 
 ## smocket only
 
@@ -333,10 +338,10 @@ Resolving a url to a server, and what the url contributes to the handshake.
 - [connect(url) rejects an unregistered namespace without creating membership](../src/connect-url.test.ts#L133)
 - [a relative url resolves against location.origin](../src/connect-url.test.ts#L161)
 - [connect(url) to an unregistered origin fires connect_error, without throwing](../src/connect-url.test.ts#L179)
-- [a failed client still rejects reserved names on every emit wrapper](../src/connect-url.test.ts#L197)
-- [close unregisters the server so later connect(url) reports a missing server](../src/connect-url.test.ts#L218)
-- [closing a replaced server does not unregister its replacement](../src/connect-url.test.ts#L239)
-- [the socket from a failed connect still chains](../src/connect-url.test.ts#L251)
+- [a failed client still rejects reserved names on every emit wrapper](../src/connect-url.test.ts#L199)
+- [close unregisters the server so later connect(url) reports a missing server](../src/connect-url.test.ts#L220)
+- [closing a replaced server does not unregister its replacement](../src/connect-url.test.ts#L241)
+- [the socket from a failed connect still chains](../src/connect-url.test.ts#L253)
 
 ### Adapter API
 
