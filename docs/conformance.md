@@ -189,8 +189,9 @@ What `volatile` delivers in steady state, and the one window where it drops.
 - [socket.broadcast.volatile and socket.volatile.broadcast keep sender exclusion](../src/volatile.test.ts#L133)
 - [volatile stays immutable and survives to, in, except, and timeout in either order](../src/volatile.test.ts#L154)
 - [a volatile emit still carries an ack, which round-trips when delivered](../src/volatile.test.ts#L185)
-- [a volatile emit to a recipient still in the pre-connect window is dropped](../src/volatile.test.ts#L196)
-- [a volatile emit from a client still in the pre-connect window is dropped](../src/volatile.test.ts#L221)
+- [volatile emitWithAck delivers and fires outgoing catch-alls in both directions](../src/volatile.test.ts#L196)
+- [a volatile emit to a recipient still in the pre-connect window is dropped](../src/volatile.test.ts#L211)
+- [a volatile emit from a client still in the pre-connect window is dropped](../src/volatile.test.ts#L239)
 
 ### Catch-all listeners
 
@@ -222,6 +223,18 @@ What `volatile` delivers in steady state, and the one window where it drops.
 - [the ack callback is stripped from the outgoing catch-all args, for emit and emitWithAck](../src/on-any-outgoing.test.ts#L90)
 - [offAnyOutgoing(listener) removes one, offAnyOutgoing() removes all](../src/on-any-outgoing.test.ts#L106)
 - [the client side carries offAnyOutgoing too](../src/on-any-outgoing.test.ts#L123)
+
+### Reserved event names
+
+Which public emit names throw before delivery or outgoing observation.
+
+- [server emit surfaces reject the six reserved names and accept application events](../src/reserved-events.test.ts#L29)
+- [client emit surfaces reject the six reserved names and accept application events](../src/reserved-events.test.ts#L50)
+- [client wrappers reject reserved names while the connection is still pending](../src/reserved-events.test.ts#L60)
+- [rejected server emits reach neither the peer nor outgoing catch-alls](../src/reserved-events.test.ts#L90)
+- [rejected client emits reach neither the peer nor outgoing catch-alls](../src/reserved-events.test.ts#L119)
+- [emitWithAck rejects reserved names without firing outgoing catch-alls](../src/reserved-events.test.ts#L147)
+- [connection and new_namespace remain ordinary public payload event names](../src/reserved-events.test.ts#L169)
 
 ### Listener removal
 
@@ -320,9 +333,10 @@ Resolving a url to a server, and what the url contributes to the handshake.
 - [connect(url) rejects an unregistered namespace without creating membership](../src/connect-url.test.ts#L133)
 - [a relative url resolves against location.origin](../src/connect-url.test.ts#L161)
 - [connect(url) to an unregistered origin fires connect_error, without throwing](../src/connect-url.test.ts#L179)
-- [close unregisters the server so later connect(url) reports a missing server](../src/connect-url.test.ts#L197)
-- [closing a replaced server does not unregister its replacement](../src/connect-url.test.ts#L218)
-- [the socket from a failed connect still chains](../src/connect-url.test.ts#L230)
+- [a failed client still rejects reserved names on every emit wrapper](../src/connect-url.test.ts#L197)
+- [close unregisters the server so later connect(url) reports a missing server](../src/connect-url.test.ts#L218)
+- [closing a replaced server does not unregister its replacement](../src/connect-url.test.ts#L239)
+- [the socket from a failed connect still chains](../src/connect-url.test.ts#L251)
 
 ### Adapter API
 
