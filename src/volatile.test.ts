@@ -58,6 +58,130 @@ it('socket.volatile.broadcast reaches everyone except the sender in steady state
   expect(msg1.received).toBe(false); // sender excluded
 });
 
+it('io.to(room).volatile and io.volatile.to(room) preserve the same target', async () => {
+  const { client: member, serverSocket: memberSocket } = await ctx.connectClient();
+  const { client: outside, serverSocket: outsideSocket } = await ctx.connectClient();
+  await memberSocket.join('room');
+
+  const narrowFirst = receive(member, 'narrow-first');
+  const volatileFirst = receive(member, 'volatile-first');
+  const outsideNarrow = track(outside, 'narrow-first');
+  const outsideVolatile = track(outside, 'volatile-first');
+  const marker = receive(outside, 'marker');
+
+  ctx.io.to('room').volatile.emit('narrow-first', 'hello');
+  await expect(narrowFirst).resolves.toBe('hello');
+  ctx.io.volatile.to('room').emit('volatile-first', 'hello');
+  await expect(volatileFirst).resolves.toBe('hello');
+  outsideSocket.emit('marker');
+
+  await marker;
+  expect(outsideNarrow.received).toBe(false);
+  expect(outsideVolatile.received).toBe(false);
+});
+
+it('namespace narrowing and volatile preserve each other in either order', async () => {
+  const { client: member, serverSocket: memberSocket } = await ctx.connectClient({
+    namespace: '/game',
+  });
+  const { client: outside, serverSocket: outsideSocket } = await ctx.connectClient({
+    namespace: '/game',
+  });
+  await memberSocket.join('room');
+
+  const narrowFirst = receive(member, 'narrow-first');
+  const volatileFirst = receive(member, 'volatile-first');
+  const outsideNarrow = track(outside, 'narrow-first');
+  const outsideVolatile = track(outside, 'volatile-first');
+  const marker = receive(outside, 'marker');
+  const game = ctx.io.of('/game');
+
+  game.to('room').volatile.emit('narrow-first', 'hello');
+  await expect(narrowFirst).resolves.toBe('hello');
+  game.volatile.to('room').emit('volatile-first', 'hello');
+  await expect(volatileFirst).resolves.toBe('hello');
+  outsideSocket.emit('marker');
+
+  await marker;
+  expect(outsideNarrow.received).toBe(false);
+  expect(outsideVolatile.received).toBe(false);
+});
+
+it('socket.to(room).volatile and socket.volatile.to(room) keep sender exclusion', async () => {
+  const { client: sender, serverSocket: senderSocket } = await ctx.connectClient();
+  const { client: recipient, serverSocket: recipientSocket } = await ctx.connectClient();
+  await senderSocket.join('room');
+  await recipientSocket.join('room');
+
+  const narrowFirst = receive(recipient, 'narrow-first');
+  const volatileFirst = receive(recipient, 'volatile-first');
+  const senderNarrow = track(sender, 'narrow-first');
+  const senderVolatile = track(sender, 'volatile-first');
+  const marker = receive(sender, 'marker');
+
+  senderSocket.to('room').volatile.emit('narrow-first', 'hello');
+  await expect(narrowFirst).resolves.toBe('hello');
+  senderSocket.volatile.to('room').emit('volatile-first', 'hello');
+  await expect(volatileFirst).resolves.toBe('hello');
+  senderSocket.emit('marker');
+
+  await marker;
+  expect(senderNarrow.received).toBe(false);
+  expect(senderVolatile.received).toBe(false);
+});
+
+it('socket.broadcast.volatile and socket.volatile.broadcast keep sender exclusion', async () => {
+  const { client: sender, serverSocket: senderSocket } = await ctx.connectClient();
+  const { client: recipient } = await ctx.connectClient();
+
+  const narrowFirst = receive(recipient, 'narrow-first');
+  const volatileFirst = receive(recipient, 'volatile-first');
+  const senderNarrow = track(sender, 'narrow-first');
+  const senderVolatile = track(sender, 'volatile-first');
+  const marker = receive(sender, 'marker');
+
+  senderSocket.broadcast.volatile.emit('narrow-first', 'hello');
+  await expect(narrowFirst).resolves.toBe('hello');
+  senderSocket.volatile.broadcast.emit('volatile-first', 'hello');
+  await expect(volatileFirst).resolves.toBe('hello');
+  senderSocket.emit('marker');
+
+  await marker;
+  expect(senderNarrow.received).toBe(false);
+  expect(senderVolatile.received).toBe(false);
+});
+
+it('volatile stays immutable and survives to, in, except, and timeout in either order', async () => {
+  const { client, serverSocket } = await ctx.connectClient();
+  const { disconnected } = observeDisconnect(serverSocket);
+  client.disconnect();
+  await disconnected;
+
+  const plain = receive(client, 'plain');
+  const first = track(client, 'volatile-last');
+  const second = track(client, 'volatile-first');
+  const marker = receive(client, 'marker');
+
+  ctx.io.on('connection', (socket: ServerSocketContract) => {
+    const base = ctx.io.to(socket.id);
+    const volatile = base.volatile;
+    expect(volatile).not.toBe(base);
+    expect(base.volatile).not.toBe(volatile);
+
+    base.emit('plain', 'kept');
+    base.in(socket.id).except('nobody').timeout(100).volatile.emit('volatile-last', 'dropped');
+    volatile.in(socket.id).except('nobody').timeout(100).emit('volatile-first', 'dropped');
+    socket.emit('marker', 'done');
+  });
+
+  client.connect();
+
+  await expect(plain).resolves.toBe('kept');
+  await expect(marker).resolves.toBe('done');
+  expect(first.received).toBe(false);
+  expect(second.received).toBe(false);
+});
+
 it('a volatile emit still carries an ack, which round-trips when delivered', async () => {
   const { client, serverSocket } = await ctx.connectClient();
   client.on('q', (n: number, ack: (r: number) => void) => ack(n * 2));

@@ -385,7 +385,7 @@ class BroadcastOperator implements BroadcastContract, TimeoutBroadcastContract {
     private readonly sockets: Map<string, ServerSocket>,
     rooms: Iterable<string>,
     except: Iterable<string>,
-    private readonly volatile = false,
+    private readonly isVolatile = false,
     /** When set, `emit` with a trailing callback collects each recipient's ack (#112). */
     private readonly timeoutMs: number | undefined = undefined,
   ) {
@@ -408,7 +408,7 @@ class BroadcastOperator implements BroadcastContract, TimeoutBroadcastContract {
       this.sockets,
       rooms,
       except,
-      this.volatile,
+      this.isVolatile,
       timeoutMs,
     );
   }
@@ -432,6 +432,21 @@ class BroadcastOperator implements BroadcastContract, TimeoutBroadcastContract {
   }
 
   /**
+   * Return a new operator with the volatile delivery flag. The getter never mutates
+   * the narrowed operator it was read from, and it carries any timeout already set.
+   */
+  get volatile(): BroadcastOperator {
+    return new BroadcastOperator(
+      this.adapter,
+      this.sockets,
+      this.targetRooms,
+      this.exceptRooms,
+      true,
+      this.timeoutMs,
+    );
+  }
+
+  /**
    * Resolve this broadcast's recipients: empty target rooms means "everyone" (`io.emit` /
    * `socket.broadcast`), otherwise the deduped union of the target rooms' members, minus the
    * except rooms (the sender's id-room for the `socket.*` forms). A volatile broadcast also
@@ -448,7 +463,7 @@ class BroadcastOperator implements BroadcastContract, TimeoutBroadcastContract {
       if (excluded.has(sid)) continue;
       const socket = this.sockets.get(sid);
       if (!socket) continue;
-      if (this.volatile && !socket.connected) continue;
+      if (this.isVolatile && !socket.connected) continue;
       out.push(socket);
     }
     return out;

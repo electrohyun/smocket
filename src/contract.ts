@@ -191,6 +191,8 @@ export interface BroadcastContract<
   except(room: string | string[]): BroadcastContract<EmitEvents, SocketData>;
   /** Add an ack timeout to this broadcast; see {@link TimeoutBroadcastContract}. */
   timeout(ms: number): TimeoutBroadcastContract<DecorateAcknowledgements<EmitEvents>, SocketData>;
+  /** Mark the narrowed broadcast volatile while preserving its rooms and exclusions. */
+  readonly volatile: BroadcastContract<EmitEvents, SocketData>;
 }
 
 /**
@@ -226,7 +228,8 @@ export interface TimeoutEmitterContract<EmitEvents extends EventsMap = DefaultEv
  * arrived, in arrival order. A broadcast to no recipient resolves at once as `(null, [])`.
  * A late ack is dropped, so the callback fires exactly once. The narrowing methods chain
  * and keep the timeout, so `io.timeout(ms).to(a).to(b)` targets the union and
- * `io.timeout(ms).to(a).except(b)` collects from the survivors only (#137).
+ * `io.timeout(ms).to(a).except(b)` collects from the survivors only (#137). Reading
+ * `volatile` before or after those narrowings keeps both the timeout and event map.
  */
 export interface TimeoutBroadcastContract<
   EmitEvents extends EventsMap = DefaultEventsMap,
@@ -241,6 +244,8 @@ export interface TimeoutBroadcastContract<
   in(room: string | string[]): TimeoutBroadcastContract<EmitEvents, SocketData>;
   /** Exclude a room from this broadcast, on top of any exclusion it already carries. */
   except(room: string | string[]): TimeoutBroadcastContract<EmitEvents, SocketData>;
+  /** Mark the narrowed broadcast volatile while preserving its timeout and event map. */
+  readonly volatile: TimeoutBroadcastContract<EmitEvents, SocketData>;
 }
 
 /**
@@ -291,7 +296,8 @@ export interface SocketTimeoutContract<
  * the pre-connect window. Real socket.io returns the socket itself here, so this is a
  * subset of the socket's own surface and the `Ensure<>` guards below still hold. It keeps
  * the broadcast forms so `socket.volatile.broadcast.emit(...)` and `socket.volatile.to(room)`
- * carry the volatile flag through the same routing.
+ * carry the volatile flag through the same routing. Those broadcast operators expose
+ * `volatile` again, so the modifier may also follow `to`, `in`, `except`, or `timeout`.
  */
 export interface VolatileServerSocket<
   EmitEvents extends EventsMap = DefaultEventsMap,

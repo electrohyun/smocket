@@ -49,6 +49,9 @@ export function assertTypedEventMapsCompile(): void {
     });
 
     socket.emit('chat', 'hello');
+    socket.to('room').volatile.emit('chat', 'hello');
+    socket.broadcast.to('room').volatile.emit('chat', 'hello');
+    socket.broadcast.volatile.except('muted').emit('chat', 'hello');
     const answer: Promise<number> = socket.emitWithAck('question', 'value?');
     const timedAnswer: Promise<number> = socket.timeout(100).emitWithAck('question', 'value?');
     const volatileAnswer: Promise<number> = socket.volatile.emitWithAck('question', 'value?');
@@ -66,6 +69,25 @@ export function assertTypedEventMapsCompile(): void {
 
   io.emit('chat', 'hello');
   io.to('room').emit('chat', 'hello');
+  io.to('room').volatile.emit('chat', 'hello');
+  io.volatile.in('room').except('muted').emit('chat', 'hello');
+  io.of('/admin').to('room').volatile.emit('chat', 'hello');
+  io.to('room')
+    .timeout(100)
+    .volatile.emit('question', 'value?', (error, answers) => {
+      const timeoutError: Error = error;
+      const values: number[] = answers;
+      void timeoutError;
+      void values;
+    });
+  io.to('room')
+    .volatile.timeout(100)
+    .emit('question', 'value?', (error, answers) => {
+      const timeoutError: Error = error;
+      const values: number[] = answers;
+      void timeoutError;
+      void values;
+    });
   io.of('/admin').in('room').except('muted').emit('chat', 'hello');
   io.timeout(100).emit('question', 'value?', (error, answers) => {
     const timeoutError: Error = error;
@@ -102,6 +124,8 @@ export function assertTypedEventMapsCompile(): void {
   io.on('health', () => {});
   // @ts-expect-error wrong server payload
   io.emit('chat', 42);
+  // @ts-expect-error narrowing through volatile must retain the outgoing event map
+  io.to('room').volatile.emit('chat', 42);
   // @ts-expect-error client emits the client-to-server map, not the reverse map
   client.emit('chat', 'hello');
 
@@ -152,6 +176,17 @@ export function assertRealSocketIoListenerInferenceCompiles(
 
   io.emit('chat', 'hello');
   io.to('room').emit('chat', 'hello');
+  io.to('room').volatile.emit('chat', 'hello');
+  io.volatile.in('room').except('muted').emit('chat', 'hello');
+  io.of('/admin').to('room').volatile.emit('chat', 'hello');
+  io.to('room')
+    .timeout(100)
+    .volatile.emit('question', 'value?', (error, answers) => {
+      const timeoutError: Error = error;
+      const values: number[] = answers;
+      void timeoutError;
+      void values;
+    });
   io.of('/admin').in('room').except('muted').emit('chat', 'hello');
   io.timeout(100).emit('question', 'value?', (error, answers) => {
     const timeoutError: Error = error;
