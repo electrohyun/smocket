@@ -31,12 +31,13 @@ export function setupMockServer(): ServerContext {
 
   ctx.nextConnection = (namespace = '/') => server.nextConnection(namespace);
 
-  ctx.connectClient = async ({ namespace = '/', auth, query }: ConnectOptions = {}) => {
+  ctx.connectClient = async (options: ConnectOptions = {}) => {
+    const { namespace = '/' } = options;
     // Observing the namespace first intentionally registers it, matching the real
     // helper's `ioServer.of(namespace)`. The separate unregistered fixture below
     // skips this step so admission tests cannot register their own subject.
     const pendingConnection = ctx.nextConnection(namespace);
-    const client = server.connect(namespace, { auth, query });
+    const client = server.connect(namespace, options);
     const serverSocket = await pendingConnection;
     clients.push(client);
     return { client, serverSocket };
@@ -45,8 +46,9 @@ export function setupMockServer(): ServerContext {
   // Open a connection without awaiting `connect`, mirroring the real target's
   // `openClient`: a connection a middleware rejects fires `connect_error` and never
   // `connect`, so a test drives this and awaits the error rather than the connect.
-  ctx.openClient = ({ namespace = '/', auth, query }: ConnectOptions = {}) => {
-    const client = server.connect(namespace, { auth, query });
+  ctx.openClient = (options: ConnectOptions = {}) => {
+    const { namespace = '/' } = options;
+    const client = server.connect(namespace, options);
     clients.push(client);
     return client;
   };

@@ -42,6 +42,32 @@ it('two spellings of one origin resolve to the same server', async () => {
   expect(serverSocket.id).toBe(client.id);
 });
 
+it('connect(url) caches one Manager per normalized origin unless opted out', async () => {
+  const server = new Server('http://localhost');
+  server.of('/game');
+  server.of('/forced');
+  server.of('/solo');
+
+  const root = connect('http://localhost');
+  const game = connect('http://localhost:80/game');
+  const duplicate = connect('http://localhost/game');
+  const forced = connect('http://localhost/forced', { forceNew: true });
+  const unmultiplexed = connect('http://localhost/solo', { multiplex: false });
+  await Promise.all([
+    server.nextConnection(),
+    server.nextConnection('/game'),
+    server.nextConnection('/game'),
+    server.nextConnection('/forced'),
+    server.nextConnection('/solo'),
+  ]);
+
+  expect(root.io).toBe(game.io);
+  expect(duplicate.io).not.toBe(root.io);
+  expect(forced.io).not.toBe(root.io);
+  expect(unmultiplexed.io).not.toBe(root.io);
+  expect(forced.io).not.toBe(unmultiplexed.io);
+});
+
 it("the url's query string lands on handshake.query", async () => {
   // The url is one of the two sources for `handshake.query`. Reading it off `connect(url)`
   // is mock-only for the same reason as the rest of this file: the mock harness routes
