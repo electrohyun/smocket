@@ -12,6 +12,8 @@
   [conformance.md](./conformance.md)
 - **What must happen before the first stable release:**
   [roadmap.md](./roadmap.md)
+- **How five lenses guide development toward v1.0.0:**
+  [development-lenses.md](./development-lenses.md) · [한국어](./development-lenses.ko.md)
 - **How to write docs here:** [CONTRIBUTING-docs.md](./CONTRIBUTING-docs.md)
 - **How to contribute code, reports, ideas, or documentation:**
   [CONTRIBUTING.md](../CONTRIBUTING.md) · [한국어](../CONTRIBUTING.ko.md)

@@ -11,8 +11,8 @@ points, and release sequence; issues and ADRs still own every detail and status.
 ## Direction
 
 smocket reviews development decisions through five lenses: Fidelity, Extensibility,
-Reliability, Productivity, and Sustainability. [#214] tracks their durable definition;
-this roadmap will link that project document when it lands.
+Reliability, Productivity, and Sustainability. Their durable definitions and current
+examples live in [development-lenses.md](./development-lenses.md).
 
 <p align="center">
   <a href="https://github.com/electrohyun/smocket/issues/213">
@@ -97,8 +97,8 @@ requirements and progress.
   the application validation and productivity reports in [#218].
 - The `Socket` export decision in [#178] must land before the v1 public API guarantee is
   finalized.
-- [#214] defines the five lenses used during review, while [#217] defines how development
-  and validation continue after v1.
+- [development-lenses.md](./development-lenses.md) defines the five lenses used during
+  review, while [#217] defines how development and validation continue after v1.
 - [#213] remains the parent direction discussion for roadmap feedback and new use cases.
 
 ## Pre-v1 release sequence
@@ -172,7 +172,7 @@ project determines that it affects the published scope or an explicit v1 guarant
 ## Related work
 
 - Direction discussion: [#213]
-- Five development lenses: [#214]
+- Five development lenses: [development-lenses.md](./development-lenses.md)
 - This public roadmap: [#216]
 - Post-v1 development and validation: [#217]
 - Application validation and productivity reports: [#218]
@@ -183,7 +183,6 @@ project determines that it affects the published scope or an explicit v1 guarant
 [#178]: https://github.com/electrohyun/smocket/issues/178
 [#208]: https://github.com/electrohyun/smocket/issues/208
 [#213]: https://github.com/electrohyun/smocket/issues/213
-[#214]: https://github.com/electrohyun/smocket/issues/214
 [#216]: https://github.com/electrohyun/smocket/issues/216
 [#217]: https://github.com/electrohyun/smocket/issues/217
 [#218]: https://github.com/electrohyun/smocket/issues/218
