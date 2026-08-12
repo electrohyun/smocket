@@ -200,3 +200,32 @@ it('socket.timeout(ms).to(room) collects from the room, timeout set first', asyn
   expect(err).toBeNull();
   expect([...responses].sort()).toEqual(['b', 'c']);
 });
+
+it.each(['to', 'except', 'broadcast'] as const)(
+  'socket timeout transfers once to the %s operator',
+  async (entry) => {
+    const { client: sender, serverSocket: senderSocket } = await ctx.connectClient();
+    const { client: recipient, serverSocket: recipientSocket } = await ctx.connectClient();
+    await recipientSocket.join('room');
+    sender.on('direct', (ack: (value: string) => void) => ack('direct'));
+    recipient.on('question', (ack: (value: string) => void) => ack(entry));
+
+    expect(senderSocket.timeout(1000)).toBe(senderSocket);
+    const operator =
+      entry === 'to'
+        ? senderSocket.to('room')
+        : entry === 'except'
+          ? senderSocket.except('nobody')
+          : senderSocket.broadcast;
+
+    const direct = await new Promise<unknown[]>((resolve) => {
+      senderSocket.emit('direct', (...args: unknown[]) => resolve(args));
+    });
+    expect(direct).toEqual(['direct']);
+
+    const collected = await new Promise<unknown[]>((resolve) => {
+      operator.emit('question', (...args: unknown[]) => resolve(args));
+    });
+    expect(collected).toEqual([null, [entry]]);
+  },
+);

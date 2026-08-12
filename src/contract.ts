@@ -199,20 +199,7 @@ export interface BroadcastContract<
   readonly volatile: BroadcastContract<EmitEvents, SocketData>;
 }
 
-/**
- * Result of `socket.timeout(ms)`: a per-emit wrapper that arms a timer on the next
- * acknowledged emit rather than mutating the socket (measured against real socket.io).
- * Its `emit`'s trailing callback is error-first: `(null, response)` when the ack wins
- * the race, and a lone `Error('operation has timed out')` when the timer wins, with a
- * late ack then dropped so the callback fires exactly once. A callback-less `emit` is a
- * plain emit that arms no timer. `emitWithAck` is the same race as a promise, resolving
- * with the response and rejecting with that same timeout `Error`.
- *
- * This is the client side of `timeout(ms)`, where the emit returns the socket so the call
- * chains. The server side returns `true` instead and is {@link SocketTimeoutContract};
- * the two used to share this interface, which stopped working once the return types were
- * measured rather than left as `void`.
- */
+/** The acknowledgement-decorated emitter slice retained for backwards-compatible imports. */
 export interface TimeoutEmitterContract<EmitEvents extends EventsMap = DefaultEventsMap> {
   emit<Event extends EventName<EmitEvents>>(
     event: Event,
@@ -253,16 +240,9 @@ export interface TimeoutBroadcastContract<
 }
 
 /**
- * What `socket.timeout(ms)` returns on the server side: the single-ack emit forms
- * (see {@link TimeoutEmitterContract}) plus the broadcast entry points, so a timeout set
- * first still reaches `socket.timeout(ms).to(room)` / `.broadcast` / `.except(room)`, each
- * an ack-collecting {@link TimeoutBroadcastContract}. Real socket.io returns the socket
- * itself here, so this is a subset of its surface and the `Ensure<>` guards below hold.
- *
- * It declares the two emit forms rather than extending {@link TimeoutEmitterContract},
- * because the server's timed `emit` returns `true` where the client's returns the socket.
- * An interface cannot narrow an inherited return type to an unrelated one, so the shared
- * parent went away when the two were measured apart.
+ * The acknowledgement-decorated server emitter and broadcast slice retained for
+ * backwards-compatible imports. `ServerSocketContract.timeout()` itself returns the full
+ * socket surface, matching Socket.IO.
  */
 export interface SocketTimeoutContract<
   EmitEvents extends EventsMap = DefaultEventsMap,
@@ -295,13 +275,8 @@ export interface SocketTimeoutContract<
 }
 
 /**
- * The emitter surface `socket.volatile` returns (0016). A volatile emit is delivered
- * exactly like a plain emit once the socket is connected, and dropped when it is sent in
- * the pre-connect window. Real socket.io returns the socket itself here, so this is a
- * subset of the socket's own surface and the `Ensure<>` guards below still hold. It keeps
- * the broadcast forms so `socket.volatile.broadcast.emit(...)` and `socket.volatile.to(room)`
- * carry the volatile flag through the same routing. Those broadcast operators expose
- * `volatile` again, so the modifier may also follow `to`, `in`, `except`, or `timeout`.
+ * The volatile server emitter and broadcast slice retained for backwards-compatible
+ * imports. `ServerSocketContract.volatile` itself returns the full socket surface.
  */
 export interface VolatileServerSocket<
   EmitEvents extends EventsMap = DefaultEventsMap,
@@ -327,7 +302,7 @@ export interface VolatileServerSocket<
   ): BroadcastContract<DecorateAcknowledgementsWithMultipleResponses<EmitEvents>, SocketData>;
 }
 
-/** The client-side counterpart of {@link VolatileServerSocket}; a client has no broadcast surface. */
+/** The client volatile emitter slice retained for backwards-compatible imports. */
 export interface VolatileClientSocket<
   ListenEvents extends EventsMap = DefaultEventsMap,
   EmitEvents extends EventsMap = ListenEvents,
@@ -740,14 +715,17 @@ export interface ServerSocketContract<
     event: Event,
     ...args: AllButLast<EventParams<EmitEvents, Event>>
   ): Promise<FirstAckValue<Last<EventParams<EmitEvents, Event>>>>;
-  /**
-   * Arm a per-emit ack timer. Its `emit` / `emitWithAck` are the single-ack forms
-   * ({@link TimeoutEmitterContract}); its `to` / `broadcast` / `except` are the
-   * ack-collecting broadcast forms ({@link TimeoutBroadcastContract}).
-   */
-  timeout(ms: number): SocketTimeoutContract<DecorateAcknowledgements<EmitEvents>, SocketData>;
+  /** Arm a one-shot acknowledgement timeout and return this same socket. */
+  timeout(
+    ms: number,
+  ): ServerSocketContract<
+    ListenEvents,
+    DecorateAcknowledgements<EmitEvents>,
+    ServerSideEvents,
+    SocketData
+  >;
   /** The volatile emitter (0016): a plain emit once connected, dropped in the pre-connect window. */
-  volatile: VolatileServerSocket<EmitEvents, SocketData>;
+  readonly volatile: this;
   join(room: string | string[]): Promise<void> | void;
   leave(room: string): Promise<void> | void;
   to(
@@ -813,10 +791,10 @@ export interface ClientSocketContract<
     event: Event,
     ...args: ClientAllButLast<EventParams<EmitEvents, Event>>
   ): Promise<FirstClientAckValue<ClientLast<EventParams<EmitEvents, Event>>>>;
-  /** Arm a per-emit ack timer on the next emit; see {@link TimeoutEmitterContract}. */
-  timeout(ms: number): TimeoutEmitterContract<DecorateAcknowledgements<EmitEvents>>;
+  /** Arm a one-shot acknowledgement timeout and return this same socket. */
+  timeout(ms: number): ClientSocketContract<ListenEvents, DecorateAcknowledgements<EmitEvents>>;
   /** The volatile emitter (0016): a plain emit once connected, dropped in the pre-connect window. */
-  volatile: VolatileClientSocket<ListenEvents, EmitEvents>;
+  readonly volatile: this;
   connect(): this;
   disconnect(): this;
 }
@@ -984,10 +962,22 @@ type ServerSocketParityContract<
   | 'join'
   | 'leave'
   | 'rooms'
-  | 'timeout'
   | 'to'
-  | 'volatile'
 > & {
+  readonly volatile: ServerSocketParityContract<
+    ListenEvents,
+    EmitEvents,
+    ServerSideEvents,
+    SocketData
+  >;
+  timeout(
+    ms: number,
+  ): ServerSocketParityContract<
+    ListenEvents,
+    DecorateAcknowledgements<EmitEvents>,
+    ServerSideEvents,
+    SocketData
+  >;
   disconnect(
     close?: boolean,
   ): ServerSocketParityContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>;
@@ -999,8 +989,12 @@ type ClientSocketParityContract<
   EmitEvents extends EventsMap = ListenEvents,
 > = Pick<
   ClientSocketContract<ListenEvents, EmitEvents>,
-  'connected' | 'emitWithAck' | 'id' | 'io' | 'timeout' | 'volatile'
+  'connected' | 'emitWithAck' | 'id' | 'io'
 > & {
+  readonly volatile: ClientSocketParityContract<ListenEvents, EmitEvents>;
+  timeout(
+    ms: number,
+  ): ClientSocketParityContract<ListenEvents, DecorateAcknowledgements<EmitEvents>>;
   connect(): ClientSocketParityContract<ListenEvents, EmitEvents>;
   disconnect(): ClientSocketParityContract<ListenEvents, EmitEvents>;
   emit<Event extends EventName<EmitEvents>>(

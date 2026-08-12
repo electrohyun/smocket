@@ -13,7 +13,9 @@ const ctx = setupServer();
 it('a volatile emit is delivered on a connected socket (server to client)', async () => {
   const { client, serverSocket } = await ctx.connectClient();
   const got = receive(client, 'vol');
-  serverSocket.volatile.emit('vol', 'hi');
+  const volatile = serverSocket.volatile;
+  expect(volatile).toBe(serverSocket);
+  volatile.emit('vol', 'hi');
   await expect(got).resolves.toBe('hi');
 });
 
@@ -21,7 +23,9 @@ it('a volatile emit is delivered on a connected socket (client to server)', asyn
   // `.volatile` is meaningful in both directions; on a connected socket it is a plain emit.
   const { client, serverSocket } = await ctx.connectClient();
   const got = new Promise((resolve) => serverSocket.on('vol', resolve));
-  client.volatile.emit('vol', 'hi');
+  const volatile = client.volatile;
+  expect(volatile).toBe(client);
+  volatile.emit('vol', 'hi');
   await expect(got).resolves.toBe('hi');
 });
 
@@ -224,7 +228,9 @@ it('a volatile emit to a recipient still in the pre-connect window is dropped', 
   const marker = receive(client, 'marker');
 
   ctx.io.on('connection', (socket: ServerSocketContract) => {
-    socket.volatile.emit('vol', 'dropped'); // pre-connect: dropped
+    const volatile = socket.volatile;
+    expect(volatile).toBe(socket);
+    volatile.emit('vol', 'dropped'); // pre-connect: dropped
     void socket.volatile.emitWithAck('vol-ack'); // pre-connect: dropped, ack stays pending
     socket.emit('marker', 'ok'); // pre-connect: buffered, then delivered
   });
@@ -258,7 +264,9 @@ it('a volatile emit from a client still in the pre-connect window is dropped', a
   const client = ctx.openClient();
   expect(client.connected).toBe(false);
 
-  client.volatile.emit('vol', 'dropped'); // pre-connect: dropped
+  const volatile = client.volatile;
+  expect(volatile).toBe(client);
+  volatile.emit('vol', 'dropped'); // pre-connect: dropped
   // Real socket.io-client rejects this pending ack during fixture teardown.
   void client.volatile.emitWithAck('vol-ack').catch(() => undefined); // pre-connect: dropped
   client.emit('marker', 'ok'); // pre-connect: buffered, then delivered
@@ -266,6 +274,87 @@ it('a volatile emit from a client still in the pre-connect window is dropped', a
   await delivered;
   expect(seen).toEqual(['marker:ok']);
 });
+
+it('consumes volatile once when the same server socket reference is reused', async () => {
+  const { client, serverSocket } = await ctx.connectClient();
+  const { disconnected } = observeDisconnect(serverSocket);
+  client.disconnect();
+  await disconnected;
+
+  const dropped = track(client, 'dropped');
+  const delivered = receive(client, 'delivered');
+
+  ctx.io.on('connection', (socket: ServerSocketContract) => {
+    const held = socket.volatile;
+    held.emit('dropped');
+    held.emit('delivered', 'plain');
+  });
+  client.connect();
+
+  await expect(delivered).resolves.toBe('plain');
+  expect(dropped.received).toBe(false);
+});
+
+it('keeps a recipient volatile flag pending across an unrelated broadcast', async () => {
+  const { client, serverSocket } = await ctx.connectClient();
+  client.on('broadcast-ack', (ack: (value: string) => void) => ack('broadcast'));
+  const { disconnected } = observeDisconnect(serverSocket);
+  client.disconnect();
+  await disconnected;
+
+  const broadcast = receive(client, 'broadcast');
+  const dropped = track(client, 'dropped');
+  const marker = receive(client, 'marker');
+  const collected = new Promise<unknown[]>((resolve) => {
+    ctx.io.on('connection', (socket: ServerSocketContract) => {
+      expect(socket.volatile).toBe(socket);
+      ctx.io.emit('broadcast', 'kept');
+      ctx.io.timeout(1000).emit('broadcast-ack', (...args: unknown[]) => resolve(args));
+      socket.emit('dropped', 'not-kept');
+      socket.emit('marker', 'done');
+    });
+  });
+
+  client.connect();
+
+  await expect(broadcast).resolves.toBe('kept');
+  await expect(collected).resolves.toEqual([null, ['broadcast']]);
+  await expect(marker).resolves.toBe('done');
+  expect(dropped.received).toBe(false);
+});
+
+it.each(['to', 'except', 'broadcast'] as const)(
+  'transfers a server volatile flag once to the %s operator',
+  async (entry) => {
+    const { client: sender, serverSocket: senderSocket } = await ctx.connectClient();
+    const { client: recipient, serverSocket: recipientSocket } = await ctx.connectClient();
+    const { disconnected } = observeDisconnect(recipientSocket);
+    recipient.disconnect();
+    await disconnected;
+
+    const dropped = track(recipient, 'dropped');
+    const marker = receive(recipient, 'marker');
+    const direct = receive(sender, 'direct');
+
+    ctx.io.on('connection', (socket: ServerSocketContract) => {
+      expect(senderSocket.volatile).toBe(senderSocket);
+      const operator =
+        entry === 'to'
+          ? senderSocket.to(socket.id)
+          : entry === 'except'
+            ? senderSocket.except('nobody')
+            : senderSocket.broadcast;
+      operator.emit('dropped', entry);
+      senderSocket.emit('direct', 'plain');
+      socket.emit('marker', 'done');
+    });
+    recipient.connect();
+
+    await expect(direct).resolves.toBe('plain');
+    await expect(marker).resolves.toBe('done');
+    expect(dropped.received).toBe(false);
+  },
+);
 
 // The reconnect window is the one left unasserted, and it is not the window above. A
 // volatile emit on a client that connected and then disconnected is buffered by real

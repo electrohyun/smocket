@@ -294,10 +294,12 @@ it('the socket from a failed connect still chains', async () => {
     expect(client.emit('a', 1)).toBe(client);
 
     const timed = client.timeout(50);
-    expect(timed.emit('a', 1)).toBe(timed);
+    expect(timed).toBe(client);
+    expect(timed.emit('a', 1)).toBe(client);
 
     const volatile = client.volatile;
-    expect(volatile.emit('a', 1)).toBe(volatile);
+    expect(volatile).toBe(client);
+    expect(volatile.emit('a', 1)).toBe(client);
 
     await failed;
     expect(consoleError).toHaveBeenCalledOnce();
