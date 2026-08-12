@@ -79,6 +79,12 @@ promise the project made on purpose. Closing one of these withdraws nothing. It 
 correction toward measured real behaviour and takes that row instead, so the same fix does
 not change bump depending on which list it was written on.
 
+- **Payloads retain same-process values and references.** Smocket currently passes payload
+  objects directly, so Date and custom prototypes survive, post-emit mutation can reach the
+  receiver, and broadcast recipients can share references. Socket.IO's default parser
+  snapshots non-binary event and acknowledgement data. See
+  [0026](./decisions/0026-payloads-cross-a-json-snapshot-boundary.md) and
+  [#250](https://github.com/electrohyun/smocket/issues/250).
 - **Reserved event names on public emit surfaces.** Application code can emit reserved
   lifecycle names that socket.io rejects before delivery. See
   [#232](https://github.com/electrohyun/smocket/issues/232).
