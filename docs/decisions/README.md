@@ -33,3 +33,4 @@ these are written.
 | [0019](./0019-what-counts-as-a-breaking-change.md)               | A version number promises fidelity, not the current result                              | Accepted | #115          |
 | [0020](./0020-close-follows-socket-lifecycle.md)                 | `close()` tears down sockets and unregisters only the current server                    | Accepted | #193          |
 | [0021](./0021-event-maps-cross-the-substitution-seam.md)         | Event maps and socket data survive the server substitution seam                         | Accepted | #171          |
+| [0022](./0022-root-socket-names-server-socket.md)                | Root `Socket` names the server type; `smocket-client` owns the client type              | Accepted | #178, #235    |

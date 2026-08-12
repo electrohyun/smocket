@@ -95,8 +95,9 @@ requirements and progress.
 
 - The realistic application in [#113] and published-package environment in [#208] feed
   the application validation and productivity reports in [#218].
-- The `Socket` export decision in [#178] must land before the v1 public API guarantee is
-  finalized.
+- [Decision 0022](./decisions/0022-root-socket-names-server-socket.md) assigns root
+  `Socket` to the server and the client type to `smocket-client`; [#235] must settle the
+  facade and publication shape before the v1 public API guarantee is finalized.
 - [development-lenses.md](./development-lenses.md) defines the five lenses used during
   review.
 - [#213] remains the parent direction discussion for roadmap feedback and new use cases.
