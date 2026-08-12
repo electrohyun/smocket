@@ -5,11 +5,13 @@ import type { Socket as IoClientSocket } from 'socket.io-client';
 interface ClientToServerEvents {
   fire: (value: string) => void;
   guess: (text: string, ack: (accepted: boolean) => void) => void;
+  new_namespace: (value: string) => void;
 }
 
 interface ServerToClientEvents {
   chat: (message: string) => void;
   done: (ack: () => void) => void;
+  new_namespace: (value: string) => void;
   question: (message: string, ack: (answer: number) => void) => void;
 }
 
@@ -35,6 +37,7 @@ type AnyListener = (...args: any[]) => void;
 
 const annotatedIncomingCatchAll = (_event: string, _value: number): void => {};
 const annotatedOutgoingCatchAll = (_event: string, _value: number): void => {};
+declare const stringOrRegExpNamespace: string | RegExp;
 
 export function assertTypedEventMapsCompile(): void {
   const io = new Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>(
@@ -61,6 +64,33 @@ export function assertTypedEventMapsCompile(): void {
     socket.emit('chat', 'namespace-ready');
     next();
   });
+
+  const regexpParent = io.of(/^\/tenant-/, (socket) => {
+    socket.data.userId = 'regexp-user';
+    socket.emit('chat', 'regexp-ready');
+  });
+  const matcherParent = io.of((name, auth, next) => {
+    const normalizedName: string = name;
+    const tenant: unknown = auth.tenant;
+    void normalizedName;
+    void tenant;
+    next(null, true);
+  });
+  const unionNamespace = io.of(stringOrRegExpNamespace);
+  matcherParent.on('connection', (socket) => {
+    socket.data.userId = 'matcher-user';
+  });
+  io.on('new_namespace', (dynamicNamespace) => {
+    const childName: string = dynamicNamespace.name;
+    dynamicNamespace.emit('chat', childName);
+  });
+  io.emit('new_namespace', 'server payload');
+  // @ts-expect-error a matcher must report both an error and an allowed verdict
+  io.of((_name, _auth, next) => next(true));
+  // @ts-expect-error matcher auth is an object, not a scalar
+  io.of((_name, auth, next) => next(null, auth === 'tenant'));
+  // @ts-expect-error the optional listener receives a server socket, which has no name
+  io.of(/^\/invalid-/, (socket) => void socket.name);
 
   io.on('connection', (socket) => {
     const userId: string = socket.data.userId;
@@ -92,6 +122,7 @@ export function assertTypedEventMapsCompile(): void {
       .prependAnyOutgoing((_event, ..._args) => {});
     const incomingAnyListeners: AnyListener[] = socket.listenersAny();
     const outgoingAnyListeners: AnyListener[] = socket.listenersAnyOutgoing();
+    socket.emit('new_namespace', 'server socket payload');
     const returnedServerSocket: typeof socket = socket.disconnect();
     socket.to('room').volatile.emit('chat', 'hello');
     socket.broadcast.to('room').volatile.emit('chat', 'hello');
@@ -159,6 +190,7 @@ export function assertTypedEventMapsCompile(): void {
     const text: string = message;
     void text;
   });
+  client.emit('new_namespace', 'client payload');
   client.on('disconnect', (reason, description) => {
     const disconnectReason: IoClientSocket.DisconnectReason = reason;
     const disconnectDescription: Error | { description: string; context?: unknown } | undefined =
@@ -197,6 +229,9 @@ export function assertTypedEventMapsCompile(): void {
   void nonAck;
   void returnedServer;
   void returnedNamespace;
+  void regexpParent;
+  void matcherParent;
+  void unionNamespace;
   void returnedFromConnect;
   void returnedFromDisconnect;
   void returnedFromClientCatchAlls;
