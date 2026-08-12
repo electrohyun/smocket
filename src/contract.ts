@@ -613,6 +613,7 @@ export interface ServerContract<
     DecorateAcknowledgementsWithMultipleResponses<EmitEvents>,
     SocketData
   >;
+  /** Register or read a static namespace; empty is `/`, and a missing leading slash is added. */
   of(namespace: string): NamespaceContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>;
   /** Shut down every namespace and socket. Socket.IO 4.7 returns void; 4.8 returns a promise. */
   close(fn?: (err?: Error) => void): void | Promise<void>;
@@ -856,6 +857,12 @@ export interface ServerContext<
    * and awaits the client's `connect_error` instead.
    */
   openClient: (options?: ConnectOptions) => ClientSocketContract<EmitEvents, ListenEvents>;
+  /**
+   * Open a client on a namespace without observing `nextConnection` first. The real
+   * fixture keeps this separate because `ioServer.of(namespace)` would register the
+   * namespace and invalidate an unregistered-admission test before the client starts.
+   */
+  openUnregisteredClient: (namespace: string) => ClientSocketContract<EmitEvents, ListenEvents>;
   /**
    * Connect `count` clients and return them paired with their server-side
    * sockets, in connection order. Sugar over `connectClient` for the recurring

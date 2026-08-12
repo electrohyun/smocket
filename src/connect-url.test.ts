@@ -1,5 +1,6 @@
 import { beforeEach, expect, it, vi } from 'vitest';
 import { connect, resetRegistry, Server } from './mock-server';
+import { receive } from './test-events';
 
 // These tests exercise `connect(url)` and its origin registry, a smocket-only
 // mechanism: real socket.io resolves a url through an actual network, so there is
@@ -24,6 +25,7 @@ it('handshake.url is the normalized origin the client connected to', async () =>
   // path, smocket with the normalized origin it holds as the registry key (0006), so
   // the exact value is pinned here rather than in the dual-run handshake test.
   const server = new Server('http://localhost');
+  server.of('/game');
   connect('http://localhost/game');
   const serverSocket = await server.nextConnection('/game');
 
@@ -120,11 +122,40 @@ it('the options query is used only when the url carries none', async () => {
 
 it("the url's path selects the namespace", async () => {
   const server = new Server('http://localhost');
+  server.of('game');
   const client = connect('http://localhost/game');
   const serverSocket = await server.nextConnection('/game');
 
   expect(serverSocket.nsp.name).toBe('/game');
   expect(serverSocket.id).toBe(client.id);
+});
+
+it('connect(url) rejects an unregistered namespace without creating membership', async () => {
+  const server = new Server('http://localhost');
+  const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+  try {
+    const client = connect('http://localhost/private');
+    const outcome = await Promise.race([
+      receive(client, 'connect').then(() => 'connect' as const),
+      receive(client, 'connect_error'),
+    ]);
+
+    expect(outcome).toBeInstanceOf(Error);
+    expect((outcome as Error).message).toBe('Invalid namespace');
+    expect(client.connected).toBe(false);
+    expect(client.id).toBeUndefined();
+    // Unlike the intentional missing-origin divergence (0005), Socket.IO itself
+    // supplies this application-level error, so smocket adds no console diagnostic.
+    expect(consoleError).not.toHaveBeenCalled();
+
+    const namespace = server.of('/private');
+    const adapter = namespace.adapter;
+    const sids = (adapter as typeof adapter & { sids: Map<string, Set<string>> }).sids;
+    expect(adapter.rooms.size).toBe(0);
+    expect(sids.size).toBe(0);
+  } finally {
+    consoleError.mockRestore();
+  }
 });
 
 it('a relative url resolves against location.origin', async () => {

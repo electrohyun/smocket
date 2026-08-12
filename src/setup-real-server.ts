@@ -21,6 +21,11 @@ export function setupRealServer(): ServerContext {
   let port: number;
   let clients: ClientSocket[] = [];
 
+  const namespacePath = (namespace: string): string => {
+    if (namespace === '' || namespace === '/') return '/';
+    return namespace.startsWith('/') ? namespace : `/${namespace}`;
+  };
+
   beforeEach(async () => {
     httpServer = createServer();
     ioServer = new Server(httpServer);
@@ -51,7 +56,10 @@ export function setupRealServer(): ServerContext {
     });
 
   ctx.connectClient = async ({ namespace = '/', auth, query }: ConnectOptions = {}) => {
-    const client = io(`http://localhost:${port}${namespace}`, {
+    // Register before opening the client. This ordering is the fixture's static-
+    // namespace contract; the dedicated unregistered path below deliberately skips it.
+    const serverConnection = ctx.nextConnection(namespace);
+    const client = io(`http://localhost:${port}${namespacePath(namespace)}`, {
       transports: ['websocket'],
       auth,
       query,
@@ -60,7 +68,7 @@ export function setupRealServer(): ServerContext {
     // Connects are awaited one at a time, so the pending `connection` event
     // belongs to exactly this client, with no id matching needed.
     const [serverSocket] = await Promise.all([
-      ctx.nextConnection(namespace),
+      serverConnection,
       new Promise<void>((resolve) => client.once('connect', () => resolve())),
     ]);
 
@@ -72,10 +80,21 @@ export function setupRealServer(): ServerContext {
   // fail: a middleware rejection fires `connect_error` and never `connect`, so awaiting
   // the connect here would hang. The client is tracked for teardown like any other.
   ctx.openClient = ({ namespace = '/', auth, query }: ConnectOptions = {}) => {
-    const client = io(`http://localhost:${port}${namespace}`, {
+    const client = io(`http://localhost:${port}${namespacePath(namespace)}`, {
       transports: ['websocket'],
       auth,
       query,
+    });
+    clients.push(client);
+    return client;
+  };
+
+  // Deliberately does not call `ioServer.of(namespace)` or `ctx.nextConnection`:
+  // either would register the namespace and turn the rejection fixture into an
+  // admission fixture before the client sends its namespace connect packet.
+  ctx.openUnregisteredClient = (namespace: string) => {
+    const client = io(`http://localhost:${port}${namespacePath(namespace)}`, {
+      transports: ['websocket'],
     });
     clients.push(client);
     return client;
