@@ -104,6 +104,9 @@ requirements and progress.
   events add no v1 implementation dependency without a concrete use case.
 - [Decision 0026](./decisions/0026-payloads-cross-a-json-snapshot-boundary.md) defines
   the non-binary payload boundary; [#250] implements it before the v1 guarantee is final.
+- [Decision 0028](./decisions/0028-disconnect-true-closes-the-shared-manager-group.md)
+  assigns connection-wide namespace teardown to a logical client Manager; [#254]
+  implements that lifecycle before the v1 guarantee is final.
 - [development-lenses.md](./development-lenses.md) defines the five lenses used during
   review.
 - [#213] remains the parent direction discussion for roadmap feedback and new use cases.
@@ -192,4 +195,5 @@ project determines that it affects the published scope or an explicit v1 guarant
 [#216]: https://github.com/electrohyun/smocket/issues/216
 [#218]: https://github.com/electrohyun/smocket/issues/218
 [#250]: https://github.com/electrohyun/smocket/issues/250
+[#254]: https://github.com/electrohyun/smocket/issues/254
 [v1.0.0 milestone]: https://github.com/electrohyun/smocket/milestone/3
