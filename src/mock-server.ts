@@ -14,10 +14,11 @@ import type {
   EventsMap,
   Handshake,
   MiddlewareError,
-  NamespaceReservedEvents,
   NamespaceContract,
+  ParentNspNameMatchFn,
   ReservedOrUserEventName,
   ReservedOrUserListener,
+  ServerReservedEvents,
   ServerSocketContract,
   SmocketAdapter,
   SmocketServer,
@@ -712,6 +713,17 @@ class Namespace implements NamespaceContract {
     this.adapter = factory(this);
   }
 
+  /** Copy a dynamic parent's setup once, when this concrete child is created. */
+  inherit(
+    middleware: readonly ConnectionMiddleware[],
+    listeners: ReadonlyMap<string, readonly Listener[]>,
+  ): void {
+    this.middleware.push(...middleware);
+    for (const [event, entries] of listeners) {
+      this.connectionListeners.set(event, [...entries]);
+    }
+  }
+
   /**
    * Attach a new client to this namespace in memory and return the client side.
    * The `Server` lookup has already selected the client's Manager identity. The
@@ -738,6 +750,11 @@ class Namespace implements NamespaceContract {
   pair(client: ClientSocket, source?: ConnectOptions): void {
     const attempt = client.beginConnectionAttempt();
     if (!attempt) return;
+    this.continuePair(client, attempt, source);
+  }
+
+  /** Continue an attempt whose dynamic parent already resolved admission auth. */
+  continuePair(client: ClientSocket, attempt: ConnectionAttempt, source?: ConnectOptions): void {
     if (this.rejectIfClosed(client, attempt)) return;
     // Resolve the auth first, then pair. For an object auth this runs synchronously, so
     // the timing is unchanged; a function auth may call back later, and the connection
@@ -923,6 +940,129 @@ class Namespace implements NamespaceContract {
   }
 }
 
+/** Broadcast view over the concrete children currently owned by one dynamic parent. */
+class ParentBroadcastOperator implements BroadcastContract, TimeoutBroadcastContract {
+  constructor(
+    private readonly children: ReadonlySet<Namespace>,
+    private readonly rooms: readonly string[] = [],
+    private readonly exceptRooms: readonly string[] = [],
+    private readonly timeoutMs?: number,
+    private readonly isVolatile = false,
+  ) {}
+
+  to(room: string | string[]): ParentBroadcastOperator {
+    return new ParentBroadcastOperator(
+      this.children,
+      [...this.rooms, ...asRooms(room)],
+      this.exceptRooms,
+      this.timeoutMs,
+      this.isVolatile,
+    );
+  }
+  in(room: string | string[]): ParentBroadcastOperator {
+    return this.to(room);
+  }
+  except(room: string | string[]): ParentBroadcastOperator {
+    return new ParentBroadcastOperator(
+      this.children,
+      this.rooms,
+      [...this.exceptRooms, ...asRooms(room)],
+      this.timeoutMs,
+      this.isVolatile,
+    );
+  }
+  timeout(ms: number): ParentBroadcastOperator {
+    return new ParentBroadcastOperator(
+      this.children,
+      this.rooms,
+      this.exceptRooms,
+      ms,
+      this.isVolatile,
+    );
+  }
+  get volatile(): ParentBroadcastOperator {
+    return new ParentBroadcastOperator(
+      this.children,
+      this.rooms,
+      this.exceptRooms,
+      this.timeoutMs,
+      true,
+    );
+  }
+  emit(event: string, ...args: unknown[]): boolean {
+    for (const child of this.children) {
+      let operator: BroadcastContract | TimeoutBroadcastContract =
+        this.timeoutMs === undefined ? child : child.timeout(this.timeoutMs);
+      if (this.rooms.length > 0) operator = operator.to([...this.rooms]);
+      if (this.exceptRooms.length > 0) operator = operator.except([...this.exceptRooms]);
+      if (this.isVolatile) operator = operator.volatile;
+      operator.emit(event, ...args);
+    }
+    return true;
+  }
+}
+
+/** A hidden dynamic parent whose public operations fan out over concrete children. */
+class ParentNamespace implements NamespaceContract {
+  readonly adapter: SmocketAdapter = new Adapter();
+  readonly children = new Set<Namespace>();
+  readonly middleware: ConnectionMiddleware[] = [];
+  readonly connectionListeners = new Map<string, Listener[]>();
+
+  constructor(
+    readonly name: string,
+    private readonly matcher: RegExp | ParentNspNameMatchFn,
+  ) {}
+
+  matches(name: string, auth: Record<string, unknown>, next: (allowed: boolean) => void): void {
+    if (this.matcher instanceof RegExp) {
+      next(this.matcher.test(name));
+      return;
+    }
+    this.matcher(name, auth, (error, allowed) => next(!error && allowed));
+  }
+
+  matchesSynchronously(name: string): boolean {
+    if (!(this.matcher instanceof RegExp)) return false;
+    return this.matcher.test(name);
+  }
+
+  addChild(child: Namespace): void {
+    if (this.children.has(child)) return;
+    child.inherit(this.middleware, this.connectionListeners);
+    this.children.add(child);
+  }
+
+  use(middleware: ConnectionMiddleware): this {
+    this.middleware.push(middleware);
+    return this;
+  }
+  on(event: string, listener: Listener): this {
+    if (event === 'connection' || event === 'connect') {
+      addListener(this.connectionListeners, event, listener);
+    }
+    return this;
+  }
+  emit(event: string, ...args: unknown[]): boolean {
+    return new ParentBroadcastOperator(this.children).emit(event, ...args);
+  }
+  to(room: string | string[]): BroadcastContract {
+    return new ParentBroadcastOperator(this.children).to(room);
+  }
+  in(room: string | string[]): BroadcastContract {
+    return this.to(room);
+  }
+  except(room: string | string[]): BroadcastContract {
+    return new ParentBroadcastOperator(this.children).except(room);
+  }
+  timeout(ms: number): TimeoutBroadcastContract {
+    return new ParentBroadcastOperator(this.children).timeout(ms);
+  }
+  get volatile(): BroadcastContract {
+    return new ParentBroadcastOperator(this.children).volatile;
+  }
+}
+
 /**
  * The origin registry: normalized origin -> the `Server` listening there. Every
  * `new Server(url)` registers itself here and every `connect(url)` resolves through
@@ -1019,6 +1159,14 @@ export class Server<
    * Admission only reads this registry, so a client cannot create a namespace.
    */
   private readonly namespaces = new Map<string, Namespace>();
+  /** Dynamic parents are tried in registration order for unregistered names. */
+  private readonly parents: ParentNamespace[] = [];
+  /** Manual child attachment uses the latest parent registered for each RegExp object. */
+  private readonly regexParents = new Map<RegExp, ParentNamespace>();
+  /** Server-only lifecycle listeners; ordinary connection listeners stay on `/`. */
+  private readonly serverListeners = new Map<string, Listener[]>();
+  /** `nextConnection(name)` observers waiting for a function-matched child to exist. */
+  private readonly dynamicWaiters = new Map<string, Waiter[]>();
   /** The origin's reusable Manager; duplicate namespaces and opt-outs bypass it (0028). */
   private cachedManager: Manager | undefined;
 
@@ -1044,7 +1192,7 @@ export class Server<
     this.origin = parseUrl(url).origin;
     // Socket.IO constructs the root namespace with the server. It is the one static
     // namespace a client may enter without an earlier public `of()` registration.
-    this.getNamespace('/');
+    this.getNamespace('/', undefined, false);
     servers.set(this.origin, this as Server);
   }
 
@@ -1064,17 +1212,50 @@ export class Server<
   }
 
   /** Get the runtime namespace by name, creating it on first use. */
-  private getNamespace(name: string): Namespace {
+  private getNamespace(name: string, parent?: ParentNamespace, emitLifecycle = true): Namespace {
     const normalized = normalizeNamespace(name);
     const existing = this.namespaces.get(normalized);
     if (existing) return existing;
+    const attachTo = parent ?? this.matchingRegExpParent(normalized);
     const namespace = new Namespace(normalized, this.origin, this.adapterFactory, this.closed);
+    attachTo?.addChild(namespace);
     this.namespaces.set(normalized, namespace);
+    const waiters = this.dynamicWaiters.get(normalized);
+    if (waiters) {
+      this.dynamicWaiters.delete(normalized);
+      for (const waiter of waiters) void namespace.nextConnection().then(waiter);
+    }
+    if (emitLifecycle && normalized !== '/') this.emitNewNamespace(namespace);
     return namespace;
   }
 
+  /** A manual concrete lookup attaches only to a RegExp parent, as Socket.IO does. */
+  private matchingRegExpParent(name: string): ParentNamespace | undefined {
+    return [...this.regexParents.values()].find((parent) => parent.matchesSynchronously(name));
+  }
+
+  private emitNewNamespace(namespace: Namespace): void {
+    const listeners = this.serverListeners.get('new_namespace');
+    if (!listeners) return;
+    for (const listener of [...listeners]) {
+      (listener as (nsp: Namespace) => void)(namespace);
+    }
+  }
+
   /** Register or read a normalized static namespace (socket.io's lazy `of`). */
-  of(name: string): NamespaceContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData> {
+  of(
+    name: string | RegExp | ParentNspNameMatchFn,
+    listener?: (
+      socket: ServerSocketContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
+    ) => void,
+  ): NamespaceContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData> {
+    if (typeof name !== 'string') {
+      const parent = new ParentNamespace(`/_${this.parents.length}`, name);
+      this.parents.push(parent);
+      if (name instanceof RegExp) this.regexParents.set(name, parent);
+      if (listener) parent.on('connection', listener as Listener);
+      return parent as NamespaceContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>;
+    }
     return this.getNamespace(name) as NamespaceContract<
       ListenEvents,
       EmitEvents,
@@ -1090,17 +1271,21 @@ export class Server<
    */
   on<
     Event extends ReservedOrUserEventName<
-      NamespaceReservedEvents<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
+      ServerReservedEvents<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
       SupportedServerListenerEvents<ServerSideEvents>
     >,
   >(
     event: Event,
     listener: ReservedOrUserListener<
-      NamespaceReservedEvents<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
+      ServerReservedEvents<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
       SupportedServerListenerEvents<ServerSideEvents>,
       Event
     >,
   ): void {
+    if (event === 'new_namespace') {
+      addListener(this.serverListeners, event, listener as Listener);
+      return;
+    }
     this.getNamespace('/').on(event, listener as Listener);
   }
 
@@ -1131,13 +1316,45 @@ export class Server<
     const manager = this.managerFor(normalized, source);
     const registered = this.namespaces.get(normalized);
     if (!registered) {
-      const client = new ClientSocket(manager, undefined, source, () =>
-        this.namespaces.get(normalized),
+      const client = new ClientSocket(
+        manager,
+        undefined,
+        source,
+        () => this.namespaces.get(normalized),
+        (retryingClient) => this.admitDynamic(retryingClient, normalized, source),
       );
-      client.failInvalidNamespace();
+      if (this.parents.length === 0) client.failInvalidNamespace();
+      else this.admitDynamic(client, normalized, source);
       return client as ClientSocketContract<EmitEvents, ListenEvents>;
     }
     return registered.connect(manager, source) as ClientSocketContract<EmitEvents, ListenEvents>;
+  }
+
+  /** Resolve auth once, then try dynamic parents in registration order. */
+  private admitDynamic(client: ClientSocket, name: string, source?: ConnectOptions): void {
+    const attempt = client.beginConnectionAttempt();
+    if (!attempt) return;
+    resolveAuth(source?.auth, (auth) => {
+      if (!client.isConnectionAttemptPending(attempt)) return;
+      const tryParent = (index: number): void => {
+        const parent = this.parents[index];
+        if (!parent) {
+          client.rejectConnectionAttempt(attempt, new Error('Invalid namespace'));
+          return;
+        }
+        parent.matches(name, auth, (allowed) => {
+          if (!allowed) {
+            tryParent(index + 1);
+            return;
+          }
+          const child = this.getNamespace(name, parent);
+          if (!client.isConnectionAttemptPending(attempt)) return;
+          client.attachNamespace(child);
+          child.continuePair(client, attempt, { ...source, auth });
+        });
+      };
+      tryParent(0);
+    });
   }
 
   /** Apply socket.io-client's supported cached-Manager lookup boundary (0028). */
@@ -1156,7 +1373,22 @@ export class Server<
   nextConnection(
     namespace = '/',
   ): Promise<ServerSocketContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>> {
-    return this.getNamespace(namespace).nextConnection() as Promise<
+    const normalized = normalizeNamespace(namespace);
+    const concrete = this.namespaces.get(normalized);
+    if (concrete) {
+      return concrete.nextConnection() as Promise<
+        ServerSocketContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>
+      >;
+    }
+    const regexpParent = this.matchingRegExpParent(normalized);
+    if (!regexpParent && this.parents.length > 0) {
+      return new Promise<ServerSocket>((resolve) => {
+        const waiters = this.dynamicWaiters.get(normalized) ?? [];
+        waiters.push(resolve);
+        this.dynamicWaiters.set(normalized, waiters);
+      }) as Promise<ServerSocketContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>>;
+    }
+    return this.getNamespace(normalized, regexpParent).nextConnection() as Promise<
       ServerSocketContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>
     >;
   }
@@ -1776,18 +2008,27 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
    * connect manually once the server registers that static name.
    */
   private readonly resolveNamespace?: () => Namespace | undefined;
+  /** Re-run parent admission after an `Invalid namespace` result. */
+  private readonly dynamicAdmission?: (client: ClientSocket) => void;
 
   constructor(
     manager: Manager,
     nsp: Namespace | undefined,
     source?: ConnectOptions,
     resolveNamespace?: () => Namespace | undefined,
+    dynamicAdmission?: (client: ClientSocket) => void,
   ) {
     super();
     this.io = manager;
     this.nsp = nsp;
     this.handshakeSource = source;
     this.resolveNamespace = resolveNamespace;
+    this.dynamicAdmission = dynamicAdmission;
+  }
+
+  /** Bind an admitted dynamic client to the one cached concrete child. */
+  attachNamespace(namespace: Namespace): void {
+    this.nsp = namespace;
   }
 
   /**
@@ -1990,7 +2231,8 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
     if (this.connected) return this;
     const namespace = this.nsp ?? this.resolveNamespace?.();
     if (!namespace) {
-      this.failInvalidNamespace();
+      if (this.dynamicAdmission) this.dynamicAdmission(this);
+      else this.failInvalidNamespace();
       return this;
     }
     this.nsp = namespace;

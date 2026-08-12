@@ -34,6 +34,7 @@ export type {
   Handshake,
   MiddlewareError,
   NamespaceContract,
+  ParentNspNameMatchFn,
   ServerContract,
   ServerSocketContract,
   SmocketAdapter,
