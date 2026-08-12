@@ -1,4 +1,4 @@
-import { runScenario } from './scenario.js';
+import { runScenario } from './bootstrap.js';
 
 const { transcript } = await runScenario();
 

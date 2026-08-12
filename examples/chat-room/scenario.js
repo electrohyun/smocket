@@ -1,6 +1,3 @@
-import { connect } from 'smocket';
-import { createChatApplication } from './app.js';
-
 const scenarioMarker = 'scenario:marker';
 const participantIds = ['alice', 'bob', 'carol'];
 
@@ -85,13 +82,16 @@ function formatTranscript(result) {
   ];
 }
 
-export async function runScenario({ url = 'http://localhost:3000' } = {}) {
-  const application = createChatApplication(url);
+export async function runChatRoomScenario({ createClient, startApplication }) {
+  const application = await startApplication();
   const clients = {};
+  const activations = {};
 
   try {
     for (const participantId of participantIds) {
-      clients[participantId] = connect(url, { auth: { participantId } });
+      const connection = createClient(application.url, { auth: { participantId } });
+      clients[participantId] = connection.client;
+      activations[participantId] = connection.activate;
     }
 
     const observers = Object.fromEntries(
@@ -100,6 +100,10 @@ export async function runScenario({ url = 'http://localhost:3000' } = {}) {
         observeParticipant(clients[participantId]),
       ]),
     );
+
+    for (const participantId of participantIds) {
+      activations[participantId]();
+    }
 
     await Promise.all(participantIds.map((id) => observers[id].connected.next()));
 
