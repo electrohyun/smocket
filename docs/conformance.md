@@ -296,6 +296,21 @@ Room cleanup, the reason each side reports, and what happens to a pending ack.
 - [serverSocket.disconnect() reports io server disconnect to the client and server namespace disconnect to the server](../src/disconnect.test.ts#L205)
 - [disconnecting carries the same reason and fires before disconnect](../src/disconnect.test.ts#L221)
 
+### Shared Manager disconnect
+
+Namespace grouping, connection-wide teardown order, independent Managers, and reconnect
+cleanup.
+
+- [disconnect(false) closes only its namespace socket](../src/manager-disconnect.test.ts#L26)
+- [disconnect(true) is inert after that server socket disconnects with false](../src/manager-disconnect.test.ts#L50)
+- [disconnect(true) closes shared namespaces in connection order before returning](../src/manager-disconnect.test.ts#L66)
+- [disconnect(true) from a connection handler includes the initiator and isolates opt-outs](../src/manager-disconnect.test.ts#L101)
+- [disconnect(true) cancels pending namespace admission on the shared Manager](../src/manager-disconnect.test.ts#L153)
+- [reentrant client disconnects do not duplicate shared Manager teardown](../src/manager-disconnect.test.ts#L195)
+- [disconnect(true) leaves duplicate and opted-out Managers connected](../src/manager-disconnect.test.ts#L222)
+- [shared Manager teardown rejects client acks and permits explicit reconnect](../src/manager-disconnect.test.ts#L248)
+- [disconnect(true) from a stale server socket leaves the reconnect connected](../src/manager-disconnect.test.ts#L284)
+
 ### Server close
 
 Server-wide teardown, its reasons, and what happens to pending acknowledgements.
@@ -346,20 +361,21 @@ Resolving a url to a server, and what the url contributes to the handshake.
 - [connect(url) resolves to the server registered for that origin](../src/connect-url.test.ts#L14)
 - [handshake.url is the normalized origin the client connected to](../src/connect-url.test.ts#L23)
 - [two spellings of one origin resolve to the same server](../src/connect-url.test.ts#L35)
-- [the url's query string lands on handshake.query](../src/connect-url.test.ts#L45)
-- [connect(url, { auth }) puts the auth object on the handshake](../src/connect-url.test.ts#L58)
-- [a function auth holds the pairing until its callback fires](../src/connect-url.test.ts#L66)
-- [a function auth is re-evaluated on each connection, including a reconnect](../src/connect-url.test.ts#L86)
-- [the url query wins wholesale over the options query when both are given](../src/connect-url.test.ts#L103)
-- [the options query is used only when the url carries none](../src/connect-url.test.ts#L115)
-- [the url's path selects the namespace](../src/connect-url.test.ts#L123)
-- [connect(url) rejects an unregistered namespace without creating membership](../src/connect-url.test.ts#L133)
-- [a relative url resolves against location.origin](../src/connect-url.test.ts#L161)
-- [connect(url) to an unregistered origin fires connect_error, without throwing](../src/connect-url.test.ts#L179)
-- [a failed client still rejects reserved names on every emit wrapper](../src/connect-url.test.ts#L199)
-- [close unregisters the server so later connect(url) reports a missing server](../src/connect-url.test.ts#L220)
-- [closing a replaced server does not unregister its replacement](../src/connect-url.test.ts#L241)
-- [the socket from a failed connect still chains](../src/connect-url.test.ts#L253)
+- [connect(url) caches one Manager per normalized origin unless opted out](../src/connect-url.test.ts#L45)
+- [the url's query string lands on handshake.query](../src/connect-url.test.ts#L71)
+- [connect(url, { auth }) puts the auth object on the handshake](../src/connect-url.test.ts#L84)
+- [a function auth holds the pairing until its callback fires](../src/connect-url.test.ts#L92)
+- [a function auth is re-evaluated on each connection, including a reconnect](../src/connect-url.test.ts#L112)
+- [the url query wins wholesale over the options query when both are given](../src/connect-url.test.ts#L129)
+- [the options query is used only when the url carries none](../src/connect-url.test.ts#L141)
+- [the url's path selects the namespace](../src/connect-url.test.ts#L149)
+- [connect(url) rejects an unregistered namespace without creating membership](../src/connect-url.test.ts#L159)
+- [a relative url resolves against location.origin](../src/connect-url.test.ts#L187)
+- [connect(url) to an unregistered origin fires connect_error, without throwing](../src/connect-url.test.ts#L205)
+- [a failed client still rejects reserved names on every emit wrapper](../src/connect-url.test.ts#L225)
+- [close unregisters the server so later connect(url) reports a missing server](../src/connect-url.test.ts#L246)
+- [closing a replaced server does not unregister its replacement](../src/connect-url.test.ts#L267)
+- [the socket from a failed connect still chains](../src/connect-url.test.ts#L279)
 
 ### Binary passthrough guard
 

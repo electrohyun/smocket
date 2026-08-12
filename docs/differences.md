@@ -78,9 +78,3 @@ The distinction is not only editorial. Removing a section A entry is a major und
 promise the project made on purpose. Closing one of these withdraws nothing. It is a
 correction toward measured real behaviour and takes that row instead, so the same fix does
 not change bump depending on which list it was written on.
-
-- **`disconnect(true)` closes only its current namespace.** Smocket currently ignores
-  the connection-wide flag, so another namespace sharing the same client Manager stays
-  connected. See
-  [0028](./decisions/0028-disconnect-true-closes-the-shared-manager-group.md) and
-  [#254](https://github.com/electrohyun/smocket/issues/254).
