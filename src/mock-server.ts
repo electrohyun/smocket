@@ -709,8 +709,9 @@ class Namespace implements NamespaceContract {
    * Middleware are kept in registration order and run by `runMiddleware` on every
    * connection here.
    */
-  use(middleware: ConnectionMiddleware): void {
+  use(middleware: ConnectionMiddleware): this {
     this.middleware.push(middleware);
+    return this;
   }
 
   /**
@@ -1007,8 +1008,9 @@ export class Server<
    */
   use(
     middleware: ConnectionMiddleware<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
-  ): void {
+  ): this {
     this.getNamespace('/').use(middleware as ConnectionMiddleware);
+    return this;
   }
 
   /**
@@ -1430,9 +1432,10 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
    * argument is accepted and ignored. The client side learns `io server
    * disconnect`; this side tears down with `server namespace disconnect`.
    */
-  disconnect(_close?: boolean): void {
+  disconnect(_close?: boolean): this {
     this.peer.markDisconnected('io server disconnect');
     void this.teardown('server namespace disconnect');
+    return this;
   }
 
   emit(event: string, ...args: unknown[]): boolean {
@@ -1807,29 +1810,31 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
     return view;
   }
 
-  connect(): void {
+  connect(): this {
     // Already-connected `connect()` is a no-op in socket.io. Otherwise re-pair on
     // our namespace: a brand-new server socket and id, none of the old rooms, and the
     // same handshake source, so the reattached socket carries the original auth/query.
-    if (this.connected) return;
+    if (this.connected) return this;
     const namespace = this.nsp ?? this.resolveNamespace?.();
     if (!namespace) {
       this.failInvalidNamespace();
-      return;
+      return this;
     }
     this.nsp = namespace;
     namespace.pair(this, this.handshakeSource);
+    return this;
   }
 
-  disconnect(): void {
+  disconnect(): this {
     if (!this.connected) {
       this.cancelConnectionAttempt();
-      return;
+      return this;
     }
     // Client-initiated: this side reports `io client disconnect`, then the server
     // side tears down and reports `client namespace disconnect`.
     this.markDisconnected('io client disconnect');
     this.serverSocket.handleDisconnect();
+    return this;
   }
 
   /**
@@ -1914,11 +1919,13 @@ class FailedClientSocket extends ClientEmitter implements ClientSocketContract {
     };
     return inert;
   }
-  connect(): void {
+  connect(): this {
     /* inert: the failure is terminal, no retry (0005) */
+    return this;
   }
-  disconnect(): void {
+  disconnect(): this {
     /* inert: never connected */
+    return this;
   }
 }
 

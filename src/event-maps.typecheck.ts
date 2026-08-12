@@ -34,8 +34,24 @@ export function assertTypedEventMapsCompile(): void {
     'http://localhost:3000',
   );
 
-  io.use((socket, next) => {
-    socket.data.userId = 'user-1';
+  const returnedServer: typeof io = io
+    .use((socket, next) => {
+      socket.data.userId = 'user-1';
+      socket.on('guess', (text, ack) => {
+        void text;
+        ack(true);
+      });
+      next();
+    })
+    .use((socket, next) => {
+      socket.emit('chat', 'middleware-ready');
+      next();
+    });
+
+  const namespace = io.of('/typed');
+  const returnedNamespace: typeof namespace = namespace.use((socket, next) => {
+    socket.data.userId = 'namespace-user';
+    socket.emit('chat', 'namespace-ready');
     next();
   });
 
@@ -57,6 +73,7 @@ export function assertTypedEventMapsCompile(): void {
     });
 
     socket.emit('chat', 'hello');
+    const returnedServerSocket: typeof socket = socket.disconnect();
     socket.to('room').volatile.emit('chat', 'hello');
     socket.broadcast.to('room').volatile.emit('chat', 'hello');
     socket.broadcast.volatile.except('muted').emit('chat', 'hello');
@@ -68,6 +85,7 @@ export function assertTypedEventMapsCompile(): void {
     void answer;
     void timedAnswer;
     void volatileAnswer;
+    void returnedServerSocket;
 
     // @ts-expect-error unknown incoming event
     socket.on('gues', () => {});
@@ -105,6 +123,8 @@ export function assertTypedEventMapsCompile(): void {
   });
 
   const client = io.connect();
+  const returnedFromConnect: typeof client = client.connect();
+  const returnedFromDisconnect: typeof client = client.disconnect();
   client.on('chat', (message) => {
     const text: string = message;
     void text;
@@ -125,6 +145,10 @@ export function assertTypedEventMapsCompile(): void {
   void timedAccepted;
   void volatileAccepted;
   void nonAck;
+  void returnedServer;
+  void returnedNamespace;
+  void returnedFromConnect;
+  void returnedFromDisconnect;
 
   // @ts-expect-error unknown server event
   io.emit('caht', 'hello');
@@ -190,6 +214,27 @@ export function assertMappedReservedNamesStaySocketIoCompatible(): void {
 export function assertRealSocketIoListenerInferenceCompiles(
   io: IoServer<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
 ): void {
+  const returnedServer: typeof io = io
+    .use((socket, next) => {
+      socket.data.userId = 'real-user';
+      socket.on('guess', (text, ack) => {
+        void text;
+        ack(true);
+      });
+      next();
+    })
+    .use((socket, next) => {
+      socket.emit('chat', 'real-middleware-ready');
+      next();
+    });
+
+  const namespace = io.of('/real-typed');
+  const returnedNamespace: typeof namespace = namespace.use((socket, next) => {
+    socket.data.userId = 'real-namespace-user';
+    socket.emit('chat', 'real-namespace-ready');
+    next();
+  });
+
   io.on('connection', (socket) => {
     const userId: string = socket.data.userId;
     void userId;
@@ -205,12 +250,17 @@ export function assertRealSocketIoListenerInferenceCompiles(
     const answer: Promise<number> = socket.emitWithAck('question', 'value?');
     const timedAnswer: Promise<number> = socket.timeout(100).emitWithAck('question', 'value?');
     const volatileAnswer: Promise<number> = socket.volatile.emitWithAck('question', 'value?');
+    const returnedServerSocket: typeof socket = socket.disconnect();
     // @ts-expect-error an ack with no response value cannot back emitWithAck
     socket.emitWithAck('done');
     void answer;
     void timedAnswer;
     void volatileAnswer;
+    void returnedServerSocket;
   });
+
+  void returnedServer;
+  void returnedNamespace;
 
   io.emit('chat', 'hello');
   io.to('room').emit('chat', 'hello');
@@ -248,6 +298,8 @@ export function assertRealSocketIoDefaultsCompile(
 export function assertRealSocketIoClientAckTypesCompile(
   client: IoClientSocket<ServerToClientEvents, ClientToServerEvents>,
 ): void {
+  const returnedFromConnect: typeof client = client.connect();
+  const returnedFromDisconnect: typeof client = client.disconnect();
   const accepted: Promise<boolean> = client.emitWithAck('guess', 'answer');
   const timedAccepted: Promise<Error> = client.timeout(100).emitWithAck('guess', 'answer');
   const volatileAccepted: Promise<boolean> = client.volatile.emitWithAck('guess', 'answer');
@@ -256,6 +308,8 @@ export function assertRealSocketIoClientAckTypesCompile(
   void timedAccepted;
   void volatileAccepted;
   void nonAck;
+  void returnedFromConnect;
+  void returnedFromDisconnect;
 }
 
 export function assertRealSocketIoMappedReservedNamesCompile(

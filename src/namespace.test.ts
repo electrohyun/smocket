@@ -51,10 +51,14 @@ it('a client can retry after its static namespace is registered', async () => {
   const client = ctx.openUnregisteredClient('/private');
   await receive(client, 'connect_error');
 
+  const rejectedAgain = receive(client, 'connect_error');
+  expect(client.connect()).toBe(client);
+  await rejectedAgain;
+
   const namespace = ctx.io.of('/private');
   const serverConnection = ctx.nextConnection('/private');
   const connected = receive(client, 'connect');
-  client.connect();
+  expect(client.connect()).toBe(client);
   const [serverSocket] = await Promise.all([serverConnection, connected]);
 
   expect(serverSocket.nsp).toBe(namespace);
