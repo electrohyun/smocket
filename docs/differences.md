@@ -79,9 +79,6 @@ promise the project made on purpose. Closing one of these withdraws nothing. It 
 correction toward measured real behaviour and takes that row instead, so the same fix does
 not change bump depending on which list it was written on.
 
-- **Volatile broadcast narrowing.** A broadcast narrowed with `to`, `in`, `except`, or
-  `timeout` does not expose the next `volatile` operator. See
-  [#231](https://github.com/electrohyun/smocket/issues/231).
 - **Reserved event names on public emit surfaces.** Application code can emit reserved
   lifecycle names that socket.io rejects before delivery. See
   [#232](https://github.com/electrohyun/smocket/issues/232).
