@@ -1,4 +1,16 @@
-import type { ClientSocketContract, ServerSocketContract } from './contract';
+import { expect } from 'vitest';
+import type { ClientSocketContract, NamespaceContract, ServerSocketContract } from './contract';
+
+/** Assert that a namespace adapter retains no room or sid membership. */
+export function expectNoResidualMembership(namespace: NamespaceContract): void {
+  const sids = (
+    namespace.adapter as typeof namespace.adapter & {
+      sids: Map<string, Set<string>>;
+    }
+  ).sids;
+  expect(namespace.adapter.rooms.size).toBe(0);
+  expect(sids.size).toBe(0);
+}
 
 /** Resolve with the first payload the client receives for `event`. */
 export function receive(client: ClientSocketContract, event: string): Promise<unknown> {

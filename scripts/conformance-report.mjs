@@ -66,6 +66,12 @@ const AREAS = [
     blurb: 'What a namespace isolates: connections, emits, rooms, and socket ids.',
   },
   {
+    file: 'src/dynamic-namespace.test.ts',
+    title: 'Dynamic namespace parents',
+    blurb:
+      'Parent admission, concrete child lifecycle, setup snapshots, and direct broadcasts. Narrowed operator construction is covered, while narrowed delivery remains unverified under [0029](./decisions/0029-narrowed-parent-broadcasts-stay-unverified.md).',
+  },
+  {
     file: 'src/ack.test.ts',
     title: 'Acknowledgements',
     blurb: 'The trailing callback and `emitWithAck`, in both directions.',

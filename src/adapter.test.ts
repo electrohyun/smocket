@@ -112,3 +112,23 @@ it('registering a custom adapter preserves per-socket delivery order', async () 
   // without touching the delivery path.
   expect(order).toEqual(['a', 'b']);
 });
+
+it('builds an independent registered adapter for each dynamic concrete child', async () => {
+  const server = new Server('http://localhost');
+  const adapters = new Map<string, SpyAdapter>();
+  server.adapter((namespace) => {
+    const adapter = new SpyAdapter();
+    adapters.set(namespace.name, adapter);
+    return adapter;
+  });
+  server.of(/^\/tenant-/);
+
+  const a = server.connect('/tenant-a');
+  const b = server.connect('/tenant-b');
+  await Promise.all([receive(a, 'connect'), receive(b, 'connect')]);
+
+  expect(adapters.get('/tenant-a')).toBe(server.of('/tenant-a').adapter);
+  expect(adapters.get('/tenant-b')).toBe(server.of('/tenant-b').adapter);
+  expect(adapters.get('/tenant-a')).not.toBe(adapters.get('/tenant-b'));
+  await server.close();
+});
