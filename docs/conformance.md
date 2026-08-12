@@ -92,12 +92,16 @@ Narrowing a broadcast further, and whether the order of the narrowings matters.
 
 What a namespace isolates: connections, emits, rooms, and socket ids.
 
-- [io.of(nsp).on('connection') fires only for connections on that namespace](../src/namespace.test.ts#L8)
-- [io.of(nsp).emit() goes only to clients in that namespace](../src/namespace.test.ts#L24)
-- [io.emit() on the default namespace does not reach other namespaces](../src/namespace.test.ts#L40)
-- [a room of the same name is separate per namespace](../src/namespace.test.ts#L59)
-- [a client attached to two namespaces has a different socket id per namespace](../src/namespace.test.ts#L84)
-- [socket.broadcast stays inside the namespace of the sender](../src/namespace.test.ts#L99)
+- [io.of normalizes empty and bare static namespace names](../src/namespace.test.ts#L8)
+- [a registered static namespace admits the normalized harness name](../src/namespace.test.ts#L18)
+- [an unregistered static namespace is rejected without membership](../src/namespace.test.ts#L27)
+- [a client can retry after its static namespace is registered](../src/namespace.test.ts#L50)
+- [io.of(nsp).on('connection') fires only for connections on that namespace](../src/namespace.test.ts#L65)
+- [io.of(nsp).emit() goes only to clients in that namespace](../src/namespace.test.ts#L81)
+- [io.emit() on the default namespace does not reach other namespaces](../src/namespace.test.ts#L97)
+- [a room of the same name is separate per namespace](../src/namespace.test.ts#L116)
+- [a client attached to two namespaces has a different socket id per namespace](../src/namespace.test.ts#L141)
+- [socket.broadcast stays inside the namespace of the sender](../src/namespace.test.ts#L156)
 
 ### Acknowledgements
 
@@ -298,21 +302,22 @@ because nothing about socket.io follows from them.
 
 Resolving a url to a server, and what the url contributes to the handshake.
 
-- [connect(url) resolves to the server registered for that origin](../src/connect-url.test.ts#L13)
-- [handshake.url is the normalized origin the client connected to](../src/connect-url.test.ts#L22)
-- [two spellings of one origin resolve to the same server](../src/connect-url.test.ts#L33)
-- [the url's query string lands on handshake.query](../src/connect-url.test.ts#L43)
-- [connect(url, { auth }) puts the auth object on the handshake](../src/connect-url.test.ts#L56)
-- [a function auth holds the pairing until its callback fires](../src/connect-url.test.ts#L64)
-- [a function auth is re-evaluated on each connection, including a reconnect](../src/connect-url.test.ts#L84)
-- [the url query wins wholesale over the options query when both are given](../src/connect-url.test.ts#L101)
-- [the options query is used only when the url carries none](../src/connect-url.test.ts#L113)
-- [the url's path selects the namespace](../src/connect-url.test.ts#L121)
-- [a relative url resolves against location.origin](../src/connect-url.test.ts#L130)
-- [connect(url) to an unregistered origin fires connect_error, without throwing](../src/connect-url.test.ts#L148)
-- [close unregisters the server so later connect(url) reports a missing server](../src/connect-url.test.ts#L166)
-- [closing a replaced server does not unregister its replacement](../src/connect-url.test.ts#L187)
-- [the socket from a failed connect still chains](../src/connect-url.test.ts#L199)
+- [connect(url) resolves to the server registered for that origin](../src/connect-url.test.ts#L14)
+- [handshake.url is the normalized origin the client connected to](../src/connect-url.test.ts#L23)
+- [two spellings of one origin resolve to the same server](../src/connect-url.test.ts#L35)
+- [the url's query string lands on handshake.query](../src/connect-url.test.ts#L45)
+- [connect(url, { auth }) puts the auth object on the handshake](../src/connect-url.test.ts#L58)
+- [a function auth holds the pairing until its callback fires](../src/connect-url.test.ts#L66)
+- [a function auth is re-evaluated on each connection, including a reconnect](../src/connect-url.test.ts#L86)
+- [the url query wins wholesale over the options query when both are given](../src/connect-url.test.ts#L103)
+- [the options query is used only when the url carries none](../src/connect-url.test.ts#L115)
+- [the url's path selects the namespace](../src/connect-url.test.ts#L123)
+- [connect(url) rejects an unregistered namespace without creating membership](../src/connect-url.test.ts#L133)
+- [a relative url resolves against location.origin](../src/connect-url.test.ts#L161)
+- [connect(url) to an unregistered origin fires connect_error, without throwing](../src/connect-url.test.ts#L179)
+- [close unregisters the server so later connect(url) reports a missing server](../src/connect-url.test.ts#L197)
+- [closing a replaced server does not unregister its replacement](../src/connect-url.test.ts#L218)
+- [the socket from a failed connect still chains](../src/connect-url.test.ts#L230)
 
 ### Adapter API
 

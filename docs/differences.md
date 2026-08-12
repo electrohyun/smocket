@@ -74,9 +74,6 @@ promise the project made on purpose. Closing one of these withdraws nothing. It 
 correction toward measured real behaviour and takes that row instead, so the same fix does
 not change bump depending on which list it was written on.
 
-- **Static namespace registration and admission.** smocket does not normalize all static
-  namespace names the way socket.io does, and a connection can enter a namespace that the
-  server did not register. See [#228](https://github.com/electrohyun/smocket/issues/228).
 - **Volatile broadcast narrowing.** A broadcast narrowed with `to`, `in`, `except`, or
   `timeout` does not expose the next `volatile` operator. See
   [#231](https://github.com/electrohyun/smocket/issues/231).
