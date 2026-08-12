@@ -226,6 +226,16 @@ What `volatile` delivers in steady state, and the one window where it drops.
 - [a client catch-all runs before the specific listener for the same event](../src/on-any.test.ts#L125)
 - [a client catch-all does not fire for the reserved disconnect event](../src/on-any.test.ts#L140)
 - [client offAny(listener) removes one catch-all, offAny() removes all](../src/on-any.test.ts#L153)
+- [server prependAny listeners run newest-first before onAny listeners](../src/on-any.test.ts#L179)
+- [client prependAny listeners run newest-first before onAny listeners](../src/on-any.test.ts#L193)
+- [server listenersAny is live and offAny removes the first matching duplicate](../src/on-any.test.ts#L207)
+- [client listenersAny is live and offAny removes the first matching duplicate](../src/on-any.test.ts#L228)
+- [offAny replaces both sides backing arrays and detaches earlier lookups](../src/on-any.test.ts#L249)
+- [incoming catch-all dispatch snapshots listener mutations on both sides](../src/on-any.test.ts#L275)
+- [a client incoming catch-all receives the server ack callback](../src/on-any.test.ts#L316)
+- [empty listenersAny lookups are fresh and cannot install listeners on either side](../src/on-any.test.ts#L332)
+- [offAny on untouched sockets keeps empty lookups fresh and inert](../src/on-any.test.ts#L366)
+- [offAny detaches the old arrays and installs stable empty replacements](../src/on-any.test.ts#L401)
 
 ### Outgoing catch-all listeners
 
@@ -241,6 +251,16 @@ What `volatile` delivers in steady state, and the one window where it drops.
 - [the ack callback is stripped from the outgoing catch-all args, for emit and emitWithAck](../src/on-any-outgoing.test.ts#L90)
 - [offAnyOutgoing(listener) removes one, offAnyOutgoing() removes all](../src/on-any-outgoing.test.ts#L106)
 - [the client side carries offAnyOutgoing too](../src/on-any-outgoing.test.ts#L123)
+- [server prependAnyOutgoing listeners run newest-first before onAnyOutgoing listeners](../src/on-any-outgoing.test.ts#L134)
+- [client prependAnyOutgoing listeners run newest-first before onAnyOutgoing listeners](../src/on-any-outgoing.test.ts#L146)
+- [server listenersAnyOutgoing is live and removes the first matching duplicate](../src/on-any-outgoing.test.ts#L158)
+- [client listenersAnyOutgoing is live and removes the first matching duplicate](../src/on-any-outgoing.test.ts#L176)
+- [offAnyOutgoing replaces both sides backing arrays and detaches earlier lookups](../src/on-any-outgoing.test.ts#L194)
+- [outgoing catch-all dispatch snapshots listener mutations on both sides](../src/on-any-outgoing.test.ts#L217)
+- [the client outgoing catch-all omits ack callbacks for emit and emitWithAck](../src/on-any-outgoing.test.ts#L249)
+- [empty listenersAnyOutgoing lookups are fresh and cannot install listeners on either side](../src/on-any-outgoing.test.ts#L265)
+- [offAnyOutgoing on untouched sockets keeps empty lookups fresh and inert](../src/on-any-outgoing.test.ts#L286)
+- [offAnyOutgoing detaches the old arrays and installs stable empty replacements](../src/on-any-outgoing.test.ts#L308)
 
 ### Reserved event names
 
@@ -338,13 +358,13 @@ chain.
 - [a volatile emit follows its own side: true on the server, the socket on the client](../src/emitter-returns.test.ts#L72)
 - [a dropped volatile emit still returns the emitter it was called on](../src/emitter-returns.test.ts#L79)
 - [the client listener methods return the socket, so they chain](../src/emitter-returns.test.ts#L91)
-- [the server socket listener methods return the socket, so they chain](../src/emitter-returns.test.ts#L104)
-- [chained registrations both take effect](../src/emitter-returns.test.ts#L117)
-- [a namespace on returns the namespace, so it chains](../src/emitter-returns.test.ts#L132)
-- [server and namespace use return the object they register on](../src/emitter-returns.test.ts#L137)
-- [client connect returns the socket while connected and when reconnecting](../src/emitter-returns.test.ts#L145)
-- [client disconnect returns the socket whether or not it is connected](../src/emitter-returns.test.ts#L155)
-- [server socket disconnect returns that socket](../src/emitter-returns.test.ts#L161)
+- [the server socket listener methods return the socket, so they chain](../src/emitter-returns.test.ts#L106)
+- [chained registrations both take effect](../src/emitter-returns.test.ts#L121)
+- [a namespace on returns the namespace, so it chains](../src/emitter-returns.test.ts#L136)
+- [server and namespace use return the object they register on](../src/emitter-returns.test.ts#L141)
+- [client connect returns the socket while connected and when reconnecting](../src/emitter-returns.test.ts#L149)
+- [client disconnect returns the socket whether or not it is connected](../src/emitter-returns.test.ts#L159)
+- [server socket disconnect returns that socket](../src/emitter-returns.test.ts#L165)
 
 ## smocket only
 
@@ -376,6 +396,7 @@ Resolving a url to a server, and what the url contributes to the handshake.
 - [close unregisters the server so later connect(url) reports a missing server](../src/connect-url.test.ts#L246)
 - [closing a replaced server does not unregister its replacement](../src/connect-url.test.ts#L267)
 - [the socket from a failed connect still chains](../src/connect-url.test.ts#L279)
+- [a failed client carries the complete catch-all listener surface](../src/connect-url.test.ts#L309)
 
 ### Binary passthrough guard
 
@@ -439,8 +460,6 @@ has not been measured, not that it is missing from socket.io.
   is that the chained call still delivers.
 - **`socket.use(fn)`.** Per-packet middleware on one socket, which is a different seam
   from the connection middleware `io.use` covered above.
-- **`prependAny`, `prependAnyOutgoing`, `listenersAny`, `listenersAnyOutgoing`.** The
-  rest of the catch-all surface.
 - **Listener introspection.** `listeners`, `listenerCount`, and `eventNames`.
 - **Dynamic namespaces.** `io.of(/regex/)` and the `new_namespace` event.
 
