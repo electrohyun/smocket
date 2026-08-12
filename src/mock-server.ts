@@ -265,6 +265,62 @@ export class Adapter implements SmocketAdapter {
   }
 }
 
+/**
+ * One host-neutral socket.io-client Manager identity (0028). It remembers the
+ * namespace sockets created through it, including admission still in progress, and
+ * the order in which they connect, but models no Engine.IO transport, retry,
+ * heartbeat, or fallback behavior.
+ */
+class Manager {
+  private readonly namespaces = new Set<string>();
+  private readonly pendingClients = new Set<ClientSocket>();
+  private readonly connectedClients = new Set<ClientSocket>();
+
+  constructor(namespace: string) {
+    this.namespaces.add(namespace);
+  }
+
+  owns(namespace: string): boolean {
+    return this.namespaces.has(namespace);
+  }
+
+  claim(namespace: string): void {
+    this.namespaces.add(namespace);
+  }
+
+  registerPending(client: ClientSocket): void {
+    this.pendingClients.add(client);
+  }
+
+  settlePending(client: ClientSocket): void {
+    this.pendingClients.delete(client);
+  }
+
+  connected(client: ClientSocket): void {
+    this.pendingClients.delete(client);
+    this.connectedClients.add(client);
+  }
+
+  disconnected(client: ClientSocket): void {
+    this.connectedClients.delete(client);
+  }
+
+  /** Close connected namespaces in order and cancel admission still pending on this Manager. */
+  disconnect(initiator: ServerSocket): void {
+    for (const client of [...this.connectedClients]) client.disconnectFromServer();
+    for (const client of [...this.pendingClients]) {
+      // The server `connection` handler runs while its client attempt is technically
+      // pending. Preserve that initiating socket's synchronous server lifecycle below;
+      // every other pending namespace must be cancelled with the shared Manager.
+      if (!client.ownsConnection(initiator)) client.cancelConnectionAttemptFromManager();
+    }
+    // A server `connection` handler runs before the initiating client reaches its
+    // `connect` event and Manager roster. Include that socket explicitly; on the
+    // ordinary connected path its teardown guard makes this duplicate a no-op.
+    initiator.disconnectNamespaceFromServer();
+  }
+}
+
 /** The default `DeliveryTimer`: real `setTimeout` / `Date.now`, which fake timers can drive. */
 const realTimer: DeliveryTimer = {
   schedule: (fn, ms) => {
@@ -629,8 +685,6 @@ class Namespace implements NamespaceContract {
 
   constructor(
     readonly name: string,
-    /** The shared Manager stand-in every client here is given; see ClientSocket.io. */
-    private readonly server: Server,
     /** The server's normalized origin, filled into each socket's `handshake.url` (0006). */
     private readonly origin: string,
     /** The custom adapter factory registered on the server, if any; see `useAdapter`. */
@@ -654,13 +708,12 @@ class Namespace implements NamespaceContract {
 
   /**
    * Attach a new client to this namespace in memory and return the client side.
-   * The client takes the `Server` as its `io`, so two clients on different
-   * namespaces share one Manager stand-in, one multiplexed connection. The actual
-   * pairing is `pair`, shared with reconnect. `source` carries the caller's `auth` /
-   * `query` onto the handshake; a reconnect replays the client's own copy.
+   * The `Server` lookup has already selected the client's Manager identity. The
+   * actual pairing is `pair`, shared with reconnect. `source` carries the caller's
+   * `auth` / `query` onto the handshake; a reconnect replays the client's own copy.
    */
-  connect(source?: ConnectOptions): ClientSocket {
-    const client = new ClientSocket(this.server, this, source);
+  connect(manager: Manager, source?: ConnectOptions): ClientSocket {
+    const client = new ClientSocket(manager, this, source);
     this.pair(client, source);
     return client;
   }
@@ -921,7 +974,12 @@ export function connect(url: string, options?: ConnectOptions): ClientSocketCont
   const server = servers.get(origin);
   if (!server) return new FailedClientSocket(origin);
   const query = Object.keys(urlQuery).length > 0 ? urlQuery : options?.query;
-  return server.connect(namespace, { auth: options?.auth, query });
+  return server.connect(namespace, {
+    auth: options?.auth,
+    query,
+    forceNew: options?.forceNew,
+    multiplex: options?.multiplex,
+  });
 }
 
 /**
@@ -955,6 +1013,8 @@ export class Server<
    * Admission only reads this registry, so a client cannot create a namespace.
    */
   private readonly namespaces = new Map<string, Namespace>();
+  /** The origin's reusable Manager; duplicate namespaces and opt-outs bypass it (0028). */
+  private cachedManager: Manager | undefined;
 
   /**
    * The custom adapter factory registered through `adapter`, applied to every
@@ -1002,13 +1062,7 @@ export class Server<
     const normalized = normalizeNamespace(name);
     const existing = this.namespaces.get(normalized);
     if (existing) return existing;
-    const namespace = new Namespace(
-      normalized,
-      this as Server,
-      this.origin,
-      this.adapterFactory,
-      this.closed,
-    );
+    const namespace = new Namespace(normalized, this.origin, this.adapterFactory, this.closed);
     this.namespaces.set(normalized, namespace);
     return namespace;
   }
@@ -1067,16 +1121,29 @@ export class Server<
     namespace = '/',
     source?: ConnectOptions,
   ): ClientSocketContract<EmitEvents, ListenEvents> {
-    const registered = this.namespaces.get(normalizeNamespace(namespace));
+    const normalized = normalizeNamespace(namespace);
+    const manager = this.managerFor(normalized, source);
+    const registered = this.namespaces.get(normalized);
     if (!registered) {
-      const normalized = normalizeNamespace(namespace);
-      const client = new ClientSocket(this as Server, undefined, source, () =>
+      const client = new ClientSocket(manager, undefined, source, () =>
         this.namespaces.get(normalized),
       );
       client.failInvalidNamespace();
       return client as ClientSocketContract<EmitEvents, ListenEvents>;
     }
-    return registered.connect(source) as ClientSocketContract<EmitEvents, ListenEvents>;
+    return registered.connect(manager, source) as ClientSocketContract<EmitEvents, ListenEvents>;
+  }
+
+  /** Apply socket.io-client's supported cached-Manager lookup boundary (0028). */
+  private managerFor(namespace: string, source?: ConnectOptions): Manager {
+    if (source?.forceNew || source?.multiplex === false) return new Manager(namespace);
+    if (!this.cachedManager) {
+      this.cachedManager = new Manager(namespace);
+      return this.cachedManager;
+    }
+    if (this.cachedManager.owns(namespace)) return new Manager(namespace);
+    this.cachedManager.claim(namespace);
+    return this.cachedManager;
   }
 
   /** Resolve with the server socket of the next client to connect on `namespace`. */
@@ -1378,6 +1445,8 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
   readonly handshake: Handshake;
   /** The first teardown owns the lifecycle; later disconnect paths await the same work. */
   private teardownPromise: Promise<void> | undefined;
+  /** False once this server-side socket begins its disconnect lifecycle. */
+  private active = true;
   /** Cleared by whole-socket cleanup so a disconnected socket cannot recreate membership. */
   private acceptsRoomJoins = true;
   /**
@@ -1418,6 +1487,7 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
     if (this.teardownPromise) return this.teardownPromise;
     this.teardownPromise = new Promise((resolve) => {
       defer(() => {
+        this.active = false;
         this.dispatch('disconnecting', [reason]);
         this.cleanupMembership();
         this.dispatch('disconnect', [reason]);
@@ -1434,6 +1504,7 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
    * so cancellation and a later middleware callback can both reach it safely.
    */
   cleanupConnectionAttempt(): void {
+    this.active = false;
     this.cleanupMembership();
   }
 
@@ -1470,16 +1541,40 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
   }
 
   /**
-   * Server-initiated disconnect, socket.io's `socket.disconnect(close?)`. `close`
-   * only decides whether the underlying connection is torn down too; a mock has no
-   * transport and the reason is the same either way (pinned against real), so the
-   * argument is accepted and ignored. The client side learns `io server
-   * disconnect`; this side tears down with `server namespace disconnect`.
+   * Server-initiated disconnect, socket.io's `socket.disconnect(close?)`. With
+   * `true`, the logical Manager applies this lifecycle to every connected namespace;
+   * otherwise only this socket closes (0028). There is still no transport here.
    */
   disconnect(_close?: boolean): this {
-    this.peer.markDisconnected('io server disconnect');
-    void this.teardown('server namespace disconnect');
+    if (_close) {
+      if (this.peer.ownsConnection(this)) this.peer.io.disconnect(this);
+      return this;
+    }
+    this.disconnectNamespaceFromServer();
     return this;
+  }
+
+  /** Server-side lifecycle is synchronous; the corresponding client event is deferred. */
+  disconnectNamespaceFromServer(): void {
+    if (!this.teardownSynchronously('server namespace disconnect')) return;
+    defer(() => {
+      if (this.peer.connected) this.peer.markDisconnected('io server disconnect');
+    });
+  }
+
+  private teardownSynchronously(reason: string): boolean {
+    if (this.teardownPromise) return false;
+    this.teardownPromise = Promise.resolve();
+    this.active = false;
+    this.dispatch('disconnecting', [reason]);
+    this.cleanupMembership();
+    this.dispatch('disconnect', [reason]);
+    return true;
+  }
+
+  /** Whether Manager-wide teardown may still originate from this server socket. */
+  isActive(): boolean {
+    return this.active;
   }
 
   emit(event: string, ...args: unknown[]): boolean {
@@ -1652,7 +1747,7 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
   connected = false;
   id: string | undefined;
   /** The shared Manager stand-in; compared only by identity across namespaces. */
-  readonly io: unknown;
+  readonly io: Manager;
   /**
    * The namespace this client is attached to. Held so `connect` (a reconnect) can
    * re-pair on the same namespace without routing through the dead server socket.
@@ -1690,13 +1785,13 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
   private readonly resolveNamespace?: () => Namespace | undefined;
 
   constructor(
-    server: Server,
+    manager: Manager,
     nsp: Namespace | undefined,
     source?: ConnectOptions,
     resolveNamespace?: () => Namespace | undefined,
   ) {
     super();
-    this.io = server;
+    this.io = manager;
     this.nsp = nsp;
     this.handshakeSource = source;
     this.resolveNamespace = resolveNamespace;
@@ -1718,6 +1813,7 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
     this.serverSocket = serverSocket;
     this.connected = true;
     this.id = serverSocket.id;
+    this.io.connected(this);
     this.dispatch('connect', []);
     const buffered = this.sendBuffer;
     this.sendBuffer = [];
@@ -1756,6 +1852,7 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
     attempt.state = 'rejected';
     attempt.serverSocket?.cleanupConnectionAttempt();
     this.connectionAttempt = undefined;
+    this.io.settlePending(this);
     defer(() => this.dispatch('connect_error', [err]));
   }
 
@@ -1769,6 +1866,7 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
     if (this.connected || this.connectionAttempt?.state === 'pending') return undefined;
     const attempt: ConnectionAttempt = { state: 'pending' };
     this.connectionAttempt = attempt;
+    this.io.registerPending(this);
     return attempt;
   }
 
@@ -1784,6 +1882,16 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
     return this.connectionAttempt === attempt && attempt.state === 'pending';
   }
 
+  /** Whether `socket` is this client's current or connection-handler-visible pairing. */
+  ownsConnection(socket: ServerSocket): boolean {
+    if (!socket.isActive()) return false;
+    return (
+      (this.connected && this.serverSocket === socket) ||
+      (this.connectionAttempt?.state === 'pending' &&
+        this.connectionAttempt.serverSocket === socket)
+    );
+  }
+
   /** Cancel a pre-connect attempt without inventing client or server lifecycle events. */
   private cancelConnectionAttempt(): void {
     const attempt = this.connectionAttempt;
@@ -1791,6 +1899,12 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
     attempt.state = 'cancelled';
     attempt.serverSocket?.cleanupConnectionAttempt();
     this.connectionAttempt = undefined;
+    this.io.settlePending(this);
+  }
+
+  /** Called by the Manager when its shared transport identity is closed. */
+  cancelConnectionAttemptFromManager(): void {
+    this.cancelConnectionAttempt();
   }
 
   emit(event: string, ...args: unknown[]): this {
@@ -1903,14 +2017,21 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
    * server-initiated one (`ServerSocket.disconnect`); only the reason differs.
    * socket.io-client settles a pending emitWithAck on disconnect instead of
    * leaving it hanging, which is why the rejecters are drained here.
+   * Callers first verify this client is connected.
    */
   markDisconnected(reason: string): void {
     this.connected = false;
     this.id = undefined;
+    this.io.disconnected(this);
     const rejecters = [...this.pendingAcks];
     this.pendingAcks.clear();
     for (const reject of rejecters) reject(new Error('socket has been disconnected'));
     this.dispatch('disconnect', [reason]);
+  }
+
+  /** Called by the Manager while applying connection-wide server teardown. */
+  disconnectFromServer(): void {
+    if (this.connected) this.serverSocket.disconnectNamespaceFromServer();
   }
 }
 
