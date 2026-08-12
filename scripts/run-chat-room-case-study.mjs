@@ -64,8 +64,11 @@ function run(command, args, cwd, capture = false) {
   return new Promise((resolve, reject) => {
     const environment = { ...process.env, npm_config_update_notifier: 'false' };
     delete environment.npm_config_manage_package_manager_versions;
+    const useWindowsCommandShell = process.platform === 'win32' && command === 'npm';
+    const executable = useWindowsCommandShell ? (process.env.ComSpec ?? 'cmd.exe') : command;
+    const executableArgs = useWindowsCommandShell ? ['/d', '/s', '/c', command, ...args] : args;
 
-    const child = spawn(command, args, {
+    const child = spawn(executable, executableArgs, {
       cwd,
       env: environment,
       stdio: capture ? ['ignore', 'pipe', 'inherit'] : 'inherit',
