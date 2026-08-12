@@ -158,8 +158,9 @@ const AREAS = [
   },
   {
     file: 'src/emitter-returns.test.ts',
-    title: 'Emitter return values',
-    blurb: 'What `emit` and the listener methods hand back, and which of them chain.',
+    title: 'Return values',
+    blurb:
+      'What emit, listener, middleware, connect, and disconnect methods hand back, and which chain.',
   },
 ];
 

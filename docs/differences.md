@@ -85,9 +85,6 @@ not change bump depending on which list it was written on.
   snapshots non-binary event and acknowledgement data. See
   [0026](./decisions/0026-payloads-cross-a-json-snapshot-boundary.md) and
   [#250](https://github.com/electrohyun/smocket/issues/250).
-- **Fluent `use`, `connect`, and `disconnect` returns.** These methods do not return the
-  server, namespace, or socket instance that socket.io returns. See
-  [#233](https://github.com/electrohyun/smocket/issues/233).
 - **`disconnect(true)` closes only its current namespace.** Smocket currently ignores
   the connection-wide flag, so another namespace sharing the same client Manager stays
   connected. See
