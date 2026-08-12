@@ -55,7 +55,13 @@ export function setupRealServer(): ServerContext {
       ioServer.of(namespace).once('connection', (socket) => resolve(socket));
     });
 
-  ctx.connectClient = async ({ namespace = '/', auth, query }: ConnectOptions = {}) => {
+  ctx.connectClient = async ({
+    namespace = '/',
+    auth,
+    query,
+    forceNew,
+    multiplex,
+  }: ConnectOptions = {}) => {
     // Register before opening the client. This ordering is the fixture's static-
     // namespace contract; the dedicated unregistered path below deliberately skips it.
     const serverConnection = ctx.nextConnection(namespace);
@@ -63,6 +69,8 @@ export function setupRealServer(): ServerContext {
       transports: ['websocket'],
       auth,
       query,
+      forceNew,
+      multiplex,
     });
 
     // Connects are awaited one at a time, so the pending `connection` event
@@ -79,11 +87,13 @@ export function setupRealServer(): ServerContext {
   // Open a connection without awaiting `connect`, for a connection a test expects to
   // fail: a middleware rejection fires `connect_error` and never `connect`, so awaiting
   // the connect here would hang. The client is tracked for teardown like any other.
-  ctx.openClient = ({ namespace = '/', auth, query }: ConnectOptions = {}) => {
+  ctx.openClient = ({ namespace = '/', auth, query, forceNew, multiplex }: ConnectOptions = {}) => {
     const client = io(`http://localhost:${port}${namespacePath(namespace)}`, {
       transports: ['websocket'],
       auth,
       query,
+      forceNew,
+      multiplex,
     });
     clients.push(client);
     return client;

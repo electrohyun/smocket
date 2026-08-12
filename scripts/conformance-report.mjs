@@ -131,6 +131,12 @@ const AREAS = [
     blurb: 'Room cleanup, the reason each side reports, and what happens to a pending ack.',
   },
   {
+    file: 'src/manager-disconnect.test.ts',
+    title: 'Shared Manager disconnect',
+    blurb:
+      'Namespace grouping, connection-wide teardown order, independent Managers, and reconnect cleanup.',
+  },
+  {
     file: 'src/server-close.test.ts',
     title: 'Server close',
     blurb: 'Server-wide teardown, its reasons, and what happens to pending acknowledgements.',
