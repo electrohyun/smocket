@@ -382,6 +382,24 @@ export interface NamespaceReservedEvents<
   ) => void;
 }
 
+export interface ServerReservedEvents<
+  ListenEvents extends EventsMap,
+  EmitEvents extends EventsMap,
+  ServerSideEvents extends EventsMap,
+  SocketData,
+> extends NamespaceReservedEvents<ListenEvents, EmitEvents, ServerSideEvents, SocketData> {
+  new_namespace: (
+    namespace: NamespaceContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
+  ) => void;
+}
+
+/** Selects a dynamic namespace from its normalized name and client auth payload. */
+export type ParentNspNameMatchFn = (
+  name: string,
+  auth: Record<string, unknown>,
+  next: (error: Error | null, allowed: boolean) => void,
+) => void;
+
 /**
  * A connection middleware, registered through `io.use()`. It runs after the handshake
  * is built and before the socket is considered connected: `next()` admits the
@@ -555,13 +573,13 @@ export interface ServerContract<
    */
   on<
     Event extends ReservedOrUserEventName<
-      NamespaceReservedEvents<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
+      ServerReservedEvents<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
       SupportedServerListenerEvents<ServerSideEvents>
     >,
   >(
     event: Event,
     listener: ReservedOrUserListener<
-      NamespaceReservedEvents<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
+      ServerReservedEvents<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
       SupportedServerListenerEvents<ServerSideEvents>,
       Event
     >,
@@ -598,8 +616,13 @@ export interface ServerContract<
     DecorateAcknowledgementsWithMultipleResponses<EmitEvents>,
     SocketData
   >;
-  /** Register or read a static namespace; empty is `/`, and a missing leading slash is added. */
-  of(namespace: string): NamespaceContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>;
+  /** Register or read a static namespace, or register a dynamic parent. */
+  of(
+    matcher: string | RegExp | ParentNspNameMatchFn,
+    listener?: (
+      socket: ServerSocketContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
+    ) => void,
+  ): NamespaceContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>;
   /** Shut down every namespace and socket. Socket.IO 4.7 returns void; 4.8 returns a promise. */
   close(fn?: (err?: Error) => void): void | Promise<void>;
 }
@@ -935,7 +958,10 @@ type ServerParityContract<
   'of' | 'on' | 'use'
 > & {
   of(
-    namespace: string,
+    matcher: string | RegExp | ParentNspNameMatchFn,
+    listener?: (
+      socket: ServerSocketParityContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
+    ) => void,
   ): NamespaceParityContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>;
   use(
     middleware: (
