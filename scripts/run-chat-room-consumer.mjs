@@ -24,7 +24,14 @@ if (!modes.has(mode)) {
 const repositoryRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const consumerRoot = join(repositoryRoot, 'consumers', 'chat-room');
 const exampleRoot = join(repositoryRoot, 'examples', 'chat-room');
-const applicationFiles = ['app.js', 'index.js', 'scenario.js', 'scenario.test.js'];
+const applicationFiles = [
+  'app.js',
+  'assertions.js',
+  'bootstrap.js',
+  'index.js',
+  'scenario.js',
+  'scenario.test.js',
+];
 
 function run(command, args, cwd) {
   return new Promise((resolve, reject) => {

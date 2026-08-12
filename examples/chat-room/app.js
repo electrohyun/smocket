@@ -1,5 +1,3 @@
-import { Server } from 'smocket';
-
 const channels = new Set(['general', 'support']);
 const participantNames = new Map([
   ['alice', 'Alice'],
@@ -11,8 +9,7 @@ const participantNames = new Map([
 // consulted when deciding whether an announcement is allowed.
 const moderators = new Set(['alice']);
 
-export function createChatApplication(url) {
-  const io = new Server(url);
+export function createChatApplication({ io, url, close }) {
   let closing = false;
   let closePromise;
 
@@ -81,8 +78,9 @@ export function createChatApplication(url) {
     io,
     close() {
       closing = true;
-      closePromise ??= io.close();
+      closePromise ??= Promise.resolve(close());
       return closePromise;
     },
+    url,
   };
 }
