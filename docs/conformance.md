@@ -136,14 +136,18 @@ JSON results, snapshot timing, invalid data, and reference isolation.
 
 `timeout(ms)` on a single emit, and what a late ack does.
 
-- [the timeout callback receives (null, response) when the ack wins](../src/timeout.test.ts#L12)
-- [works server-to-client with the same success shape](../src/timeout.test.ts#L21)
-- [the callback gets a single timeout Error when the peer never acks](../src/timeout.test.ts#L30)
-- [times out the same way server-to-client](../src/timeout.test.ts#L43)
-- [drops a late ack that arrives after the timeout already fired](../src/timeout.test.ts#L56)
-- [timeout().emitWithAck resolves with the response when the ack wins](../src/timeout.test.ts#L85)
-- [timeout().emitWithAck rejects with the timeout Error on expiry](../src/timeout.test.ts#L91)
-- [a callback-less timeout emit still delivers and arms no timer](../src/timeout.test.ts#L99)
+- [the timeout callback receives (null, response) when the ack wins](../src/timeout.test.ts#L14)
+- [works server-to-client with the same success shape](../src/timeout.test.ts#L23)
+- [returns the same socket and consumes a direct timeout once, on both sides](../src/timeout.test.ts#L32)
+- [keeps a recipient timeout pending across plain and ack-collecting broadcasts](../src/timeout.test.ts#L61)
+- [the callback gets a single timeout Error when the peer never acks](../src/timeout.test.ts#L85)
+- [times out the same way server-to-client](../src/timeout.test.ts#L98)
+- [drops a late ack that arrives after the timeout already fired](../src/timeout.test.ts#L111)
+- [timeout().emitWithAck resolves with the response when the ack wins](../src/timeout.test.ts#L140)
+- [timeout().emitWithAck rejects with the timeout Error on expiry](../src/timeout.test.ts#L146)
+- [server timeout().emitWithAck resolves and rejects with the same one-shot decoration](../src/timeout.test.ts#L154)
+- [times out volatile server emits in either modifier order without delivering them](../src/timeout.test.ts#L167)
+- [a callback-less timeout emit still delivers and arms no timer](../src/timeout.test.ts#L209)
 
 ### Broadcast acknowledgements
 
@@ -158,6 +162,9 @@ Collecting an ack from every recipient of a broadcast, and answering on expiry.
 - [a chained except drops that recipient from the collection, timeout set first](../src/broadcast-timeout.test.ts#L137)
 - [a chained except drops that recipient from the collection, timeout set last](../src/broadcast-timeout.test.ts#L164)
 - [socket.timeout(ms).to(room) collects from the room, timeout set first](../src/broadcast-timeout.test.ts#L186)
+- [socket timeout transfers once to the to operator](../src/broadcast-timeout.test.ts#L204)
+- [socket timeout transfers once to the except operator](../src/broadcast-timeout.test.ts#L204)
+- [socket timeout transfers once to the broadcast operator](../src/broadcast-timeout.test.ts#L204)
 
 ### Connection middleware
 
@@ -198,18 +205,23 @@ The per-socket store, its isolation, and its lifetime.
 What `volatile` delivers in steady state, and the one window where it drops.
 
 - [a volatile emit is delivered on a connected socket (server to client)](../src/volatile.test.ts#L13)
-- [a volatile emit is delivered on a connected socket (client to server)](../src/volatile.test.ts#L20)
-- [io.volatile.to(room) routes to the room like a normal broadcast in steady state](../src/volatile.test.ts#L28)
-- [socket.volatile.broadcast reaches everyone except the sender in steady state](../src/volatile.test.ts#L45)
-- [io.to(room).volatile and io.volatile.to(room) preserve the same target](../src/volatile.test.ts#L61)
-- [namespace narrowing and volatile preserve each other in either order](../src/volatile.test.ts#L83)
-- [socket.to(room).volatile and socket.volatile.to(room) keep sender exclusion](../src/volatile.test.ts#L110)
-- [socket.broadcast.volatile and socket.volatile.broadcast keep sender exclusion](../src/volatile.test.ts#L133)
-- [volatile stays immutable and survives to, in, except, and timeout in either order](../src/volatile.test.ts#L154)
-- [a volatile emit still carries an ack, which round-trips when delivered](../src/volatile.test.ts#L185)
-- [volatile emitWithAck delivers and fires outgoing catch-alls in both directions](../src/volatile.test.ts#L196)
-- [a volatile emit to a recipient still in the pre-connect window is dropped](../src/volatile.test.ts#L211)
-- [a volatile emit from a client still in the pre-connect window is dropped](../src/volatile.test.ts#L239)
+- [a volatile emit is delivered on a connected socket (client to server)](../src/volatile.test.ts#L22)
+- [io.volatile.to(room) routes to the room like a normal broadcast in steady state](../src/volatile.test.ts#L32)
+- [socket.volatile.broadcast reaches everyone except the sender in steady state](../src/volatile.test.ts#L49)
+- [io.to(room).volatile and io.volatile.to(room) preserve the same target](../src/volatile.test.ts#L65)
+- [namespace narrowing and volatile preserve each other in either order](../src/volatile.test.ts#L87)
+- [socket.to(room).volatile and socket.volatile.to(room) keep sender exclusion](../src/volatile.test.ts#L114)
+- [socket.broadcast.volatile and socket.volatile.broadcast keep sender exclusion](../src/volatile.test.ts#L137)
+- [volatile stays immutable and survives to, in, except, and timeout in either order](../src/volatile.test.ts#L158)
+- [a volatile emit still carries an ack, which round-trips when delivered](../src/volatile.test.ts#L189)
+- [volatile emitWithAck delivers and fires outgoing catch-alls in both directions](../src/volatile.test.ts#L200)
+- [a volatile emit to a recipient still in the pre-connect window is dropped](../src/volatile.test.ts#L215)
+- [a volatile emit from a client still in the pre-connect window is dropped](../src/volatile.test.ts#L245)
+- [consumes volatile once when the same server socket reference is reused](../src/volatile.test.ts#L278)
+- [keeps a recipient volatile flag pending across an unrelated broadcast](../src/volatile.test.ts#L298)
+- [transfers a server volatile flag once to the to operator](../src/volatile.test.ts#L326)
+- [transfers a server volatile flag once to the except operator](../src/volatile.test.ts#L326)
+- [transfers a server volatile flag once to the broadcast operator](../src/volatile.test.ts#L326)
 
 ### Catch-all listeners
 
@@ -310,11 +322,13 @@ Room cleanup, the reason each side reports, and what happens to a pending ack.
 - [a reconnected socket does not automatically rejoin its previous rooms](../src/disconnect.test.ts#L87)
 - [rooms are still present at disconnecting and empty at disconnect](../src/disconnect.test.ts#L114)
 - [a pending client.emitWithAck rejects when the connection drops](../src/disconnect.test.ts#L137)
-- [a trailing-callback ack is silently discarded when the connection drops](../src/disconnect.test.ts#L149)
-- [a pending server.emitWithAck stays pending when the client disconnects](../src/disconnect.test.ts#L167)
-- [client.disconnect() reports io client disconnect to the client and client namespace disconnect to the server](../src/disconnect.test.ts#L189)
-- [serverSocket.disconnect() reports io server disconnect to the client and server namespace disconnect to the server](../src/disconnect.test.ts#L205)
-- [disconnecting carries the same reason and fires before disconnect](../src/disconnect.test.ts#L221)
+- [disconnect clears a pending client timeout before rejecting emitWithAck](../src/disconnect.test.ts#L149)
+- [a disconnect from an outgoing observer clears the current emitWithAck timeout](../src/disconnect.test.ts#L175)
+- [a trailing-callback ack is silently discarded when the connection drops](../src/disconnect.test.ts#L202)
+- [a pending server.emitWithAck stays pending when the client disconnects](../src/disconnect.test.ts#L220)
+- [client.disconnect() reports io client disconnect to the client and client namespace disconnect to the server](../src/disconnect.test.ts#L242)
+- [serverSocket.disconnect() reports io server disconnect to the client and server namespace disconnect to the server](../src/disconnect.test.ts#L258)
+- [disconnecting carries the same reason and fires before disconnect](../src/disconnect.test.ts#L274)
 
 ### Shared Manager disconnect
 
@@ -396,7 +410,7 @@ Resolving a url to a server, and what the url contributes to the handshake.
 - [close unregisters the server so later connect(url) reports a missing server](../src/connect-url.test.ts#L246)
 - [closing a replaced server does not unregister its replacement](../src/connect-url.test.ts#L267)
 - [the socket from a failed connect still chains](../src/connect-url.test.ts#L279)
-- [a failed client carries the complete catch-all listener surface](../src/connect-url.test.ts#L309)
+- [a failed client carries the complete catch-all listener surface](../src/connect-url.test.ts#L311)
 
 ### Binary passthrough guard
 
