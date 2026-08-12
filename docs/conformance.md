@@ -183,9 +183,14 @@ What `volatile` delivers in steady state, and the one window where it drops.
 - [a volatile emit is delivered on a connected socket (client to server)](../src/volatile.test.ts#L20)
 - [io.volatile.to(room) routes to the room like a normal broadcast in steady state](../src/volatile.test.ts#L28)
 - [socket.volatile.broadcast reaches everyone except the sender in steady state](../src/volatile.test.ts#L45)
-- [a volatile emit still carries an ack, which round-trips when delivered](../src/volatile.test.ts#L61)
-- [a volatile emit to a recipient still in the pre-connect window is dropped](../src/volatile.test.ts#L72)
-- [a volatile emit from a client still in the pre-connect window is dropped](../src/volatile.test.ts#L97)
+- [io.to(room).volatile and io.volatile.to(room) preserve the same target](../src/volatile.test.ts#L61)
+- [namespace narrowing and volatile preserve each other in either order](../src/volatile.test.ts#L83)
+- [socket.to(room).volatile and socket.volatile.to(room) keep sender exclusion](../src/volatile.test.ts#L110)
+- [socket.broadcast.volatile and socket.volatile.broadcast keep sender exclusion](../src/volatile.test.ts#L133)
+- [volatile stays immutable and survives to, in, except, and timeout in either order](../src/volatile.test.ts#L154)
+- [a volatile emit still carries an ack, which round-trips when delivered](../src/volatile.test.ts#L185)
+- [a volatile emit to a recipient still in the pre-connect window is dropped](../src/volatile.test.ts#L196)
+- [a volatile emit from a client still in the pre-connect window is dropped](../src/volatile.test.ts#L221)
 
 ### Catch-all listeners
 
