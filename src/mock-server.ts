@@ -156,6 +156,42 @@ function asRooms(room: string | string[]): string[] {
   return Array.isArray(room) ? room : [room];
 }
 
+/** One default-parser payload captured at its Socket.IO encode boundary (0026). */
+type EncodedPayload = { kind: 'json'; value: string } | { kind: 'binary'; value: unknown[] };
+
+/**
+ * Whether a value makes this a binary packet, which ADR 0026 deliberately excludes.
+ * Keep those packets on the existing in-memory path rather than applying JSON rules
+ * that Socket.IO's binary encoder does not use. The walk is cycle-safe so a non-binary
+ * cycle still reaches JSON.stringify below and fails at the selected encode boundary.
+ */
+function containsBinary(value: unknown, seen = new Set<object>(), inspectToJSON = true): boolean {
+  if (typeof value !== 'object' || value === null) return false;
+  if (value instanceof ArrayBuffer || ArrayBuffer.isView(value)) return true;
+  if (typeof Blob !== 'undefined' && value instanceof Blob) return true;
+  const toJSON = (value as { toJSON?: () => unknown }).toJSON;
+  if (inspectToJSON && typeof toJSON === 'function') {
+    return containsBinary(toJSON.call(value), seen, false);
+  }
+  if (seen.has(value)) return false;
+  seen.add(value);
+  for (const nested of Object.values(value)) {
+    if (containsBinary(nested, seen)) return true;
+  }
+  return false;
+}
+
+/** Snapshot one argument list the way the default non-binary parser crosses JSON. */
+function encodePayload(args: unknown[]): EncodedPayload {
+  if (containsBinary(args)) return { kind: 'binary', value: args };
+  return { kind: 'json', value: JSON.stringify(args) };
+}
+
+/** Decode separately at each receiver, so broadcasts never share their object graph. */
+function decodePayload(payload: EncodedPayload): unknown[] {
+  return payload.kind === 'json' ? (JSON.parse(payload.value) as unknown[]) : payload.value;
+}
+
 /**
  * A pending connection waiting to be handed to `nextConnection`, or a
  * `nextConnection` call waiting for the next connection. `connect` and
@@ -471,17 +507,23 @@ class BroadcastOperator implements BroadcastContract, TimeoutBroadcastContract {
 
   emit(event: string, ...args: unknown[]): boolean {
     assertNotReservedEvent(event);
-    const recipients = this.recipients();
     const last = args.at(-1);
+    const ack = typeof last === 'function' ? (last as (...a: unknown[]) => void) : undefined;
+    const data = ack ? args.slice(0, -1) : args;
+    // Socket.IO encodes one broadcast packet before recipient observation, even
+    // when routing resolves to nobody (0026). Each recipient decodes it separately.
+    const payload = encodePayload(data);
+    const recipients = this.recipients();
     // A plain broadcast unless a timeout is armed and a trailing callback is present:
     // then it collects one ack per recipient and answers the callback once (#112).
     if (this.timeoutMs === undefined || typeof last !== 'function') {
-      for (const socket of recipients) socket.emit(event, ...args);
+      for (const socket of recipients) socket.sendBroadcast(event, args, payload, ack);
       return true;
     }
     this.collect(
       event,
-      args.slice(0, -1),
+      data,
+      payload,
       last as (...a: unknown[]) => void,
       recipients,
       this.timeoutMs,
@@ -499,6 +541,7 @@ class BroadcastOperator implements BroadcastContract, TimeoutBroadcastContract {
   private collect(
     event: string,
     data: unknown[],
+    payload: EncodedPayload,
     callback: (...received: unknown[]) => void,
     recipients: ServerSocket[],
     ms: number,
@@ -516,16 +559,17 @@ class BroadcastOperator implements BroadcastContract, TimeoutBroadcastContract {
       callback(new Error('operation has timed out'), responses);
     }, ms);
     for (const socket of recipients) {
-      socket.emit(event, ...data, (...answer: unknown[]) => {
+      const answer = (...received: unknown[]) => {
         if (settled) return;
-        responses.push(answer[0]);
+        responses.push(received[0]);
         remaining -= 1;
         if (remaining === 0) {
           settled = true;
           clearTimeout(timer);
           callback(null, responses);
         }
-      });
+      };
+      socket.sendBroadcast(event, [...data, answer], payload, answer);
     }
   }
 }
@@ -1447,6 +1491,21 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
   emitWithAck(event: string, ...args: unknown[]): Promise<unknown> {
     return emitWithAck(this.peer, event, args, () => this.emitOutgoing(event, args));
   }
+
+  /**
+   * Deliver one already-encoded broadcast packet to this socket's client. The
+   * outgoing listener intentionally sees the shared live source after encoding,
+   * while the client receives its own decode of the frozen packet (0026).
+   */
+  sendBroadcast(
+    event: string,
+    sourceArgs: unknown[],
+    payload: EncodedPayload,
+    ack?: (...answer: unknown[]) => void,
+  ): void {
+    this.emitOutgoing(event, sourceArgs);
+    sendEncoded(this.peer, event, payload, ack);
+  }
   /**
    * Arm a per-emit ack timer. `emit` / `emitWithAck` are the single-ack forms, sent to the
    * peer through this socket's own `emit`; `to` / `broadcast` / `except` are the ack-collecting
@@ -1662,7 +1721,12 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
     this.dispatch('connect', []);
     const buffered = this.sendBuffer;
     this.sendBuffer = [];
-    for (const [event, args] of buffered) send(this.serverSocket, event, args);
+    for (const [event, args] of buffered) {
+      // socket.io-client does not observe or encode a buffered packet until the
+      // connection flushes it. A listener mutation here therefore reaches the snapshot.
+      this.emitOutgoing(event, args);
+      send(this.serverSocket, event, args);
+    }
   }
 
   /**
@@ -1731,15 +1795,13 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
 
   emit(event: string, ...args: unknown[]): this {
     assertNotReservedEvent(event);
-    // The outgoing catch-all fires at the send site, before the packet leaves and
-    // regardless of whether it is buffered first (#111).
-    this.emitOutgoing(event, args);
     // Before the connection completes, emits are buffered rather than lost, and
-    // replayed in order at `completeConnection`, matching socket.io-client.
+    // outgoing observation and encoding both wait for `completeConnection` (0026).
     if (!this.connected) {
       this.sendBuffer.push([event, args]);
       return this;
     }
+    this.emitOutgoing(event, args);
     send(this.serverSocket, event, args);
     return this;
   }
@@ -1750,10 +1812,6 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
       // Socket.IO's emitWithAck calls emit inside its Promise executor. A reserved name
       // therefore rejects the Promise rather than escaping as a synchronous throw.
       assertNotReservedEvent(event);
-      // The outgoing catch-all fires for emitWithAck too (#111); the internally added
-      // ack never reaches it, and neither does a caller's, since `emitOutgoing` strips
-      // a trailing function.
-      this.emitOutgoing(event, args);
       this.pendingAcks.add(reject);
       const answer = (value: unknown) => {
         this.pendingAcks.delete(reject);
@@ -1770,6 +1828,8 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
         this.sendBuffer.push([event, withAck]);
         return;
       }
+      // Connected packets are observed immediately before their synchronous snapshot.
+      this.emitOutgoing(event, args);
       send(this.serverSocket, event, withAck);
     });
   }
@@ -2006,14 +2066,28 @@ function send(target: Emitter, event: string, args: unknown[]): void {
   const last = args.at(-1);
   const ack = typeof last === 'function' ? (last as (...a: unknown[]) => void) : undefined;
   const data = ack ? args.slice(0, -1) : args;
+  sendEncoded(target, event, encodePayload(data), ack);
+}
+
+/** Deliver one captured payload, decoding a fresh graph for this receiver. */
+function sendEncoded(
+  target: Emitter,
+  event: string,
+  payload: EncodedPayload,
+  ack?: (...answer: unknown[]) => void,
+): void {
   let acked = false;
+  const data = decodePayload(payload);
   const finalArgs = ack
     ? [
         ...data,
         (...answer: unknown[]) => {
           if (acked) return;
+          // Ack responses cross the same boundary when the receiver invokes the
+          // callback, not when the request was sent (0026).
+          const response = encodePayload(answer);
           acked = true;
-          defer(() => ack(...answer));
+          defer(() => ack(...decodePayload(response)));
         },
       ]
     : data;
