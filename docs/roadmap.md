@@ -99,6 +99,9 @@ requirements and progress.
   [0023](./decisions/0023-client-package-is-a-thin-facade.md) assign the server and client
   package boundaries; their `smocket-client` facade must ship before the v1 public API
   guarantee is finalized.
+- [Decision 0025](./decisions/0025-built-in-adapter-observation-stays-rooms-only.md)
+  keeps built-in Adapter compatibility at `rooms`; the deferred methods and lifecycle
+  events add no v1 implementation dependency without a concrete use case.
 - [development-lenses.md](./development-lenses.md) defines the five lenses used during
   review.
 - [#213] remains the parent direction discussion for roadmap feedback and new use cases.

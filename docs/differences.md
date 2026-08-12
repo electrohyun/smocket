@@ -37,6 +37,11 @@ than discovered in a failing suite.
   `String(...)` and are not guaranteed to match real socket.io's encoding: that edge
   has no measured reference, so smocket does not invent one.
   See [0006](./decisions/0006-handshake-fields.md).
+- **A captured `socket.rooms` Set is emptied on disconnect.** Real socket.io returns a
+  new empty Set after disconnect while a reference captured beforehand retains its old
+  rooms. smocket clears the captured Set in place. See
+  [0013](./decisions/0013-reconnect-fresh-socket.md) and
+  [0025](./decisions/0025-built-in-adapter-observation-stays-rooms-only.md).
 
 ## B. What smocket adds that socket.io has no equivalent for
 

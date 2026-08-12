@@ -36,3 +36,4 @@ these are written.
 | [0022](./0022-root-socket-names-server-socket.md)                | Root `Socket` names the server type; `smocket-client` owns the client type              | Accepted | #178, #235    |
 | [0023](./0023-client-package-is-a-thin-facade.md)                | `smocket-client` re-exports one shared client lookup without owning connection state    | Accepted | #235          |
 | [0024](./0024-assemble-consumer-from-canonical-example.md)       | Assemble an independent consumer from the canonical chat application                    | Accepted | #208          |
+| [0025](./0025-built-in-adapter-observation-stays-rooms-only.md)  | Built-in Adapter observation stays on the live `rooms` map                              | Accepted | #238          |
