@@ -71,6 +71,11 @@ const AREAS = [
     blurb: 'The trailing callback and `emitWithAck`, in both directions.',
   },
   {
+    file: 'src/payload-serialization.test.ts',
+    title: 'Payload serialization',
+    blurb: 'JSON results, snapshot timing, invalid data, and reference isolation.',
+  },
+  {
     file: 'src/timeout.test.ts',
     title: 'Acknowledgement timeouts',
     blurb: '`timeout(ms)` on a single emit, and what a late ack does.',
@@ -135,6 +140,12 @@ const AREAS = [
     file: 'src/connect-url.test.ts',
     title: 'connect(url) and the origin registry',
     blurb: 'Resolving a url to a server, and what the url contributes to the handshake.',
+  },
+  {
+    file: 'src/binary-passthrough.test.ts',
+    title: 'Binary passthrough guard',
+    blurb:
+      'Keeping out-of-scope binary-containing packets on the existing in-memory path without an encoding claim.',
   },
   {
     file: 'src/adapter.test.ts',
