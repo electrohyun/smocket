@@ -369,7 +369,7 @@ const realTimer: DeliveryTimer = {
  * through an injected `DeliveryTimer` (default real, fake-timer-drivable), so a test never
  * waits on the wall clock. A delay applies to event
  * delivery only: an acknowledgement answer and the connect / disconnect lifecycle return on
- * the normal tick, so a delayed event can arrive after the disconnect that followed it.
+ * the normal tick. Whole-socket removal drains pending deliveries before teardown completes.
  */
 export class DelayingAdapter extends Adapter {
   private readonly delays = new Map<string, number>();
@@ -426,8 +426,10 @@ export class DelayingAdapter extends Adapter {
       return;
     }
     const run = () => {
-      head.deliver();
+      if (this.queues.get(sid) !== queue) return;
       queue.shift();
+      head.deliver();
+      if (this.queues.get(sid) !== queue) return;
       this.pump(sid);
     };
     const wait = head.fireAt - this.timer.now();
@@ -435,16 +437,13 @@ export class DelayingAdapter extends Adapter {
     else this.timer.schedule(run, wait);
   }
 
-  /**
-   * Drop a socket's delay bookkeeping when it leaves its own id-room, which the teardown on
-   * disconnect does, so `delays` / `queues` do not grow without bound across a long test run.
-   */
-  override del(sid: string, room: string): void {
-    super.del(sid, room);
-    if (room === sid) {
-      this.delays.delete(sid);
-      this.queues.delete(sid);
-    }
+  /** Drain pending deliveries in order, then release all scheduler state for this socket. */
+  removeSocket(sid: string): void {
+    this.delays.delete(sid);
+    const queue = this.queues.get(sid);
+    if (!queue) return;
+    this.queues.delete(sid);
+    for (const entry of queue) entry.deliver();
   }
 }
 
@@ -688,9 +687,8 @@ class Namespace implements NamespaceContract {
    */
   readonly sockets = new Map<string, ServerSocket>();
   /**
-   * This namespace's routing seam: the built-in `Adapter`, or a custom one built by
-   * the factory registered through `Server.adapter`. Not `readonly`, so a late
-   * `io.adapter()` can swap it in; see `useAdapter`.
+   * This namespace's routing seam: the built-in `Adapter`, or the custom instance
+   * installed during server setup through `Server.adapter`.
    */
   adapter: SmocketAdapter;
   /** Server sockets connected here but not yet claimed by a `nextConnection`. */
@@ -698,8 +696,8 @@ class Namespace implements NamespaceContract {
   /**
    * Handlers registered through `on`, keyed by event. This is the app-facing entry
    * point: `io.on('connection', cb)` wires per-socket handlers, and each is fired
-   * with the new server socket as the pairing completes. The `nextConnection`
-   * `nextConnection` path resolves the same socket; the two are the two ways to reach a
+   * with the new server socket as the pairing completes. The `nextConnection` path
+   * resolves the same socket; the two are the two ways to reach a
    * fresh connection, not two different connections. Kept per-event (not one merged
    * set) so `connection` and its `connect` synonym stay separate registries, matching
    * real socket.io, where a listener on each fires once and the same function on both
@@ -725,23 +723,15 @@ class Namespace implements NamespaceContract {
     readonly name: string,
     /** The server's normalized origin, filled into each socket's `handshake.url` (0006). */
     private readonly origin: string,
-    /** The custom adapter factory registered on the server, if any; see `useAdapter`. */
-    adapterFactory?: AdapterFactory,
     closed = false,
   ) {
     this.closed = closed;
-    this.adapter = adapterFactory ? adapterFactory(this) : new Adapter();
+    this.adapter = new Adapter();
   }
 
-  /**
-   * Swap in a custom adapter built by `factory`. Called by `Server.adapter` both
-   * when a namespace is created and to reconfigure one that already exists, so
-   * registering an adapter reaches every namespace. Like real socket.io, this
-   * installs a fresh adapter and does not carry over membership, so it is meant to
-   * be called during setup, before any client connects here.
-   */
-  useAdapter(factory: AdapterFactory): void {
-    this.adapter = factory(this);
+  /** Install the adapter instance prepared for this namespace during server setup. */
+  useAdapter(adapter: SmocketAdapter): void {
+    this.adapter = adapter;
   }
 
   /** Copy a dynamic parent's setup once, when this concrete child is created. */
@@ -1252,6 +1242,10 @@ export class Server<
    * which case each namespace uses the built-in `Adapter`.
    */
   private adapterFactory: AdapterFactory | undefined;
+  /** Custom instances already assigned to namespaces, used to enforce isolation. */
+  private readonly adapterInstances = new Set<SmocketAdapter>();
+  /** Adapter registration closes as soon as any connection attempt begins. */
+  private admissionStarted = false;
   /** Set before teardown starts, so no namespace created during or after close can accept. */
   private closed = false;
   /** The first close owns teardown; repeated calls return the same completed work. */
@@ -1274,17 +1268,32 @@ export class Server<
 
   /**
    * Register a custom [adapter](../docs/glossary.md#adapter) factory: smocket's
-   * public routing seam. The factory builds one adapter per namespace, replacing
-   * the built-in routing (which sids a broadcast targets) while delivery stays in
+   * public routing seam. During setup the factory builds one fresh adapter per namespace,
+   * replacing the built-in routing (which sids a broadcast targets) while delivery stays in
    * the core, so a custom adapter cannot break per-socket order (0010). This is a
    * smocket-only API with no socket.io-compatible counterpart (see
-   * `docs/differences.md` §B); call it during setup, before connecting clients,
-   * since it installs a fresh adapter on every namespace, including existing ones.
+   * `docs/differences.md` §B). Registration closes at the first connection attempt.
+   * Existing adapters change only after every replacement is built successfully.
    */
   adapter(factory: AdapterFactory<ListenEvents, EmitEvents, ServerSideEvents, SocketData>): void {
+    if (this.admissionStarted) {
+      throw new Error('adapter must be registered before the first connection attempt');
+    }
     const runtimeFactory = factory as AdapterFactory;
+    const used = new Set(this.adapterInstances);
+    const replacements = new Map<Namespace, SmocketAdapter>();
+    for (const namespace of this.namespaces.values()) {
+      const adapter = runtimeFactory(namespace);
+      if (used.has(adapter)) {
+        throw new Error('adapter factory must return a fresh instance for each namespace');
+      }
+      used.add(adapter);
+      replacements.set(namespace, adapter);
+    }
+    for (const [namespace, adapter] of replacements) namespace.useAdapter(adapter);
     this.adapterFactory = runtimeFactory;
-    for (const namespace of this.namespaces.values()) namespace.useAdapter(runtimeFactory);
+    this.adapterInstances.clear();
+    for (const adapter of replacements.values()) this.adapterInstances.add(adapter);
   }
 
   /** Get the runtime namespace by name, creating it on first use. */
@@ -1293,7 +1302,15 @@ export class Server<
     const existing = this.namespaces.get(normalized);
     if (existing) return existing;
     const attachTo = parent ?? this.matchingRegExpParent(normalized);
-    const namespace = new Namespace(normalized, this.origin, this.adapterFactory, this.closed);
+    const namespace = new Namespace(normalized, this.origin, this.closed);
+    if (this.adapterFactory) {
+      const adapter = this.adapterFactory(namespace);
+      if (this.adapterInstances.has(adapter)) {
+        throw new Error('adapter factory must return a fresh instance for each namespace');
+      }
+      namespace.useAdapter(adapter);
+      this.adapterInstances.add(adapter);
+    }
     attachTo?.addChild(namespace);
     this.namespaces.set(normalized, namespace);
     const waiters = this.dynamicWaiters.get(normalized);
@@ -1390,6 +1407,7 @@ export class Server<
     namespace = '/',
     source?: ConnectOptions,
   ): ClientSocketContract<EmitEvents, ListenEvents> {
+    this.admissionStarted = true;
     const normalized = normalizeNamespace(namespace);
     const manager = this.managerFor(normalized, source);
     const registered = this.namespaces.get(normalized);
@@ -1425,7 +1443,16 @@ export class Server<
             tryParent(index + 1);
             return;
           }
-          const child = this.getNamespace(name, parent);
+          let child: Namespace;
+          try {
+            child = this.getNamespace(name, parent);
+          } catch (error) {
+            client.rejectConnectionAttempt(
+              attempt,
+              error instanceof Error ? error : new Error(String(error)),
+            );
+            return;
+          }
           if (!client.isConnectionAttemptPending(attempt)) return;
           client.attachNamespace(child);
           child.continuePair(client, attempt, { ...source, auth });
@@ -1802,6 +1829,8 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
   private active = true;
   /** Cleared by whole-socket cleanup so a disconnected socket cannot recreate membership. */
   private acceptsRoomJoins = true;
+  /** Guards the adapter's whole-socket removal signal across competing teardown paths. */
+  private membershipCleaned = false;
   /**
    * The per-socket store (#108): an empty object at creation that middleware writes and a
    * handler reads, to carry what middleware resolved from the handshake. A fresh socket
@@ -1866,8 +1895,8 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
    * is already queued on that same next tick, so deferring the teardown lets it arrive
    * before the socket leaves its rooms, keeping the per-socket FIFO invariant the marker
    * proofs rely on. (A `DelayingAdapter` only slows the client-inbound stream, never this
-   * one, so it does not disturb this ordering; a delayed client-inbound event can still land
-   * after the disconnect that followed it, which 0018 records as a limitation.)
+   * one, so it does not disturb this ordering. Whole-socket cleanup drains its queued
+   * client-inbound deliveries before the socket leaves the namespace roster.)
    *
    * `disconnecting` fires while the rooms are still intact, so a handler can read
    * and notify them; `disconnect` fires once they are gone. Both carry `reason`,
@@ -1900,12 +1929,15 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
 
   /** Whole-socket membership cleanup shared by abandoned attempts and disconnect. */
   private cleanupMembership(): void {
+    if (this.membershipCleaned) return;
+    this.membershipCleaned = true;
     this.acceptsRoomJoins = false;
     for (const room of this.rooms) this.nsp.adapter.del(this.id, room);
     // `del` removes one room and intentionally leaves the sid entry alone. Whole-socket
     // cleanup owns the reverse-index deletion, matching socket.io-adapter's `delAll`
     // without adding that still-undecided method to smocket's public adapter seam (#238).
     this.nsp.adapter.sids.delete(this.id);
+    this.nsp.adapter.removeSocket?.(this.id);
     // Empty the live Set in place (contract: "emptied in place on teardown")
     // rather than replacing it, so any held reference sees it clear.
     this.rooms.clear();
