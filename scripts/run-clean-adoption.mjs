@@ -248,9 +248,15 @@ async function runNodeFixtures(projectRoot, packageInput) {
   );
   await run(
     process.execPath,
-    [tsc, '-p', 'types/bundler'],
+    [tsc, '-p', 'types/server-socket/tsconfig.node16.json'],
     projectRoot,
-    fixtureContext('TypeScript', 'bundler resolution', packageInput, 'types/bundler'),
+    fixtureContext('TypeScript', 'Node16 Socket type', packageInput, 'types/server-socket'),
+  );
+  await run(
+    process.execPath,
+    [tsc, '-p', 'types/server-socket/tsconfig.bundler.json'],
+    projectRoot,
+    fixtureContext('TypeScript', 'bundler Socket type', packageInput, 'types/server-socket'),
   );
   await run(
     process.execPath,
@@ -316,12 +322,6 @@ async function runPublishedFixtures(projectRoot, packageInput) {
       packageInput,
       'published types/invalid',
     ),
-  );
-  await run(
-    process.execPath,
-    [tsc, '-p', 'types/bundler'],
-    projectRoot,
-    fixtureContext('TypeScript', 'bundler resolution', packageInput, 'published types/bundler'),
   );
 }
 

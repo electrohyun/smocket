@@ -1,4 +1,4 @@
-import { Server, type Socket } from 'smocket';
+import { Server } from 'smocket';
 
 interface ClientToServerEvents {
   join: (room: string) => void;
@@ -11,9 +11,8 @@ interface ServerToClientEvents {
 const io = new Server<ClientToServerEvents, ServerToClientEvents>('http://localhost:3014');
 
 io.on('connection', (socket) => {
-  const typed: Socket<ClientToServerEvents, ServerToClientEvents> = socket;
   // @ts-expect-error Server sockets listen to the client-to-server event map.
-  typed.on('ready', () => {});
+  socket.on('ready', () => {});
   // @ts-expect-error Server sockets emit the server-to-client event map.
-  typed.emit('join', 'wrong-direction');
+  socket.emit('join', 'wrong-direction');
 });

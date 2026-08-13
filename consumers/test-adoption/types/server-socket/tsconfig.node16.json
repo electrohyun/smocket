@@ -1,11 +1,11 @@
 {
   "compilerOptions": {
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
+    "module": "Node16",
+    "moduleResolution": "Node16",
     "target": "ES2022",
     "strict": true,
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["valid.ts"]
+  "include": ["node16.ts", "node16.cts"]
 }
