@@ -16,8 +16,8 @@
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:BroadcastOperator:instance:compress:method:15e997604cf6",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/260"
+      "disposition": "implemented",
+      "reference": "docs/conformance.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:BroadcastOperator:instance:constructor:constructor:4bded5938fe4",
@@ -106,8 +106,8 @@
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Namespace:instance:compress:method:180d7be261d6",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/260"
+      "disposition": "implemented",
+      "reference": "docs/conformance.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Namespace:instance:constructor:constructor:cc77aef3c92f",
@@ -211,8 +211,8 @@
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Namespace:instance:send:method:4f58a42121c3",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/260"
+      "disposition": "implemented",
+      "reference": "docs/conformance.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Namespace:instance:serverSideEmit:method:1c56be84e74d",
@@ -266,8 +266,8 @@
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Namespace:instance:write:method:4bf04a54c1f7",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/260"
+      "disposition": "implemented",
+      "reference": "docs/conformance.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:package-export-map:module:.:package-subpath:ea2e817011f3",
@@ -336,8 +336,8 @@
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:ParentNamespace:instance:compress:method:8583624af42e",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/260"
+      "disposition": "implemented",
+      "reference": "docs/conformance.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:ParentNamespace:instance:constructor:constructor:c0b6526a37ec",
@@ -446,8 +446,8 @@
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:ParentNamespace:instance:send:method:41505ff16a43",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/260"
+      "disposition": "implemented",
+      "reference": "docs/conformance.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:ParentNamespace:instance:serverSideEmit:method:6db77d93b378",
@@ -501,8 +501,8 @@
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:ParentNamespace:instance:write:method:e512f2e3b77b",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/260"
+      "disposition": "implemented",
+      "reference": "docs/conformance.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:server-Socket:instance:-EventEmitter.captureRejectionSymbol-:method:5ae78f3a7ada",
@@ -526,8 +526,8 @@
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:server-Socket:instance:compress:method:c5d9a940679e",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/260"
+      "disposition": "implemented",
+      "reference": "docs/conformance.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:server-Socket:instance:conn:getter:9b8378abc56d",
@@ -596,8 +596,8 @@
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:server-Socket:instance:in:method:a172d9f52983",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/260"
+      "disposition": "implemented",
+      "reference": "docs/conformance.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:server-Socket:instance:join:method:0923edb0caff",
@@ -726,8 +726,8 @@
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:server-Socket:instance:send:method:9dda8149ac96",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/260"
+      "disposition": "implemented",
+      "reference": "docs/conformance.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:server-Socket:instance:setMaxListeners:method:9e4b5170fef9",
@@ -756,8 +756,8 @@
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:server-Socket:instance:write:method:4e1ad9931219",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/260"
+      "disposition": "implemented",
+      "reference": "docs/conformance.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Server:instance:_opts:getter:eb7d2aaac723",
@@ -811,8 +811,8 @@
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Server:instance:compress:method:8e457aeabb46",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/260"
+      "disposition": "implemented",
+      "reference": "docs/conformance.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Server:instance:connectTimeout:method:066f480d97de",
@@ -966,8 +966,8 @@
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Server:instance:send:method:f735257233d1",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/260"
+      "disposition": "implemented",
+      "reference": "docs/conformance.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Server:instance:serveClient:method:635fd37d2f99",
@@ -1036,8 +1036,8 @@
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Server:instance:write:method:5278d8c4cbff",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/260"
+      "disposition": "implemented",
+      "reference": "docs/conformance.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:officially-documented:package-root:CommonJS-module:callable-root:function:04f1c2067828",
@@ -1176,8 +1176,8 @@
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:BroadcastOperator:instance:compress:method:16da11e3eb06",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/260"
+      "disposition": "implemented",
+      "reference": "docs/conformance.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:BroadcastOperator:instance:constructor:constructor:33a432b981be",
@@ -1266,8 +1266,8 @@
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Namespace:instance:compress:method:d057f3e15d54",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/260"
+      "disposition": "implemented",
+      "reference": "docs/conformance.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Namespace:instance:constructor:constructor:672651c760e1",
@@ -1371,8 +1371,8 @@
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Namespace:instance:send:method:f676ee806c0c",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/260"
+      "disposition": "implemented",
+      "reference": "docs/conformance.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Namespace:instance:serverSideEmit:method:b1e5d6fb7f2d",
@@ -1426,8 +1426,8 @@
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Namespace:instance:write:method:39489b947ab0",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/260"
+      "disposition": "implemented",
+      "reference": "docs/conformance.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:package-export-map:module:.-package.json:package-subpath:912791c79426",
@@ -1511,8 +1511,8 @@
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:ParentNamespace:instance:compress:method:9d69d74e500f",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/260"
+      "disposition": "implemented",
+      "reference": "docs/conformance.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:ParentNamespace:instance:constructor:constructor:b039f5671eca",
@@ -1621,8 +1621,8 @@
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:ParentNamespace:instance:send:method:2487fd35eecc",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/260"
+      "disposition": "implemented",
+      "reference": "docs/conformance.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:ParentNamespace:instance:serverSideEmit:method:9e4668897c37",
@@ -1676,8 +1676,8 @@
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:ParentNamespace:instance:write:method:54e2e6628ea4",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/260"
+      "disposition": "implemented",
+      "reference": "docs/conformance.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:server-Socket:instance:-EventEmitter.captureRejectionSymbol-:method:ea6da20f968c",
@@ -1701,8 +1701,8 @@
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:server-Socket:instance:compress:method:5773411e2035",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/260"
+      "disposition": "implemented",
+      "reference": "docs/conformance.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:server-Socket:instance:conn:getter:bebc98fb7029",
@@ -1771,8 +1771,8 @@
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:server-Socket:instance:in:method:586f2d2cb803",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/260"
+      "disposition": "implemented",
+      "reference": "docs/conformance.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:server-Socket:instance:join:method:57c271520f4b",
@@ -1901,8 +1901,8 @@
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:server-Socket:instance:send:method:463ace31bfb6",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/260"
+      "disposition": "implemented",
+      "reference": "docs/conformance.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:server-Socket:instance:setMaxListeners:method:e5a63b8deb05",
@@ -1931,8 +1931,8 @@
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:server-Socket:instance:write:method:8982c2b3246f",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/260"
+      "disposition": "implemented",
+      "reference": "docs/conformance.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Server:instance:_opts:getter:b700c356f64f",
@@ -1986,8 +1986,8 @@
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Server:instance:compress:method:62c48028e849",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/260"
+      "disposition": "implemented",
+      "reference": "docs/conformance.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Server:instance:connectTimeout:method:59b78a143d30",
@@ -2146,8 +2146,8 @@
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Server:instance:send:method:910bc469b007",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/260"
+      "disposition": "implemented",
+      "reference": "docs/conformance.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Server:instance:serveClient:method:070ca3aea113",
@@ -2216,8 +2216,8 @@
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Server:instance:write:method:8803f5dcc0bd",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/260"
+      "disposition": "implemented",
+      "reference": "docs/conformance.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:officially-documented:package-root:CommonJS-module:callable-root:function:95885e232f07",
@@ -2721,13 +2721,13 @@
     },
     {
       "id": "socket.io-client-4.7.5:4.7.5:declaration-public:client-Socket:instance:close:method:a303aed9afda",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/260"
+      "disposition": "implemented",
+      "reference": "docs/conformance.md"
     },
     {
       "id": "socket.io-client-4.7.5:4.7.5:declaration-public:client-Socket:instance:compress:method:4a6d5d75609e",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/260"
+      "disposition": "implemented",
+      "reference": "docs/conformance.md"
     },
     {
       "id": "socket.io-client-4.7.5:4.7.5:declaration-public:client-Socket:instance:connect:method:429c4740bfc4",
@@ -2831,8 +2831,8 @@
     },
     {
       "id": "socket.io-client-4.7.5:4.7.5:declaration-public:client-Socket:instance:open:method:2c0b30ca75c7",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/260"
+      "disposition": "implemented",
+      "reference": "docs/conformance.md"
     },
     {
       "id": "socket.io-client-4.7.5:4.7.5:declaration-public:client-Socket:instance:prependAny:method:481a37c3826d",
@@ -2866,8 +2866,8 @@
     },
     {
       "id": "socket.io-client-4.7.5:4.7.5:declaration-public:client-Socket:instance:send:method:8f69b4295acf",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/260"
+      "disposition": "implemented",
+      "reference": "docs/conformance.md"
     },
     {
       "id": "socket.io-client-4.7.5:4.7.5:declaration-public:client-Socket:instance:sendBuffer:property:b45c4422b462",
@@ -3191,13 +3191,13 @@
     },
     {
       "id": "socket.io-client-4.8.3:4.8.3:declaration-public:client-Socket:instance:close:method:8c8008f33ad0",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/260"
+      "disposition": "implemented",
+      "reference": "docs/conformance.md"
     },
     {
       "id": "socket.io-client-4.8.3:4.8.3:declaration-public:client-Socket:instance:compress:method:5cf2ea576a63",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/260"
+      "disposition": "implemented",
+      "reference": "docs/conformance.md"
     },
     {
       "id": "socket.io-client-4.8.3:4.8.3:declaration-public:client-Socket:instance:connect:method:1f365b7b9aa3",
@@ -3301,8 +3301,8 @@
     },
     {
       "id": "socket.io-client-4.8.3:4.8.3:declaration-public:client-Socket:instance:open:method:fb005842f574",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/260"
+      "disposition": "implemented",
+      "reference": "docs/conformance.md"
     },
     {
       "id": "socket.io-client-4.8.3:4.8.3:declaration-public:client-Socket:instance:prependAny:method:9e6821d5b12c",
@@ -3336,8 +3336,8 @@
     },
     {
       "id": "socket.io-client-4.8.3:4.8.3:declaration-public:client-Socket:instance:send:method:8f7898ddd63e",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/260"
+      "disposition": "implemented",
+      "reference": "docs/conformance.md"
     },
     {
       "id": "socket.io-client-4.8.3:4.8.3:declaration-public:client-Socket:instance:sendBuffer:property:22468b660b0e",
