@@ -219,13 +219,14 @@ composition.
 
 - [broadcast emitWithAck resolves responses in acknowledgement arrival order](../src/broadcast-promise-ack.test.ts#L9)
 - [untimed broadcast acknowledgement collection keeps the timer race and resolves [] for nobody](../src/broadcast-promise-ack.test.ts#L25)
-- [timeout rejection exposes partial responses and late acknowledgements mutate that array once](../src/broadcast-promise-ack.test.ts#L51)
-- [server, namespace, room, exclusion, and socket broadcast share Promise collection](../src/broadcast-promise-ack.test.ts#L84)
-- [timeout-first and narrowing-first Promise broadcasts select the same responders](../src/broadcast-promise-ack.test.ts#L114)
-- [Promise broadcast hides its collector ack and observes each selected socket once](../src/broadcast-promise-ack.test.ts#L130)
-- [reserved Promise broadcasts reject without outgoing observation](../src/broadcast-promise-ack.test.ts#L140)
-- [dynamic parent Promise acknowledgements resolve [] without reaching concrete children](../src/broadcast-promise-ack.test.ts#L151)
-- [Promise broadcast snapshots one request and each acknowledgement response independently](../src/broadcast-promise-ack.test.ts#L170)
+- [untimed broadcast acknowledgement collection times out when a recipient never acknowledges](../src/broadcast-promise-ack.test.ts#L51)
+- [timeout rejection exposes partial responses and late acknowledgements mutate that array once](../src/broadcast-promise-ack.test.ts#L68)
+- [server, namespace, room, exclusion, and socket broadcast share Promise collection](../src/broadcast-promise-ack.test.ts#L101)
+- [timeout-first and narrowing-first Promise broadcasts select the same responders](../src/broadcast-promise-ack.test.ts#L131)
+- [Promise broadcast hides its collector ack and observes each selected socket once](../src/broadcast-promise-ack.test.ts#L147)
+- [reserved Promise broadcasts reject without outgoing observation](../src/broadcast-promise-ack.test.ts#L157)
+- [dynamic parent Promise acknowledgements resolve [] without reaching concrete children](../src/broadcast-promise-ack.test.ts#L168)
+- [Promise broadcast snapshots one request and each acknowledgement response independently](../src/broadcast-promise-ack.test.ts#L187)
 
 ### Connection middleware
 
