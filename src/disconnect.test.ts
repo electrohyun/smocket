@@ -209,11 +209,12 @@ it('a trailing-callback ack is silently discarded when the connection drops', as
   client.emit('slow', () => {
     state.called = true;
   });
+  const { disconnected } = observeDisconnect(serverSocket);
   client.disconnect();
 
   // Unlike the promise form, the callback is never invoked, not even with an
-  // error argument; give any delivery a chance and confirm it stayed silent.
-  await new Promise((resolve) => setTimeout(resolve, 30));
+  // error argument. The completed server-side lifecycle is the causal boundary.
+  await disconnected;
   expect(state.called).toBe(false);
 });
 
@@ -223,18 +224,22 @@ it('a pending server.emitWithAck stays pending when the client disconnects', asy
     /* never acks */
   });
 
-  const pendingAck = serverSocket.emitWithAck('slow');
+  let settled = false;
+  void serverSocket.emitWithAck('slow').then(
+    () => {
+      settled = true;
+    },
+    () => {
+      settled = true;
+    },
+  );
+  const { disconnected } = observeDisconnect(serverSocket);
   client.disconnect();
 
-  // The server side does not reject on the peer leaving; it simply keeps waiting.
-  const race = await Promise.race([
-    pendingAck.then(
-      () => 'settled',
-      () => 'settled',
-    ),
-    new Promise((resolve) => setTimeout(() => resolve('pending'), 30)),
-  ]);
-  expect(race).toBe('pending');
+  // The server side does not reject on the peer leaving; once teardown has
+  // completed, it is still waiting for an acknowledgement that cannot arrive.
+  await disconnected;
+  expect(settled).toBe(false);
 });
 
 // disconnect reasons, pinned against real socket.io: a client-initiated close and

@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
 import { setupServer } from './setup-server';
-import { observeDisconnect } from './test-events';
+import { observeDisconnect, receive } from './test-events';
 
 // Ack semantics pinned against real socket.io first, then satisfied by smocket.
 // The exact shapes here (first-value resolve, ack-once, stays-pending, no
@@ -27,27 +27,34 @@ it('calling ack twice runs the sender callback only once', async () => {
   serverSocket.on('double', (ack: (n: number) => void) => {
     ack(1);
     ack(2);
+    serverSocket.emit('marker');
   });
   let calls = 0;
-  await new Promise<void>((resolve) => {
-    client.emit('double', () => {
-      calls += 1;
-      setTimeout(resolve, 30);
-    });
+  const marker = receive(client, 'marker');
+  client.emit('double', () => {
+    calls += 1;
   });
+  await marker;
   expect(calls).toBe(1);
 });
 
 it('emitWithAck stays pending when the peer never acks', async () => {
   const { client, serverSocket } = await ctx.connectClient();
   serverSocket.on('silent', () => {
-    /* never acks */
+    serverSocket.emit('marker');
   });
-  const race = await Promise.race([
-    client.emitWithAck('silent').then(() => 'resolved'),
-    new Promise((resolve) => setTimeout(() => resolve('pending'), 30)),
-  ]);
-  expect(race).toBe('pending');
+  let settled = false;
+  const marker = receive(client, 'marker');
+  void client.emitWithAck('silent').then(
+    () => {
+      settled = true;
+    },
+    () => {
+      settled = true;
+    },
+  );
+  await marker;
+  expect(settled).toBe(false);
 });
 
 it('server-to-client emitWithAck works without a timeout', async () => {
