@@ -93,12 +93,13 @@ io.on('connection', (socket) => {
 ## 빠른 시작
 
 ```bash
-npm install -D smocket
+npm install -D smocket smocket-client
 ```
 
 ```ts
 // chat.test.ts
-import { connect, Server } from 'smocket';
+import { connect } from 'smocket-client';
+import { Server } from 'smocket';
 import { afterEach, beforeEach, expect, test } from 'vitest';
 
 const URL = 'http://localhost:3000';
@@ -147,13 +148,15 @@ npx vitest run
 
 위 코드는 이 저장소에서 사용하는 Vitest로 작성했습니다. smocket은 테스트 러너에 대한
 런타임 의존성이 없으며, 러너 패키지는 [개발 의존성](package.json)에만 있습니다. 이
-저장소는 Vitest와 `node:test`에서 smocket을 실행하지만, 아직 독립된 clean Jest consumer는
-없습니다. Jest 설정은 문서화되어 있으나 clean Jest 도입은 아직 검증되지 않았으며
-[#280](https://github.com/electrohyun/smocket/issues/280)에서 추적합니다.
+저장소는 Vitest와 `node:test`에서 smocket을 실행하고, 문서화된 Vitest와 Jest 경로도
+독립된 consumer에서 실행합니다. 후보 패키지 검증은 동기화된 root와 client tarball을
+저장소 밖에 설치하고, 배포 버전 검증은 정확한 root 버전을 설치합니다. 어느 경로에서도
+workspace 해석 결과를 패키지 검증으로 인정하지 않습니다.
 
 `connect(url)`과 `io.on('connection')`은 각각 socket.io-client와 socket.io가 실제로
-사용하는 진입점입니다. 애플리케이션에서 평소 작성하던 연결 코드와 같고, import만
-smocket으로 바뀝니다.
+사용하는 진입점입니다. 위 코드는 client와 server API의 구분을 그대로 유지하면서
+패키지 이름만 바꿉니다. 기존 client import를 유지하는 애플리케이션은
+`socket.io-client`가 `smocket-client`를 가리키도록 매핑할 수 있습니다.
 
 `socket.to`는 발신자를 제외하므로 Bob은 Alice가 보낸 내용을 받고 Alice는 받지 않습니다.
 빠른 시작에서는 Bob의 수신만 확인합니다. Alice의 미수신은 마커 패턴으로 증명하며,
@@ -165,16 +168,18 @@ smocket으로 바뀝니다.
 | 현재 상황                             | 시작할 곳                                                                |
 | ------------------------------------- | ------------------------------------------------------------------------ |
 | Vitest                                | 위의 빠른 시작 예제                                                      |
-| Jest 또는 다른 CJS 러너               | [문서화된 설정과 현재 근거의 한계](docs/test-runner-integration.md#jest) |
+| Jest 또는 다른 CJS 러너               | [문서화되고 실행 가능한 Jest 설정](docs/test-runner-integration.md#jest) |
 | `socket.io-client`를 import하는 앱    | 모듈 경로를 교체하는 [테스트 러너 통합](docs/test-runner-integration.md) |
 | 직접 작성한 소켓 mock                 | [문제](#the-problem)                                                     |
 | 실행 가능한 프로그램을 보고 싶은 경우 | [examples/chat-room](examples/chat-room/)                                |
 | 정확한 보장 범위를 확인하고 싶은 경우 | [정합성 보고서](docs/conformance.md)                                     |
 
-기존 애플리케이션을 smocket에 맞춰 다시 작성할 필요는 없습니다. smocket은
-socket.io-client와 같은 이름의 `io`를 내보냅니다. 테스트 러너에서
-`socket.io-client`가 smocket을 가리키도록 설정하면 애플리케이션의 import를 바꾸지 않고도
-같은 코드를 실행할 수 있습니다. Vitest 설정과 아직 검증되지 않은 Jest 설정은
+기존 애플리케이션을 smocket에 맞춰 다시 작성할 필요는 없습니다. `smocket-client`는
+지원 범위에서 socket.io-client의 ESM default, named `io`, named `connect`, 호출 가능한
+CommonJS root, client `Socket` 타입을 유지합니다. 테스트 러너가 이 패키지를 가리키면
+애플리케이션의 기존 import로 같은 코드를 실행할 수 있습니다. `smocket`과
+`smocket-client`는 같은 in-process registry를 사용하도록 동일한 모듈 형식으로
+불러와야 합니다. 실행 가능한 Vitest와 Jest 설정은
 [테스트 러너 통합](docs/test-runner-integration.md)에서 확인할 수 있습니다.
 
 ## 예제
