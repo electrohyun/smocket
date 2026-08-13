@@ -44,4 +44,4 @@ jobs:
         run: node scripts/run-chat-room-consumer.mjs published
       - name: Run representative clean-adoption fixtures
         shell: bash
-        run: node scripts/run-clean-adoption.mjs published --version "$(node -p \"require('./package.json').version\")"
+        run: node scripts/run-clean-adoption.mjs published --version "$(node -p 'require(\"./package.json\").version')"
