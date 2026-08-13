@@ -526,7 +526,7 @@ class BroadcastOperator implements BroadcastContract, TimeoutBroadcastContract {
     return this.narrow(this.targetRooms, [...this.exceptRooms, ...asRooms(room)]);
   }
 
-  /** Add an ack timeout, so the next `emit` with a trailing callback collects responses (#112). */
+  /** Add an explicit deadline to the acknowledgement collector used by callback and Promise forms. */
   timeout(ms: number): BroadcastOperator {
     return this.narrow(this.targetRooms, this.exceptRooms, ms);
   }
@@ -583,9 +583,10 @@ class BroadcastOperator implements BroadcastContract, TimeoutBroadcastContract {
     // when routing resolves to nobody (0026). Each recipient decodes it separately.
     const payload = encodePayload(data);
     const recipients = this.recipients();
-    // A plain broadcast unless a timeout is armed and a trailing callback is present:
-    // then it collects one ack per recipient and answers the callback once (#112).
-    if (this.timeoutMs === undefined || typeof last !== 'function') {
+    // A trailing callback always collects one ack per recipient. With no explicit
+    // timeout, Socket.IO still arms setTimeout(undefined), so immediate acknowledgements
+    // race the zero-delay timer instead of waiting indefinitely.
+    if (typeof last !== 'function') {
       for (const socket of recipients) socket.sendBroadcast(event, args, payload, ack);
       return true;
     }
@@ -600,12 +601,27 @@ class BroadcastOperator implements BroadcastContract, TimeoutBroadcastContract {
     return true;
   }
 
+  emitWithAck(event: string, ...args: unknown[]): Promise<unknown> {
+    return new Promise((resolve, reject) => {
+      this.emit(event, ...args, (error: unknown, responses: unknown[]) => {
+        if (error) {
+          Object.assign(error as object, { responses });
+          reject(error);
+          return;
+        }
+        resolve(responses);
+      });
+    });
+  }
+
   /**
    * Fan `event` out to `recipients` and gather their acks (#112). The callback fires once:
    * `(null, responses)` when every recipient answers before `ms`, or `(Error('operation has
    * timed out'), responses)` when the timer wins, where `responses` holds the acks that
-   * arrived, in arrival order (measured on 4.8.3, not join order). A `settled` flag drops a
-   * late ack and keeps the callback single-shot. No recipient resolves at once as `(null, [])`.
+   * arrived, in arrival order (measured on 4.7.5 and 4.8.3, not join order). A `settled`
+   * flag keeps the callback single-shot. A late ack may still append to the already exposed
+   * response array, matching Socket.IO's collector. No recipient resolves at once as
+   * `(null, [])`.
    */
   private collect(
     event: string,
@@ -613,7 +629,7 @@ class BroadcastOperator implements BroadcastContract, TimeoutBroadcastContract {
     payload: EncodedPayload,
     callback: (...received: unknown[]) => void,
     recipients: ServerSocket[],
-    ms: number,
+    ms: number | undefined,
   ): void {
     if (recipients.length === 0) {
       defer(() => callback(null, []));
@@ -629,8 +645,8 @@ class BroadcastOperator implements BroadcastContract, TimeoutBroadcastContract {
     }, ms);
     for (const socket of recipients) {
       const answer = (...received: unknown[]) => {
-        if (settled) return;
         responses.push(received[0]);
+        if (settled) return;
         remaining -= 1;
         if (remaining === 0) {
           settled = true;
@@ -1016,14 +1032,24 @@ class ParentBroadcastOperator implements BroadcastContract, TimeoutBroadcastCont
   }
   emit(event: string, ...args: unknown[]): boolean {
     for (const child of this.children) {
-      let operator: BroadcastContract | TimeoutBroadcastContract =
-        this.timeoutMs === undefined ? child : child.timeout(this.timeoutMs);
-      if (this.rooms.length > 0) operator = operator.to([...this.rooms]);
-      if (this.exceptRooms.length > 0) operator = operator.except([...this.exceptRooms]);
-      if (this.isVolatile) operator = operator.volatile;
-      operator.emit(event, ...args);
+      new BroadcastOperator(
+        child.adapter,
+        child.sockets,
+        this.rooms,
+        this.exceptRooms,
+        this.isVolatile,
+        this.timeoutMs,
+      ).emit(event, ...args);
     }
     return true;
+  }
+
+  emitWithAck(event: string, ...args: unknown[]): Promise<unknown> {
+    return new Promise((resolve) => {
+      assertNotReservedEvent(event);
+      void args;
+      resolve([]);
+    });
   }
 }
 
