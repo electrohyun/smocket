@@ -16,6 +16,7 @@ import {
   type ServerContract,
   type ServerSocketContract,
   type SmocketServer,
+  type Socket,
   type SocketTimeoutContract,
   type TimeoutBroadcastContract,
   type TimeoutEmitterContract,
@@ -54,6 +55,7 @@ it('exports the contract types, so the swap keeps an app annotations to use', as
   const asContract: ServerContract = server;
   const client: ClientSocketContract = io('http://localhost');
   const serverSocket: ServerSocketContract = await server.nextConnection();
+  const namedServerSocket: Socket = serverSocket;
 
   const nsp: NamespaceContract = serverSocket.nsp;
   const adapter: AdapterContract = nsp.adapter;
@@ -73,6 +75,7 @@ it('exports the contract types, so the swap keeps an app annotations to use', as
   };
 
   expect(client.id).toBe(serverSocket.id);
+  expect(namedServerSocket.id).toBe(serverSocket.id);
   expect(nsp.name).toBe('/');
   expect(adapter.rooms.get(serverSocket.id)).toEqual(new Set([serverSocket.id]));
   expect(handshake.url).toBeTypeOf('string');

@@ -569,11 +569,11 @@ The encoder behind the id shape the dual run pins.
 
 What the package exports, including the `io` name the substitution path needs.
 
-- [connecting pairs the client and server socket with the same id](../src/index.test.ts#L26)
-- [exports `io` as socket.io-client's name for connect, so a module swap works](../src/index.test.ts#L36)
-- [exports the contract types, so the swap keeps an app annotations to use](../src/index.test.ts#L48)
-- [exports a server type that keeps the smocket-only members](../src/index.test.ts#L90)
-- [exports the tracing adapter and trace type](../src/index.test.ts#L115)
+- [connecting pairs the client and server socket with the same id](../src/index.test.ts#L27)
+- [exports `io` as socket.io-client's name for connect, so a module swap works](../src/index.test.ts#L37)
+- [exports the contract types, so the swap keeps an app annotations to use](../src/index.test.ts#L49)
+- [exports a server type that keeps the smocket-only members](../src/index.test.ts#L93)
+- [exports the tracing adapter and trace type](../src/index.test.ts#L118)
 
 ### Public direct connection API
 
