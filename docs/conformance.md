@@ -503,18 +503,39 @@ Registering an adapter that changes the routing decision.
 - [registering a custom adapter preserves per-socket delivery order](../src/adapter.test.ts#L92)
 - [builds an independent registered adapter for each dynamic concrete child](../src/adapter.test.ts#L116)
 
+### Adapter lifecycle
+
+Factory isolation, setup boundaries, and whole-socket cleanup.
+
+- [builds isolated adapters for root, existing, future static, and dynamic namespaces](../src/adapter-lifecycle.test.ts#L44)
+- [keeps every existing adapter unchanged when replacement construction fails](../src/adapter-lifecycle.test.ts#L79)
+- [rejects one adapter instance shared by multiple namespaces without partial replacement](../src/adapter-lifecycle.test.ts#L98)
+- [reports dynamic adapter construction failure and lets the client retry](../src/adapter-lifecycle.test.ts#L113)
+- [does not register a future static namespace when its adapter construction fails](../src/adapter-lifecycle.test.ts#L143)
+- [rejects reusing an existing adapter for a future namespace](../src/adapter-lifecycle.test.ts#L157)
+- [closes adapter registration at the first connection attempt, including rejection](../src/adapter-lifecycle.test.ts#L170)
+- [signals whole-socket removal once for the client teardown path](../src/adapter-lifecycle.test.ts#L182)
+- [signals whole-socket removal once for the server teardown path](../src/adapter-lifecycle.test.ts#L182)
+- [signals whole-socket removal once for the manager teardown path](../src/adapter-lifecycle.test.ts#L182)
+- [signals whole-socket removal once for the close teardown path](../src/adapter-lifecycle.test.ts#L182)
+- [signals cleanup once for rejected and cancelled admission without lifecycle events](../src/adapter-lifecycle.test.ts#L219)
+
 ### DelayingAdapter
 
 Holding a socket's client-inbound stream so a race can be interleaved on purpose.
 
-- [an emit from a connection handler reaches the client, before the pairing completes](../src/delay-adapter.test.ts#L27)
-- [a delayed socket is held on the timer while an undelayed one still arrives next tick](../src/delay-adapter.test.ts#L40)
-- [does not delay the server side: a client emit is received on the next tick](../src/delay-adapter.test.ts#L63)
-- [preserves order within a delayed socket's stream, and holds it until the delay elapses](../src/delay-adapter.test.ts#L79)
-- [a lowered delay does not let a new event overtake one already queued](../src/delay-adapter.test.ts#L99)
-- [a new delay applies only to deliveries scheduled after it is set](../src/delay-adapter.test.ts#L120)
-- [gates order through the queue, not the timer: only the head is ever scheduled](../src/delay-adapter.test.ts#L141)
-- [ignores a non-finite delay rather than storing NaN or Infinity](../src/delay-adapter.test.ts#L177)
+- [an emit from a connection handler reaches the client, before the pairing completes](../src/delay-adapter.test.ts#L28)
+- [a delayed socket is held on the timer while an undelayed one still arrives next tick](../src/delay-adapter.test.ts#L41)
+- [does not delay the server side: a client emit is received on the next tick](../src/delay-adapter.test.ts#L64)
+- [preserves order within a delayed socket's stream, and holds it until the delay elapses](../src/delay-adapter.test.ts#L80)
+- [a lowered delay does not let a new event overtake one already queued](../src/delay-adapter.test.ts#L100)
+- [a new delay applies only to deliveries scheduled after it is set](../src/delay-adapter.test.ts#L121)
+- [gates order through the queue, not the timer: only the head is ever scheduled](../src/delay-adapter.test.ts#L142)
+- [ignores a non-finite delay rather than storing NaN or Infinity](../src/delay-adapter.test.ts#L178)
+- [keeps delay state when the socket leaves only its id room](../src/delay-adapter.test.ts#L194)
+- [drains a queued stream during close without duplicating scheduled callbacks](../src/delay-adapter.test.ts#L212)
+- [drains the remaining queue when the scheduled head triggers teardown](../src/delay-adapter.test.ts#L260)
+- [does not carry an old sid delay into a reconnect](../src/delay-adapter.test.ts#L281)
 
 ### Native broadcast Promise policy
 

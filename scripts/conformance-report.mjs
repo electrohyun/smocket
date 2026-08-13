@@ -182,6 +182,11 @@ const AREAS = [
     blurb: 'Registering an adapter that changes the routing decision.',
   },
   {
+    file: 'src/adapter-lifecycle.test.ts',
+    title: 'Adapter lifecycle',
+    blurb: 'Factory isolation, setup boundaries, and whole-socket cleanup.',
+  },
+  {
     file: 'src/delay-adapter.test.ts',
     title: 'DelayingAdapter',
     blurb: "Holding a socket's client-inbound stream so a race can be interleaved on purpose.",

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import type { ServerSocketContract } from './contract';
 import { DelayingAdapter, Server } from './index';
+import { observeDisconnect } from './test-events';
 
 // `DelayingAdapter` is a mock-only affordance (#78): it has no socket.io counterpart, so
 // these tests use smocket's own Server directly rather than the dual-run `setupServer`,
@@ -187,4 +188,116 @@ it('ignores a non-finite delay rather than storing NaN or Infinity', async () =>
   serverSocket.emit('ev', 'x');
   await flush();
   expect(seen).toEqual(['x']); // delivered next tick, not stuck on a NaN fire time
+  await io.close();
+});
+
+it('keeps delay state when the socket leaves only its id room', async () => {
+  const io = new Server('http://localhost');
+  let delaying!: DelayingAdapter;
+  io.adapter(() => (delaying = new DelayingAdapter()));
+  const { client, serverSocket } = await connect(io);
+  const seen: string[] = [];
+  client.on('ev', (value: string) => seen.push(value));
+
+  delaying.setDelay(serverSocket.id, 20);
+  serverSocket.leave(serverSocket.id);
+  serverSocket.emit('ev', 'held');
+
+  await flush();
+  expect(seen).toEqual([]);
+  await vi.advanceTimersByTimeAsync(20);
+  expect(seen).toEqual(['held']);
+});
+
+it('drains a queued stream during close without duplicating scheduled callbacks', async () => {
+  const io = new Server('http://localhost');
+  let delaying!: DelayingAdapter;
+  io.adapter(() => (delaying = new DelayingAdapter()));
+  const { client, serverSocket } = await connect(io);
+  const received: string[] = [];
+  const outgoing: string[] = [];
+  serverSocket.onAnyOutgoing((event) => outgoing.push(String(event)));
+  client.on('callback', (ack: (value: string) => void) => {
+    received.push('callback');
+    ack('callback-answer');
+  });
+  client.on('promise', (ack: (value: string) => void) => {
+    received.push('promise');
+    ack('promise-answer');
+  });
+  client.on('silent', () => received.push('silent'));
+  client.on('tail', () => received.push('tail'));
+
+  delaying.setDelay(serverSocket.id, 100);
+  const callback = new Promise<unknown[]>((resolve) => {
+    serverSocket.emit('callback', (...args: unknown[]) => resolve(args));
+  });
+  const promised = serverSocket.emitWithAck('promise');
+  const timed = new Promise<unknown[]>((resolve) => {
+    serverSocket.timeout(50).emit('silent', (...args: unknown[]) => resolve(args));
+  });
+  serverSocket.emit('tail');
+
+  await flush();
+  expect(received).toEqual([]);
+  expect(outgoing).toEqual(['callback', 'promise', 'silent', 'tail']);
+
+  await io.close();
+  expect(received).toEqual(['callback', 'promise', 'silent', 'tail']);
+  await expect(callback).resolves.toEqual(['callback-answer']);
+  await expect(promised).resolves.toBe('promise-answer');
+
+  await vi.advanceTimersByTimeAsync(50);
+  const timeoutResult = await timed;
+  expect(timeoutResult).toHaveLength(1);
+  expect(timeoutResult[0]).toMatchObject({ message: 'operation has timed out' });
+
+  await vi.advanceTimersByTimeAsync(50);
+  expect(received).toEqual(['callback', 'promise', 'silent', 'tail']);
+  expect(outgoing).toEqual(['callback', 'promise', 'silent', 'tail']);
+});
+
+it('drains the remaining queue when the scheduled head triggers teardown', async () => {
+  const io = new Server('http://localhost');
+  let delaying!: DelayingAdapter;
+  io.adapter(() => (delaying = new DelayingAdapter()));
+  const { client, serverSocket } = await connect(io);
+  const received: string[] = [];
+  client.on('ev', (value: string) => {
+    received.push(value);
+    if (value === 'first') serverSocket.disconnect();
+  });
+
+  delaying.setDelay(serverSocket.id, 20);
+  serverSocket.emit('ev', 'first');
+  serverSocket.emit('ev', 'second');
+
+  await vi.advanceTimersByTimeAsync(20);
+  expect(received).toEqual(['first', 'second']);
+  await vi.advanceTimersByTimeAsync(20);
+  expect(received).toEqual(['first', 'second']);
+});
+
+it('does not carry an old sid delay into a reconnect', async () => {
+  const io = new Server('http://localhost');
+  let delaying!: DelayingAdapter;
+  io.adapter(() => (delaying = new DelayingAdapter()));
+  const { client, serverSocket } = await connect(io);
+  const seen: string[] = [];
+  client.on('ev', (value: string) => seen.push(value));
+
+  delaying.setDelay(serverSocket.id, 100);
+  serverSocket.emit('ev', 'old');
+  const { disconnected } = observeDisconnect(serverSocket);
+  client.disconnect();
+  await disconnected;
+  expect(seen).toEqual(['old']);
+
+  const next = io.nextConnection();
+  client.connect();
+  const reconnected = await next;
+  expect(reconnected.id).not.toBe(serverSocket.id);
+  reconnected.emit('ev', 'fresh');
+  await flush();
+  expect(seen).toEqual(['old', 'fresh']);
 });
