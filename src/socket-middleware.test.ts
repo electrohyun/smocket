@@ -140,7 +140,9 @@ it('short-circuits on next(error), emits that Error, and does not acknowledge', 
   });
   let acknowledged = false;
   const laterMiddleware: string[] = [];
+  const catchAllEvents: string[] = [];
   const error = new Error('unauthorized event');
+  serverSocket.onAny((event) => catchAllEvents.push(event));
   serverSocket.use((packet, next) => next(packet[0] === 'restricted' ? error : undefined));
   serverSocket.use((packet, next) => {
     laterMiddleware.push(packet[0]);
@@ -159,6 +161,7 @@ it('short-circuits on next(error), emits that Error, and does not acknowledge', 
   expect(rejected).toBe(false);
   expect(acknowledged).toBe(false);
   expect(laterMiddleware).toEqual(['marker']);
+  expect(catchAllEvents).toEqual(['restricted', 'marker']);
 });
 
 it('does not dispatch a held packet after the socket disconnects', async () => {

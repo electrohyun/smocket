@@ -255,7 +255,7 @@ continuation.
 - [snapshots middleware when each packet begins processing](../src/socket-middleware.test.ts#L75)
 - [lets a later packet complete while earlier packet middleware is held](../src/socket-middleware.test.ts#L101)
 - [short-circuits on next(error), emits that Error, and does not acknowledge](../src/socket-middleware.test.ts#L135)
-- [does not dispatch a held packet after the socket disconnects](../src/socket-middleware.test.ts#L164)
+- [does not dispatch a held packet after the socket disconnects](../src/socket-middleware.test.ts#L167)
 
 ### Handshake
 
@@ -623,12 +623,9 @@ has not been measured, not that it is missing from socket.io.
 - **Adapter utility methods on a broadcast operator.** `allSockets`, `fetchSockets`,
   `socketsJoin`, `socketsLeave`, and `disconnectSockets` act on the set a broadcast
   would target, which is the routing decision smocket already reproduces.
-- **`socket.use(fn)`.** Per-packet middleware on one socket, which is a different seam
-  from the connection middleware `io.use` covered above.
-
-What is deliberately absent instead of merely uncovered is in
-[scope.md](./scope.md), and where smocket and socket.io disagree on purpose is in
-[differences.md](./differences.md).
+  What is deliberately absent instead of merely uncovered is in
+  [scope.md](./scope.md), and where smocket and socket.io disagree on purpose is in
+  [differences.md](./differences.md).
 
 ## How to add a case
 
