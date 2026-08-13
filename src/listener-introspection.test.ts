@@ -10,6 +10,9 @@ it('a fresh server socket exposes only its internal error listener', async () =>
   expect(serverSocket.listenerCount('error')).toBe(1);
   expect(serverSocket.listeners('error')).toHaveLength(1);
   expect(serverSocket.listeners('error')).not.toBe(serverSocket.listeners('error'));
+  expect(serverSocket.listeners('missing')).toEqual([]);
+  expect(serverSocket.listeners('missing')).not.toBe(serverSocket.listeners('missing'));
+  expect(serverSocket.listenerCount('missing')).toBe(0);
   expect('hasListeners' in serverSocket).toBe(false);
 });
 
@@ -98,6 +101,13 @@ it('client listeners expose the live array and component-emitter once wrapper', 
 it('client last-off and once exhaustion empty and detach the old backing array', async () => {
   const { client, serverSocket } = await ctx.connectClient();
   const listener = () => {};
+
+  client.on('kept', listener);
+  const kept = client.listeners('kept');
+  client.off('kept', () => {});
+  expect(client.listeners('kept')).toBe(kept);
+  expect(kept).toEqual([listener]);
+  expect(client.hasListeners('kept')).toBe(true);
 
   client.on('last', listener);
   const removed = client.listeners('last');
