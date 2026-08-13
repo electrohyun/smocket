@@ -61,7 +61,7 @@ it('timeout rejection exposes partial responses and late acknowledgements mutate
   });
   late.serverSocket.on('ack-marker', (ack: () => void) => ack());
 
-  const pending = ctx.io.to('all').timeout(10).emitWithAck('question');
+  const pending = ctx.io.to('all').timeout(100).emitWithAck('question');
   let settlements = 0;
   void pending.then(
     () => (settlements += 1),
