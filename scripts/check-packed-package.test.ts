@@ -237,4 +237,4 @@ it('rejects the lock-consistent unused runtime dependency fixture after packing 
   } finally {
     await rm(temporaryRoot, { recursive: true, force: true });
   }
-});
+}, 20_000); // Windows process startup and two npm pack runs can exceed Vitest's 5s default.

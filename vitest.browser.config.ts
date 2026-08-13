@@ -26,9 +26,10 @@ export default defineConfig({
   },
   test: {
     name: 'browser',
-    // The chat-room application uses Node's built-in test runner. Keep this
-    // browser project scoped to the existing Vitest suites.
-    include: ['src/**/*.test.ts', 'scripts/**/*.test.ts'],
+    // The chat-room application uses Node's built-in test runner. The import
+    // detector is browser-compatible; npm packing tests need Node child
+    // processes and the filesystem, so they stay in the Node projects.
+    include: ['src/**/*.test.ts', 'scripts/detect-external-imports.test.ts'],
     browser: {
       enabled: true,
       provider: playwright(),
