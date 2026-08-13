@@ -555,6 +555,14 @@ export interface SmocketAdapter {
   /** The routing decision: the deduped union of the given rooms' member sids. */
   socketsIn(rooms: Iterable<string>): Set<string>;
   /**
+   * Optional whole-socket removal hook. The core calls it once after every room has
+   * been removed with `del` and the sid has been removed from `sids`, but before the
+   * socket leaves its namespace roster. A plain `socket.leave(socket.id)` does not call
+   * this hook. Adapters can use it to release per-socket state without treating a room
+   * leave as a disconnect.
+   */
+  removeSocket?(sid: string): void;
+  /**
    * Optional delivery-scheduling hook (#78): when present, the core routes a socket's
    * client-inbound event deliveries (server -> client, keyed by `sid`) through it instead of
    * the default next-tick, handing over the `deliver` thunk that runs that socket's
@@ -569,9 +577,9 @@ export interface SmocketAdapter {
 }
 
 /**
- * Builds the adapter for one namespace. Passed to `Server.adapter` to replace the
- * built-in routing with a custom one; called once per namespace with that
- * namespace, so the adapter can read per-namespace state such as its name.
+ * Builds a fresh adapter for one namespace. `Server.adapter` calls it for root and
+ * existing namespaces during setup, then for each future static or admitted dynamic
+ * namespace. One instance cannot be shared across namespaces.
  */
 export type AdapterFactory<
   ListenEvents extends EventsMap = DefaultEventsMap,
@@ -700,7 +708,7 @@ export interface SmocketServer<
   SocketData = DefaultSocketData,
 > extends ServerContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData> {
   /**
-   * Replace the routing adapter for every namespace on this server. See
+   * Register one fresh routing adapter per namespace before the first connection attempt. See
    * [adapter-registration.md](../docs/adapter-registration.md) and {@link AdapterFactory}.
    */
   adapter(factory: AdapterFactory<ListenEvents, EmitEvents, ServerSideEvents, SocketData>): void;
