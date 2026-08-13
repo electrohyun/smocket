@@ -22,6 +22,9 @@ test('ESM facade and peer share the server registry', async () => {
     assert.deepEqual(serverSocket.handshake.auth, { userId: 'alice' });
     assert.deepEqual(serverSocket.handshake.query, { source: 'esm' });
     assert.equal(socket.connected, true);
+    assert.equal(socket.disconnected, false);
+    assert.equal(socket.recovered, false);
+    assert.deepEqual(socket.auth, { userId: 'alice' });
   } finally {
     await server.close();
   }

@@ -228,6 +228,8 @@ it('a volatile emit to a recipient still in the pre-connect window is dropped', 
   const marker = receive(client, 'marker');
 
   ctx.io.on('connection', (socket: ServerSocketContract) => {
+    expect(socket.connected).toBe(true);
+    expect(socket.disconnected).toBe(false);
     const volatile = socket.volatile;
     expect(volatile).toBe(socket);
     volatile.emit('vol', 'dropped'); // pre-connect: dropped
