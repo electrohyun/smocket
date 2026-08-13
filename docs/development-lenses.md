@@ -49,9 +49,13 @@ a claim that work under a lens is complete.
 - **Why it matters.** Behavioural accuracy alone does not prove that adopting the mock
   makes a user's testing workflow easier.
 - **Current example.** The [test-runner integration guide](./test-runner-integration.md)
-  keeps an application's `socket.io-client` import while a test substitutes smocket. This
-  is an integration path, not a proven productivity gain; comparisons with real user
-  applications and handwritten mocks remain to be done.
+  documents how a test can substitute smocket while the application keeps its
+  `socket.io-client` import. The completed
+  [application case study](./application-case-study.md) directly observes one workflow:
+  all three targets passed; the handwritten target had no dependency or port and owned
+  its behavior implementation, while Smocket used one dependency, no port, and
+  package-owned behavior. Future maintenance is an inference from those owned surfaces,
+  not an observed result, and one workflow is not a universal productivity measure.
 
 ## Sustainability
 
