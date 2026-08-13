@@ -49,7 +49,7 @@ a claim that work under a lens is complete.
 - **Why it matters.** Behavioural accuracy alone does not prove that adopting the mock
   makes a user's testing workflow easier.
 - **Current example.** The [test-runner integration guide](./test-runner-integration.md)
-  documents how a test can substitute smocket while the application keeps its
+  documents how a test can substitute `smocket-client` while the application keeps its
   `socket.io-client` import. The completed
   [application case study](./application-case-study.md) directly observes one workflow:
   all three targets passed; the handwritten target had no dependency or port and owned

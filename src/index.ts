@@ -1,10 +1,8 @@
-// `io` is `connect` under socket.io-client's dominant name. It exists for the
-// substitution path: an app swaps `socket.io-client` for `smocket` in tests (via
-// `resolve.alias` / `vi.mock`) without touching its own code, and most app code
-// imports `io`, not `connect`. Examples here stay on `connect` (the server is
-// `const io = new Server(...)`), so the two names never collide in one file.
-// Only the named export is provided; a default export (`import io from ...`) waits
-// on the CJS interop it needs across tsup's dual output.
+// `io` is `connect` under socket.io-client's dominant name. It remains for existing
+// named-import aliases to the root package. Examples here stay on `connect` because
+// the server is conventionally `const io = new Server(...)`, so the names never collide.
+// ADR 0023 assigns default imports, callable CommonJS, and the client-side `Socket`
+// name to the separate `smocket-client` facade.
 export {
   Adapter,
   connect,

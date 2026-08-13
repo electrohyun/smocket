@@ -5,6 +5,12 @@
 > [`examples/chat-room`](../../examples/chat-room/). CI can replace the released
 > package with a tarball without creating another application source.
 
+The pinned `0.4.2` release predates `smocket-client`, so this canonical consumer keeps
+the root `connect` path required by ADR
+[0024](../../docs/decisions/0024-assemble-consumer-from-canonical-example.md). Issue
+[#284](https://github.com/electrohyun/smocket/issues/284) owns its atomic transition to
+the synchronized two-package release after both packages are published.
+
 [Open the published-package consumer in StackBlitz](https://stackblitz.com/github/electrohyun/smocket)
 
 ## What is committed here

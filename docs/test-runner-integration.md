@@ -109,7 +109,7 @@ module the normal way.
 
 ## Jest
 
-`moduleNameMapper` is the alias equivalent. Jest resolves `smocket` through the
+`moduleNameMapper` is the alias equivalent. Jest resolves `smocket-client` through the
 `require` condition, which reaches the CJS half of the dual build.
 
 ```js
@@ -149,7 +149,8 @@ closes the old server, and removes that registry entry. The next `beforeEach` cr
 server with a new adapter, so its rooms are empty.
 
 ```ts
-import { connect, Server } from 'smocket';
+import { connect } from 'smocket-client';
+import { Server } from 'smocket';
 import { afterEach, beforeEach, expect, test } from 'vitest';
 
 const URL = 'http://localhost:3000';
