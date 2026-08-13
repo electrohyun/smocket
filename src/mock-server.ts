@@ -151,14 +151,12 @@ function resolveAuth(
   }
 }
 
-/** Stringify every value of an object, the way a url querystring coerces them. */
 function stringifyValues(source: Record<string, unknown>): Record<string, string> {
   const out: Record<string, string> = {};
   for (const [key, value] of Object.entries(source)) out[key] = String(value);
   return out;
 }
 
-/** Normalize socket.io's `one room | many rooms` argument to an array. */
 function asRooms(room: string | string[]): string[] {
   return Array.isArray(room) ? room : [room];
 }
@@ -188,13 +186,11 @@ function containsBinary(value: unknown, seen = new Set<object>(), inspectToJSON 
   return false;
 }
 
-/** Snapshot one argument list the way the default non-binary parser crosses JSON. */
 function encodePayload(args: unknown[]): EncodedPayload {
   if (containsBinary(args)) return { kind: 'binary', value: args };
   return { kind: 'json', value: JSON.stringify(args) };
 }
 
-/** Decode separately at each receiver, so broadcasts never share their object graph. */
 function decodePayload(payload: EncodedPayload): unknown[] {
   return payload.kind === 'json' ? (JSON.parse(payload.value) as unknown[]) : payload.value;
 }
@@ -231,7 +227,6 @@ export class Adapter implements SmocketAdapter {
   /** sid -> the rooms it is in. The reverse index, so leaving is not a full scan. */
   readonly sids = new Map<string, Set<string>>();
 
-  /** Record that `sid` is now in `room`, updating both directions. */
   add(sid: string, room: string): void {
     const members = this.rooms.get(room) ?? new Set<string>();
     members.add(sid);
@@ -753,7 +748,6 @@ class Namespace implements NamespaceContract {
     this.continuePair(client, attempt, source);
   }
 
-  /** Continue an attempt whose dynamic parent already resolved admission auth. */
   continuePair(client: ClientSocket, attempt: ConnectionAttempt, source?: ConnectOptions): void {
     if (this.rejectIfClosed(client, attempt)) return;
     // Resolve the auth first, then pair. For an object auth this runs synchronously, so
@@ -817,7 +811,6 @@ class Namespace implements NamespaceContract {
     });
   }
 
-  /** Reject a connection at whichever async boundary observes that close has started. */
   private rejectIfClosed(client: ClientSocket, attempt: ConnectionAttempt): boolean {
     if (!this.closed) return false;
     client.rejectConnectionAttempt(attempt, new Error('server is closed'));
@@ -888,7 +881,6 @@ class Namespace implements NamespaceContract {
     }
   }
 
-  /** Resolve with the server socket of the next client to connect here. */
   nextConnection(): Promise<ServerSocket> {
     const socket = this.ready.shift();
     if (socket) return Promise.resolve(socket);
@@ -905,7 +897,6 @@ class Namespace implements NamespaceContract {
     }
   }
 
-  /** Close every connected socket in this namespace and discard unclaimed connections. */
   async close(): Promise<void> {
     this.closed = true;
     this.ready.length = 0;
@@ -1490,7 +1481,6 @@ const RESERVED_EVENTS = new Set([
   'removeListener',
 ]);
 
-/** Reject names Socket.IO reserves for its own emitter and connection lifecycle. */
 function assertNotReservedEvent(event: string): void {
   if (RESERVED_EVENTS.has(event)) {
     throw new Error(`"${event}" is a reserved event name`);
@@ -2459,14 +2449,12 @@ function addListener(map: Map<string, Listener[]>, event: string, listener: List
   map.set(event, list);
 }
 
-/** Remove the first occurrence of `listener` from `list` in place, if present. */
 function removeFirst<Entry>(list: Entry[] | undefined, listener: Entry): void {
   if (!list) return;
   const i = list.indexOf(listener);
   if (i !== -1) list.splice(i, 1);
 }
 
-/** True if `entry` is `listener`, directly or as the `once` wrapper carrying it. */
 function isListener(entry: Listener, listener: Listener): boolean {
   return entry === listener || (entry as { listener?: Listener }).listener === listener;
 }
