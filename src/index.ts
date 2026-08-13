@@ -18,11 +18,11 @@ export {
 // of the substitution already resolved, and only the type side was missing. The five
 // entry points (`ServerContract`, `ServerSocketContract`, `ClientSocketContract`,
 // `NamespaceContract`, `Handshake`) reach the rest through their own members, so
-// those are exported too rather than left reachable but unnameable. `ConnectedClient`
-// and `ServerContext` are deliberately absent: they are the dual-run test setup's
-// shape, not an app-facing surface. Whether any of these is also aliased to
-// socket.io's own `Socket` name is a separate question (#178), since one package
-// cannot give that name to both the server and the client socket.
+// those are exported too rather than left reachable but unnameable. `Socket` is the
+// server-side alias fixed by 0022, matching the root `socket.io` package while the
+// separate client facade owns the client-side name. `ConnectedClient` and `ServerContext`
+// are deliberately absent: they are the dual-run test setup's shape, not an app-facing
+// surface.
 //
 // `SmocketServer` is the one name here that is not a socket.io subset. `ServerContract`
 // stops where socket.io stops, so annotating with it drops `adapter`, `connect`, and
@@ -46,6 +46,7 @@ export type {
   ParentNspNameMatchFn,
   ServerContract,
   ServerSocketContract,
+  ServerSocketContract as Socket,
   SmocketAdapter,
   SmocketServer,
   SocketTimeoutContract,
