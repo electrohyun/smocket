@@ -258,9 +258,9 @@ What `volatile` delivers in steady state, and the one window where it drops.
 - [offAnyOutgoing replaces both sides backing arrays and detaches earlier lookups](../src/on-any-outgoing.test.ts#L194)
 - [outgoing catch-all dispatch snapshots listener mutations on both sides](../src/on-any-outgoing.test.ts#L217)
 - [the client outgoing catch-all omits ack callbacks for emit and emitWithAck](../src/on-any-outgoing.test.ts#L249)
-- [empty listenersAnyOutgoing lookups are fresh and cannot install listeners on either side](../src/on-any-outgoing.test.ts#L265)
-- [offAnyOutgoing on untouched sockets keeps empty lookups fresh and inert](../src/on-any-outgoing.test.ts#L286)
-- [offAnyOutgoing detaches the old arrays and installs stable empty replacements](../src/on-any-outgoing.test.ts#L308)
+- [empty listenersAnyOutgoing lookups are fresh and cannot install listeners on either side](../src/on-any-outgoing.test.ts#L271)
+- [offAnyOutgoing on untouched sockets keeps empty lookups fresh and inert](../src/on-any-outgoing.test.ts#L292)
+- [offAnyOutgoing detaches the old arrays and installs stable empty replacements](../src/on-any-outgoing.test.ts#L314)
 
 ### Reserved event names
 
