@@ -5,12 +5,14 @@ import type { Socket as IoClientSocket } from 'socket.io-client';
 interface ClientToServerEvents {
   fire: (value: string) => void;
   guess: (text: string, ack: (accepted: boolean) => void) => void;
+  message: (value: number) => void;
   new_namespace: (value: string) => void;
 }
 
 interface ServerToClientEvents {
   chat: (message: string) => void;
   done: (ack: () => void) => void;
+  message: (value: string, count: number) => void;
   new_namespace: (value: string) => void;
   question: (message: string, ack: (answer: number) => void) => void;
 }
@@ -69,6 +71,10 @@ export function assertTypedEventMapsCompile(): void {
     socket.data.userId = 'regexp-user';
     socket.emit('chat', 'regexp-ready');
   });
+  const returnedParentAliases: typeof regexpParent = regexpParent
+    .send('parent message', 1)
+    .write('parent message', 2);
+  const parentCompressed: ReturnType<typeof regexpParent.to> = regexpParent.compress(false);
   const matcherParent = io.of((name, auth, next) => {
     const normalizedName: string = name;
     const tenant: unknown = auth.tenant;
@@ -110,6 +116,21 @@ export function assertTypedEventMapsCompile(): void {
     });
 
     socket.emit('chat', 'hello');
+    const returnedFromMessageAliases: typeof socket = socket
+      .send('server message', 1)
+      .write('server message', 2)
+      .compress(false);
+    const compressedTimedSocket: ReturnType<typeof socket.timeout> = socket
+      .timeout(100)
+      .compress(false);
+    socket.in('room').compress(false).emit('chat', 'hello');
+    socket
+      .in('room')
+      .compress(false)
+      .emit('question', 'value?', (answers) => {
+        const responseValues: number[] = answers;
+        void responseValues;
+      });
     socket
       .onAny(annotatedIncomingCatchAll)
       .prependAny(annotatedIncomingCatchAll)
@@ -141,6 +162,8 @@ export function assertTypedEventMapsCompile(): void {
     // @ts-expect-error an ack with no response value cannot back emitWithAck
     socket.emitWithAck('done');
     void answer;
+    void returnedFromMessageAliases;
+    void compressedTimedSocket;
     void timedAnswer;
     void volatileAnswer;
     void returnedFromCatchAlls;
@@ -152,10 +175,25 @@ export function assertTypedEventMapsCompile(): void {
     socket.on('gues', () => {});
     // @ts-expect-error wrong outgoing payload
     socket.emit('chat', 42);
+    // @ts-expect-error server send follows the mapped server-to-client message tuple
+    socket.send(42, 'wrong');
+    // @ts-expect-error room narrowing accepts only a room or room array
+    socket.in(42);
+    // @ts-expect-error compression accepts only a boolean
+    socket.compress('false');
   });
 
   io.emit('chat', 'hello');
+  const returnedFromServerAliases: typeof io = io
+    .send('server message', 1)
+    .write('server message', 2);
+  const rootCompressed: ReturnType<typeof io.to> = io.compress(false);
   io.to('room').emit('chat', 'hello');
+  io.compress(false).to('room').emit('chat', 'hello');
+  io.compress(false).emit('question', 'value?', (answers) => {
+    const responseValues: number[] = answers;
+    void responseValues;
+  });
   io.to('room').volatile.emit('chat', 'hello');
   io.volatile.in('room').except('muted').emit('chat', 'hello');
   io.of('/admin').to('room').volatile.emit('chat', 'hello');
@@ -176,6 +214,11 @@ export function assertTypedEventMapsCompile(): void {
       void values;
     });
   io.of('/admin').in('room').except('muted').emit('chat', 'hello');
+  const typedNamespace = io.of('/typed-aliases');
+  const returnedFromNamespaceAliases: typeof typedNamespace = typedNamespace
+    .send('namespace message', 1)
+    .write('namespace message', 2);
+  const namespaceCompressed: ReturnType<typeof typedNamespace.to> = typedNamespace.compress(false);
   io.timeout(100).emit('question', 'value?', (error, answers) => {
     const timeoutError: Error = error;
     const values: number[] = answers;
@@ -186,6 +229,11 @@ export function assertTypedEventMapsCompile(): void {
   const client = io.connect();
   const returnedFromConnect: typeof client = client.connect();
   const returnedFromDisconnect: typeof client = client.disconnect();
+  const returnedFromClientAliases: typeof client = client
+    .open()
+    .close()
+    .compress(false)
+    .send('permissive', 1, { any: 'payload' });
   client.on('chat', (message) => {
     const text: string = message;
     void text;
@@ -228,12 +276,19 @@ export function assertTypedEventMapsCompile(): void {
   void volatileAccepted;
   void nonAck;
   void returnedServer;
+  void returnedFromServerAliases;
+  void rootCompressed;
   void returnedNamespace;
+  void returnedFromNamespaceAliases;
+  void namespaceCompressed;
   void regexpParent;
+  void returnedParentAliases;
+  void parentCompressed;
   void matcherParent;
   void unionNamespace;
   void returnedFromConnect;
   void returnedFromDisconnect;
+  void returnedFromClientAliases;
   void returnedFromClientCatchAlls;
   void clientIncomingAnyListeners;
   void clientOutgoingAnyListeners;
@@ -244,6 +299,14 @@ export function assertTypedEventMapsCompile(): void {
   io.on('health', () => {});
   // @ts-expect-error wrong server payload
   io.emit('chat', 42);
+  // @ts-expect-error Server send follows the mapped message tuple
+  io.send('missing count');
+  // @ts-expect-error Namespace write follows the mapped message tuple
+  typedNamespace.write('wrong', 'count');
+  // @ts-expect-error compression accepts only a boolean
+  io.compress('false');
+  // @ts-expect-error client compression accepts only a boolean
+  client.compress('false');
   // @ts-expect-error narrowing through volatile must retain the outgoing event map
   io.to('room').volatile.emit('chat', 42);
   // @ts-expect-error client emits the client-to-server map, not the reverse map
@@ -322,6 +385,11 @@ export function assertRealSocketIoListenerInferenceCompiles(
     socket.emit('chat', 'real-namespace-ready');
     next();
   });
+  const regexpParent = io.of(/^\/real-tenant-/);
+  const returnedParentAliases: typeof regexpParent = regexpParent
+    .send('parent message', 1)
+    .write('parent message', 2);
+  const parentCompressed: ReturnType<typeof regexpParent.to> = regexpParent.compress(false);
 
   io.on('connection', (socket) => {
     const userId: string = socket.data.userId;
@@ -336,6 +404,21 @@ export function assertRealSocketIoListenerInferenceCompiles(
       void disconnectDescription;
     });
     const answer: Promise<number> = socket.emitWithAck('question', 'value?');
+    const returnedFromMessageAliases: typeof socket = socket
+      .send('server message', 1)
+      .write('server message', 2)
+      .compress(false);
+    const compressedTimedSocket: ReturnType<typeof socket.timeout> = socket
+      .timeout(100)
+      .compress(false);
+    socket.in('room').compress(false).emit('chat', 'hello');
+    socket
+      .in('room')
+      .compress(false)
+      .emit('question', 'value?', (answers) => {
+        const responseValues: number[] = answers;
+        void responseValues;
+      });
     const timedAnswer: Promise<number> = socket.timeout(100).emitWithAck('question', 'value?');
     const volatileAnswer: Promise<number> = socket.volatile.emitWithAck('question', 'value?');
     const returnedFromCatchAlls: typeof socket = socket
@@ -362,19 +445,38 @@ export function assertRealSocketIoListenerInferenceCompiles(
     // @ts-expect-error an ack with no response value cannot back emitWithAck
     socket.emitWithAck('done');
     void answer;
+    void returnedFromMessageAliases;
+    void compressedTimedSocket;
     void timedAnswer;
     void volatileAnswer;
     void returnedFromCatchAlls;
     void incomingAnyListeners;
     void outgoingAnyListeners;
     void returnedServerSocket;
+    // @ts-expect-error server send follows the mapped server-to-client message tuple
+    socket.send(42, 'wrong');
+    // @ts-expect-error room narrowing accepts only a room or room array
+    socket.in(42);
+    // @ts-expect-error compression accepts only a boolean
+    socket.compress('false');
   });
 
   void returnedServer;
   void returnedNamespace;
+  void returnedParentAliases;
+  void parentCompressed;
 
   io.emit('chat', 'hello');
+  const returnedFromServerAliases: typeof io = io
+    .send('server message', 1)
+    .write('server message', 2);
+  const rootCompressed: ReturnType<typeof io.to> = io.compress(false);
   io.to('room').emit('chat', 'hello');
+  io.compress(false).to('room').emit('chat', 'hello');
+  io.compress(false).emit('question', 'value?', (answers) => {
+    const responseValues: number[] = answers;
+    void responseValues;
+  });
   io.to('room').volatile.emit('chat', 'hello');
   io.volatile.in('room').except('muted').emit('chat', 'hello');
   io.of('/admin').to('room').volatile.emit('chat', 'hello');
@@ -387,12 +489,27 @@ export function assertRealSocketIoListenerInferenceCompiles(
       void values;
     });
   io.of('/admin').in('room').except('muted').emit('chat', 'hello');
+  const typedNamespace = io.of('/real-typed-aliases');
+  const returnedFromNamespaceAliases: typeof typedNamespace = typedNamespace
+    .send('namespace message', 1)
+    .write('namespace message', 2);
+  const namespaceCompressed: ReturnType<typeof typedNamespace.to> = typedNamespace.compress(false);
   io.timeout(100).emit('question', 'value?', (error, answers) => {
     const timeoutError: Error = error;
     const values: number[] = answers;
     void timeoutError;
     void values;
   });
+  void returnedFromServerAliases;
+  void rootCompressed;
+  void returnedFromNamespaceAliases;
+  void namespaceCompressed;
+  // @ts-expect-error Server send follows the mapped message tuple
+  io.send('missing count');
+  // @ts-expect-error Namespace write follows the mapped message tuple
+  typedNamespace.write('wrong', 'count');
+  // @ts-expect-error compression accepts only a boolean
+  io.compress('false');
 }
 
 export function assertRealSocketIoDefaultsCompile(
@@ -411,6 +528,11 @@ export function assertRealSocketIoClientAckTypesCompile(
 ): void {
   const returnedFromConnect: typeof client = client.connect();
   const returnedFromDisconnect: typeof client = client.disconnect();
+  const returnedFromClientAliases: typeof client = client
+    .open()
+    .close()
+    .compress(false)
+    .send('permissive', 1, { any: 'payload' });
   const returnedFromCatchAlls: typeof client = client
     .prependAny((_event, ..._args) => {})
     .prependAnyOutgoing((_event, ..._args) => {});
@@ -441,9 +563,12 @@ export function assertRealSocketIoClientAckTypesCompile(
   void nonAck;
   void returnedFromConnect;
   void returnedFromDisconnect;
+  void returnedFromClientAliases;
   void returnedFromCatchAlls;
   void incomingAnyListeners;
   void outgoingAnyListeners;
+  // @ts-expect-error client compression accepts only a boolean
+  client.compress('false');
 }
 
 export function assertRealSocketIoMappedReservedNamesCompile(

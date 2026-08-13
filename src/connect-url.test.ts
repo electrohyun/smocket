@@ -292,6 +292,10 @@ it('the socket from a failed connect still chains', async () => {
     });
 
     expect(client.emit('a', 1)).toBe(client);
+    expect(client.send('message')).toBe(client);
+    expect(client.compress(false)).toBe(client);
+    expect(client.open()).toBe(client);
+    expect(client.close()).toBe(client);
 
     const timed = client.timeout(50);
     expect(timed).toBe(client);
