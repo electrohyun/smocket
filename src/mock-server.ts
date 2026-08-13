@@ -766,28 +766,15 @@ class NodeEmitter {
     } else {
       this.eventListeners.set(event, [listener]);
     }
-    this.warnIfNeeded(event);
+    this.warnIfNeeded(event, listeners ? listeners.length : 1);
   }
 
-  private warnIfNeeded(event: OrdinaryEventName): void {
-    const count = this.eventListeners.get(event)?.length ?? 0;
+  private warnIfNeeded(event: OrdinaryEventName, count: number): void {
     if (this.maxListeners === 0 || count <= this.maxListeners || this.warnedEvents.has(event)) {
       return;
     }
     this.warnedEvents.add(event);
-    const process = (
-      globalThis as typeof globalThis & {
-        process?: { emitWarning?: (warning: Error) => void };
-      }
-    ).process;
-    if (!process?.emitWarning) return;
-    const warning = Object.assign(
-      new Error(
-        `Possible EventEmitter memory leak detected. ${count} ${String(event)} listeners added.`,
-      ),
-      { name: 'MaxListenersExceededWarning', emitter: this, type: event, count },
-    );
-    process.emitWarning(warning);
+    emitMaxListenersWarning(this, event, count);
   }
 
   on(event: OrdinaryEventName, listener: Listener): this {
@@ -856,10 +843,7 @@ class NodeEmitter {
       this.warnedEvents.clear();
     } else {
       const listeners = [...(this.eventListeners.get(event) ?? [])];
-      for (let index = listeners.length - 1; index >= 0; index -= 1) {
-        const listener = listeners[index];
-        if (listener) this.removeListener(event, listener);
-      }
+      for (const listener of listeners.reverse()) this.removeListener(event, listener);
       this.warnedEvents.delete(event);
     }
     return this;
@@ -2179,24 +2163,12 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
     } else {
       this.eventListeners.set(event, [listener]);
     }
-    const count = this.eventListeners.get(event)?.length ?? 0;
+    const count = listeners ? listeners.length : 1;
     if (this.maxListeners === 0 || count <= this.maxListeners || this.warnedEvents.has(event)) {
       return;
     }
     this.warnedEvents.add(event);
-    const process = (
-      globalThis as typeof globalThis & {
-        process?: { emitWarning?: (warning: Error) => void };
-      }
-    ).process;
-    if (!process?.emitWarning) return;
-    const warning = Object.assign(
-      new Error(
-        `Possible EventEmitter memory leak detected. ${count} ${String(event)} listeners added.`,
-      ),
-      { name: 'MaxListenersExceededWarning', emitter: this, type: event, count },
-    );
-    process.emitWarning(warning);
+    emitMaxListenersWarning(this, event, count);
   }
 
   override on(event: OrdinaryEventName, listener: Listener): this {
@@ -2287,10 +2259,7 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
       this.warnedEvents.clear();
     } else {
       const listeners = [...(this.eventListeners.get(event) ?? [])];
-      for (let index = listeners.length - 1; index >= 0; index -= 1) {
-        const listener = listeners[index];
-        if (listener) this.removeListener(event, listener);
-      }
+      for (const listener of listeners.reverse()) this.removeListener(event, listener);
       this.warnedEvents.delete(event);
     }
     return this;
@@ -3147,6 +3116,23 @@ function nodeEventNames(
   map: ReadonlyMap<OrdinaryEventName, readonly Listener[]>,
 ): (string | symbol)[] {
   return Reflect.ownKeys(Object.fromEntries([...map.keys()].map((event) => [event, true])));
+}
+
+/** Emit Node's listener warning when that host channel exists. */
+function emitMaxListenersWarning(emitter: object, event: OrdinaryEventName, count: number): void {
+  const processHost = (
+    globalThis as typeof globalThis & {
+      process?: { emitWarning?: (warning: Error) => void };
+    }
+  ).process;
+  if (!processHost?.emitWarning) return;
+  const warning = Object.assign(
+    new Error(
+      `Possible EventEmitter memory leak detected. ${count} ${String(event)} listeners added.`,
+    ),
+    { name: 'MaxListenersExceededWarning', emitter, type: event, count },
+  );
+  processHost.emitWarning(warning);
 }
 
 /** Remove the first occurrence of `listener` from `list` in place, if present. */
