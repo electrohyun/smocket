@@ -96,8 +96,8 @@
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Namespace:instance:addListener:method:75573a2d2976",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Namespace:instance:allSockets:method:16769de366f4",
@@ -126,8 +126,8 @@
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Namespace:instance:eventNames:method:d5dc41f56903",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Namespace:instance:except:method:26707dcb3583",
@@ -141,8 +141,8 @@
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Namespace:instance:getMaxListeners:method:66553d3f95ec",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Namespace:instance:in:method:c2805820d94a",
@@ -151,13 +151,13 @@
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Namespace:instance:listenerCount:method:2061b3cf17a5",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Namespace:instance:listeners:method:4ceb70845d55",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Namespace:instance:local:getter:979ac1ec505d",
@@ -171,8 +171,8 @@
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Namespace:instance:off:method:91158d1f2ba2",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Namespace:instance:on:method:7f7380130642",
@@ -181,33 +181,33 @@
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Namespace:instance:once:method:a13c6b438d88",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Namespace:instance:prependListener:method:21d223d14f28",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Namespace:instance:prependOnceListener:method:977eebd2da90",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Namespace:instance:rawListeners:method:d7ad76d9892e",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Namespace:instance:removeAllListeners:method:20b3e0c999ce",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Namespace:instance:removeListener:method:6efc8182df53",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Namespace:instance:send:method:4f58a42121c3",
@@ -226,8 +226,8 @@
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Namespace:instance:setMaxListeners:method:6f7f922fc86f",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Namespace:instance:sockets:property:c5939114a67f",
@@ -326,8 +326,8 @@
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:ParentNamespace:instance:addListener:method:bc0ce36afaae",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:ParentNamespace:instance:allSockets:method:2f6254d50ee3",
@@ -361,8 +361,8 @@
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:ParentNamespace:instance:eventNames:method:8027c051509b",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:ParentNamespace:instance:except:method:17e775fb3def",
@@ -376,8 +376,8 @@
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:ParentNamespace:instance:getMaxListeners:method:5034e9a5732a",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:ParentNamespace:instance:in:method:c0174a88d908",
@@ -386,13 +386,13 @@
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:ParentNamespace:instance:listenerCount:method:7359e33c8c21",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:ParentNamespace:instance:listeners:method:77e5523ae07e",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:ParentNamespace:instance:local:getter:0f7bb2577e35",
@@ -406,8 +406,8 @@
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:ParentNamespace:instance:off:method:4e17b6824e05",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:ParentNamespace:instance:on:method:b5123a4fca77",
@@ -416,33 +416,33 @@
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:ParentNamespace:instance:once:method:9ab12694b72e",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:ParentNamespace:instance:prependListener:method:35d6eeca2289",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:ParentNamespace:instance:prependOnceListener:method:ab13c427704e",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:ParentNamespace:instance:rawListeners:method:778735ae686d",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:ParentNamespace:instance:removeAllListeners:method:13856c7c2995",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:ParentNamespace:instance:removeListener:method:2df7570e540d",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:ParentNamespace:instance:send:method:41505ff16a43",
@@ -461,8 +461,8 @@
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:ParentNamespace:instance:setMaxListeners:method:725d5de7dd37",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:ParentNamespace:instance:sockets:property:cf1155c8e429",
@@ -511,8 +511,8 @@
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:server-Socket:instance:addListener:method:1f417661ca21",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:server-Socket:instance:broadcast:getter:29081c716a4b",
@@ -581,8 +581,8 @@
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:server-Socket:instance:getMaxListeners:method:d24804219f60",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:server-Socket:instance:handshake:property:890b5af0d3ef",
@@ -686,18 +686,18 @@
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:server-Socket:instance:prependListener:method:2b43bdd36824",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:server-Socket:instance:prependOnceListener:method:c0ff2948df51",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:server-Socket:instance:rawListeners:method:bb37d75b408d",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:server-Socket:instance:recovered:property:e226ec582c6d",
@@ -711,8 +711,8 @@
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:server-Socket:instance:removeListener:method:89cfc96d9006",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:server-Socket:instance:request:getter:e4b92a397dc8",
@@ -731,8 +731,8 @@
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:server-Socket:instance:setMaxListeners:method:9e4b5170fef9",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:server-Socket:instance:timeout:method:9c42e5191fbe",
@@ -781,8 +781,8 @@
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Server:instance:addListener:method:b271d318f1f5",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Server:instance:allSockets:method:f34870ce1540",
@@ -861,8 +861,8 @@
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Server:instance:eventNames:method:8ba5d792e0c1",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Server:instance:except:method:dcbe8c7bcb32",
@@ -876,8 +876,8 @@
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Server:instance:getMaxListeners:method:1d0bbf776ae0",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Server:instance:in:method:ae8c05c6a9e8",
@@ -891,13 +891,13 @@
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Server:instance:listenerCount:method:d0408ac57258",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Server:instance:listeners:method:e40655243438",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Server:instance:local:getter:4773032143ef",
@@ -911,18 +911,18 @@
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Server:instance:off:method:7bbe3d8cab05",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Server:instance:on:method:b056f46619d4",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Server:instance:once:method:0aed701ab8a5",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Server:instance:path:method:93cb1674d337",
@@ -941,28 +941,28 @@
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Server:instance:prependListener:method:e13a0f40dcd8",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Server:instance:prependOnceListener:method:aa630ecfa2d4",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Server:instance:rawListeners:method:1f8aabbb41f9",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Server:instance:removeAllListeners:method:68eb4c6b3720",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Server:instance:removeListener:method:3e20dd90902c",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Server:instance:send:method:f735257233d1",
@@ -996,8 +996,8 @@
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Server:instance:setMaxListeners:method:bee8cab9c44f",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:Server:instance:sockets:property:e80cb7276832",
@@ -1256,8 +1256,8 @@
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Namespace:instance:addListener:method:f9502cad2090",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Namespace:instance:allSockets:method:60ea80a7eaf3",
@@ -1286,8 +1286,8 @@
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Namespace:instance:eventNames:method:f7470fd8368e",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Namespace:instance:except:method:e6dcd90bc032",
@@ -1301,8 +1301,8 @@
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Namespace:instance:getMaxListeners:method:c04f97bfea4f",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Namespace:instance:in:method:273f571a56ee",
@@ -1311,13 +1311,13 @@
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Namespace:instance:listenerCount:method:4edb1bfa62af",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Namespace:instance:listeners:method:5ebbedbcd57c",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Namespace:instance:local:getter:7b911ec00ed5",
@@ -1331,8 +1331,8 @@
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Namespace:instance:off:method:a9b9d3062c11",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Namespace:instance:on:method:2dd8985915c0",
@@ -1341,33 +1341,33 @@
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Namespace:instance:once:method:e6a43ff1b95b",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Namespace:instance:prependListener:method:814447c841e5",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Namespace:instance:prependOnceListener:method:a9fb3caf045f",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Namespace:instance:rawListeners:method:eb72ac36f8c7",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Namespace:instance:removeAllListeners:method:eb64ab00ba45",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Namespace:instance:removeListener:method:375db00556ba",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Namespace:instance:send:method:f676ee806c0c",
@@ -1386,8 +1386,8 @@
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Namespace:instance:setMaxListeners:method:3cdf16eec78d",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Namespace:instance:sockets:property:14c7cec54927",
@@ -1501,8 +1501,8 @@
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:ParentNamespace:instance:addListener:method:cb9fbb4e1db3",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:ParentNamespace:instance:allSockets:method:7496be9b5c3d",
@@ -1536,8 +1536,8 @@
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:ParentNamespace:instance:eventNames:method:a9e5caaa9e95",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:ParentNamespace:instance:except:method:357183106b97",
@@ -1551,8 +1551,8 @@
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:ParentNamespace:instance:getMaxListeners:method:b55479f598d1",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:ParentNamespace:instance:in:method:f0227ecec826",
@@ -1561,13 +1561,13 @@
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:ParentNamespace:instance:listenerCount:method:6508157b6b02",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:ParentNamespace:instance:listeners:method:24074ca220de",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:ParentNamespace:instance:local:getter:5bfb0ed41161",
@@ -1581,8 +1581,8 @@
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:ParentNamespace:instance:off:method:524be817f233",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:ParentNamespace:instance:on:method:ab744c732aea",
@@ -1591,33 +1591,33 @@
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:ParentNamespace:instance:once:method:14643229ad00",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:ParentNamespace:instance:prependListener:method:e8784101738d",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:ParentNamespace:instance:prependOnceListener:method:6fc51823114d",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:ParentNamespace:instance:rawListeners:method:17af2e67f7a1",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:ParentNamespace:instance:removeAllListeners:method:c39bc72a23d2",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:ParentNamespace:instance:removeListener:method:392c2fe1ee38",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:ParentNamespace:instance:send:method:2487fd35eecc",
@@ -1636,8 +1636,8 @@
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:ParentNamespace:instance:setMaxListeners:method:f3ced6844779",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:ParentNamespace:instance:sockets:property:914b10315f74",
@@ -1686,8 +1686,8 @@
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:server-Socket:instance:addListener:method:bcb5a5834919",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:server-Socket:instance:broadcast:getter:37250777ce6a",
@@ -1756,8 +1756,8 @@
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:server-Socket:instance:getMaxListeners:method:87a657e0c405",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:server-Socket:instance:handshake:property:3bff3ba86d2b",
@@ -1861,18 +1861,18 @@
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:server-Socket:instance:prependListener:method:998f6dfdaea0",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:server-Socket:instance:prependOnceListener:method:efc8d56bbad5",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:server-Socket:instance:rawListeners:method:2cc87661aecf",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:server-Socket:instance:recovered:property:8b1ee0738ffe",
@@ -1886,8 +1886,8 @@
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:server-Socket:instance:removeListener:method:fc459871b42e",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:server-Socket:instance:request:getter:d066d7d1ceae",
@@ -1906,8 +1906,8 @@
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:server-Socket:instance:setMaxListeners:method:e5a63b8deb05",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:server-Socket:instance:timeout:method:ec215b7295ab",
@@ -1956,8 +1956,8 @@
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Server:instance:addListener:method:48e4a60b58a5",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Server:instance:allSockets:method:64fd87266df0",
@@ -2036,8 +2036,8 @@
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Server:instance:eventNames:method:095cb24f4d67",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Server:instance:except:method:5380dce58f22",
@@ -2051,8 +2051,8 @@
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Server:instance:getMaxListeners:method:70417a1357c2",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Server:instance:httpServer:property:35a6ad318d87",
@@ -2071,13 +2071,13 @@
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Server:instance:listenerCount:method:7f8cc6768aa5",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Server:instance:listeners:method:98e269ecece8",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Server:instance:local:getter:16f2064f0c7d",
@@ -2091,18 +2091,18 @@
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Server:instance:off:method:1cc0ef837907",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Server:instance:on:method:61df3ac7f8b6",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Server:instance:once:method:1a5bf902eca9",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Server:instance:path:method:4cd30868e1f4",
@@ -2121,28 +2121,28 @@
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Server:instance:prependListener:method:8ddf89390f9a",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Server:instance:prependOnceListener:method:acfe42af0572",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Server:instance:rawListeners:method:1aa0d0ee2071",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Server:instance:removeAllListeners:method:d17d1149f705",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Server:instance:removeListener:method:e7c031a513e2",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Server:instance:send:method:910bc469b007",
@@ -2176,8 +2176,8 @@
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Server:instance:setMaxListeners:method:620c7f71090c",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:Server:instance:sockets:property:51e0dfc9b4a8",
@@ -2861,8 +2861,8 @@
     },
     {
       "id": "socket.io-client-4.7.5:4.7.5:declaration-public:client-Socket:instance:removeListener:method:4a1f95ac36bb",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-client-4.7.5:4.7.5:declaration-public:client-Socket:instance:send:method:8f69b4295acf",
@@ -3141,13 +3141,13 @@
     },
     {
       "id": "socket.io-client-4.7.5:4.7.5:runtime-only:client-Socket:instance:addEventListener:method:dec33f6cb1fc",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-client-4.7.5:4.7.5:runtime-only:client-Socket:instance:removeEventListener:method:70b23292e324",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-client-4.7.5:4.7.5:runtime-only:Manager:instance:_autoConnect:property:f28622b21cf2",
@@ -3331,8 +3331,8 @@
     },
     {
       "id": "socket.io-client-4.8.3:4.8.3:declaration-public:client-Socket:instance:removeListener:method:2fc159399a5b",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-client-4.8.3:4.8.3:declaration-public:client-Socket:instance:send:method:8f7898ddd63e",
@@ -3646,13 +3646,13 @@
     },
     {
       "id": "socket.io-client-4.8.3:4.8.3:runtime-only:client-Socket:instance:addEventListener:method:e6c5d1aef608",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-client-4.8.3:4.8.3:runtime-only:client-Socket:instance:removeEventListener:method:d16f50b044c6",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/274"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0035-inherited-emitter-follows-each-receiver.md"
     },
     {
       "id": "socket.io-client-4.8.3:4.8.3:runtime-only:Manager:instance:_autoConnect:property:bc227e93b8f4",

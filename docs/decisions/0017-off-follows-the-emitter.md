@@ -30,9 +30,9 @@ Because this reproduces the measured real behaviour of both emitters rather than
 inventing one, it is conformance, not a divergence, so it is not an entry in
 `differences.md`. It is recorded here because it reverses the `off(event)` bulk form
 the issue proposed, and because the server/client split is not obvious from the API.
-The emitter methods return `void` rather than the socket, consistent with `on` and
-`once`, so chaining is not part of smocket's surface: a deliberate simplification, not
-a measured behaviour.
+Emitter mutations return their receiver and therefore remain fluent. Decision
+[0035](./0035-inherited-emitter-follows-each-receiver.md) records the wider inherited
+surface and the Server declaration and runtime return conflict.
 
 ## Alternatives rejected
 

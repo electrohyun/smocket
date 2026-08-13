@@ -46,3 +46,4 @@ these are written.
 | [0032](./0032-trace-final-broadcast-routing.md)                         | Trace final broadcast routing without retaining payloads                                | Accepted | #262          |
 | [0033](./0033-socket-state-follows-lifecycle-not-delivery-readiness.md) | Socket state follows lifecycle while volatile delivery uses private client readiness    | Accepted | #275          |
 | [0034](./0034-packet-middleware-completes-independently.md)             | Packet middleware preserves entry order and completes independently                     | Accepted | #268          |
+| [0035](./0035-inherited-emitter-follows-each-receiver.md)               | Inherited emitter behavior follows each receiver                                        | Accepted | #274          |
