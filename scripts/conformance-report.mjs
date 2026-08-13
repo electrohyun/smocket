@@ -61,6 +61,12 @@ const AREAS = [
     blurb: 'Narrowing a broadcast further, and whether the order of the narrowings matters.',
   },
   {
+    file: 'src/aliases-compression.test.ts',
+    title: 'Aliases and compression modifiers',
+    blurb:
+      '`send`, `write`, `open`, `close`, socket `in`, and compression chaining. Compression packet effects stay outside the transport-free mock boundary.',
+  },
+  {
     file: 'src/namespace.test.ts',
     title: 'Namespaces',
     blurb: 'What a namespace isolates: connections, emits, rooms, and socket ids.',
