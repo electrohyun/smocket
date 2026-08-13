@@ -13,6 +13,7 @@ import type {
   EventParams,
   EventsMap,
   Handshake,
+  MessageEventParams,
   MiddlewareError,
   NamespaceContract,
   ParentNspNameMatchFn,
@@ -530,6 +531,11 @@ class BroadcastOperator implements BroadcastContract, TimeoutBroadcastContract {
     return this.narrow(this.targetRooms, this.exceptRooms, ms);
   }
 
+  /** Compression is transport-only here; retain immutability and every routing modifier. */
+  compress(_compress: boolean): BroadcastOperator {
+    return this.narrow(this.targetRooms, this.exceptRooms);
+  }
+
   /**
    * Return a new operator with the volatile delivery flag. The getter never mutates
    * the narrowed operator it was read from, and it carries any timeout already set.
@@ -916,6 +922,13 @@ class Namespace implements NamespaceContract {
     // No target rooms (everyone) and no exclusion: reaches every socket here.
     return new BroadcastOperator(this.adapter, this.sockets, [], []).emit(event, ...args);
   }
+  send(...args: unknown[]): this {
+    this.emit('message', ...args);
+    return this;
+  }
+  write(...args: unknown[]): this {
+    return this.send(...args);
+  }
   to(room: string | string[]): BroadcastContract {
     return new BroadcastOperator(this.adapter, this.sockets, asRooms(room), []);
   }
@@ -937,6 +950,9 @@ class Namespace implements NamespaceContract {
     // Everyone here, carrying an ack timeout: `io.of(ns).timeout(ms).to(room).emit(cb)`
     // collects each recipient's ack (#112). `to` chains off it and keeps the timeout.
     return new BroadcastOperator(this.adapter, this.sockets, [], [], false, ms);
+  }
+  compress(_compress: boolean): BroadcastContract {
+    return new BroadcastOperator(this.adapter, this.sockets, [], []);
   }
 }
 
@@ -977,6 +993,15 @@ class ParentBroadcastOperator implements BroadcastContract, TimeoutBroadcastCont
       this.rooms,
       this.exceptRooms,
       ms,
+      this.isVolatile,
+    );
+  }
+  compress(_compress: boolean): ParentBroadcastOperator {
+    return new ParentBroadcastOperator(
+      this.children,
+      this.rooms,
+      this.exceptRooms,
+      this.timeoutMs,
       this.isVolatile,
     );
   }
@@ -1046,6 +1071,13 @@ class ParentNamespace implements NamespaceContract {
   emit(event: string, ...args: unknown[]): boolean {
     return new ParentBroadcastOperator(this.children).emit(event, ...args);
   }
+  send(...args: unknown[]): this {
+    this.emit('message', ...args);
+    return this;
+  }
+  write(...args: unknown[]): this {
+    return this.send(...args);
+  }
   to(room: string | string[]): BroadcastContract {
     return new ParentBroadcastOperator(this.children).to(room);
   }
@@ -1057,6 +1089,9 @@ class ParentNamespace implements NamespaceContract {
   }
   timeout(ms: number): TimeoutBroadcastContract {
     return new ParentBroadcastOperator(this.children).timeout(ms);
+  }
+  compress(_compress: boolean): BroadcastContract {
+    return new ParentBroadcastOperator(this.children);
   }
   get volatile(): BroadcastContract {
     return new ParentBroadcastOperator(this.children).volatile;
@@ -1402,6 +1437,14 @@ export class Server<
   ): boolean {
     return this.getNamespace('/').emit(event, ...args);
   }
+  send(...args: MessageEventParams<EmitEvents>): this {
+    this.getNamespace('/').send(...args);
+    return this;
+  }
+  write(...args: MessageEventParams<EmitEvents>): this {
+    this.getNamespace('/').write(...args);
+    return this;
+  }
   to(
     room: string | string[],
   ): BroadcastContract<DecorateAcknowledgementsWithMultipleResponses<EmitEvents>, SocketData> {
@@ -1435,6 +1478,14 @@ export class Server<
     // `io.timeout(ms)` is the default namespace's: `io.timeout(ms).to(room)` reaches only `/`.
     return this.getNamespace('/').timeout(ms) as TimeoutBroadcastContract<
       DecorateAcknowledgements<DecorateAcknowledgementsWithMultipleResponses<EmitEvents>>,
+      SocketData
+    >;
+  }
+  compress(
+    _compress: boolean,
+  ): BroadcastContract<DecorateAcknowledgementsWithMultipleResponses<EmitEvents>, SocketData> {
+    return this.getNamespace('/').compress(_compress) as BroadcastContract<
+      DecorateAcknowledgementsWithMultipleResponses<EmitEvents>,
       SocketData
     >;
   }
@@ -1844,6 +1895,13 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
     send(this.peer, event, deliveredArgs);
     return true;
   }
+  send(...args: unknown[]): this {
+    this.emit('message', ...args);
+    return this;
+  }
+  write(...args: unknown[]): this {
+    return this.send(...args);
+  }
   emitWithAck(event: string, ...args: unknown[]): Promise<unknown> {
     const withError = this.flags.timeout !== undefined;
     return new Promise((resolve, reject) => {
@@ -1878,6 +1936,11 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
    */
   timeout(ms: number): ServerSocket {
     this.flags.timeout = ms;
+    return this;
+  }
+
+  /** Compression affects transport packet options upstream; the fluent logic surface remains. */
+  compress(_compress: boolean): this {
     return this;
   }
 
@@ -1935,6 +1998,9 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
     // If the sender is itself a member of `room`, the room's union includes it and
     // the id-room except then removes it, so the sender is excluded for free.
     return this.newBroadcastOperator(asRooms(room), [this.id]);
+  }
+  in(room: string | string[]): BroadcastContract {
+    return this.to(room);
   }
   except(room: string | string[]): BroadcastContract {
     // Everyone except both the named room's members and the sender: no target
@@ -2048,7 +2114,6 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
     this.connected = true;
     this.id = serverSocket.id;
     this.io.connected(this);
-    this.dispatch('connect', []);
     const buffered = this.sendBuffer;
     this.sendBuffer = [];
     for (const [event, args] of buffered) {
@@ -2057,6 +2122,9 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
       this.emitOutgoing(event, args);
       send(this.serverSocket, event, args);
     }
+    // The buffered packet is observed while the socket is already connected, but before
+    // the public connect listener. Its named server listener still runs later through send.
+    this.dispatch('connect', []);
   }
 
   /**
@@ -2145,6 +2213,9 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
     this.sendEvent(event, args);
     return this;
   }
+  send(...args: unknown[]): this {
+    return this.emit('message', ...args);
+  }
 
   /** Send one event and expose timeout cancellation to `emitWithAck` only. */
   private sendEvent(event: string, args: unknown[]): ((reason: Error) => void) | undefined {
@@ -2207,6 +2278,11 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
     return this;
   }
 
+  /** Compression affects transport packet options upstream; the fluent logic surface remains. */
+  compress(_compress: boolean): this {
+    return this;
+  }
+
   /**
    * The volatile emitter (0016). Unlike a normal emit, a volatile one is not buffered while
    * disconnected: sent before the connection completes it is dropped, and once connected it is
@@ -2240,6 +2316,10 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
     return this;
   }
 
+  open(): this {
+    return this.connect();
+  }
+
   disconnect(): this {
     if (!this.connected) {
       this.cancelConnectionAttempt();
@@ -2250,6 +2330,10 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
     this.markDisconnected('io client disconnect');
     this.serverSocket.handleDisconnect();
     return this;
+  }
+
+  close(): this {
+    return this.disconnect();
   }
 
   /**
@@ -2306,11 +2390,14 @@ class FailedClientSocket extends ClientEmitter implements ClientSocketContract {
 
   // A failed connection never completes, so there is nothing to send, ack, or tear
   // down, and `connect()` does not retry: the failure was already reported (0005).
-  emit(event: string): this {
+  emit(event: string, ..._args: unknown[]): this {
     assertNotReservedEvent(event);
     this.flags = {};
     /* inert: never connected */
     return this;
+  }
+  send(...args: unknown[]): this {
+    return this.emit('message', ...args);
   }
   emitWithAck(event: string, ...args: unknown[]): Promise<unknown> {
     this.flags = {};
@@ -2322,6 +2409,9 @@ class FailedClientSocket extends ClientEmitter implements ClientSocketContract {
     this.flags.timeout = ms;
     return this;
   }
+  compress(_compress: boolean): this {
+    return this;
+  }
   get volatile(): this {
     this.flags.volatile = true;
     return this;
@@ -2330,9 +2420,15 @@ class FailedClientSocket extends ClientEmitter implements ClientSocketContract {
     /* inert: the failure is terminal, no retry (0005) */
     return this;
   }
+  open(): this {
+    return this.connect();
+  }
   disconnect(): this {
     /* inert: never connected */
     return this;
+  }
+  close(): this {
+    return this.disconnect();
   }
 }
 

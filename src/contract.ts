@@ -28,6 +28,10 @@ export type EventName<Map extends EventsMap> = keyof Map & string;
 export type EventParams<Map extends EventsMap, Event extends EventName<Map>> = Parameters<
   Map[Event]
 >;
+export type MessageEventParams<Map extends EventsMap> = EventParams<
+  Map,
+  Extract<'message', EventName<Map>>
+>;
 export type Last<Values extends readonly unknown[]> = Values extends readonly [infer Only]
   ? Only
   : Values extends readonly [unknown, ...infer Tail]
@@ -195,6 +199,8 @@ export interface BroadcastContract<
   except(room: string | string[]): BroadcastContract<EmitEvents, SocketData>;
   /** Add an ack timeout to this broadcast; see {@link TimeoutBroadcastContract}. */
   timeout(ms: number): TimeoutBroadcastContract<DecorateAcknowledgements<EmitEvents>, SocketData>;
+  /** Return a new operator carrying the transport compression preference. */
+  compress(compress: boolean): BroadcastContract<EmitEvents, SocketData>;
   /** Mark the narrowed broadcast volatile while preserving its rooms and exclusions. */
   readonly volatile: BroadcastContract<EmitEvents, SocketData>;
 }
@@ -235,6 +241,8 @@ export interface TimeoutBroadcastContract<
   in(room: string | string[]): TimeoutBroadcastContract<EmitEvents, SocketData>;
   /** Exclude a room from this broadcast, on top of any exclusion it already carries. */
   except(room: string | string[]): TimeoutBroadcastContract<EmitEvents, SocketData>;
+  /** Preserve the timeout decoration while setting the transport compression preference. */
+  compress(compress: boolean): TimeoutBroadcastContract<EmitEvents, SocketData>;
   /** Mark the narrowed broadcast volatile while preserving its timeout and event map. */
   readonly volatile: TimeoutBroadcastContract<EmitEvents, SocketData>;
 }
@@ -460,6 +468,10 @@ export interface NamespaceContract<
     event: Event,
     ...args: EventParams<EmitEvents, Event>
   ): boolean;
+  /** Emit the mapped `message` event and return this namespace. */
+  send(...args: MessageEventParams<EmitEvents>): this;
+  /** Alias of {@link send}. */
+  write(...args: MessageEventParams<EmitEvents>): this;
   to(
     room: string | string[],
   ): BroadcastContract<DecorateAcknowledgementsWithMultipleResponses<EmitEvents>, SocketData>;
@@ -477,6 +489,10 @@ export interface NamespaceContract<
     DecorateAcknowledgements<DecorateAcknowledgementsWithMultipleResponses<EmitEvents>>,
     SocketData
   >;
+  /** Return a new broadcast operator carrying the transport compression preference. */
+  compress(
+    compress: boolean,
+  ): BroadcastContract<DecorateAcknowledgementsWithMultipleResponses<EmitEvents>, SocketData>;
   /** Namespace-wide volatile broadcast: `io.of(ns).volatile.emit(...)`; see {@link VolatileServerSocket}. */
   volatile: BroadcastContract<
     DecorateAcknowledgementsWithMultipleResponses<EmitEvents>,
@@ -595,6 +611,10 @@ export interface ServerContract<
     event: Event,
     ...args: EventParams<EmitEvents, Event>
   ): boolean;
+  /** Emit the mapped `message` event on `/` and return this server. */
+  send(...args: MessageEventParams<EmitEvents>): this;
+  /** Alias of {@link send}. */
+  write(...args: MessageEventParams<EmitEvents>): this;
   to(
     room: string | string[],
   ): BroadcastContract<DecorateAcknowledgementsWithMultipleResponses<EmitEvents>, SocketData>;
@@ -611,6 +631,10 @@ export interface ServerContract<
     DecorateAcknowledgements<DecorateAcknowledgementsWithMultipleResponses<EmitEvents>>,
     SocketData
   >;
+  /** Return a new root broadcast operator carrying the transport compression preference. */
+  compress(
+    compress: boolean,
+  ): BroadcastContract<DecorateAcknowledgementsWithMultipleResponses<EmitEvents>, SocketData>;
   /** Server-wide volatile broadcast: `io.volatile.to(room).emit(...)`; see {@link VolatileServerSocket}. */
   volatile: BroadcastContract<
     DecorateAcknowledgementsWithMultipleResponses<EmitEvents>,
@@ -734,6 +758,10 @@ export interface ServerSocketContract<
     event: Event,
     ...args: EventParams<EmitEvents, Event>
   ): boolean;
+  /** Emit the mapped `message` event and return this socket. */
+  send(...args: MessageEventParams<EmitEvents>): this;
+  /** Alias of {@link send}. */
+  write(...args: MessageEventParams<EmitEvents>): this;
   emitWithAck<Event extends EventNameWithAck<EmitEvents>>(
     event: Event,
     ...args: AllButLast<EventParams<EmitEvents, Event>>
@@ -749,9 +777,15 @@ export interface ServerSocketContract<
   >;
   /** The volatile emitter (0016): a plain emit once connected, dropped in the pre-connect window. */
   readonly volatile: this;
+  /** Set the transport compression preference for the next emission and return this socket. */
+  compress(compress: boolean): this;
   join(room: string | string[]): Promise<void> | void;
   leave(room: string): Promise<void> | void;
   to(
+    room: string | string[],
+  ): BroadcastContract<DecorateAcknowledgementsWithMultipleResponses<EmitEvents>, SocketData>;
+  /** An exact alias of {@link to}. */
+  in(
     room: string | string[],
   ): BroadcastContract<DecorateAcknowledgementsWithMultipleResponses<EmitEvents>, SocketData>;
   except(
@@ -810,6 +844,9 @@ export interface ClientSocketContract<
     event: Event,
     ...args: EventParams<EmitEvents, Event>
   ): this;
+  /** Emit `message` with socket.io-client's permissive argument surface. */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  send(...args: any[]): this;
   emitWithAck<Event extends EventName<EmitEvents>>(
     event: Event,
     ...args: ClientAllButLast<EventParams<EmitEvents, Event>>
@@ -818,8 +855,14 @@ export interface ClientSocketContract<
   timeout(ms: number): ClientSocketContract<ListenEvents, DecorateAcknowledgements<EmitEvents>>;
   /** The volatile emitter (0016): a plain emit once connected, dropped in the pre-connect window. */
   readonly volatile: this;
+  /** Set the transport compression preference for the next emission and return this socket. */
+  compress(compress: boolean): this;
   connect(): this;
+  /** Alias of {@link connect}. */
+  open(): this;
   disconnect(): this;
+  /** Alias of {@link disconnect}. */
+  close(): this;
 }
 
 /**
@@ -938,8 +981,14 @@ type NamespaceParityContract<
   SocketData = DefaultSocketData,
 > = Omit<
   NamespaceContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
-  'on' | 'use'
+  'on' | 'send' | 'use' | 'write'
 > & {
+  send(
+    ...args: MessageEventParams<EmitEvents>
+  ): NamespaceParityContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>;
+  write(
+    ...args: MessageEventParams<EmitEvents>
+  ): NamespaceParityContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>;
   use(
     middleware: (
       socket: ServerSocketParityContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
@@ -955,8 +1004,14 @@ type ServerParityContract<
   SocketData = DefaultSocketData,
 > = Omit<
   ServerContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
-  'of' | 'on' | 'use'
+  'of' | 'on' | 'send' | 'use' | 'write'
 > & {
+  send(
+    ...args: MessageEventParams<EmitEvents>
+  ): ServerParityContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>;
+  write(
+    ...args: MessageEventParams<EmitEvents>
+  ): ServerParityContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>;
   of(
     matcher: string | RegExp | ParentNspNameMatchFn,
     listener?: (
@@ -985,6 +1040,7 @@ type ServerSocketParityContract<
   | 'except'
   | 'handshake'
   | 'id'
+  | 'in'
   | 'join'
   | 'leave'
   | 'rooms'
@@ -1007,6 +1063,15 @@ type ServerSocketParityContract<
   disconnect(
     close?: boolean,
   ): ServerSocketParityContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>;
+  send(
+    ...args: MessageEventParams<EmitEvents>
+  ): ServerSocketParityContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>;
+  write(
+    ...args: MessageEventParams<EmitEvents>
+  ): ServerSocketParityContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>;
+  compress(
+    compress: boolean,
+  ): ServerSocketParityContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>;
   nsp: NamespaceParityContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>;
 };
 
@@ -1022,7 +1087,12 @@ type ClientSocketParityContract<
     ms: number,
   ): ClientSocketParityContract<ListenEvents, DecorateAcknowledgements<EmitEvents>>;
   connect(): ClientSocketParityContract<ListenEvents, EmitEvents>;
+  open(): ClientSocketParityContract<ListenEvents, EmitEvents>;
   disconnect(): ClientSocketParityContract<ListenEvents, EmitEvents>;
+  close(): ClientSocketParityContract<ListenEvents, EmitEvents>;
+  compress(compress: boolean): ClientSocketParityContract<ListenEvents, EmitEvents>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  send(...args: any[]): ClientSocketParityContract<ListenEvents, EmitEvents>;
   emit<Event extends EventName<EmitEvents>>(
     event: Event,
     ...args: EventParams<EmitEvents, Event>
