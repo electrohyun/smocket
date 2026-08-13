@@ -379,10 +379,11 @@ Side-specific snapshots, live arrays, counts, names, and once wrappers.
 
 - [a fresh server socket exposes only its internal error listener](../src/listener-introspection.test.ts#L6)
 - [server listeners are fresh snapshots with duplicates and unwrapped once callbacks](../src/listener-introspection.test.ts#L19)
-- [server event names delete empty keys and reinsert them at the end](../src/listener-introspection.test.ts#L39)
-- [client listeners expose the live array and component-emitter once wrapper](../src/listener-introspection.test.ts#L63)
-- [client last-off and once exhaustion empty and detach the old backing array](../src/listener-introspection.test.ts#L101)
-- [client introspection is available before connect for reserved events](../src/listener-introspection.test.ts#L132)
+- [server listenerCount filters direct and once registrations for string and symbol names](../src/listener-introspection.test.ts#L39)
+- [server event names delete empty keys and reinsert them at the end](../src/listener-introspection.test.ts#L69)
+- [client listeners expose the live array and component-emitter once wrapper](../src/listener-introspection.test.ts#L93)
+- [client last-off and once exhaustion empty and detach the old backing array](../src/listener-introspection.test.ts#L131)
+- [client introspection is available before connect for reserved events](../src/listener-introspection.test.ts#L162)
 
 ### Disconnect
 
