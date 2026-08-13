@@ -95,6 +95,20 @@ export type EventNameWithAck<
       : never
     : never
 >;
+type LooseParameters<Value> = Value extends (...args: infer Params) => unknown ? Params : never;
+/** Broadcast Promise acknowledgements require an error-first collector callback upstream. */
+export type EventNameWithError<
+  Map extends EventsMap,
+  Event extends EventNameWithAck<Map> = EventNameWithAck<Map>,
+> = IfAny<
+  Last<EventParams<Map, Event>> | Map[Event],
+  Event,
+  Event extends Event
+    ? LooseParameters<Last<EventParams<Map, Event>>>[0] extends Error
+      ? Event
+      : never
+    : never
+>;
 export type EventNameWithoutAck<
   Map extends EventsMap,
   Event extends EventName<Map> = EventName<Map>,
@@ -192,6 +206,16 @@ export interface BroadcastContract<
     event: Event,
     ...args: EventParams<EmitEvents, Event>
   ): boolean;
+  /**
+   * Collect one acknowledgement from every selected recipient. Without an explicit
+   * timeout, Socket.IO races the responses against `setTimeout(undefined)`; an empty
+   * selection resolves with `[]`, while recipient acknowledgements may win or lose that
+   * zero-delay race.
+   */
+  emitWithAck<Event extends EventNameWithError<EmitEvents>>(
+    event: Event,
+    ...args: AllButLast<EventParams<EmitEvents, Event>>
+  ): Promise<FirstAckValue<Last<EventParams<EmitEvents, Event>>>>;
   to(room: string | string[]): BroadcastContract<EmitEvents, SocketData>;
   /** An alias of `to`, as at the entry points. */
   in(room: string | string[]): BroadcastContract<EmitEvents, SocketData>;
@@ -223,8 +247,9 @@ export interface TimeoutEmitterContract<EmitEvents extends EventsMap = DefaultEv
  * once with `(null, responses)` when every recipient acks in time, or `(Error('operation
  * has timed out'), responses)` when the timer wins, where `responses` holds the acks that
  * arrived, in arrival order. A broadcast to no recipient resolves at once as `(null, [])`.
- * A late ack is dropped, so the callback fires exactly once. The narrowing methods chain
- * and keep the timeout, so `io.timeout(ms).to(a).to(b)` targets the union and
+ * A late ack cannot settle the callback or Promise twice, but it may append to an already
+ * exposed partial-response array. The narrowing methods chain and keep the timeout, so
+ * `io.timeout(ms).to(a).to(b)` targets the union and
  * `io.timeout(ms).to(a).except(b)` collects from the survivors only (#137). Reading
  * `volatile` before or after those narrowings keeps both the timeout and event map.
  */
@@ -236,6 +261,11 @@ export interface TimeoutBroadcastContract<
     event: Event,
     ...args: EventParams<EmitEvents, Event>
   ): boolean;
+  /** Rejects on expiry with partial responses on the Error's own `responses` property. */
+  emitWithAck<Event extends EventNameWithError<EmitEvents>>(
+    event: Event,
+    ...args: AllButLast<EventParams<EmitEvents, Event>>
+  ): Promise<FirstAckValue<Last<EventParams<EmitEvents, Event>>>>;
   to(room: string | string[]): TimeoutBroadcastContract<EmitEvents, SocketData>;
   /** An alias of `to`, as at the entry points. */
   in(room: string | string[]): TimeoutBroadcastContract<EmitEvents, SocketData>;
