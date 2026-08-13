@@ -39,6 +39,17 @@ import type {
 type Listener = (...args: any[]) => void;
 type OrdinaryEventName = string | symbol;
 
+interface NodeListenerState {
+  readonly warnedEvents: Set<OrdinaryEventName>;
+  maxListeners: number;
+}
+
+type EmitNodeMeta = (
+  event: 'newListener' | 'removeListener',
+  observedEvent: OrdinaryEventName,
+  listener: Listener,
+) => boolean;
+
 /** Socket.IO's permissive callback shape for the live catch-all lookup arrays. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyListener = (...args: any[]) => void;
@@ -737,10 +748,11 @@ class BroadcastOperator implements BroadcastContract, TimeoutBroadcastContract {
 }
 
 /** Browser-safe Node EventEmitter behavior shared by namespaces. */
-class NodeEmitter {
+abstract class NodeEmitter {
   protected readonly eventListeners = new Map<OrdinaryEventName, Listener[]>();
-  private readonly warnedEvents = new Set<OrdinaryEventName>();
-  private maxListeners = 10;
+  private readonly nodeListenerState = createNodeListenerState();
+
+  abstract emit(event: string, ...args: unknown[]): boolean;
 
   private addNodeListener(
     event: OrdinaryEventName,
@@ -748,33 +760,16 @@ class NodeEmitter {
     prepend = false,
     exposedListener = listener,
   ): void {
-    if (typeof listener !== 'function') {
-      throw new TypeError('The "listener" argument must be of type function. Received undefined');
-    }
-    if (this.eventListeners.get('newListener')?.length) {
-      (
-        this as unknown as {
-          emit(event: string, ...args: unknown[]): boolean;
-        }
-      ).emit('newListener', event, exposedListener);
-    }
-    if (!this.eventListeners.has(event)) this.warnedEvents.delete(event);
-    const listeners = this.eventListeners.get(event);
-    if (listeners) {
-      if (prepend) listeners.unshift(listener);
-      else listeners.push(listener);
-    } else {
-      this.eventListeners.set(event, [listener]);
-    }
-    this.warnIfNeeded(event, listeners ? listeners.length : 1);
-  }
-
-  private warnIfNeeded(event: OrdinaryEventName, count: number): void {
-    if (this.maxListeners === 0 || count <= this.maxListeners || this.warnedEvents.has(event)) {
-      return;
-    }
-    this.warnedEvents.add(event);
-    emitMaxListenersWarning(this, event, count);
+    addNodeListener(
+      this,
+      this.eventListeners,
+      this.nodeListenerState,
+      (metaEvent, observedEvent, exposed) => this.emit(metaEvent, observedEvent, exposed),
+      event,
+      listener,
+      prepend,
+      exposedListener,
+    );
   }
 
   on(event: OrdinaryEventName, listener: Listener): this {
@@ -787,9 +782,7 @@ class NodeEmitter {
   }
 
   once(event: OrdinaryEventName, listener: Listener): this {
-    if (typeof listener !== 'function') {
-      throw new TypeError('The "listener" argument must be of type function. Received undefined');
-    }
+    assertNodeListener(listener);
     const wrapper = ((...args: never[]) => {
       this.removeListener(event, wrapper);
       listener.apply(this, args);
@@ -805,9 +798,7 @@ class NodeEmitter {
   }
 
   prependOnceListener(event: OrdinaryEventName, listener: Listener): this {
-    if (typeof listener !== 'function') {
-      throw new TypeError('The "listener" argument must be of type function. Received undefined');
-    }
+    assertNodeListener(listener);
     const wrapper = ((...args: never[]) => {
       this.removeListener(event, wrapper);
       listener.apply(this, args);
@@ -818,52 +809,37 @@ class NodeEmitter {
   }
 
   removeListener(event: OrdinaryEventName, listener: Listener): this {
-    if (typeof listener !== 'function') {
-      throw new TypeError('The "listener" argument must be of type function. Received undefined');
-    }
-    const removed = removeOrdinaryListener(this.eventListeners, event, listener, true);
-    if (removed && this.eventListeners.get('removeListener')?.length) {
-      (
-        this as unknown as {
-          emit(event: string, ...args: unknown[]): boolean;
-        }
-      ).emit('removeListener', event, nodeOriginalListener(removed));
-    }
+    removeNodeListener(
+      this.eventListeners,
+      (metaEvent, observedEvent, exposed) => this.emit(metaEvent, observedEvent, exposed),
+      event,
+      listener,
+    );
     return this;
   }
 
   readonly off = this.removeListener;
 
   removeAllListeners(event?: OrdinaryEventName): this {
-    if (event === undefined) {
-      for (const name of [...this.eventListeners.keys()]) {
-        if (name !== 'removeListener') this.removeAllListeners(name);
-      }
-      this.removeAllListeners('removeListener');
-      this.warnedEvents.clear();
-    } else {
-      const listeners = [...(this.eventListeners.get(event) ?? [])];
-      for (const listener of listeners.reverse()) this.removeListener(event, listener);
-      this.warnedEvents.delete(event);
-    }
+    removeAllNodeListeners(
+      this.eventListeners,
+      this.nodeListenerState,
+      (name, listener) => this.removeListener(name, listener),
+      event,
+    );
     return this;
   }
 
   listeners(event: OrdinaryEventName): Listener[] {
-    return (this.eventListeners.get(event) ?? []).map((entry) => nodeOriginalListener(entry));
+    return nodeListeners(this.eventListeners, event);
   }
 
   rawListeners(event: OrdinaryEventName): Listener[] {
-    return [...(this.eventListeners.get(event) ?? [])];
+    return nodeRawListeners(this.eventListeners, event);
   }
 
   listenerCount(event: OrdinaryEventName, listener?: Listener): number {
-    const entries = this.eventListeners.get(event) ?? [];
-    return listener === undefined
-      ? entries.length
-      : entries.filter(
-          (entry) => entry === listener || (entry as { listener?: Listener }).listener === listener,
-        ).length;
+    return nodeListenerCount(this.eventListeners, event, listener);
   }
 
   eventNames(): (string | symbol)[] {
@@ -871,15 +847,12 @@ class NodeEmitter {
   }
 
   setMaxListeners(maxListeners: number): this {
-    if (typeof maxListeners !== 'number' || maxListeners < 0 || Number.isNaN(maxListeners)) {
-      throw new RangeError('The value of "n" is out of range. It must be a non-negative number.');
-    }
-    this.maxListeners = maxListeners;
+    setNodeMaxListeners(this.nodeListenerState, maxListeners);
     return this;
   }
 
   getMaxListeners(): number {
-    return this.maxListeners;
+    return this.nodeListenerState.maxListeners;
   }
 
   protected emitLocal(event: OrdinaryEventName, args: unknown[]): void {
@@ -2097,8 +2070,7 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
   connected = false;
   readonly recovered = false;
   private readonly packetMiddleware: SocketMiddleware[] = [];
-  private readonly warnedEvents = new Set<OrdinaryEventName>();
-  private maxListeners = 10;
+  private readonly nodeListenerState = createNodeListenerState();
   readonly rooms = new Set<string>();
   /**
    * The namespace this socket lives on. `nsp.adapter` records its membership and
@@ -2149,26 +2121,16 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
     prepend = false,
     exposedListener = listener,
   ): void {
-    if (typeof listener !== 'function') {
-      throw new TypeError('The "listener" argument must be of type function. Received undefined');
-    }
-    if (this.eventListeners.get('newListener')?.length) {
-      this.emit('newListener', event, exposedListener);
-    }
-    if (!this.eventListeners.has(event)) this.warnedEvents.delete(event);
-    const listeners = this.eventListeners.get(event);
-    if (listeners) {
-      if (prepend) listeners.unshift(listener);
-      else listeners.push(listener);
-    } else {
-      this.eventListeners.set(event, [listener]);
-    }
-    const count = listeners ? listeners.length : 1;
-    if (this.maxListeners === 0 || count <= this.maxListeners || this.warnedEvents.has(event)) {
-      return;
-    }
-    this.warnedEvents.add(event);
-    emitMaxListenersWarning(this, event, count);
+    addNodeListener(
+      this,
+      this.eventListeners,
+      this.nodeListenerState,
+      (metaEvent, observedEvent, exposed) => this.emit(metaEvent, observedEvent, exposed),
+      event,
+      listener,
+      prepend,
+      exposedListener,
+    );
   }
 
   override on(event: OrdinaryEventName, listener: Listener): this {
@@ -2182,22 +2144,18 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
 
   /** Node returns a fresh snapshot and unwraps `once` registrations to their originals. */
   listeners = ((event: OrdinaryEventName) =>
-    (this.eventListeners.get(event) ?? []).map((entry) =>
-      nodeOriginalListener(entry),
+    nodeListeners(
+      this.eventListeners,
+      event,
     ) as AnyListener[]) as ServerSocketContract['listeners'];
 
   /** Count every registration, or only direct and original `once` identity matches. */
   listenerCount = ((event: OrdinaryEventName, listener?: Listener) => {
-    const entries = this.eventListeners.get(event) ?? [];
-    return listener === undefined
-      ? entries.length
-      : entries.filter(
-          (entry) => entry === listener || (entry as { listener?: Listener }).listener === listener,
-        ).length;
+    return nodeListenerCount(this.eventListeners, event, listener);
   }) as ServerSocketContract['listenerCount'];
 
   rawListeners(event: OrdinaryEventName): Listener[] {
-    return [...(this.eventListeners.get(event) ?? [])];
+    return nodeRawListeners(this.eventListeners, event);
   }
 
   /** Node property-key order sorts integer strings before other strings and symbols. */
@@ -2207,9 +2165,7 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
 
   /** Server `once` uses Node's wrapper shape, which `listeners()` unwraps. */
   override once(event: OrdinaryEventName, listener: Listener): this {
-    if (typeof listener !== 'function') {
-      throw new TypeError('The "listener" argument must be of type function. Received undefined');
-    }
+    assertNodeListener(listener);
     const wrapper = ((...args: never[]) => {
       this.removeListener(event, wrapper);
       listener.apply(this, args);
@@ -2225,9 +2181,7 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
   }
 
   prependOnceListener(event: OrdinaryEventName, listener: Listener): this {
-    if (typeof listener !== 'function') {
-      throw new TypeError('The "listener" argument must be of type function. Received undefined');
-    }
+    assertNodeListener(listener);
     const wrapper = ((...args: never[]) => {
       this.removeListener(event, wrapper);
       listener.apply(this, args);
@@ -2238,43 +2192,34 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
   }
 
   removeListener(event: OrdinaryEventName, listener: Listener): this {
-    if (typeof listener !== 'function') {
-      throw new TypeError('The "listener" argument must be of type function. Received undefined');
-    }
-    const removed = removeOrdinaryListener(this.eventListeners, event, listener, true);
-    if (removed && this.eventListeners.get('removeListener')?.length) {
-      this.emit('removeListener', event, nodeOriginalListener(removed));
-    }
+    removeNodeListener(
+      this.eventListeners,
+      (metaEvent, observedEvent, exposed) => this.emit(metaEvent, observedEvent, exposed),
+      event,
+      listener,
+    );
     return this;
   }
 
   readonly off = this.removeListener;
 
   override removeAllListeners(event?: OrdinaryEventName): this {
-    if (event === undefined) {
-      for (const name of [...this.eventListeners.keys()]) {
-        if (name !== 'removeListener') this.removeAllListeners(name);
-      }
-      this.removeAllListeners('removeListener');
-      this.warnedEvents.clear();
-    } else {
-      const listeners = [...(this.eventListeners.get(event) ?? [])];
-      for (const listener of listeners.reverse()) this.removeListener(event, listener);
-      this.warnedEvents.delete(event);
-    }
+    removeAllNodeListeners(
+      this.eventListeners,
+      this.nodeListenerState,
+      (name, listener) => this.removeListener(name, listener),
+      event,
+    );
     return this;
   }
 
   setMaxListeners(maxListeners: number): this {
-    if (typeof maxListeners !== 'number' || maxListeners < 0 || Number.isNaN(maxListeners)) {
-      throw new RangeError('The value of "n" is out of range. It must be a non-negative number.');
-    }
-    this.maxListeners = maxListeners;
+    setNodeMaxListeners(this.nodeListenerState, maxListeners);
     return this;
   }
 
   getMaxListeners(): number {
-    return this.maxListeners;
+    return this.nodeListenerState.maxListeners;
   }
 
   use(middleware: SocketMiddleware): this {
@@ -3109,6 +3054,110 @@ function addListener(
   const list = map.get(event) ?? [];
   list.push(listener);
   map.set(event, list);
+}
+
+function createNodeListenerState(): NodeListenerState {
+  return { warnedEvents: new Set(), maxListeners: 10 };
+}
+
+function assertNodeListener(listener: Listener): void {
+  if (typeof listener !== 'function') {
+    throw new TypeError('The "listener" argument must be of type function. Received undefined');
+  }
+}
+
+function addNodeListener(
+  receiver: object,
+  map: Map<OrdinaryEventName, Listener[]>,
+  state: NodeListenerState,
+  emitMeta: EmitNodeMeta,
+  event: OrdinaryEventName,
+  listener: Listener,
+  prepend = false,
+  exposedListener = listener,
+): void {
+  assertNodeListener(listener);
+  if (map.get('newListener')?.length) emitMeta('newListener', event, exposedListener);
+  if (!map.has(event)) state.warnedEvents.delete(event);
+  const listeners = map.get(event);
+  if (listeners) {
+    if (prepend) listeners.unshift(listener);
+    else listeners.push(listener);
+  } else {
+    map.set(event, [listener]);
+  }
+  const count = listeners ? listeners.length : 1;
+  if (state.maxListeners === 0 || count <= state.maxListeners || state.warnedEvents.has(event)) {
+    return;
+  }
+  state.warnedEvents.add(event);
+  emitMaxListenersWarning(receiver, event, count);
+}
+
+function removeNodeListener(
+  map: Map<OrdinaryEventName, Listener[]>,
+  emitMeta: EmitNodeMeta,
+  event: OrdinaryEventName,
+  listener: Listener,
+): void {
+  assertNodeListener(listener);
+  const removed = removeOrdinaryListener(map, event, listener, true);
+  if (removed && map.get('removeListener')?.length) {
+    emitMeta('removeListener', event, nodeOriginalListener(removed));
+  }
+}
+
+function removeAllNodeListeners(
+  map: Map<OrdinaryEventName, Listener[]>,
+  state: NodeListenerState,
+  remove: (event: OrdinaryEventName, listener: Listener) => unknown,
+  event?: OrdinaryEventName,
+): void {
+  if (event === undefined) {
+    for (const name of [...map.keys()]) {
+      if (name !== 'removeListener') removeAllNodeListeners(map, state, remove, name);
+    }
+    removeAllNodeListeners(map, state, remove, 'removeListener');
+    state.warnedEvents.clear();
+    return;
+  }
+  const listeners = [...(map.get(event) ?? [])];
+  for (const listener of listeners.reverse()) remove(event, listener);
+  state.warnedEvents.delete(event);
+}
+
+function nodeListeners(
+  map: ReadonlyMap<OrdinaryEventName, readonly Listener[]>,
+  event: OrdinaryEventName,
+): Listener[] {
+  return (map.get(event) ?? []).map((entry) => nodeOriginalListener(entry));
+}
+
+function nodeRawListeners(
+  map: ReadonlyMap<OrdinaryEventName, readonly Listener[]>,
+  event: OrdinaryEventName,
+): Listener[] {
+  return [...(map.get(event) ?? [])];
+}
+
+function nodeListenerCount(
+  map: ReadonlyMap<OrdinaryEventName, readonly Listener[]>,
+  event: OrdinaryEventName,
+  listener?: Listener,
+): number {
+  const entries = map.get(event) ?? [];
+  return listener === undefined
+    ? entries.length
+    : entries.filter(
+        (entry) => entry === listener || (entry as { listener?: Listener }).listener === listener,
+      ).length;
+}
+
+function setNodeMaxListeners(state: NodeListenerState, maxListeners: number): void {
+  if (typeof maxListeners !== 'number' || maxListeners < 0 || Number.isNaN(maxListeners)) {
+    throw new RangeError('The value of "n" is out of range. It must be a non-negative number.');
+  }
+  state.maxListeners = maxListeners;
 }
 
 /** Match EventEmitter's property-key order for integer strings, other strings, and symbols. */
