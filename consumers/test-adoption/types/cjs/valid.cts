@@ -1,4 +1,4 @@
-import { Server, type ServerSocketContract } from 'smocket';
+import { Server, type Socket } from 'smocket';
 
 interface ClientToServerEvents {
   save: (id: number) => void;
@@ -11,7 +11,7 @@ interface ServerToClientEvents {
 const io = new Server<ClientToServerEvents, ServerToClientEvents>('http://localhost:3013');
 
 io.on('connection', (socket) => {
-  const typed: ServerSocketContract<ClientToServerEvents, ServerToClientEvents> = socket;
+  const typed: Socket<ClientToServerEvents, ServerToClientEvents> = socket;
   typed.on('save', (id) => typed.emit('saved', id));
 });
 

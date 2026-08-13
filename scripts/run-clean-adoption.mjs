@@ -248,6 +248,12 @@ async function runNodeFixtures(projectRoot, packageInput) {
   );
   await run(
     process.execPath,
+    [tsc, '-p', 'types/bundler'],
+    projectRoot,
+    fixtureContext('TypeScript', 'bundler resolution', packageInput, 'types/bundler'),
+  );
+  await run(
+    process.execPath,
     [
       vitest,
       'run',
@@ -310,6 +316,12 @@ async function runPublishedFixtures(projectRoot, packageInput) {
       packageInput,
       'published types/invalid',
     ),
+  );
+  await run(
+    process.execPath,
+    [tsc, '-p', 'types/bundler'],
+    projectRoot,
+    fixtureContext('TypeScript', 'bundler resolution', packageInput, 'published types/bundler'),
   );
 }
 
