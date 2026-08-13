@@ -144,7 +144,7 @@ That run is green. The file above is a Vitest test because the suite here uses
 Vitest. Smocket has no runtime dependency on a test runner: runner packages appear
 only in the [development dependencies](package.json). This repository executes
 Smocket with Vitest and `node:test`, plus the documented Vitest and Jest paths
-from clean consumers. Each run installs either one candidate tarball or an exact
+from clean consumers. Each clean-consumer run installs either one candidate tarball or an exact
 published version outside the checkout, so a workspace resolution is not counted
 as adoption evidence.
 
@@ -159,14 +159,14 @@ receive something takes the marker pattern rather than a wait, and that is a
 
 ### Where to start from here
 
-| Coming from                                  | Start at                                                                                |
-| -------------------------------------------- | --------------------------------------------------------------------------------------- |
-| Vitest                                       | the quick start above, which is a vitest file                                           |
-| Jest, or another CJS runner                  | [the documented setup and current evidence limit](docs/test-runner-integration.md#jest) |
-| An app that imports `socket.io-client`       | [test-runner integration](docs/test-runner-integration.md), which swaps the specifier   |
-| A hand-written socket mock                   | [the problem](#the-problem)                                                             |
-| Wanting to read a program rather than a test | [examples/chat-room](examples/chat-room/)                                               |
-| Wanting the exact guarantees                 | [the conformance report](docs/conformance.md)                                           |
+| Coming from                                  | Start at                                                                              |
+| -------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Vitest                                       | the quick start above, which is a vitest file                                         |
+| Jest, or another CJS runner                  | [the documented, executable Jest setup](docs/test-runner-integration.md#jest)         |
+| An app that imports `socket.io-client`       | [test-runner integration](docs/test-runner-integration.md), which swaps the specifier |
+| A hand-written socket mock                   | [the problem](#the-problem)                                                           |
+| Wanting to read a program rather than a test | [examples/chat-room](examples/chat-room/)                                             |
+| Wanting the exact guarantees                 | [the conformance report](docs/conformance.md)                                         |
 
 An existing application does not have to be rewritten to run against smocket.
 smocket exports `io` under socket.io-client's own name, so a test runner pointed
