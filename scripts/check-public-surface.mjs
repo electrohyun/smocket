@@ -265,6 +265,7 @@ function compareEntries(left, right) {
     'member',
     'kind',
     'declaredBy',
+    'overloadIndex',
     'signature',
   ];
   for (const field of fields) {
@@ -719,7 +720,7 @@ export function generateInventory() {
       typescript: ts.version,
     },
     resolutions,
-    entries: withOverloadIndexes(entries.sort(compareEntries)),
+    entries: withOverloadIndexes(entries).sort(compareEntries),
   };
 }
 
