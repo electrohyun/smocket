@@ -20,6 +20,13 @@ export interface EventsMap {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyListener = (...args: any[]) => void;
 
+/** A mutable Socket.IO packet presented to server Socket middleware. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type Event = [string, ...any[]];
+
+/** Per-packet server Socket middleware. */
+export type SocketMiddleware = (event: Event, next: (error?: Error) => void) => void;
+
 /** Socket.IO's default when an application does not declare a socket data shape. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type DefaultSocketData = any;
@@ -838,6 +845,8 @@ export interface ServerSocketContract<
   listenersAnyOutgoing(): AnyListener[];
   /** Remove one outgoing catch-all, or all of them when called with no argument. */
   offAnyOutgoing(listener?: AnyListener): this;
+  /** Register middleware for packets received by this server Socket. */
+  use(middleware: SocketMiddleware): this;
   emit<Event extends EventName<EmitEvents>>(
     event: Event,
     ...args: EventParams<EmitEvents, Event>
@@ -1171,6 +1180,9 @@ type ServerSocketParityContract<
   ): ServerSocketParityContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>;
   compress(
     compress: boolean,
+  ): ServerSocketParityContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>;
+  use(
+    middleware: SocketMiddleware,
   ): ServerSocketParityContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>;
   nsp: NamespaceParityContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>;
 };
