@@ -356,8 +356,9 @@ export function extractSurface({
   supportLine,
   surface,
 }) {
-  const type = checker.getDeclaredTypeOfSymbol(symbol);
+  const instanceType = checker.getDeclaredTypeOfSymbol(symbol);
   const declarations = symbol.getDeclarations() ?? [];
+  const classDeclaration = declarations.find(ts.isClassDeclaration);
   const entries = [];
 
   for (const declaration of declarations) {
@@ -384,25 +385,35 @@ export function extractSurface({
     }
   }
 
-  for (const member of checker.getPropertiesOfType(type)) {
-    for (const declaration of memberDeclarations(member)) {
-      entries.push(
-        withId({
-          supportLine,
-          package: packageName,
-          packageVersion,
-          tier: evidenceTier(declaration),
-          surface,
-          receiver,
-          member: publicMemberName(member, declaration),
-          kind: declarationKind(declaration),
-          declaredBy: declarationOwner(declaration),
-          declarationFile: pathWithinPackage(declaration.getSourceFile().fileName, packagePath),
-          readonly: readonlyState(declaration),
-          optional: Boolean(declaration.questionToken),
-          signature: canonicalDeclaration(declaration),
-        }),
-      );
+  const receiverTypes = [[receiver, instanceType]];
+  if (classDeclaration) {
+    receiverTypes.push([
+      'static',
+      checker.getTypeOfSymbolAtLocation(symbol, classDeclaration.name ?? classDeclaration),
+    ]);
+  }
+
+  for (const [memberReceiver, type] of receiverTypes) {
+    for (const member of checker.getPropertiesOfType(type)) {
+      for (const declaration of memberDeclarations(member)) {
+        entries.push(
+          withId({
+            supportLine,
+            package: packageName,
+            packageVersion,
+            tier: evidenceTier(declaration),
+            surface,
+            receiver: memberReceiver,
+            member: publicMemberName(member, declaration),
+            kind: declarationKind(declaration),
+            declaredBy: declarationOwner(declaration),
+            declarationFile: pathWithinPackage(declaration.getSourceFile().fileName, packagePath),
+            readonly: readonlyState(declaration),
+            optional: Boolean(declaration.questionToken),
+            signature: canonicalDeclaration(declaration),
+          }),
+        );
+      }
     }
   }
 
