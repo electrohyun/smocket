@@ -9,7 +9,9 @@ on:
       - consumers/chat-room/**
       - examples/chat-room/**
       - package.json
+      - consumers/test-adoption/**
       - scripts/run-chat-room-consumer.mjs
+      - scripts/run-clean-adoption.mjs
   pull_request:
     paths:
       - .github/workflows/published-consumer.yml
@@ -17,7 +19,9 @@ on:
       - consumers/chat-room/**
       - examples/chat-room/**
       - package.json
+      - consumers/test-adoption/**
       - scripts/run-chat-room-consumer.mjs
+      - scripts/run-clean-adoption.mjs
   schedule:
     - cron: '17 3 * * 1'
   workflow_dispatch:
@@ -38,3 +42,6 @@ jobs:
           node-version: 20
       - name: Install and run the published-package consumer
         run: node scripts/run-chat-room-consumer.mjs published
+      - name: Run representative clean-adoption fixtures
+        shell: bash
+        run: node scripts/run-clean-adoption.mjs published --version "$(node -p \"require('./package.json').version\")"
