@@ -2,6 +2,7 @@
 
 **Status:** Accepted · 2026-08-05 · #78
 **Governed by:** [0008](./0008-adapter-api-before-v1.md), [0009](./0009-no-raw-websocket-mocking.md), [0010](./0010-single-defer-primitive-and-fifo.md)
+**Narrowed by:** [0031](./0031-adapter-registration-and-removal-lifecycle.md)
 
 > **TL;DR** Per-socket delivery delay is a mock-only test affordance. It rides the
 > existing adapter registration API as an optional `scheduleDelivery(sid, deliver)` hook,
@@ -54,11 +55,10 @@ so a test drives delay with Vitest's fake timers and never waits on the wall clo
 that use it run against the mock target only, built on smocket's `Server` directly rather
 than the dual-run fixture, since real socket.io has nothing to compare against.
 
-One consequence follows from delaying only the event stream: a disconnect that follows a
-delayed event is itself on the next tick, so the client can observe the disconnect before
-that still-pending event. This is a property of using the tool (holding an event past the
-teardown that chased it), not a FIFO break within the event stream, and a test that both
-delays a socket and disconnects it should account for it.
+Decision 0031 narrows teardown behavior. A whole-socket removal drains every pending
+delivery in FIFO order before the socket leaves its namespace roster. This keeps callback
+and Promise acknowledgements available to queued events and prevents a scheduled head
+from delivering twice. Scheduling remains server-to-client only.
 
 ## Alternatives rejected
 

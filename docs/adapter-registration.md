@@ -4,7 +4,7 @@
 > [adapter](./glossary.md#adapter), the component that decides which sockets a
 > [broadcast](./glossary.md#broadcast) reaches. It exists so the routing layer is
 > not pinned to one built-in implementation, and its worth is in the adapters
-> built on it, not in the registration call alone.
+> built on it. Registration finishes during setup, before any connection attempt.
 
 ## Where this comes from
 
@@ -42,6 +42,23 @@ shipped `DelayingAdapter` delays what a socket's client receives for race-condit
 but never reorder within it: reordering is the one thing the order guarantee forbids, so a
 scheduling adapter owes 0010 the obligation to keep each socket's stream in send order.
 
+## Instance and cleanup lifecycle
+
+Call `io.adapter(factory)` before the first connection attempt. The factory receives the
+root namespace and every static namespace already created. Later static namespaces and
+admitted concrete dynamic namespaces call it when they are created. Every call must return
+a fresh instance. If any existing-namespace call throws or reuses an instance, no adapter
+is replaced. Adapter state and membership never migrate through late registration.
+
+Stateful adapters may implement `removeSocket(sid)`. Whole-socket cleanup first calls
+`del` for each room and removes the `sids` entry, then calls this optional method once while
+the namespace roster still contains the socket. Ordinary `socket.leave(socket.id)` does not
+call it. This is a Smocket extension hook, not Socket.IO's `delAll` or lifecycle events.
+
+`DelayingAdapter` uses the hook to drain every queued server-to-client delivery in FIFO
+order and release the sid's delay state. Scheduled callbacks for that detached queue become
+inert. A fresh sid after reconnect starts without the old delay.
+
 ## Why now, and why smocket-only
 
 The seam lands before v1.0.0 on purpose. That release freezes the public surface,
@@ -53,4 +70,5 @@ A custom adapter written here does not run on real socket.io, whose adapter also
 delivers and needs a transport smocket has none of
 ([0009](./decisions/0009-no-raw-websocket-mocking.md)). smocket guarantees its own
 delivery matches real socket.io; it does not promise your extension code is
-portable. That boundary is listed in [differences.md](./differences.md) §B.
+portable. That boundary is listed in [differences.md](./differences.md) §B and
+[0031](./decisions/0031-adapter-registration-and-removal-lifecycle.md).

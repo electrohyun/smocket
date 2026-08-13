@@ -47,9 +47,9 @@ silently reverse 0013; a future `socketRooms` proposal must first revisit it exp
 
 The exported `Adapter` and `SmocketAdapter` keep `add`, `del`, `sids`, `socketsIn`, and the
 optional scheduling hook as Smocket-only surface under 0008 and 0018. They remain
-incompatible with arbitrary Socket.IO adapters. `DelayingAdapter` keeps the same membership
-and delivery behavior, with no lifecycle event routed through its delay queue. No deferred
-member blocks v1; a concrete use case may reopen one under 0019.
+incompatible with arbitrary Socket.IO adapters. Decision 0031 adds a narrow optional
+whole-socket removal signal for native extension cleanup without adding `delAll`, upstream
+lifecycle events, or another built-in observation promise. No deferred member blocks v1.
 
 ## Alternatives rejected
 
