@@ -60,15 +60,19 @@ than discovered in a failing suite.
   decision (which sockets a broadcast targets); delivery stays in the core unless the
   adapter opts into the optional `scheduleDelivery(sid, deliver)` hook (see the delay
   affordance below and [0018](./decisions/0018-delivery-scheduling-adapter-hook.md)).
+  Registration is setup-only, every namespace gets a fresh instance, and the optional
+  `removeSocket(sid)` hook observes whole-socket cleanup without adding upstream `delAll`.
   See [adapter-registration.md](./adapter-registration.md) and
-  [0008](./decisions/0008-adapter-api-before-v1.md).
+  [0031](./decisions/0031-adapter-registration-and-removal-lifecycle.md).
 - **`DelayingAdapter` delays what a socket's client receives, by sid.** Not a socket.io API.
   It rides the adapter registration above to hold a socket's client-inbound stream
   (server -> client) by a per-sid amount, so a race-condition test can interleave events
   across sockets deterministically; the server side still receives its client's emits on the
   next tick. Order within the delayed stream is preserved, and scheduling runs through an
-  injectable timer so a test drives it with fake timers rather than the wall clock. See
-  [0018](./decisions/0018-delivery-scheduling-adapter-hook.md).
+  injectable timer so a test drives it with fake timers rather than the wall clock. Actual
+  socket removal drains queued delivery in order and clears the sid state. See
+  [0018](./decisions/0018-delivery-scheduling-adapter-hook.md) and
+  [0031](./decisions/0031-adapter-registration-and-removal-lifecycle.md).
 
 ## C. Known gaps, not deliberate, recorded until corrected
 
