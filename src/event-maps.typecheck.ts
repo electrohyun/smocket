@@ -120,11 +120,19 @@ export function assertTypedEventMapsCompile(): void {
       .listeners('guess')[0]?.('timed guess', () => {});
     socket.volatile.listeners('guess')[0]?.('volatile guess', () => {});
     const serverListenerCount: number = socket.listenerCount('guess');
+    const guessListener = socket.listeners('guess')[0];
+    const filteredServerListenerCount: number =
+      guessListener === undefined ? 0 : socket.listenerCount('guess', guessListener);
+    const symbolServerListenerCount: number = socket.listenerCount(Symbol('server event'));
     const serverEventNames: (string | symbol)[] = socket.eventNames();
     // @ts-expect-error unknown server listen event
     socket.listeners('gues');
     // @ts-expect-error listener arguments retain the incoming event tuple
     guessListeners[0]?.(42, () => {});
+    // @ts-expect-error a listener-count event name must be a string or symbol
+    socket.listenerCount(42);
+    // @ts-expect-error the optional listener filter must be callable
+    socket.listenerCount('guess', 'listener');
     // @ts-expect-error hasListeners belongs only to the component-emitter client
     socket.hasListeners('guess');
 
@@ -205,6 +213,8 @@ export function assertTypedEventMapsCompile(): void {
     void outgoingAnyListeners;
     void returnedServerSocket;
     void serverListenerCount;
+    void filteredServerListenerCount;
+    void symbolServerListenerCount;
     void serverEventNames;
 
     // @ts-expect-error unknown incoming event
@@ -518,11 +528,19 @@ export function assertRealSocketIoListenerInferenceCompiles(
       .listeners('guess')[0]?.('timed guess', () => {});
     socket.volatile.listeners('guess')[0]?.('volatile guess', () => {});
     const serverListenerCount: number = socket.listenerCount('guess');
+    const guessListener = socket.listeners('guess')[0];
+    const filteredServerListenerCount: number =
+      guessListener === undefined ? 0 : socket.listenerCount('guess', guessListener);
+    const symbolServerListenerCount: number = socket.listenerCount(Symbol('server event'));
     const serverEventNames: (string | symbol)[] = socket.eventNames();
     // @ts-expect-error unknown server listen event
     socket.listeners('gues');
     // @ts-expect-error listener arguments retain the incoming event tuple
     guessListeners[0]?.(42, () => {});
+    // @ts-expect-error a listener-count event name must be a string or symbol
+    socket.listenerCount(42);
+    // @ts-expect-error the optional listener filter must be callable
+    socket.listenerCount('guess', 'listener');
     // @ts-expect-error hasListeners belongs only to the component-emitter client
     socket.hasListeners('guess');
     socket.on('disconnect', (_reason, description) => {
@@ -594,6 +612,8 @@ export function assertRealSocketIoListenerInferenceCompiles(
     void outgoingAnyListeners;
     void returnedServerSocket;
     void serverListenerCount;
+    void filteredServerListenerCount;
+    void symbolServerListenerCount;
     void serverEventNames;
     // @ts-expect-error server send follows the mapped server-to-client message tuple
     socket.send(42, 'wrong');
