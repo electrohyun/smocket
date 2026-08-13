@@ -531,6 +531,20 @@ export interface NamespaceContract<
 }
 
 /**
+ * One immutable, payload-free snapshot of a completed broadcast routing decision.
+ * `recipients` is final after room union, exclusions, roster lookup, volatile filtering,
+ * and any later narrowing hook. `excluded` is the resolved union of `exceptRooms`.
+ */
+export interface BroadcastTrace {
+  readonly event: string;
+  readonly rooms: readonly string[];
+  readonly exceptRooms: readonly string[];
+  readonly excluded: readonly string[];
+  readonly recipients: readonly string[];
+  readonly volatile: boolean;
+}
+
+/**
  * The routing seam a custom adapter implements, promoted from smocket's internal
  * `Adapter`. It owns membership (`add` / `del`) and the routing decision
  * (`socketsIn`: which sids a broadcast targets). A routing adapter stops there, so it
@@ -554,6 +568,12 @@ export interface SmocketAdapter {
   del(sid: string, room: string): void;
   /** The routing decision: the deduped union of the given rooms' member sids. */
   socketsIn(rooms: Iterable<string>): Set<string>;
+  /**
+   * Optional final-routing observer. The core calls it once after payload encoding and
+   * recipient selection succeed, but before acknowledgement counting, outgoing catch-all
+   * listeners, or delivery. Direct socket emits never call it.
+   */
+  traceBroadcast?(trace: BroadcastTrace): void;
   /**
    * Optional whole-socket removal hook. The core calls it once after every room has
    * been removed with `del` and the sid has been removed from `sids`, but before the

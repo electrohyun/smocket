@@ -1,6 +1,7 @@
 import type {
   AdapterFactory,
   BroadcastContract,
+  BroadcastTrace,
   ClientSocketContract,
   ConnectionMiddleware,
   ConnectOptions,
@@ -448,6 +449,55 @@ export class DelayingAdapter extends Adapter {
 }
 
 /**
+ * A payload-free recorder for final broadcast routing decisions. It wraps any
+ * `SmocketAdapter`, forwarding membership, routing, scheduling, and removal while
+ * retaining immutable trace snapshots until `clear` is called.
+ */
+export class TracingAdapter implements SmocketAdapter {
+  readonly rooms: Map<string, Set<string>>;
+  readonly sids: Map<string, Set<string>>;
+  private readonly traces: BroadcastTrace[] = [];
+
+  constructor(private readonly adapter: SmocketAdapter = new Adapter()) {
+    this.rooms = adapter.rooms;
+    this.sids = adapter.sids;
+  }
+
+  add(sid: string, room: string): void {
+    this.adapter.add(sid, room);
+  }
+
+  del(sid: string, room: string): void {
+    this.adapter.del(sid, room);
+  }
+
+  socketsIn(rooms: Iterable<string>): Set<string> {
+    return this.adapter.socketsIn(rooms);
+  }
+
+  removeSocket(sid: string): void {
+    this.adapter.removeSocket?.(sid);
+  }
+
+  scheduleDelivery(sid: string, deliver: () => void): void {
+    if (this.adapter.scheduleDelivery) this.adapter.scheduleDelivery(sid, deliver);
+    else defer(deliver);
+  }
+
+  traceBroadcast(trace: BroadcastTrace): void {
+    this.traces.push(trace);
+  }
+
+  getTraces(): readonly BroadcastTrace[] {
+    return Object.freeze([...this.traces]);
+  }
+
+  clear(): void {
+    this.traces.length = 0;
+  }
+}
+
+/**
  * The object returned by every broadcast form: `io.emit`, `io.to`/`in`/`except`,
  * `socket.broadcast`, `socket.to`, `socket.except`. All eleven are the same one
  * formula over two sets, so they are all this one operator built with different
@@ -565,7 +615,7 @@ class BroadcastOperator implements BroadcastContract, TimeoutBroadcastContract {
    * except rooms (the sender's id-room for the `socket.*` forms). A volatile broadcast also
    * skips a recipient still in its pre-connect window (0016).
    */
-  private recipients(): ServerSocket[] {
+  private recipients(): { recipients: ServerSocket[]; excluded: Set<string> } {
     const targets =
       this.targetRooms.size === 0
         ? new Set(this.sockets.keys())
@@ -579,7 +629,21 @@ class BroadcastOperator implements BroadcastContract, TimeoutBroadcastContract {
       if (this.isVolatile && !socket.connected) continue;
       out.push(socket);
     }
-    return out;
+    return { recipients: out, excluded };
+  }
+
+  /** Record the one final routing snapshot before acknowledgement or delivery work begins. */
+  private trace(event: string, recipients: readonly ServerSocket[], excluded: Set<string>): void {
+    if (!this.adapter.traceBroadcast) return;
+    const trace = Object.freeze({
+      event,
+      rooms: Object.freeze([...this.targetRooms]),
+      exceptRooms: Object.freeze([...this.exceptRooms]),
+      excluded: Object.freeze([...excluded]),
+      recipients: Object.freeze(recipients.map((socket) => socket.id)),
+      volatile: this.isVolatile,
+    });
+    this.adapter.traceBroadcast(trace);
   }
 
   emit(event: string, ...args: unknown[]): boolean {
@@ -590,7 +654,8 @@ class BroadcastOperator implements BroadcastContract, TimeoutBroadcastContract {
     // Socket.IO encodes one broadcast packet before recipient observation, even
     // when routing resolves to nobody (0026). Each recipient decodes it separately.
     const payload = encodePayload(data);
-    const recipients = this.recipients();
+    const { recipients, excluded } = this.recipients();
+    this.trace(event, recipients, excluded);
     // A trailing callback always collects one ack per recipient. With no explicit
     // timeout, Socket.IO still arms setTimeout(undefined), so immediate acknowledgements
     // race the zero-delay timer instead of waiting indefinitely.

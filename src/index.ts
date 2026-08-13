@@ -5,7 +5,14 @@
 // `const io = new Server(...)`), so the two names never collide in one file.
 // Only the named export is provided; a default export (`import io from ...`) waits
 // on the CJS interop it needs across tsup's dual output.
-export { Adapter, connect, connect as io, DelayingAdapter, Server } from './mock-server';
+export {
+  Adapter,
+  connect,
+  connect as io,
+  DelayingAdapter,
+  Server,
+  TracingAdapter,
+} from './mock-server';
 // The contract types are exported under their own names, so an app that swapped
 // socket.io-client for smocket still has something to annotate with: the value side
 // of the substitution already resolved, and only the type side was missing. The five
@@ -27,6 +34,7 @@ export type {
   AdapterFactory,
   AuthCallback,
   BroadcastContract,
+  BroadcastTrace,
   ClientSocketContract,
   ConnectionMiddleware,
   ConnectOptions,
