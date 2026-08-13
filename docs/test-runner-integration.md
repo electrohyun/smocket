@@ -258,3 +258,5 @@ runtime resolution and TypeScript still reads the real package. Test code that
 names a smocket value annotates with the exported contract types, of which
 `ServerContract`, `ServerSocketContract`, `ClientSocketContract`,
 `NamespaceContract` and `Handshake` are the entry points.
+The root type `Socket` is an alias of `ServerSocketContract`, matching the server-side
+Socket.IO package name. The separate client package owns the client-side `Socket` name.
