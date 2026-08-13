@@ -70,7 +70,7 @@ it('connect(url) caches one Manager per normalized origin unless opted out', asy
 
 it("the url's query string lands on handshake.query", async () => {
   // The url is one of the two sources for `handshake.query`. Reading it off `connect(url)`
-  // is mock-only for the same reason as the rest of this file: the mock harness routes
+  // is mock-only for the same reason as the rest of this file: the mock setup routes
   // through `connect(url)`, whereas real socket.io's url query rides its own network
   // stack. Values arrive as strings, matching how a real querystring is decoded.
   const server = new Server('http://localhost');

@@ -23,7 +23,7 @@ export function setupMockServer(): ServerContext {
 
   // Disconnect every client the test opened, then close the server, mirroring the
   // real target's teardown. Closing also removes this server from the origin registry;
-  // doing it here keeps the harness from relying on a later construction to replace it.
+  // doing it here keeps the test setup from relying on a later construction to replace it.
   afterEach(async () => {
     for (const client of clients) client.disconnect();
     await server.close();
