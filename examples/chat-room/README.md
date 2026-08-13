@@ -5,6 +5,14 @@ This example is a small scripted chat application with two
 disconnect notification. It uses the workspace copy of Smocket, so CI exercises
 the source under review rather than an installed public release.
 
+This canonical example deliberately uses the retained root `connect` export. ADR
+[0024](../../docs/decisions/0024-assemble-consumer-from-canonical-example.md) also uses
+this source for the exact published `0.4.2` consumer, which predates `smocket-client`.
+The package-name substitution path uses `smocket-client` in the
+[test-runner integration guide](../../docs/test-runner-integration.md). Issue
+[#284](https://github.com/electrohyun/smocket/issues/284) owns the synchronized
+two-package published-consumer transition.
+
 ## Participants and channels
 
 - Alice is the moderator and joins `general` and `support`.

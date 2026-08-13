@@ -52,7 +52,8 @@
 - **중요한 이유.** 동작의 정확성만으로는 mock 도입이 사용자의 테스트 흐름을 더 쉽게 만든다는
   사실이 입증되지 않습니다.
 - **현재 사례.** [테스트 러너 통합 가이드](./test-runner-integration.md)는 애플리케이션 코드가
-  `socket.io-client` import를 유지한 채 테스트에서 smocket으로 대체하는 방법을 문서화합니다.
+  `socket.io-client` import를 유지한 채 테스트에서 `smocket-client`로 대체하는 방법을
+  문서화합니다.
   완료된 [애플리케이션 사례 연구](./application-case-study.md)는 하나의 워크플로를 직접
   관찰했습니다. 세 대상은 모두 통과했고, handwritten 대상은 의존성과 포트가 없으며 자체
   동작 구현을 소유했습니다. smocket은 의존성 하나와 패키지가 소유한 동작을 사용했고 포트는
