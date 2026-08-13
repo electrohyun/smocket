@@ -36,6 +36,36 @@ it('server listeners are fresh snapshots with duplicates and unwrapped once call
   expect(serverSocket.eventNames()).toEqual(['error', 'event', 'disconnect']);
 });
 
+it('server listenerCount filters direct and once registrations for string and symbol names', async () => {
+  const { serverSocket } = await ctx.connectClient();
+  const direct = () => {};
+  const onceOriginal = () => {};
+  const other = () => {};
+  const symbol = Symbol('event');
+  const emitter = serverSocket as unknown as {
+    on(event: string | symbol, listener: () => void): unknown;
+    once(event: string | symbol, listener: () => void): unknown;
+  };
+
+  emitter.on('filtered', direct);
+  emitter.on('filtered', direct);
+  emitter.once('filtered', onceOriginal);
+  emitter.on('filtered', other);
+  emitter.on(symbol, direct);
+  emitter.on(symbol, direct);
+  emitter.once(symbol, onceOriginal);
+
+  expect(serverSocket.listenerCount('filtered')).toBe(4);
+  expect(serverSocket.listenerCount('filtered', direct)).toBe(2);
+  expect(serverSocket.listenerCount('filtered', onceOriginal)).toBe(1);
+  expect(serverSocket.listenerCount('filtered', other)).toBe(1);
+  expect(serverSocket.listenerCount('filtered', () => {})).toBe(0);
+  expect(serverSocket.listenerCount(symbol)).toBe(3);
+  expect(serverSocket.listenerCount(symbol, direct)).toBe(2);
+  expect(serverSocket.listenerCount(symbol, onceOriginal)).toBe(1);
+  expect(serverSocket.eventNames()).toContain(symbol);
+});
+
 it('server event names delete empty keys and reinsert them at the end', async () => {
   const { client, serverSocket } = await ctx.connectClient();
   const listener = () => {};
