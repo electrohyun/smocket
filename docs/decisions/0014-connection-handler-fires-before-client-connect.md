@@ -12,7 +12,7 @@
 
 `io.on('connection', cb)` runs `cb` with each new server-side socket, socket.io's
 primary way to wire per-socket handlers, and the on-based counterpart to the
-`nextConnection` harness path. `io.on(...)` targets the default namespace, exactly
+`nextConnection` path. `io.on(...)` targets the default namespace, exactly
 `io.of('/').on(...)`, so it never sees a connection on another namespace.
 
 The handler fires **before** that connection's client `connect`. Within the one
@@ -71,7 +71,7 @@ isolated between cases, not part of the 1.0 public surface.
   connect and the first emits gives no ordering guarantee between them, the same
   reason 0010 keeps one `defer`; a `connection` handler could then miss the order a
   real server guarantees.
-- **Expose only a harness hook (`nextConnection`) and no real `on('connection')`.**
-  The harness path pairs a connect with its server socket, but code written for
+- **Expose only `nextConnection` and no real `on('connection')`.**
+  The direct path pairs a connect with its server socket, but code written for
   real socket.io wires handlers through `io.on('connection')`; without it, that code
   cannot run on smocket at all, which is the gap this issue closes.

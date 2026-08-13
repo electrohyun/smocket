@@ -45,11 +45,14 @@ than discovered in a failing suite.
 
 ## B. What smocket adds that socket.io has no equivalent for
 
-- **`server.nextConnection(namespace)`.** Not a socket.io API. It resolves with the
-  next server-side socket to connect, which the test harness needs to pair a
-  connect with its server side. Real socket.io exposes no counterpart, so this is
-  the first asymmetry a user meets, and it is listed here rather than left to be
-  discovered.
+- **`server.connect(namespace, options)` and `server.nextConnection(namespace)`.** Neither is
+  a socket.io server API. Together they form Smocket's direct connection API. `connect`
+  opens the client without an origin-registry lookup, and `nextConnection` resolves with its
+  admitted server-side Socket. Once the namespace exists, the per-namespace queues accept either
+  call first and preserve FIFO order. Named static namespaces are established through `of()` or
+  an earlier `nextConnection()`, while `connect()` alone rejects an unregistered name. Closing
+  the server discards unclaimed sockets and rejects pending or later observers. See
+  [0030](./decisions/0030-public-connection-api-settles-on-close.md).
 - **`io.adapter(factory)` registers a smocket adapter.** socket.io has
   `io.adapter(...)` too, but its adapter also delivers and needs a transport smocket
   lacks, so the two are not signature-compatible: a custom adapter written for

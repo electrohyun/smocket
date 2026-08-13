@@ -199,6 +199,28 @@ already-armed timeout: real socket.io leaves that timer running too, so smocket 
 same lifecycle rather than making `close()` a timer-reset API. See
 [decision 0020](./decisions/0020-close-follows-socket-lifecycle.md).
 
+## Driving a connection directly
+
+The exported `Server` has a Smocket-only direct connection API for tests that already hold the
+server instance. `connect()` returns the client immediately, while `nextConnection()` returns
+the admitted server-side Socket. Both accept a namespace and default to `/`.
+
+```ts
+const serverSocketPromise = io.nextConnection('/game');
+const client = io.connect('/game', { auth: { token: 'test-user' } });
+const serverSocket = await serverSocketPromise;
+
+expect(serverSocket.id).toBe(client.id);
+```
+
+The example's `nextConnection('/game')` call also establishes that named static namespace. If a
+test calls `connect('/game')` first, it must establish the namespace with `io.of('/game')`
+beforehand. Once the namespace exists, the two API calls may be made in either order and pair
+in FIFO order within that namespace. A rejected or cancelled admission is skipped. If
+`io.close()` runs before a pending pairing can complete, that `nextConnection()` promise rejects
+with `Error('server is closed')`. The full lifecycle contract is recorded in
+[decision 0030](./decisions/0030-public-connection-api-settles-on-close.md).
+
 ## Preserving application event maps
 
 The server accepts Socket.IO's event-map order. Its connection callback infers a socket
