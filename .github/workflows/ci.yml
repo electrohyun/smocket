@@ -189,6 +189,24 @@ jobs:
       - name: Check the conformance report is current
         run: pnpm check:conformance
 
+  public-surface:
+    name: public surface ledger
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # This owns upstream declaration and classification drift only. The packed
+      # manifest, dependency policy, and import scanner remain in `package`.
+      - name: Check the reviewed upstream public surface
+        run: pnpm check:public-surface
+
   coverage:
     runs-on: ubuntu-latest
     steps:
