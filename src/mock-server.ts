@@ -1044,6 +1044,11 @@ class ParentBroadcastOperator implements BroadcastContract, TimeoutBroadcastCont
     return true;
   }
 
+  /**
+   * Direct parent Promise acknowledgement broadcasts resolve `[]` without reaching
+   * concrete children in both supported minors. Narrowed parent delivery stays outside
+   * the broader conformance claim under 0029.
+   */
   emitWithAck(event: string, ...args: unknown[]): Promise<unknown> {
     return new Promise((resolve) => {
       assertNotReservedEvent(event);

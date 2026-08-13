@@ -612,6 +612,10 @@ export function assertRealSocketIoListenerInferenceCompiles(
     .to('room')
     .timeout(100)
     .emitWithAck('question', 'value?');
+  const timeoutVolatileAnswers: Promise<number[]> = io
+    .to('room')
+    .timeout(100)
+    .volatile.emitWithAck('question', 'value?');
   // @ts-expect-error an ordinary broadcast event lacks the error-first collector shape until timeout decoration
   io.to('room').emitWithAck('question', 'value?');
   // @ts-expect-error an event without an acknowledgement cannot back broadcast emitWithAck
@@ -624,11 +628,15 @@ export function assertRealSocketIoListenerInferenceCompiles(
   io.timeout(100).emitWithAck('question', 'value?', () => undefined);
   // @ts-expect-error unknown broadcast Promise event
   io.timeout(100).emitWithAck('questoin', 'value?');
+  // @ts-expect-error multiple-response decoration returns an array
+  const wrongBroadcastAnswers: Promise<number> = io.timeout(100).emitWithAck('question', 'value?');
   void serverBroadcastAnswers;
   void namespaceBroadcastAnswers;
   void narrowingFirstAnswers;
   void timeoutFirstAnswers;
   void volatileAnswers;
+  void timeoutVolatileAnswers;
+  void wrongBroadcastAnswers;
 }
 
 export function assertRealSocketIoDefaultsCompile(
