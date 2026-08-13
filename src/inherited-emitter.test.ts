@@ -162,9 +162,19 @@ it('named listener callbacks receive their Namespace or Socket receiver', async 
   expect(serverReceivers).toEqual([serverSocket]);
   expect(clientReceivers).toEqual([client]);
 
-  expect(() =>
-    namespace.on('invalid', undefined as unknown as Parameters<typeof namespace.on>[1]),
-  ).toThrow(TypeError);
+  const invalidListeners: Array<[unknown, string]> = [
+    ['listener', "Received type string ('listener')"],
+    [1, 'Received type number (1)'],
+    [null, 'Received null'],
+    [undefined, 'Received undefined'],
+    [{}, 'Received an instance of Object'],
+  ];
+  for (const [value, message] of invalidListeners) {
+    expect(() => namespace.on('invalid', value as Parameters<typeof namespace.on>[1])).toThrow(
+      message,
+    );
+  }
+  expect(namespace.listenerCount('invalid')).toBe(0);
   expect(() =>
     namespace.once('invalid', undefined as unknown as Parameters<typeof namespace.once>[1]),
   ).toThrow(TypeError);
