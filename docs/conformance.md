@@ -88,6 +88,21 @@ Narrowing a broadcast further, and whether the order of the narrowings matters.
 - [in() on the operator is an alias for to()](../src/broadcast-chaining.test.ts#L150)
 - [io.of(nsp).to(room).except(id) narrows within that namespace](../src/broadcast-chaining.test.ts#L171)
 
+### Aliases and compression modifiers
+
+`send`, `write`, `open`, `close`, socket `in`, and compression chaining. Compression
+packet effects stay outside the transport-free mock boundary.
+
+- [Server and Namespace send and write broadcast message and return their receiver](../src/aliases-compression.test.ts#L22)
+- [a dynamic parent sends and writes directly while exposing a compress operator](../src/aliases-compression.test.ts#L54)
+- [server and client Socket send aliases emit message once and return their socket](../src/aliases-compression.test.ts#L72)
+- [a buffered client send observes outgoing before connect and named delivery](../src/aliases-compression.test.ts#L91)
+- [server Socket in aliases to while preserving sender exclusion](../src/aliases-compression.test.ts#L114)
+- [compress returns immutable broadcast operators and composes with narrowing](../src/aliases-compression.test.ts#L133)
+- [broadcast compress preserves a pending acknowledgement timeout](../src/aliases-compression.test.ts#L204)
+- [Socket compress stays fluent through timeout and volatile decorations](../src/aliases-compression.test.ts#L220)
+- [client open and close delegate to the lifecycle and keep fluent identity](../src/aliases-compression.test.ts#L234)
+
 ### Namespaces
 
 What a namespace isolates: connections, emits, rooms, and socket ids.
@@ -441,7 +456,7 @@ Resolving a url to a server, and what the url contributes to the handshake.
 - [close unregisters the server so later connect(url) reports a missing server](../src/connect-url.test.ts#L246)
 - [closing a replaced server does not unregister its replacement](../src/connect-url.test.ts#L267)
 - [the socket from a failed connect still chains](../src/connect-url.test.ts#L279)
-- [a failed client carries the complete catch-all listener surface](../src/connect-url.test.ts#L311)
+- [a failed client carries the complete catch-all listener surface](../src/connect-url.test.ts#L315)
 
 ### Binary passthrough guard
 
@@ -501,9 +516,6 @@ has not been measured, not that it is missing from socket.io.
   would target, which is the routing decision smocket already reproduces.
 - **`emitWithAck` on a broadcast operator.** The callback form of collecting every
   recipient's ack is covered; the promise form is not.
-- **`socket.send` and `socket.write`.** socket.io's aliases for emitting `message`.
-- **`socket.compress(flag)`.** Its effect is transport-only, so what a mock owes here
-  is that the chained call still delivers.
 - **`socket.use(fn)`.** Per-packet middleware on one socket, which is a different seam
   from the connection middleware `io.use` covered above.
 - **Listener introspection.** `listeners`, `listenerCount`, and `eventNames`.
