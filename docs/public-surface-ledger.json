@@ -571,8 +571,8 @@
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:server-Socket:instance:eventNames:method:8ffd75f0c408",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/267"
+      "disposition": "implemented",
+      "reference": "docs/conformance.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:server-Socket:instance:except:method:4018f03c477f",
@@ -611,13 +611,13 @@
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:server-Socket:instance:listenerCount:method:8b6aea4357b5",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/267"
+      "disposition": "implemented",
+      "reference": "docs/conformance.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:server-Socket:instance:listeners:method:902479afbd4a",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/267"
+      "disposition": "implemented",
+      "reference": "docs/conformance.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:server-Socket:instance:listenersAny:method:f0881580fbe3",
@@ -1746,8 +1746,8 @@
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:server-Socket:instance:eventNames:method:8336ffea290d",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/267"
+      "disposition": "implemented",
+      "reference": "docs/conformance.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:server-Socket:instance:except:method:1fcc81bddcd0",
@@ -1786,13 +1786,13 @@
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:server-Socket:instance:listenerCount:method:8d29bb4772ff",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/267"
+      "disposition": "implemented",
+      "reference": "docs/conformance.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:server-Socket:instance:listeners:method:7848cc66a628",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/267"
+      "disposition": "implemented",
+      "reference": "docs/conformance.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:server-Socket:instance:listenersAny:method:7e01d790bcdc",
@@ -2766,8 +2766,8 @@
     },
     {
       "id": "socket.io-client-4.7.5:4.7.5:declaration-public:client-Socket:instance:hasListeners:method:e99c1ed1ab3c",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/267"
+      "disposition": "implemented",
+      "reference": "docs/conformance.md"
     },
     {
       "id": "socket.io-client-4.7.5:4.7.5:declaration-public:client-Socket:instance:id:property:31b5ed50d8e9",
@@ -2781,8 +2781,8 @@
     },
     {
       "id": "socket.io-client-4.7.5:4.7.5:declaration-public:client-Socket:instance:listeners:method:decffcd72eb0",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/267"
+      "disposition": "implemented",
+      "reference": "docs/conformance.md"
     },
     {
       "id": "socket.io-client-4.7.5:4.7.5:declaration-public:client-Socket:instance:listenersAny:method:0bf565f5bbc5",
@@ -3236,8 +3236,8 @@
     },
     {
       "id": "socket.io-client-4.8.3:4.8.3:declaration-public:client-Socket:instance:hasListeners:method:c85da027c072",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/267"
+      "disposition": "implemented",
+      "reference": "docs/conformance.md"
     },
     {
       "id": "socket.io-client-4.8.3:4.8.3:declaration-public:client-Socket:instance:id:property:d0d5238e6725",
@@ -3251,8 +3251,8 @@
     },
     {
       "id": "socket.io-client-4.8.3:4.8.3:declaration-public:client-Socket:instance:listeners:method:20750d46f98c",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/267"
+      "disposition": "implemented",
+      "reference": "docs/conformance.md"
     },
     {
       "id": "socket.io-client-4.8.3:4.8.3:declaration-public:client-Socket:instance:listenersAny:method:888bcfca613e",
