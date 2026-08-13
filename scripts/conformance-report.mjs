@@ -109,6 +109,12 @@ const AREAS = [
     blurb: '`io.use`: admitting a connection, rejecting one, and the order two run in.',
   },
   {
+    file: 'src/socket-middleware.test.ts',
+    title: 'Server Socket packet middleware',
+    blurb:
+      'Per-packet ordering, mutation, acknowledgements, rejection, and independent asynchronous continuation.',
+  },
+  {
     file: 'src/handshake.test.ts',
     title: 'Handshake',
     blurb: 'The handshake fields a mock can source, and how auth and query reach them.',

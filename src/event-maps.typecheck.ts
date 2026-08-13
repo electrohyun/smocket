@@ -1,6 +1,7 @@
 import { Server, type DefaultEventsMap, type SmocketServer } from './index';
 import type { DisconnectReason, Server as IoServer } from 'socket.io';
 import type { Socket as IoClientSocket } from 'socket.io-client';
+import type { Event } from './contract';
 
 interface ClientToServerEvents {
   fire: (value: string) => void;
@@ -103,10 +104,18 @@ export function assertTypedEventMapsCompile(): void {
     const serverConnected: boolean = socket.connected;
     const serverDisconnected: boolean = socket.disconnected;
     const serverRecovered: boolean = socket.recovered;
+    const returnedFromPacketMiddleware: typeof socket = socket.use((packet, next) => {
+      const mutablePacket: Event = packet;
+      mutablePacket[0] = 'fire';
+      mutablePacket.push('payload', () => undefined);
+      next();
+      next(new Error('rejected'));
+    });
     void userId;
     void serverConnected;
     void serverDisconnected;
     void serverRecovered;
+    void returnedFromPacketMiddleware;
 
     socket.on('guess', (text, ack) => {
       const guess: string = text;
@@ -332,6 +341,8 @@ export function assertTypedEventMapsCompile(): void {
   void wrongBroadcastAnswers;
 
   const client = io.connect();
+  // @ts-expect-error packet middleware exists only on the server Socket
+  client.use((_packet, next) => next());
   const clientConnected: boolean = client.connected;
   const clientDisconnected: boolean = client.disconnected;
   const clientRecovered: boolean = client.recovered;

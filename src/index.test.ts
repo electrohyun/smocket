@@ -10,12 +10,14 @@ import {
   type BroadcastContract,
   type ClientSocketContract,
   type ConnectionMiddleware,
+  type Event,
   type Handshake,
   type MiddlewareError,
   type NamespaceContract,
   type ServerContract,
   type ServerSocketContract,
   type SmocketServer,
+  type SocketMiddleware,
   type Socket,
   type SocketTimeoutContract,
   type TimeoutBroadcastContract,
@@ -73,6 +75,12 @@ it('exports the contract types, so the swap keeps an app annotations to use', as
     const rejection: MiddlewareError = Object.assign(new Error('rejected'), { data: socket.id });
     next(rejection);
   };
+  const packet: Event = ['event', 'payload'];
+  const socketMiddleware: SocketMiddleware = (incoming, next) => {
+    incoming[0] = packet[0];
+    next();
+  };
+  serverSocket.use(socketMiddleware);
 
   expect(client.id).toBe(serverSocket.id);
   expect(namedServerSocket.id).toBe(serverSocket.id);
