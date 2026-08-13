@@ -43,3 +43,4 @@ these are written.
 | [0029](./0029-narrowed-parent-broadcasts-stay-unverified.md)      | Parent broadcast conformance stops before narrowing                                     | Accepted | #269          |
 | [0030](./0030-public-connection-api-settles-on-close.md)          | The public direct connection API rejects observers when its server closes               | Accepted | #277          |
 | [0031](./0031-adapter-registration-and-removal-lifecycle.md)      | Adapters register before admission and may observe whole-socket removal                 | Accepted | #278          |
+| [0032](./0032-trace-final-broadcast-routing.md)                   | Trace final broadcast routing without retaining payloads                                | Accepted | #262          |

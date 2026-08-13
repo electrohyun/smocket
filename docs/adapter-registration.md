@@ -59,6 +59,19 @@ call it. This is a Smocket extension hook, not Socket.IO's `delAll` or lifecycle
 order and release the sid's delay state. Scheduled callbacks for that detached queue become
 inert. A fresh sid after reconnect starts without the old delay.
 
+## Final routing traces
+
+An adapter may implement `traceBroadcast(trace)` to observe one final routing decision.
+The hook runs after payload encoding and recipient selection, including exclusions and
+volatile filtering, but before acknowledgement counting, outgoing catch-all listeners, or
+delivery. Empty-recipient broadcasts are included. Direct Socket emits are not.
+
+`TracingAdapter` supplies a caller-cleared history of frozen `BroadcastTrace` objects.
+Each record contains only the event, target and except rooms, resolved excluded sids,
+final recipient sids, and the volatile flag. It retains no payload. Pass another adapter
+to its constructor to keep that adapter's routing, scheduling, and removal behavior while
+adding traces, including `new TracingAdapter(new DelayingAdapter())`.
+
 ## Why now, and why smocket-only
 
 The seam lands before v1.0.0 on purpose. That release freezes the public surface,
@@ -71,4 +84,5 @@ delivers and needs a transport smocket has none of
 ([0009](./decisions/0009-no-raw-websocket-mocking.md)). smocket guarantees its own
 delivery matches real socket.io; it does not promise your extension code is
 portable. That boundary is listed in [differences.md](./differences.md) §B and
-[0031](./decisions/0031-adapter-registration-and-removal-lifecycle.md).
+[0031](./decisions/0031-adapter-registration-and-removal-lifecycle.md). Final routing
+observation is recorded in [0032](./decisions/0032-trace-final-broadcast-routing.md).
