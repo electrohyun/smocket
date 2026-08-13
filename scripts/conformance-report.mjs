@@ -144,6 +144,11 @@ const AREAS = [
     blurb: '`off` and `removeAllListeners`, including the places the two sides disagree.',
   },
   {
+    file: 'src/listener-introspection.test.ts',
+    title: 'Listener introspection',
+    blurb: 'Side-specific snapshots, live arrays, counts, names, and once wrappers.',
+  },
+  {
     file: 'src/disconnect.test.ts',
     title: 'Disconnect',
     blurb: 'Room cleanup, the reason each side reports, and what happens to a pending ack.',
