@@ -1990,7 +1990,7 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
       }
       middleware(packet, (error) => {
         if (error) {
-          super.dispatch('error', [error]);
+          this.dispatchNamed('error', [error]);
           return;
         }
         run(index + 1);
