@@ -3,7 +3,12 @@ import type { AddressInfo } from 'node:net';
 import { Server, type Socket as ServerSocket } from 'socket.io';
 import { io, type Socket as ClientSocket } from 'socket.io-client';
 import { afterEach, beforeEach } from 'vitest';
-import type { ConnectOptions, ServerContext, ServerContract } from './contract';
+import type {
+  ClientSocketContract,
+  ConnectOptions,
+  ServerContext,
+  ServerContract,
+} from './contract';
 import { makeConnectClients } from './connect-clients';
 
 /**
@@ -20,6 +25,9 @@ export function setupRealServer(): ServerContext {
   let ioServer: Server;
   let port: number;
   let clients: ClientSocket[] = [];
+
+  const asClientContract = (client: ClientSocket): ClientSocketContract =>
+    client as unknown as ClientSocketContract;
 
   const namespacePath = (namespace: string): string => {
     if (namespace === '' || namespace === '/') return '/';
@@ -81,7 +89,7 @@ export function setupRealServer(): ServerContext {
     ]);
 
     clients.push(client);
-    return { client, serverSocket };
+    return { client: asClientContract(client), serverSocket };
   };
 
   // Open a connection without awaiting `connect`, for a connection a test expects to
@@ -96,7 +104,7 @@ export function setupRealServer(): ServerContext {
       multiplex,
     });
     clients.push(client);
-    return client;
+    return asClientContract(client);
   };
 
   // Deliberately does not call `ioServer.of(namespace)` or `ctx.nextConnection`:
@@ -107,7 +115,7 @@ export function setupRealServer(): ServerContext {
       transports: ['websocket'],
     });
     clients.push(client);
-    return client;
+    return asClientContract(client);
   };
 
   ctx.connectClients = makeConnectClients(ctx);

@@ -21,6 +21,7 @@ import type {
   ParentNspNameMatchFn,
   ReservedOrUserEventName,
   ReservedOrUserListener,
+  ServerContract,
   ServerReservedEvents,
   ServerSocketContract,
   SmocketAdapter,
@@ -34,7 +35,8 @@ import type {
  * An event listener, matching the `Listener` shape the contract's sockets use:
  * `never[]` parameters so callbacks of any argument shape are accepted.
  */
-type Listener = (...args: never[]) => void;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Listener = (...args: any[]) => void;
 type OrdinaryEventName = string | symbol;
 
 /** Socket.IO's permissive callback shape for the live catch-all lookup arrays. */
@@ -734,6 +736,193 @@ class BroadcastOperator implements BroadcastContract, TimeoutBroadcastContract {
   }
 }
 
+/** Browser-safe Node EventEmitter behavior shared by namespaces. */
+class NodeEmitter {
+  protected readonly eventListeners = new Map<OrdinaryEventName, Listener[]>();
+  private readonly warnedEvents = new Set<OrdinaryEventName>();
+  private maxListeners = 10;
+
+  private addNodeListener(
+    event: OrdinaryEventName,
+    listener: Listener,
+    prepend = false,
+    exposedListener = listener,
+  ): void {
+    if (typeof listener !== 'function') {
+      throw new TypeError('The "listener" argument must be of type function. Received undefined');
+    }
+    if (this.eventListeners.get('newListener')?.length) {
+      (
+        this as unknown as {
+          emit(event: string, ...args: unknown[]): boolean;
+        }
+      ).emit('newListener', event, exposedListener);
+    }
+    if (!this.eventListeners.has(event)) this.warnedEvents.delete(event);
+    const listeners = this.eventListeners.get(event);
+    if (listeners) {
+      if (prepend) listeners.unshift(listener);
+      else listeners.push(listener);
+    } else {
+      this.eventListeners.set(event, [listener]);
+    }
+    this.warnIfNeeded(event);
+  }
+
+  private warnIfNeeded(event: OrdinaryEventName): void {
+    const count = this.eventListeners.get(event)?.length ?? 0;
+    if (this.maxListeners === 0 || count <= this.maxListeners || this.warnedEvents.has(event)) {
+      return;
+    }
+    this.warnedEvents.add(event);
+    const process = (
+      globalThis as typeof globalThis & {
+        process?: { emitWarning?: (warning: Error) => void };
+      }
+    ).process;
+    if (!process?.emitWarning) return;
+    const warning = Object.assign(
+      new Error(
+        `Possible EventEmitter memory leak detected. ${count} ${String(event)} listeners added.`,
+      ),
+      { name: 'MaxListenersExceededWarning', emitter: this, type: event, count },
+    );
+    process.emitWarning(warning);
+  }
+
+  on(event: OrdinaryEventName, listener: Listener): this {
+    this.addNodeListener(event, listener);
+    return this;
+  }
+
+  addListener(event: OrdinaryEventName, listener: Listener): this {
+    return this.on(event, listener);
+  }
+
+  once(event: OrdinaryEventName, listener: Listener): this {
+    if (typeof listener !== 'function') {
+      throw new TypeError('The "listener" argument must be of type function. Received undefined');
+    }
+    const wrapper = ((...args: never[]) => {
+      this.removeListener(event, wrapper);
+      listener.apply(this, args);
+    }) as Listener;
+    (wrapper as { listener?: Listener }).listener = listener;
+    this.addNodeListener(event, wrapper, false, listener);
+    return this;
+  }
+
+  prependListener(event: OrdinaryEventName, listener: Listener): this {
+    this.addNodeListener(event, listener, true);
+    return this;
+  }
+
+  prependOnceListener(event: OrdinaryEventName, listener: Listener): this {
+    if (typeof listener !== 'function') {
+      throw new TypeError('The "listener" argument must be of type function. Received undefined');
+    }
+    const wrapper = ((...args: never[]) => {
+      this.removeListener(event, wrapper);
+      listener.apply(this, args);
+    }) as Listener;
+    (wrapper as { listener?: Listener }).listener = listener;
+    this.addNodeListener(event, wrapper, true, listener);
+    return this;
+  }
+
+  removeListener(event: OrdinaryEventName, listener: Listener): this {
+    if (typeof listener !== 'function') {
+      throw new TypeError('The "listener" argument must be of type function. Received undefined');
+    }
+    const removed = removeOrdinaryListener(this.eventListeners, event, listener, true);
+    if (removed && this.eventListeners.get('removeListener')?.length) {
+      (
+        this as unknown as {
+          emit(event: string, ...args: unknown[]): boolean;
+        }
+      ).emit('removeListener', event, nodeOriginalListener(removed));
+    }
+    return this;
+  }
+
+  readonly off = this.removeListener;
+
+  removeAllListeners(event?: OrdinaryEventName): this {
+    if (event === undefined) {
+      for (const name of [...this.eventListeners.keys()]) {
+        if (name !== 'removeListener') this.removeAllListeners(name);
+      }
+      this.removeAllListeners('removeListener');
+      this.warnedEvents.clear();
+    } else {
+      const listeners = [...(this.eventListeners.get(event) ?? [])];
+      for (let index = listeners.length - 1; index >= 0; index -= 1) {
+        const listener = listeners[index];
+        if (listener) this.removeListener(event, listener);
+      }
+      this.warnedEvents.delete(event);
+    }
+    return this;
+  }
+
+  listeners(event: OrdinaryEventName): Listener[] {
+    return (this.eventListeners.get(event) ?? []).map((entry) => nodeOriginalListener(entry));
+  }
+
+  rawListeners(event: OrdinaryEventName): Listener[] {
+    return [...(this.eventListeners.get(event) ?? [])];
+  }
+
+  listenerCount(event: OrdinaryEventName, listener?: Listener): number {
+    const entries = this.eventListeners.get(event) ?? [];
+    return listener === undefined
+      ? entries.length
+      : entries.filter(
+          (entry) => entry === listener || (entry as { listener?: Listener }).listener === listener,
+        ).length;
+  }
+
+  eventNames(): (string | symbol)[] {
+    return nodeEventNames(this.eventListeners);
+  }
+
+  setMaxListeners(maxListeners: number): this {
+    if (typeof maxListeners !== 'number' || maxListeners < 0 || Number.isNaN(maxListeners)) {
+      throw new RangeError('The value of "n" is out of range. It must be a non-negative number.');
+    }
+    this.maxListeners = maxListeners;
+    return this;
+  }
+
+  getMaxListeners(): number {
+    return this.maxListeners;
+  }
+
+  protected emitLocal(event: OrdinaryEventName, args: unknown[]): void {
+    const listeners = this.eventListeners.get(event);
+    if (!listeners) return;
+    for (const listener of [...listeners]) {
+      (listener as (...values: unknown[]) => void).apply(this, args);
+    }
+  }
+
+  protected snapshotListeners(
+    events: readonly OrdinaryEventName[],
+  ): Map<OrdinaryEventName, Listener[]> {
+    const snapshot = new Map<OrdinaryEventName, Listener[]>();
+    for (const event of events) {
+      const listeners = this.eventListeners.get(event);
+      if (listeners) {
+        snapshot.set(
+          event,
+          listeners.map((listener) => nodeOriginalListener(listener)),
+        );
+      }
+    }
+    return snapshot;
+  }
+}
+
 /**
  * One namespace: the `adapter` + `sockets` pair the delivery formula reads, plus
  * the connection queues that pair a `connect` with its `nextConnection`. Making
@@ -746,7 +935,7 @@ class BroadcastOperator implements BroadcastContract, TimeoutBroadcastContract {
  * Its broadcast surface (`emit`/`to`/`in`/`except`) is the same code that used to
  * live on `Server`, moved here so the server can delegate to `of('/')`.
  */
-class Namespace implements NamespaceContract {
+class Namespace extends NodeEmitter implements NamespaceContract {
   /**
    * sid -> connected server socket, the adapter's partner: the adapter routes a
    * broadcast to a set of sids and this turns each sid back into a socket to
@@ -760,17 +949,6 @@ class Namespace implements NamespaceContract {
   adapter: SmocketAdapter;
   /** Server sockets connected here but not yet claimed by a `nextConnection`. */
   private readonly ready: ServerSocket[] = [];
-  /**
-   * Handlers registered through `on`, keyed by event. This is the app-facing entry
-   * point: `io.on('connection', cb)` wires per-socket handlers, and each is fired
-   * with the new server socket as the pairing completes. The `nextConnection` path
-   * resolves the same socket; the two are the two ways to reach a
-   * fresh connection, not two different connections. Kept per-event (not one merged
-   * set) so `connection` and its `connect` synonym stay separate registries, matching
-   * real socket.io, where a listener on each fires once and the same function on both
-   * fires twice.
-   */
-  private readonly connectionListeners = new Map<string, Listener[]>();
   /**
    * Connection middleware registered through `use`, in registration order. Each runs
    * for every incoming connection here, before the socket is considered connected;
@@ -792,9 +970,13 @@ class Namespace implements NamespaceContract {
     private readonly origin: string,
     closed = false,
   ) {
+    super();
     this.closed = closed;
     this.adapter = new Adapter();
   }
+
+  override listeners = ((event: OrdinaryEventName) =>
+    super.listeners(event)) as NamespaceContract['listeners'];
 
   /** Install the adapter instance prepared for this namespace during server setup. */
   useAdapter(adapter: SmocketAdapter): void {
@@ -804,11 +986,11 @@ class Namespace implements NamespaceContract {
   /** Copy a dynamic parent's setup once, when this concrete child is created. */
   inherit(
     middleware: readonly ConnectionMiddleware[],
-    listeners: ReadonlyMap<string, readonly Listener[]>,
+    listeners: ReadonlyMap<OrdinaryEventName, readonly Listener[]>,
   ): void {
     this.middleware.push(...middleware);
     for (const [event, entries] of listeners) {
-      this.connectionListeners.set(event, [...entries]);
+      for (const listener of entries) this.on(event, listener);
     }
   }
 
@@ -951,30 +1133,19 @@ class Namespace implements NamespaceContract {
   }
 
   /**
-   * Register a namespace-level handler. Only the connection events have a source in
-   * the mock (0000): `connection`, and `connect` as its synonym, are the app entry
-   * point that hands over each new server socket. Real socket.io fires both, so an
-   * app listening on either works. Other events are accepted but never fire, since a
-   * mock has nothing else to raise here.
-   */
-  on(event: string, listener: Listener): this {
-    if (event === 'connection' || event === 'connect') {
-      addListener(this.connectionListeners, event, listener);
-    }
-    return this;
-  }
-
-  /**
    * Fire the connection handlers with the freshly paired server socket. Both synonyms
    * are raised, `connection` then `connect`, each from its own registry, so a handler
    * on either runs once and the reference order matches real socket.io.
    */
   private emitConnection(socket: ServerSocket): void {
     for (const event of ['connection', 'connect']) {
-      const list = this.connectionListeners.get(event);
-      if (!list) continue;
-      for (const listener of [...list]) (listener as (s: ServerSocket) => void)(socket);
+      this.emitLocal(event, [socket]);
     }
+  }
+
+  /** Raise one namespace-reserved event without entering the broadcast path. */
+  emitReserved(event: OrdinaryEventName, ...args: unknown[]): void {
+    this.emitLocal(event, args);
   }
 
   /** Resolve with the server socket of the next client to connect here. */
@@ -1127,16 +1298,20 @@ class ParentBroadcastOperator implements BroadcastContract, TimeoutBroadcastCont
 }
 
 /** A hidden dynamic parent whose public operations fan out over concrete children. */
-class ParentNamespace implements NamespaceContract {
+class ParentNamespace extends NodeEmitter implements NamespaceContract {
   readonly adapter: SmocketAdapter = new Adapter();
   readonly children = new Set<Namespace>();
   readonly middleware: ConnectionMiddleware[] = [];
-  readonly connectionListeners = new Map<string, Listener[]>();
 
   constructor(
     readonly name: string,
     private readonly matcher: RegExp | ParentNspNameMatchFn,
-  ) {}
+  ) {
+    super();
+  }
+
+  override listeners = ((event: OrdinaryEventName) =>
+    super.listeners(event)) as NamespaceContract['listeners'];
 
   matches(name: string, auth: Record<string, unknown>, next: (allowed: boolean) => void): void {
     if (this.matcher instanceof RegExp) {
@@ -1153,18 +1328,12 @@ class ParentNamespace implements NamespaceContract {
 
   addChild(child: Namespace): void {
     if (this.children.has(child)) return;
-    child.inherit(this.middleware, this.connectionListeners);
+    child.inherit(this.middleware, this.snapshotListeners(['connect', 'connection']));
     this.children.add(child);
   }
 
   use(middleware: ConnectionMiddleware): this {
     this.middleware.push(middleware);
-    return this;
-  }
-  on(event: string, listener: Listener): this {
-    if (event === 'connection' || event === 'connect') {
-      addListener(this.connectionListeners, event, listener);
-    }
     return this;
   }
   emit(event: string, ...args: unknown[]): boolean {
@@ -1297,8 +1466,6 @@ export class Server<
   private readonly parents: ParentNamespace[] = [];
   /** Manual child attachment uses the latest parent registered for each RegExp object. */
   private readonly regexParents = new Map<RegExp, ParentNamespace>();
-  /** Server-only lifecycle listeners; ordinary connection listeners stay on `/`. */
-  private readonly serverListeners = new Map<string, Listener[]>();
   /** `nextConnection(name)` observers waiting for a function-matched child to exist. */
   private readonly dynamicWaiters = new Map<string, Waiter[]>();
   /** The origin's reusable Manager; duplicate namespaces and opt-outs bypass it (0028). */
@@ -1398,11 +1565,7 @@ export class Server<
   }
 
   private emitNewNamespace(namespace: Namespace): void {
-    const listeners = this.serverListeners.get('new_namespace');
-    if (!listeners) return;
-    for (const listener of [...listeners]) {
-      (listener as (nsp: Namespace) => void)(namespace);
-    }
+    this.getNamespace('/').emitReserved('new_namespace', namespace);
   }
 
   /** Register or read a normalized static namespace (socket.io's lazy `of`). */
@@ -1444,12 +1607,76 @@ export class Server<
       SupportedServerListenerEvents<ServerSideEvents>,
       Event
     >,
-  ): void {
-    if (event === 'new_namespace') {
-      addListener(this.serverListeners, event, listener as Listener);
-      return;
-    }
-    this.getNamespace('/').on(event, listener as Listener);
+  ): this {
+    return this.getNamespace('/').on(event, listener as Listener) as unknown as this;
+  }
+
+  addListener(event: OrdinaryEventName, listener: Listener): this {
+    return this.getNamespace('/').addListener(event, listener) as unknown as this;
+  }
+
+  once<
+    Event extends ReservedOrUserEventName<
+      ServerReservedEvents<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
+      SupportedServerListenerEvents<ServerSideEvents>
+    >,
+  >(
+    event: Event,
+    listener: ReservedOrUserListener<
+      ServerReservedEvents<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
+      SupportedServerListenerEvents<ServerSideEvents>,
+      Event
+    >,
+  ): this {
+    return this.getNamespace('/').once(event, listener as Listener) as unknown as this;
+  }
+
+  prependListener(event: OrdinaryEventName, listener: Listener): this {
+    return this.getNamespace('/').prependListener(event, listener) as unknown as this;
+  }
+
+  prependOnceListener(event: OrdinaryEventName, listener: Listener): this {
+    return this.getNamespace('/').prependOnceListener(event, listener) as unknown as this;
+  }
+
+  removeListener(event: OrdinaryEventName, listener: Listener): this {
+    return this.getNamespace('/').removeListener(event, listener) as unknown as this;
+  }
+
+  off(event: OrdinaryEventName, listener: Listener): this {
+    return this.getNamespace('/').off(event, listener) as unknown as this;
+  }
+
+  removeAllListeners(event?: OrdinaryEventName): this {
+    return this.getNamespace('/').removeAllListeners(event) as unknown as this;
+  }
+
+  listeners = ((event: OrdinaryEventName) =>
+    (this.getNamespace('/') as NodeEmitter).listeners(event)) as ServerContract<
+    ListenEvents,
+    EmitEvents,
+    ServerSideEvents,
+    SocketData
+  >['listeners'];
+
+  rawListeners(event: OrdinaryEventName): Listener[] {
+    return this.getNamespace('/').rawListeners(event);
+  }
+
+  listenerCount(event: OrdinaryEventName, listener?: Listener): number {
+    return this.getNamespace('/').listenerCount(event, listener);
+  }
+
+  eventNames(): (string | symbol)[] {
+    return this.getNamespace('/').eventNames();
+  }
+
+  setMaxListeners(maxListeners: number): this {
+    return this.getNamespace('/').setMaxListeners(maxListeners) as unknown as this;
+  }
+
+  getMaxListeners(): number {
+    return this.getNamespace('/').getMaxListeners();
   }
 
   /**
@@ -1712,10 +1939,10 @@ class Emitter {
   }
 
   once(event: string, listener: Listener): this {
-    const wrapper = ((...args: never[]) => {
+    const wrapper = function (this: Emitter, ...args: never[]): void {
       removeOrdinaryListener(this.eventListeners, event, wrapper);
-      listener(...args);
-    }) as Listener;
+      listener.apply(this, args);
+    } as Listener;
     // component-emitter exposes this wrapper through `listeners()` and carries the
     // original on `.fn`. The server overrides `once` with Node's `.listener` shape.
     (wrapper as { fn?: Listener }).fn = listener;
@@ -1801,16 +2028,6 @@ class Emitter {
     removeOrdinaryListener(this.eventListeners, event, listener);
   }
 
-  /**
-   * The server's counterpart to `removeOne`: Node's emitter removes the last
-   * matching registration, not the first, so a doubly-registered listener drops
-   * its most recent registration first. Same match rule (direct or `once`
-   * wrapper), scanned from the end.
-   */
-  protected removeLast(event: string, listener: Listener): void {
-    removeOrdinaryListener(this.eventListeners, event, listener, true);
-  }
-
   /** Clear every listener for `event`, or every listener on the socket with no argument. */
   removeAllListeners(event?: string): this {
     if (event === undefined) this.eventListeners.clear();
@@ -1851,7 +2068,9 @@ class Emitter {
   protected dispatchNamed(event: string, args: unknown[]): void {
     const list = this.eventListeners.get(event);
     if (!list) return;
-    for (const listener of [...list]) (listener as (...a: unknown[]) => void)(...args);
+    for (const listener of [...list]) {
+      (listener as (...values: unknown[]) => void).apply(this, args);
+    }
   }
 }
 
@@ -1863,6 +2082,8 @@ class Emitter {
  * both the connected client and the failed-connection client.
  */
 class ClientEmitter extends Emitter {
+  readonly addEventListener = this.on;
+
   /** component-emitter returns the stable backing array while this key exists. */
   listeners = ((event: string) =>
     (this.eventListeners.get(event) ?? []) as AnyListener[]) as ClientSocketContract['listeners'];
@@ -1873,14 +2094,18 @@ class ClientEmitter extends Emitter {
 
   off(event?: string, listener?: Listener): this {
     if (event === undefined) {
-      this.removeAllListeners();
+      this.eventListeners.clear();
     } else if (listener === undefined) {
-      this.removeAllListeners(event);
+      this.eventListeners.delete(event);
     } else {
       this.removeOne(event, listener);
     }
     return this;
   }
+
+  readonly removeListener = this.off;
+  override readonly removeAllListeners = this.off;
+  readonly removeEventListener = this.off;
 }
 
 export class ServerSocket extends Emitter implements ServerSocketContract {
@@ -1888,6 +2113,8 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
   connected = false;
   readonly recovered = false;
   private readonly packetMiddleware: SocketMiddleware[] = [];
+  private readonly warnedEvents = new Set<OrdinaryEventName>();
+  private maxListeners = 10;
   readonly rooms = new Set<string>();
   /**
    * The namespace this socket lives on. `nsp.adapter` records its membership and
@@ -1932,10 +2159,59 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
     this.on('error', () => {});
   }
 
+  private addNodeListener(
+    event: OrdinaryEventName,
+    listener: Listener,
+    prepend = false,
+    exposedListener = listener,
+  ): void {
+    if (typeof listener !== 'function') {
+      throw new TypeError('The "listener" argument must be of type function. Received undefined');
+    }
+    if (this.eventListeners.get('newListener')?.length) {
+      this.emit('newListener', event, exposedListener);
+    }
+    if (!this.eventListeners.has(event)) this.warnedEvents.delete(event);
+    const listeners = this.eventListeners.get(event);
+    if (listeners) {
+      if (prepend) listeners.unshift(listener);
+      else listeners.push(listener);
+    } else {
+      this.eventListeners.set(event, [listener]);
+    }
+    const count = this.eventListeners.get(event)?.length ?? 0;
+    if (this.maxListeners === 0 || count <= this.maxListeners || this.warnedEvents.has(event)) {
+      return;
+    }
+    this.warnedEvents.add(event);
+    const process = (
+      globalThis as typeof globalThis & {
+        process?: { emitWarning?: (warning: Error) => void };
+      }
+    ).process;
+    if (!process?.emitWarning) return;
+    const warning = Object.assign(
+      new Error(
+        `Possible EventEmitter memory leak detected. ${count} ${String(event)} listeners added.`,
+      ),
+      { name: 'MaxListenersExceededWarning', emitter: this, type: event, count },
+    );
+    process.emitWarning(warning);
+  }
+
+  override on(event: OrdinaryEventName, listener: Listener): this {
+    this.addNodeListener(event, listener);
+    return this;
+  }
+
+  addListener(event: OrdinaryEventName, listener: Listener): this {
+    return this.on(event, listener);
+  }
+
   /** Node returns a fresh snapshot and unwraps `once` registrations to their originals. */
-  listeners = ((event: string) =>
-    (this.eventListeners.get(event) ?? []).map(
-      (entry) => (entry as { listener?: Listener }).listener ?? entry,
+  listeners = ((event: OrdinaryEventName) =>
+    (this.eventListeners.get(event) ?? []).map((entry) =>
+      nodeOriginalListener(entry),
     ) as AnyListener[]) as ServerSocketContract['listeners'];
 
   /** Count every registration, or only direct and original `once` identity matches. */
@@ -1948,20 +2224,88 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
         ).length;
   }) as ServerSocketContract['listenerCount'];
 
-  /** Map key order matches Node's insertion order, including delete and re-add. */
+  rawListeners(event: OrdinaryEventName): Listener[] {
+    return [...(this.eventListeners.get(event) ?? [])];
+  }
+
+  /** Node property-key order sorts integer strings before other strings and symbols. */
   eventNames(): (string | symbol)[] {
-    return [...this.eventListeners.keys()];
+    return nodeEventNames(this.eventListeners);
   }
 
   /** Server `once` uses Node's wrapper shape, which `listeners()` unwraps. */
-  override once(event: string, listener: Listener): this {
+  override once(event: OrdinaryEventName, listener: Listener): this {
+    if (typeof listener !== 'function') {
+      throw new TypeError('The "listener" argument must be of type function. Received undefined');
+    }
     const wrapper = ((...args: never[]) => {
-      removeOrdinaryListener(this.eventListeners, event, wrapper, true);
-      listener(...args);
+      this.removeListener(event, wrapper);
+      listener.apply(this, args);
     }) as Listener;
     (wrapper as { listener?: Listener }).listener = listener;
-    addListener(this.eventListeners, event, wrapper);
+    this.addNodeListener(event, wrapper, false, listener);
     return this;
+  }
+
+  prependListener(event: OrdinaryEventName, listener: Listener): this {
+    this.addNodeListener(event, listener, true);
+    return this;
+  }
+
+  prependOnceListener(event: OrdinaryEventName, listener: Listener): this {
+    if (typeof listener !== 'function') {
+      throw new TypeError('The "listener" argument must be of type function. Received undefined');
+    }
+    const wrapper = ((...args: never[]) => {
+      this.removeListener(event, wrapper);
+      listener.apply(this, args);
+    }) as Listener;
+    (wrapper as { listener?: Listener }).listener = listener;
+    this.addNodeListener(event, wrapper, true, listener);
+    return this;
+  }
+
+  removeListener(event: OrdinaryEventName, listener: Listener): this {
+    if (typeof listener !== 'function') {
+      throw new TypeError('The "listener" argument must be of type function. Received undefined');
+    }
+    const removed = removeOrdinaryListener(this.eventListeners, event, listener, true);
+    if (removed && this.eventListeners.get('removeListener')?.length) {
+      this.emit('removeListener', event, nodeOriginalListener(removed));
+    }
+    return this;
+  }
+
+  readonly off = this.removeListener;
+
+  override removeAllListeners(event?: OrdinaryEventName): this {
+    if (event === undefined) {
+      for (const name of [...this.eventListeners.keys()]) {
+        if (name !== 'removeListener') this.removeAllListeners(name);
+      }
+      this.removeAllListeners('removeListener');
+      this.warnedEvents.clear();
+    } else {
+      const listeners = [...(this.eventListeners.get(event) ?? [])];
+      for (let index = listeners.length - 1; index >= 0; index -= 1) {
+        const listener = listeners[index];
+        if (listener) this.removeListener(event, listener);
+      }
+      this.warnedEvents.delete(event);
+    }
+    return this;
+  }
+
+  setMaxListeners(maxListeners: number): this {
+    if (typeof maxListeners !== 'number' || maxListeners < 0 || Number.isNaN(maxListeners)) {
+      throw new RangeError('The value of "n" is out of range. It must be a non-negative number.');
+    }
+    this.maxListeners = maxListeners;
+    return this;
+  }
+
+  getMaxListeners(): number {
+    return this.maxListeners;
   }
 
   use(middleware: SocketMiddleware): this {
@@ -2194,19 +2538,6 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
    */
   get volatile(): this {
     this.flags.volatile = true;
-    return this;
-  }
-
-  /**
-   * The server socket is Node's `EventEmitter`, whose `off` (`removeListener`)
-   * requires a listener: `off(event)` with none throws rather than clearing the
-   * event, so bulk removal here is `removeAllListeners` (0017).
-   */
-  off(event: string, listener: Listener): this {
-    if (typeof listener !== 'function') {
-      throw new TypeError('The "listener" argument must be of type function. Received undefined');
-    }
-    this.removeLast(event, listener);
     return this;
   }
 
@@ -2811,6 +3142,13 @@ function addListener(
   map.set(event, list);
 }
 
+/** Match EventEmitter's property-key order for integer strings, other strings, and symbols. */
+function nodeEventNames(
+  map: ReadonlyMap<OrdinaryEventName, readonly Listener[]>,
+): (string | symbol)[] {
+  return Reflect.ownKeys(Object.fromEntries([...map.keys()].map((event) => [event, true])));
+}
+
 /** Remove the first occurrence of `listener` from `list` in place, if present. */
 function removeFirst<Entry>(list: Entry[] | undefined, listener: Entry): void {
   if (!list) return;
@@ -2827,26 +3165,34 @@ function removeOrdinaryListener(
   event: OrdinaryEventName,
   listener: Listener,
   fromEnd = false,
-): void {
+): Listener | undefined {
   const list = map.get(event);
   if (!list) return;
+  let removed: Listener | undefined;
   if (fromEnd) {
     for (let i = list.length - 1; i >= 0; i--) {
       const entry = list[i];
-      if (entry !== undefined && isListener(entry, listener)) {
+      if (entry !== undefined && isListener(entry, listener, true)) {
         list.splice(i, 1);
+        removed = entry;
         break;
       }
     }
   } else {
-    const index = list.findIndex((entry) => isListener(entry, listener));
-    if (index !== -1) list.splice(index, 1);
+    const index = list.findIndex((entry) => isListener(entry, listener, false));
+    if (index !== -1) removed = list.splice(index, 1)[0];
   }
   if (list.length === 0) map.delete(event);
+  return removed;
 }
 
-/** True for a direct listener or either emitter's side-specific `once` wrapper. */
-function isListener(entry: Listener, listener: Listener): boolean {
+/** Unwrap Node's `once` callback identity without recognizing component-emitter wrappers. */
+function nodeOriginalListener(listener: Listener): Listener {
+  return (listener as { listener?: Listener }).listener ?? listener;
+}
+
+/** Match the direct listener or only the wrapper property used by this emitter side. */
+function isListener(entry: Listener, listener: Listener, nodeSide: boolean): boolean {
   const wrapper = entry as { fn?: Listener; listener?: Listener };
-  return entry === listener || wrapper.fn === listener || wrapper.listener === listener;
+  return entry === listener || (nodeSide ? wrapper.listener === listener : wrapper.fn === listener);
 }

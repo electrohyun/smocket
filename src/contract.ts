@@ -494,6 +494,32 @@ export interface NamespaceContract<
       Event
     >,
   ): this;
+  /** Node EventEmitter alias of {@link on}. */
+  addListener(event: string | symbol, listener: AnyListener): this;
+  once<
+    Event extends ReservedOrUserEventName<
+      NamespaceReservedEvents<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
+      SupportedServerListenerEvents<ServerSideEvents>
+    >,
+  >(
+    event: Event,
+    listener: ReservedOrUserListener<
+      NamespaceReservedEvents<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
+      SupportedServerListenerEvents<ServerSideEvents>,
+      Event
+    >,
+  ): this;
+  prependListener(event: string | symbol, listener: AnyListener): this;
+  prependOnceListener(event: string | symbol, listener: AnyListener): this;
+  removeListener(event: string | symbol, listener: AnyListener): this;
+  off(event: string | symbol, listener: AnyListener): this;
+  removeAllListeners(event?: string | symbol): this;
+  listeners: IoNamespace<ListenEvents, EmitEvents, ServerSideEvents, SocketData>['listeners'];
+  rawListeners(event: string | symbol): AnyListener[];
+  listenerCount(event: string | symbol, listener?: AnyListener): number;
+  eventNames(): (string | symbol)[];
+  setMaxListeners(maxListeners: number): this;
+  getMaxListeners(): number;
   /**
    * Register a connection middleware on this namespace; see {@link ConnectionMiddleware}.
    * Called once per incoming connection here, in registration order.
@@ -644,13 +670,9 @@ export interface ServerContract<
    * handlers. The `nextConnection` path resolves the same socket; this is
    * the on-based path code written for real socket.io actually uses.
    *
-   * The return stays `void` while every other `on` in this file narrowed to `this`,
-   * because this is the one position where socket.io disagrees with itself. Its
-   * declaration says `this`, so the type promises the `Server` back, and at runtime it
-   * hands back `io.of('/')`, a `Namespace`. Both chain, so nobody notices, but a contract
-   * cannot name a single return that is honest about both. Narrowing to `NamespaceContract`
-   * fails the `Ensure<>` proof below, since socket.io's declared `Server` has no `name`,
-   * and narrowing to `this` would copy a promise its own runtime does not keep.
+   * Socket.IO declares the return as the Server while its runtime delegates to the root
+   * Namespace and returns that object. Smocket preserves both observations: this contract
+   * carries the declared fluent type and the runtime returns `io.of('/')`.
    */
   on<
     Event extends ReservedOrUserEventName<
@@ -664,7 +686,33 @@ export interface ServerContract<
       SupportedServerListenerEvents<ServerSideEvents>,
       Event
     >,
-  ): void;
+  ): this;
+  /** Node EventEmitter alias delegated to the root Namespace. */
+  addListener(event: string | symbol, listener: AnyListener): this;
+  once<
+    Event extends ReservedOrUserEventName<
+      ServerReservedEvents<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
+      SupportedServerListenerEvents<ServerSideEvents>
+    >,
+  >(
+    event: Event,
+    listener: ReservedOrUserListener<
+      ServerReservedEvents<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
+      SupportedServerListenerEvents<ServerSideEvents>,
+      Event
+    >,
+  ): this;
+  prependListener(event: string | symbol, listener: AnyListener): this;
+  prependOnceListener(event: string | symbol, listener: AnyListener): this;
+  removeListener(event: string | symbol, listener: AnyListener): this;
+  off(event: string | symbol, listener: AnyListener): this;
+  removeAllListeners(event?: string | symbol): this;
+  listeners: Server<ListenEvents, EmitEvents, ServerSideEvents, SocketData>['listeners'];
+  rawListeners(event: string | symbol): AnyListener[];
+  listenerCount(event: string | symbol, listener?: AnyListener): number;
+  eventNames(): (string | symbol)[];
+  setMaxListeners(maxListeners: number): this;
+  getMaxListeners(): number;
   /**
    * `io.use` is the default namespace's `use`: it registers a connection middleware for
    * connections on `/`, exactly as `io.of('/').use` would. See {@link ConnectionMiddleware}.
@@ -814,6 +862,10 @@ export interface ServerSocketContract<
     event: Event,
     listener: ReservedOrUserListener<ServerSocketReservedEvents, ListenEvents, Event>,
   ): this;
+  /** Node EventEmitter alias of {@link on}. */
+  addListener(event: string | symbol, listener: AnyListener): this;
+  prependListener(event: string | symbol, listener: AnyListener): this;
+  prependOnceListener(event: string | symbol, listener: AnyListener): this;
   /** Return a fresh snapshot, with `once` wrappers exposed as their original listeners. */
   listeners: IoServerSocket<ListenEvents, EmitEvents, ServerSideEvents, SocketData>['listeners'];
   /** Count all registrations, or only those matching a direct or original `once` listener. */
@@ -823,12 +875,17 @@ export interface ServerSocketContract<
     ServerSideEvents,
     SocketData
   >['listenerCount'];
+  /** Return a fresh snapshot that keeps Node's `once` wrappers visible. */
+  rawListeners(event: string | symbol): AnyListener[];
   /** Names with at least one ordinary listener, in registry insertion order. */
   eventNames(): (string | symbol)[];
   /** Remove one registration. The server is Node's emitter, so a listener is required (0017). */
-  off(event: string, listener: (...args: unknown[]) => void): this;
+  removeListener(event: string | symbol, listener: AnyListener): this;
+  off(event: string | symbol, listener: AnyListener): this;
   /** Remove every listener for `event`, or all of them when called with no argument. */
-  removeAllListeners(event?: string): this;
+  removeAllListeners(event?: string | symbol): this;
+  setMaxListeners(maxListeners: number): this;
+  getMaxListeners(): number;
   /** Catch-all for incoming events; the listener receives the event name then its args. */
   onAny(listener: AnyListener): this;
   /** Add an incoming catch-all ahead of every existing catch-all listener. */
@@ -912,6 +969,11 @@ export interface ClientSocketContract<
     event: Event,
     listener: ReservedOrUserListener<ClientSocketReservedEvents, ListenEvents, Event>,
   ): this;
+  /** component-emitter source-public alias of {@link on}. */
+  addEventListener<Event extends ReservedOrUserEventName<ClientSocketReservedEvents, ListenEvents>>(
+    event: Event,
+    listener: ReservedOrUserListener<ClientSocketReservedEvents, ListenEvents, Event>,
+  ): this;
   once<Event extends ReservedOrUserEventName<ClientSocketReservedEvents, ListenEvents>>(
     event: Event,
     listener: ReservedOrUserListener<ClientSocketReservedEvents, ListenEvents, Event>,
@@ -924,7 +986,22 @@ export interface ClientSocketContract<
    * The client is component-emitter's: `off()` clears every listener, `off(event)`
    * clears that event, and `off(event, listener)` removes one. No form throws (0017).
    */
-  off(event?: string, listener?: (...args: unknown[]) => void): this;
+  off<Event extends ReservedOrUserEventName<ClientSocketReservedEvents, ListenEvents>>(
+    event?: Event,
+    listener?: ReservedOrUserListener<ClientSocketReservedEvents, ListenEvents, Event>,
+  ): this;
+  /** component-emitter declaration-public alias of {@link off}. */
+  removeListener<Event extends ReservedOrUserEventName<ClientSocketReservedEvents, ListenEvents>>(
+    event?: Event,
+    listener?: ReservedOrUserListener<ClientSocketReservedEvents, ListenEvents, Event>,
+  ): this;
+  /** component-emitter source-public alias of {@link off}. */
+  removeEventListener<
+    Event extends ReservedOrUserEventName<ClientSocketReservedEvents, ListenEvents>,
+  >(
+    event?: Event,
+    listener?: ReservedOrUserListener<ClientSocketReservedEvents, ListenEvents, Event>,
+  ): this;
   /** Remove every listener for `event`, or all of them when called with no argument. */
   removeAllListeners(event?: string): this;
   /** Catch-all for incoming events; the listener receives the event name then its args. */
@@ -1084,7 +1161,23 @@ type NamespaceParityContract<
   SocketData = DefaultSocketData,
 > = Omit<
   NamespaceContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
-  'on' | 'send' | 'use' | 'write'
+  | 'addListener'
+  | 'eventNames'
+  | 'getMaxListeners'
+  | 'listenerCount'
+  | 'listeners'
+  | 'off'
+  | 'on'
+  | 'once'
+  | 'prependListener'
+  | 'prependOnceListener'
+  | 'rawListeners'
+  | 'removeAllListeners'
+  | 'removeListener'
+  | 'send'
+  | 'setMaxListeners'
+  | 'use'
+  | 'write'
 > & {
   send(
     ...args: MessageEventParams<EmitEvents>
@@ -1107,7 +1200,24 @@ type ServerParityContract<
   SocketData = DefaultSocketData,
 > = Omit<
   ServerContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
-  'of' | 'on' | 'send' | 'use' | 'write'
+  | 'addListener'
+  | 'eventNames'
+  | 'getMaxListeners'
+  | 'listenerCount'
+  | 'listeners'
+  | 'off'
+  | 'of'
+  | 'on'
+  | 'once'
+  | 'prependListener'
+  | 'prependOnceListener'
+  | 'rawListeners'
+  | 'removeAllListeners'
+  | 'removeListener'
+  | 'send'
+  | 'setMaxListeners'
+  | 'use'
+  | 'write'
 > & {
   send(
     ...args: MessageEventParams<EmitEvents>
@@ -1221,7 +1331,12 @@ type ClientSocketParityContract<
 
 // Socket.io reference types, derived by indexing so no generic arguments (and no
 // `any`) are written by hand.
-type IoNamespace = ReturnType<Server['of']>;
+type IoNamespace<
+  ListenEvents extends EventsMap = DefaultEventsMap,
+  EmitEvents extends EventsMap = ListenEvents,
+  ServerSideEvents extends EventsMap = DefaultEventsMap,
+  SocketData = DefaultSocketData,
+> = ReturnType<Server<ListenEvents, EmitEvents, ServerSideEvents, SocketData>['of']>;
 type IoBroadcast = ReturnType<Server['to']>;
 type IoAdapter = IoNamespace['adapter'];
 
