@@ -1,9 +1,6 @@
 import { expect, test, vi } from 'vitest';
 
-vi.mock('socket.io-client', async () => {
-  const smocket = await vi.importActual('smocket');
-  return smocket;
-});
+vi.mock('socket.io-client', () => vi.importActual(process.env.SMOCKET_CLIENT_TARGET ?? 'smocket'));
 
 const { assertScenarioResult } = await import('../shared/assertions.js');
 const { runScenario } = await import('../shared/bootstrap.js');
