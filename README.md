@@ -144,13 +144,15 @@ That run is green. The file above is a Vitest test because the suite here uses
 Vitest. Smocket has no runtime dependency on a test runner: runner packages appear
 only in the [development dependencies](package.json). This repository executes
 Smocket with Vitest and `node:test`, plus the documented Vitest and Jest paths
-from clean consumers. Each clean-consumer run installs either one candidate tarball or an exact
-published version outside the checkout, so a workspace resolution is not counted
-as adoption evidence.
+from clean consumers. Candidate validation installs synchronized root and client
+tarballs outside the checkout, while published validation installs an exact root
+version. Neither path counts a workspace resolution as package validation.
 
 `connect(url)` and `io.on('connection')` are socket.io-client's and socket.io's own
 entry points, so the code above is the code an application already has, with the
-import changed.
+import changed. An application that keeps its original client import can install
+`smocket-client` at the same exact version as `smocket` and map `socket.io-client`
+to that package instead.
 
 Bob receives what Alice sent, and Alice does not, because `socket.to` excludes the
 sender. The test above asserts only the first half, since proving a socket did not
@@ -169,8 +171,11 @@ receive something takes the marker pattern rather than a wait, and that is a
 | Wanting the exact guarantees                 | [the conformance report](docs/conformance.md)                                         |
 
 An existing application does not have to be rewritten to run against smocket.
-smocket exports `io` under socket.io-client's own name, so a test runner pointed
-at smocket resolves the app's own import and the app's code runs unchanged.
+`smocket-client` preserves socket.io-client's ESM default, named `io`, named
+`connect`, callable CommonJS root, and client `Socket` type for the supported
+surface. A test runner pointed at that package resolves the app's own import and
+the app's code runs unchanged. Load `smocket` and `smocket-client` through the same
+module format so both use the same in-process registry.
 [Test-runner integration](docs/test-runner-integration.md) has the executable Vitest
 and Jest setups.
 

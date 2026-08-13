@@ -30,8 +30,10 @@ unsupported reconnection, parser, or transport behavior.
 
 The facade contains no connection implementation and does not bundle `smocket`. It has an
 exact-version peer dependency on `smocket`, so both packages resolve the same module-level
-server registry. Their versions are released together, publishing `smocket` first and the
-facade second. The existing `smocket` `io` and `connect` exports remain supported.
+server registry when both are loaded through ESM or both through CommonJS. Mixed ESM and
+CommonJS loading can instantiate the root package twice and is not part of this guarantee.
+Their versions are released together, publishing `smocket` first and the facade second.
+The existing `smocket` `io` and `connect` exports remain supported.
 
 Socket.IO Client's CommonJS runtime is callable, but its 4.7.5 and 4.8.3 declarations do
 not make `import = require()` callable; `attw` reports the missing `export =`. Smocket's

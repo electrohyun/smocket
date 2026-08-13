@@ -277,12 +277,12 @@
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:package-root:module:BroadcastOperator:type-and-value-export:2bd93e7debd2",
       "disposition": "out-of-scope",
-      "reference": "https://github.com/electrohyun/smocket/issues/276"
+      "reference": "docs/scope.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:package-root:module:DisconnectReason:type-export:2e0957b3eb5d",
       "disposition": "out-of-scope",
-      "reference": "https://github.com/electrohyun/smocket/issues/276"
+      "reference": "docs/scope.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:package-root:module:Event:type-export:45cf11dd4743",
@@ -292,7 +292,7 @@
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:package-root:module:Namespace:type-and-value-export:11e20bc1206b",
       "disposition": "out-of-scope",
-      "reference": "https://github.com/electrohyun/smocket/issues/276"
+      "reference": "docs/scope.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:package-root:module:RemoteSocket:type-and-value-export:ce46dbabee41",
@@ -307,12 +307,12 @@
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:package-root:module:ServerOptions:type-export:c47d0b82ba95",
       "disposition": "out-of-scope",
-      "reference": "https://github.com/electrohyun/smocket/issues/276"
+      "reference": "docs/scope.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:package-root:module:Socket:type-and-value-export:929ee0bceb30",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/276"
+      "disposition": "out-of-scope",
+      "reference": "docs/decisions/0022-root-socket-names-server-socket.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:ParentNamespace:instance:-EventEmitter.captureRejectionSymbol-:method:a4ce1bc46ec9",
@@ -1042,7 +1042,7 @@
     {
       "id": "socket.io-4.7.5:4.7.5:officially-documented:package-root:CommonJS-module:callable-root:function:04f1c2067828",
       "disposition": "out-of-scope",
-      "reference": "https://github.com/electrohyun/smocket/issues/276"
+      "reference": "docs/scope.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:runtime-only:Namespace:instance:_add:method:2fc5ed567ff5",
@@ -1432,7 +1432,7 @@
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:package-export-map:module:.-package.json:package-subpath:912791c79426",
       "disposition": "out-of-scope",
-      "reference": "https://github.com/electrohyun/smocket/issues/276"
+      "reference": "docs/scope.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:package-export-map:module:.:package-subpath:3f7d6145accf",
@@ -1442,7 +1442,7 @@
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:package-root:module:BroadcastOperator:type-and-value-export:73874653eabe",
       "disposition": "out-of-scope",
-      "reference": "https://github.com/electrohyun/smocket/issues/276"
+      "reference": "docs/scope.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:package-root:module:DefaultEventsMap:type-export:f15fa9d39f65",
@@ -1452,7 +1452,7 @@
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:package-root:module:DisconnectReason:type-export:88088b6b43f8",
       "disposition": "out-of-scope",
-      "reference": "https://github.com/electrohyun/smocket/issues/276"
+      "reference": "docs/scope.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:package-root:module:Event:type-export:1707229260a6",
@@ -1462,12 +1462,12 @@
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:package-root:module:ExtendedError:type-export:e81c8a344d38",
       "disposition": "out-of-scope",
-      "reference": "https://github.com/electrohyun/smocket/issues/276"
+      "reference": "docs/scope.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:package-root:module:Namespace:type-and-value-export:9b305e9b9829",
       "disposition": "out-of-scope",
-      "reference": "https://github.com/electrohyun/smocket/issues/276"
+      "reference": "docs/scope.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:package-root:module:RemoteSocket:type-and-value-export:fd349e1ea2c2",
@@ -1482,12 +1482,12 @@
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:package-root:module:ServerOptions:type-export:b7a7cbba72e6",
       "disposition": "out-of-scope",
-      "reference": "https://github.com/electrohyun/smocket/issues/276"
+      "reference": "docs/scope.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:package-root:module:Socket:type-and-value-export:f9782efcae54",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/276"
+      "disposition": "out-of-scope",
+      "reference": "docs/decisions/0022-root-socket-names-server-socket.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:ParentNamespace:instance:-EventEmitter.captureRejectionSymbol-:method:e851d74089dc",
@@ -2222,7 +2222,7 @@
     {
       "id": "socket.io-4.8.3:4.8.3:officially-documented:package-root:CommonJS-module:callable-root:function:95885e232f07",
       "disposition": "out-of-scope",
-      "reference": "https://github.com/electrohyun/smocket/issues/276"
+      "reference": "docs/scope.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:runtime-only:Namespace:instance:_add:method:848cca6ce924",
@@ -3071,43 +3071,43 @@
     },
     {
       "id": "socket.io-client-4.7.5:4.7.5:declaration-public:package-export-map:module:.-package.json:package-subpath:b78577990ee9",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/276"
+      "disposition": "implemented",
+      "reference": "packages/smocket-client/package.json"
     },
     {
       "id": "socket.io-client-4.7.5:4.7.5:declaration-public:package-export-map:module:.:package-subpath:9b73fd911c35",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/276"
+      "disposition": "implemented",
+      "reference": "packages/smocket-client/package.json"
     },
     {
       "id": "socket.io-client-4.7.5:4.7.5:declaration-public:package-root:module:connect:value-export:9bcfa53ac12b",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/276"
+      "disposition": "out-of-scope",
+      "reference": "docs/decisions/0023-client-package-is-a-thin-facade.md"
     },
     {
       "id": "socket.io-client-4.7.5:4.7.5:declaration-public:package-root:module:connect:value-export:dee8d83c3059",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/276"
+      "disposition": "out-of-scope",
+      "reference": "docs/decisions/0023-client-package-is-a-thin-facade.md"
     },
     {
       "id": "socket.io-client-4.7.5:4.7.5:declaration-public:package-root:module:default:value-export:af15728df60f",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/276"
+      "disposition": "out-of-scope",
+      "reference": "docs/decisions/0023-client-package-is-a-thin-facade.md"
     },
     {
       "id": "socket.io-client-4.7.5:4.7.5:declaration-public:package-root:module:default:value-export:fb4e69046b83",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/276"
+      "disposition": "out-of-scope",
+      "reference": "docs/decisions/0023-client-package-is-a-thin-facade.md"
     },
     {
       "id": "socket.io-client-4.7.5:4.7.5:declaration-public:package-root:module:io:value-export:1ff68997ef36",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/276"
+      "disposition": "out-of-scope",
+      "reference": "docs/decisions/0023-client-package-is-a-thin-facade.md"
     },
     {
       "id": "socket.io-client-4.7.5:4.7.5:declaration-public:package-root:module:io:value-export:f166d8bb0c88",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/276"
+      "disposition": "out-of-scope",
+      "reference": "docs/decisions/0023-client-package-is-a-thin-facade.md"
     },
     {
       "id": "socket.io-client-4.7.5:4.7.5:declaration-public:package-root:module:Manager:type-and-value-export:b31d6cf4f2a2",
@@ -3126,18 +3126,18 @@
     },
     {
       "id": "socket.io-client-4.7.5:4.7.5:declaration-public:package-root:module:Socket:type-and-value-export:7e41e253fee8",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/276"
+      "disposition": "out-of-scope",
+      "reference": "docs/decisions/0023-client-package-is-a-thin-facade.md"
     },
     {
       "id": "socket.io-client-4.7.5:4.7.5:declaration-public:package-root:module:Socket:type-and-value-export:e379d6bc4f1b",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/276"
+      "disposition": "out-of-scope",
+      "reference": "docs/decisions/0023-client-package-is-a-thin-facade.md"
     },
     {
       "id": "socket.io-client-4.7.5:4.7.5:declaration-public:package-root:module:SocketOptions:type-export:31aab94c5218",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/276"
+      "disposition": "out-of-scope",
+      "reference": "docs/decisions/0023-client-package-is-a-thin-facade.md"
     },
     {
       "id": "socket.io-client-4.7.5:4.7.5:runtime-only:client-Socket:instance:addEventListener:method:dec33f6cb1fc",
@@ -3541,38 +3541,38 @@
     },
     {
       "id": "socket.io-client-4.8.3:4.8.3:declaration-public:package-export-map:module:.-package.json:package-subpath:e54ab381d511",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/276"
+      "disposition": "implemented",
+      "reference": "packages/smocket-client/package.json"
     },
     {
       "id": "socket.io-client-4.8.3:4.8.3:declaration-public:package-export-map:module:.:package-subpath:f4c974cb1aad",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/276"
+      "disposition": "implemented",
+      "reference": "packages/smocket-client/package.json"
     },
     {
       "id": "socket.io-client-4.8.3:4.8.3:declaration-public:package-root:module:connect:value-export:239352318e0a",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/276"
+      "disposition": "out-of-scope",
+      "reference": "docs/decisions/0023-client-package-is-a-thin-facade.md"
     },
     {
       "id": "socket.io-client-4.8.3:4.8.3:declaration-public:package-root:module:connect:value-export:8b24ba9c87b2",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/276"
+      "disposition": "out-of-scope",
+      "reference": "docs/decisions/0023-client-package-is-a-thin-facade.md"
     },
     {
       "id": "socket.io-client-4.8.3:4.8.3:declaration-public:package-root:module:default:value-export:31ebc99dacad",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/276"
+      "disposition": "out-of-scope",
+      "reference": "docs/decisions/0023-client-package-is-a-thin-facade.md"
     },
     {
       "id": "socket.io-client-4.8.3:4.8.3:declaration-public:package-root:module:default:value-export:327b5f52cf62",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/276"
+      "disposition": "out-of-scope",
+      "reference": "docs/decisions/0023-client-package-is-a-thin-facade.md"
     },
     {
       "id": "socket.io-client-4.8.3:4.8.3:declaration-public:package-root:module:DisconnectDescription:type-export:c0bf6bf348bc",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/276"
+      "disposition": "out-of-scope",
+      "reference": "docs/decisions/0023-client-package-is-a-thin-facade.md"
     },
     {
       "id": "socket.io-client-4.8.3:4.8.3:declaration-public:package-root:module:Fetch:type-and-value-export:1f6875a34f15",
@@ -3581,13 +3581,13 @@
     },
     {
       "id": "socket.io-client-4.8.3:4.8.3:declaration-public:package-root:module:io:value-export:32a56f9b6a38",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/276"
+      "disposition": "out-of-scope",
+      "reference": "docs/decisions/0023-client-package-is-a-thin-facade.md"
     },
     {
       "id": "socket.io-client-4.8.3:4.8.3:declaration-public:package-root:module:io:value-export:3e17dfa45c0d",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/276"
+      "disposition": "out-of-scope",
+      "reference": "docs/decisions/0023-client-package-is-a-thin-facade.md"
     },
     {
       "id": "socket.io-client-4.8.3:4.8.3:declaration-public:package-root:module:Manager:type-and-value-export:126c4979ee46",
@@ -3616,18 +3616,18 @@
     },
     {
       "id": "socket.io-client-4.8.3:4.8.3:declaration-public:package-root:module:Socket:type-and-value-export:443856b4f456",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/276"
+      "disposition": "out-of-scope",
+      "reference": "docs/decisions/0023-client-package-is-a-thin-facade.md"
     },
     {
       "id": "socket.io-client-4.8.3:4.8.3:declaration-public:package-root:module:Socket:type-and-value-export:5fc8b548d905",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/276"
+      "disposition": "out-of-scope",
+      "reference": "docs/decisions/0023-client-package-is-a-thin-facade.md"
     },
     {
       "id": "socket.io-client-4.8.3:4.8.3:declaration-public:package-root:module:SocketOptions:type-export:3bddfd9344b2",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/276"
+      "disposition": "out-of-scope",
+      "reference": "docs/decisions/0023-client-package-is-a-thin-facade.md"
     },
     {
       "id": "socket.io-client-4.8.3:4.8.3:declaration-public:package-root:module:WebSocket:type-and-value-export:1c1355d02a9b",
