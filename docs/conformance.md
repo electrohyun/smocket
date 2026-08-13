@@ -142,8 +142,8 @@ The trailing callback and `emitWithAck`, in both directions.
 - [the trailing callback receives the sender-side ack](../src/ack.test.ts#L16)
 - [calling ack twice runs the sender callback only once](../src/ack.test.ts#L25)
 - [emitWithAck stays pending when the peer never acks](../src/ack.test.ts#L41)
-- [server-to-client emitWithAck works without a timeout](../src/ack.test.ts#L53)
-- [emitWithAck buffers while disconnected and settles after reconnect](../src/ack.test.ts#L59)
+- [server-to-client emitWithAck works without a timeout](../src/ack.test.ts#L60)
+- [emitWithAck buffers while disconnected and settles after reconnect](../src/ack.test.ts#L66)
 
 ### Payload serialization
 
@@ -356,10 +356,10 @@ Room cleanup, the reason each side reports, and what happens to a pending ack.
 - [disconnect clears a pending client timeout before rejecting emitWithAck](../src/disconnect.test.ts#L149)
 - [a disconnect from an outgoing observer clears the current emitWithAck timeout](../src/disconnect.test.ts#L175)
 - [a trailing-callback ack is silently discarded when the connection drops](../src/disconnect.test.ts#L202)
-- [a pending server.emitWithAck stays pending when the client disconnects](../src/disconnect.test.ts#L220)
-- [client.disconnect() reports io client disconnect to the client and client namespace disconnect to the server](../src/disconnect.test.ts#L242)
-- [serverSocket.disconnect() reports io server disconnect to the client and server namespace disconnect to the server](../src/disconnect.test.ts#L258)
-- [disconnecting carries the same reason and fires before disconnect](../src/disconnect.test.ts#L274)
+- [a pending server.emitWithAck stays pending when the client disconnects](../src/disconnect.test.ts#L221)
+- [client.disconnect() reports io client disconnect to the client and client namespace disconnect to the server](../src/disconnect.test.ts#L247)
+- [serverSocket.disconnect() reports io server disconnect to the client and server namespace disconnect to the server](../src/disconnect.test.ts#L263)
+- [disconnecting carries the same reason and fires before disconnect](../src/disconnect.test.ts#L279)
 
 ### Shared Manager disconnect
 
