@@ -1586,26 +1586,27 @@ function assertNotReservedEvent(event: string): void {
  * the target's `dispatch` a tick later.
  */
 class Emitter {
-  private readonly listeners = new Map<string, Listener[]>();
+  /** Ordinary named listeners. Catch-all registries intentionally stay separate. */
+  protected readonly eventListeners = new Map<string, Listener[]>();
   /** Catch-all listeners, fired for every non-reserved event before the specific ones. */
   private anyListeners: AnyListener[] | undefined;
   /** Outgoing catch-all listeners, fired for every event this socket sends (#111). */
   private anyOutgoingListeners: AnyListener[] | undefined;
 
   on(event: string, listener: Listener): this {
-    addListener(this.listeners, event, listener);
+    addListener(this.eventListeners, event, listener);
     return this;
   }
 
   once(event: string, listener: Listener): this {
     const wrapper = ((...args: never[]) => {
-      removeFirst(this.listeners.get(event), wrapper);
+      removeOrdinaryListener(this.eventListeners, event, wrapper);
       listener(...args);
     }) as Listener;
-    // Carry the original so `off(listener)` can find a `once` registration through
-    // its wrapper, the way socket.io's emitters do.
-    (wrapper as { listener?: Listener }).listener = listener;
-    addListener(this.listeners, event, wrapper);
+    // component-emitter exposes this wrapper through `listeners()` and carries the
+    // original on `.fn`. The server overrides `once` with Node's `.listener` shape.
+    (wrapper as { fn?: Listener }).fn = listener;
+    addListener(this.eventListeners, event, wrapper);
     return this;
   }
 
@@ -1684,10 +1685,7 @@ class Emitter {
    * first-match half; `ServerSocket` removes through `removeLast` instead (0017).
    */
   protected removeOne(event: string, listener: Listener): void {
-    const list = this.listeners.get(event);
-    if (!list) return;
-    const i = list.findIndex((r) => isListener(r, listener));
-    if (i !== -1) list.splice(i, 1);
+    removeOrdinaryListener(this.eventListeners, event, listener);
   }
 
   /**
@@ -1697,21 +1695,13 @@ class Emitter {
    * wrapper), scanned from the end.
    */
   protected removeLast(event: string, listener: Listener): void {
-    const list = this.listeners.get(event);
-    if (!list) return;
-    for (let i = list.length - 1; i >= 0; i--) {
-      const entry = list[i];
-      if (entry !== undefined && isListener(entry, listener)) {
-        list.splice(i, 1);
-        return;
-      }
-    }
+    removeOrdinaryListener(this.eventListeners, event, listener, true);
   }
 
   /** Clear every listener for `event`, or every listener on the socket with no argument. */
   removeAllListeners(event?: string): this {
-    if (event === undefined) this.listeners.clear();
-    else this.listeners.delete(event);
+    if (event === undefined) this.eventListeners.clear();
+    else this.eventListeners.delete(event);
     return this;
   }
 
@@ -1738,7 +1728,7 @@ class Emitter {
         (any as (...a: unknown[]) => void)(event, ...args);
       }
     }
-    const list = this.listeners.get(event);
+    const list = this.eventListeners.get(event);
     if (!list) return;
     for (const listener of [...list]) (listener as (...a: unknown[]) => void)(...args);
   }
@@ -1752,6 +1742,14 @@ class Emitter {
  * both the connected client and the failed-connection client.
  */
 class ClientEmitter extends Emitter {
+  /** component-emitter returns the stable backing array while this key exists. */
+  listeners = ((event: string) =>
+    (this.eventListeners.get(event) ?? []) as AnyListener[]) as ClientSocketContract['listeners'];
+
+  /** component-emitter derives this directly from the current live-array length. */
+  hasListeners = ((event: string) =>
+    this.listeners(event).length > 0) as ClientSocketContract['hasListeners'];
+
   off(event?: string, listener?: Listener): this {
     if (event === undefined) {
       this.removeAllListeners();
@@ -1803,6 +1801,36 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
     this.id = id;
     this.nsp = nsp;
     this.handshake = handshake;
+    // Socket.IO installs one noop `error` listener on every fresh server socket.
+    // It is ordinary emitter state: public removal can delete it like any other key.
+    this.on('error', () => {});
+  }
+
+  /** Node returns a fresh snapshot and unwraps `once` registrations to their originals. */
+  listeners = ((event: string) =>
+    (this.eventListeners.get(event) ?? []).map(
+      (entry) => (entry as { listener?: Listener }).listener ?? entry,
+    ) as AnyListener[]) as ServerSocketContract['listeners'];
+
+  /** Count registrations rather than unique function identities. */
+  listenerCount(event: string): number {
+    return this.eventListeners.get(event)?.length ?? 0;
+  }
+
+  /** Map key order matches Node's insertion order, including delete and re-add. */
+  eventNames(): (string | symbol)[] {
+    return [...this.eventListeners.keys()];
+  }
+
+  /** Server `once` uses Node's wrapper shape, which `listeners()` unwraps. */
+  override once(event: string, listener: Listener): this {
+    const wrapper = ((...args: never[]) => {
+      removeOrdinaryListener(this.eventListeners, event, wrapper, true);
+      listener(...args);
+    }) as Listener;
+    (wrapper as { listener?: Listener }).listener = listener;
+    addListener(this.eventListeners, event, wrapper);
+    return this;
   }
 
   /** Wire the paired client in; called by `Namespace.pair` before completion. */
@@ -2593,7 +2621,35 @@ function removeFirst<Entry>(list: Entry[] | undefined, listener: Entry): void {
   if (i !== -1) list.splice(i, 1);
 }
 
-/** True if `entry` is `listener`, directly or as the `once` wrapper carrying it. */
+/**
+ * Remove one ordinary named registration and delete an emptied registry key.
+ * Catch-all backing arrays do not use this helper because their detach rules differ.
+ */
+function removeOrdinaryListener(
+  map: Map<string, Listener[]>,
+  event: string,
+  listener: Listener,
+  fromEnd = false,
+): void {
+  const list = map.get(event);
+  if (!list) return;
+  if (fromEnd) {
+    for (let i = list.length - 1; i >= 0; i--) {
+      const entry = list[i];
+      if (entry !== undefined && isListener(entry, listener)) {
+        list.splice(i, 1);
+        break;
+      }
+    }
+  } else {
+    const index = list.findIndex((entry) => isListener(entry, listener));
+    if (index !== -1) list.splice(index, 1);
+  }
+  if (list.length === 0) map.delete(event);
+}
+
+/** True for a direct listener or either emitter's side-specific `once` wrapper. */
 function isListener(entry: Listener, listener: Listener): boolean {
-  return entry === listener || (entry as { listener?: Listener }).listener === listener;
+  const wrapper = entry as { fn?: Listener; listener?: Listener };
+  return entry === listener || wrapper.fn === listener || wrapper.listener === listener;
 }

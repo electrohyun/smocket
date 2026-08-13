@@ -764,6 +764,12 @@ export interface ServerSocketContract<
     event: Event,
     listener: ReservedOrUserListener<ServerSocketReservedEvents, ListenEvents, Event>,
   ): this;
+  /** Return a fresh snapshot, with `once` wrappers exposed as their original listeners. */
+  listeners: IoServerSocket<ListenEvents, EmitEvents, ServerSideEvents, SocketData>['listeners'];
+  /** Count every registration for an event, including duplicates and `once` listeners. */
+  listenerCount(event: string): number;
+  /** Names with at least one ordinary listener, in registry insertion order. */
+  eventNames(): (string | symbol)[];
   /** Remove one registration. The server is Node's emitter, so a listener is required (0017). */
   off(event: string, listener: (...args: unknown[]) => void): this;
   /** Remove every listener for `event`, or all of them when called with no argument. */
@@ -847,6 +853,10 @@ export interface ClientSocketContract<
     event: Event,
     listener: ReservedOrUserListener<ClientSocketReservedEvents, ListenEvents, Event>,
   ): this;
+  /** Return component-emitter's live backing array for this event. */
+  listeners: IoClientSocket<ListenEvents, EmitEvents>['listeners'];
+  /** Whether the event's current live backing array is non-empty. */
+  hasListeners: IoClientSocket<ListenEvents, EmitEvents>['hasListeners'];
   /**
    * The client is component-emitter's: `off()` clears every listener, `off(event)`
    * clears that event, and `off(event, listener)` removes one. No form throws (0017).
@@ -1073,6 +1083,9 @@ type ServerSocketParityContract<
   | 'in'
   | 'join'
   | 'leave'
+  | 'listeners'
+  | 'listenerCount'
+  | 'eventNames'
   | 'rooms'
   | 'to'
 > & {
@@ -1110,7 +1123,7 @@ type ClientSocketParityContract<
   EmitEvents extends EventsMap = ListenEvents,
 > = Pick<
   ClientSocketContract<ListenEvents, EmitEvents>,
-  'connected' | 'emitWithAck' | 'id' | 'io'
+  'connected' | 'emitWithAck' | 'hasListeners' | 'id' | 'io' | 'listeners'
 > & {
   readonly volatile: ClientSocketParityContract<ListenEvents, EmitEvents>;
   timeout(
