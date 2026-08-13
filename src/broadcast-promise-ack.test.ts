@@ -48,6 +48,23 @@ it('untimed broadcast acknowledgement collection keeps the timer race and resolv
   }
 });
 
+it('untimed broadcast acknowledgement collection times out when a recipient never acknowledges', async () => {
+  const { client, serverSocket } = await ctx.connectClient();
+  client.on('silent-question', (_ack: () => void) => {
+    // The selected recipient deliberately does not acknowledge.
+  });
+
+  const error = (await ctx.io
+    .to(serverSocket.id)
+    .emitWithAck('silent-question')
+    .catch((reason: unknown) => reason)) as TimeoutError;
+
+  expect(error).toBeInstanceOf(Error);
+  expect(error.message).toBe('operation has timed out');
+  expect(Object.hasOwn(error, 'responses')).toBe(true);
+  expect(error.responses).toEqual([]);
+});
+
 it('timeout rejection exposes partial responses and late acknowledgements mutate that array once', async () => {
   const answered = await ctx.connectClient();
   const late = await ctx.connectClient();
