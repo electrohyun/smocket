@@ -166,6 +166,7 @@ receive something takes the marker pattern rather than a wait, and that is a
 | Vitest                                       | the quick start above, which is a vitest file                                         |
 | Jest, or another CJS runner                  | [the documented, executable Jest setup](docs/test-runner-integration.md#jest)         |
 | An app that imports `socket.io-client`       | [test-runner integration](docs/test-runner-integration.md), which swaps the specifier |
+| A setup that fails before the first event    | [troubleshooting by actual signal](docs/troubleshooting.md)                           |
 | A hand-written socket mock                   | [the problem](#the-problem)                                                           |
 | Wanting to read a program rather than a test | [examples/chat-room](examples/chat-room/)                                             |
 | Wanting the exact guarantees                 | [the conformance report](docs/conformance.md)                                         |
@@ -370,6 +371,7 @@ already cover the first question well. See
 | [docs/README.md](docs/README.md)                              | the documentation map, by the question you arrived with                  |
 | [roadmap.md](docs/roadmap.md)                                 | the guarantees, dependencies, and release path toward v1.0.0             |
 | [test-runner-integration.md](docs/test-runner-integration.md) | running smocket inside Vitest or Jest, and what keeps its types          |
+| [troubleshooting.md](docs/troubleshooting.md)                 | reproductions, signals, causes, and corrections for adoption failures    |
 | [conformance.md](docs/conformance.md)                         | every behaviour verified against real socket.io, generated from the run  |
 | [scope.md](docs/scope.md)                                     | the boundary, and the layer split it follows                             |
 | [differences.md](docs/differences.md)                         | where smocket diverges on purpose, and what it adds that socket.io lacks |

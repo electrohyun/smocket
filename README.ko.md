@@ -170,6 +170,7 @@ workspace 해석 결과를 패키지 검증으로 인정하지 않습니다.
 | Vitest                                | 위의 빠른 시작 예제                                                      |
 | Jest 또는 다른 CJS 러너               | [문서화되고 실행 가능한 Jest 설정](docs/test-runner-integration.md#jest) |
 | `socket.io-client`를 import하는 앱    | 모듈 경로를 교체하는 [테스트 러너 통합](docs/test-runner-integration.md) |
+| 첫 이벤트 전에 설정이 실패하는 경우   | 실제 신호로 찾는 [문제 해결 가이드](docs/troubleshooting.md)             |
 | 직접 작성한 소켓 mock                 | [문제](#the-problem)                                                     |
 | 실행 가능한 프로그램을 보고 싶은 경우 | [examples/chat-room](examples/chat-room/)                                |
 | 정확한 보장 범위를 확인하고 싶은 경우 | [정합성 보고서](docs/conformance.md)                                     |
@@ -331,12 +332,10 @@ smocket은 어떤 소켓이 어떤 이벤트를 어느 room과 namespace에서 �
 <details>
 <summary>Jest나 다른 CJS 러너에서도 동작하나요?</summary>
 
-패키지는 ESM과 CJS 빌드에 맞는 타입 선언을 각각 제공하며, CI에서 두 형식이 올바르게
-불러와지는지 확인합니다. 이는 CJS 러너의 전제 조건을 검증하지만 clean Jest 도입 전체를
-검증하지는 않습니다. [테스트 러너 통합](docs/test-runner-integration.md#jest)은
-`moduleNameMapper` 설정을 문서화하지만, 이 저장소에는 이를 실행하는 독립된 clean Jest
-consumer가 아직 없습니다. 따라서 전체 경로는 미검증 상태이며, 부족한 실행 근거는
-[#280](https://github.com/electrohyun/smocket/issues/280)에서 다룹니다.
+패키지는 ESM과 CJS 빌드에 맞는 타입 선언을 각각 제공합니다. 독립된 clean consumer가
+후보 tarball 또는 정확한 배포 버전을 설치한 뒤, 이름 있는 CommonJS
+`socket.io-client` import와 문서화된 `moduleNameMapper` 설정을 Jest에서 실행합니다.
+설정은 [테스트 러너 통합](docs/test-runner-integration.md#jest)에서 확인할 수 있습니다.
 
 </details>
 
@@ -358,6 +357,7 @@ mock은 네트워크를 오간 바이트를 확인하고, smocket은 emit, join,
 | [docs/README.md](docs/README.md)                              | 궁금한 내용에 따라 찾아가는 문서 지도                             |
 | [roadmap.md](docs/roadmap.md)                                 | v1.0.0까지의 보장, 의존성, 릴리스 경로                            |
 | [test-runner-integration.md](docs/test-runner-integration.md) | Vitest와 Jest에서 smocket을 실행하고 타입을 유지하는 방법         |
+| [troubleshooting.md](docs/troubleshooting.md)                 | 도입 실패의 재현, 실제 신호, 원인과 해결 방법                     |
 | [conformance.md](docs/conformance.md)                         | 실제 socket.io와 비교 검증한 동작을 테스트 결과에서 생성한 보고서 |
 | [scope.md](docs/scope.md)                                     | smocket이 재현하는 범위와 그 경계의 근거                          |
 | [differences.md](docs/differences.md)                         | 실제 socket.io와 의도적으로 다른 점, smocket에만 있는 기능        |
