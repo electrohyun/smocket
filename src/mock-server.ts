@@ -1,5 +1,6 @@
 import type {
   AdapterFactory,
+  AuthCallback,
   BroadcastContract,
   BroadcastTrace,
   ClientSocketContract,
@@ -148,7 +149,7 @@ function resolveAuth(
   done: (auth: Record<string, unknown>) => void,
 ): void {
   if (typeof auth === 'function') {
-    auth((data) => done(data ?? {}));
+    auth((data) => done((data ?? {}) as Record<string, unknown>));
   } else {
     done(auth ?? {});
   }
@@ -626,7 +627,7 @@ class BroadcastOperator implements BroadcastContract, TimeoutBroadcastContract {
       if (excluded.has(sid)) continue;
       const socket = this.sockets.get(sid);
       if (!socket) continue;
-      if (this.isVolatile && !socket.connected) continue;
+      if (this.isVolatile && !socket.isClientReady()) continue;
       out.push(socket);
     }
     return { recipients: out, excluded };
@@ -891,6 +892,7 @@ class Namespace implements NamespaceContract {
           // subtracts (see `BroadcastOperator`). A reconnect gets a fresh id-room and
           // none of the socket's previous rooms, which is the reconnect test's point.
           serverSocket.join(serverSocket.id);
+          serverSocket.markConnected();
           this.offer(serverSocket);
           // Fire `connection` before the client's own `connect` (in
           // `completeConnection`), so the server side is observable first, the order
@@ -1249,7 +1251,7 @@ function parseUrl(url: string): {
 export function connect(url: string, options?: ConnectOptions): ClientSocketContract {
   const { origin, namespace, query: urlQuery } = parseUrl(url);
   const server = servers.get(origin);
-  if (!server) return new FailedClientSocket(origin);
+  if (!server) return new FailedClientSocket(origin, options?.auth ?? {});
   const query = Object.keys(urlQuery).length > 0 ? urlQuery : options?.query;
   return server.connect(namespace, {
     auth: options?.auth,
@@ -1482,19 +1484,20 @@ export class Server<
         undefined,
         source,
         () => this.namespaces.get(normalized),
-        (retryingClient) => this.admitDynamic(retryingClient, normalized, source),
+        (retryingClient) => this.admitDynamic(retryingClient, normalized),
       );
       if (this.parents.length === 0) client.failInvalidNamespace();
-      else this.admitDynamic(client, normalized, source);
+      else this.admitDynamic(client, normalized);
       return client as ClientSocketContract<EmitEvents, ListenEvents>;
     }
     return registered.connect(manager, source) as ClientSocketContract<EmitEvents, ListenEvents>;
   }
 
   /** Resolve auth once, then try dynamic parents in registration order. */
-  private admitDynamic(client: ClientSocket, name: string, source?: ConnectOptions): void {
+  private admitDynamic(client: ClientSocket, name: string): void {
     const attempt = client.beginConnectionAttempt();
     if (!attempt) return;
+    const source = client.connectionSource();
     resolveAuth(source?.auth, (auth) => {
       if (!client.isConnectionAttemptPending(attempt)) return;
       const tryParent = (index: number): void => {
@@ -1873,6 +1876,8 @@ class ClientEmitter extends Emitter {
 
 export class ServerSocket extends Emitter implements ServerSocketContract {
   readonly id: string;
+  connected = false;
+  readonly recovered = false;
   readonly rooms = new Set<string>();
   /**
    * The namespace this socket lives on. `nsp.adapter` records its membership and
@@ -1973,6 +1978,7 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
       defer(() => {
         this.active = false;
         this.dispatch('disconnecting', [reason]);
+        this.connected = false;
         this.cleanupMembership();
         this.dispatch('disconnect', [reason]);
         resolve();
@@ -2054,9 +2060,15 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
     this.teardownPromise = Promise.resolve();
     this.active = false;
     this.dispatch('disconnecting', [reason]);
+    this.connected = false;
     this.cleanupMembership();
     this.dispatch('disconnect', [reason]);
     return true;
+  }
+
+  /** Mark admission complete before the server's public connection observers run. */
+  markConnected(): void {
+    this.connected = true;
   }
 
   /** Whether Manager-wide teardown may still originate from this server socket. */
@@ -2122,13 +2134,13 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
     return this;
   }
 
-  /**
-   * Whether the paired client has completed its connection. A volatile emit targeted at a
-   * socket whose client is not yet connected is dropped (0016); the volatile broadcast path
-   * reads this to make that per-recipient decision.
-   */
-  get connected(): boolean {
+  /** Whether the paired client has completed its connection for volatile delivery. */
+  isClientReady(): boolean {
     return this.peer.connected;
+  }
+
+  get disconnected(): boolean {
+    return !this.connected;
   }
 
   /**
@@ -2212,6 +2224,8 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
 
 export class ClientSocket extends ClientEmitter implements ClientSocketContract {
   connected = false;
+  recovered = false;
+  auth: Record<string, unknown> | AuthCallback;
   id: string | undefined;
   /** The shared Manager stand-in; compared only by identity across namespaces. */
   readonly io: Manager;
@@ -2266,6 +2280,7 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
     this.io = manager;
     this.nsp = nsp;
     this.handshakeSource = source;
+    this.auth = source?.auth ?? {};
     this.resolveNamespace = resolveNamespace;
     this.dynamicAdmission = dynamicAdmission;
   }
@@ -2273,6 +2288,11 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
   /** Bind an admitted dynamic client to the one cached concrete child. */
   attachNamespace(namespace: Namespace): void {
     this.nsp = namespace;
+  }
+
+  /** Reuse stable lookup options while reading mutable auth at each connection attempt. */
+  connectionSource(): ConnectOptions {
+    return { ...this.handshakeSource, auth: this.auth };
   }
 
   /**
@@ -2290,6 +2310,7 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
     this.connectionAttempt = undefined;
     this.serverSocket = serverSocket;
     this.connected = true;
+    this.recovered = false;
     this.id = serverSocket.id;
     this.io.connected(this);
     const buffered = this.sendBuffer;
@@ -2490,7 +2511,7 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
       return this;
     }
     this.nsp = namespace;
-    namespace.pair(this, this.handshakeSource);
+    namespace.pair(this, this.connectionSource());
     return this;
   }
 
@@ -2512,6 +2533,10 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
 
   close(): this {
     return this.disconnect();
+  }
+
+  get disconnected(): boolean {
+    return !this.connected;
   }
 
   /**
@@ -2550,12 +2575,16 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
  */
 class FailedClientSocket extends ClientEmitter implements ClientSocketContract {
   readonly connected = false;
+  readonly disconnected = true;
+  readonly recovered = false;
   readonly id = undefined;
   readonly io = undefined;
+  auth: Record<string, unknown> | AuthCallback;
   private flags: SocketFlags = {};
 
-  constructor(origin: string) {
+  constructor(origin: string, auth: Record<string, unknown> | AuthCallback) {
     super();
+    this.auth = auth;
     const message = `no server registered for ${origin}`;
     // Next tick through the same `defer` a successful connect uses (0005: no
     // artificial delay), so a `connect_error` handler added on the next line is

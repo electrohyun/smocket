@@ -777,6 +777,12 @@ export interface ServerSocketContract<
   SocketData = DefaultSocketData,
 > {
   id: string;
+  /** True from admission through `disconnecting`, then false before `disconnect`. */
+  connected: boolean;
+  /** Exact inverse of {@link connected}. */
+  readonly disconnected: boolean;
+  /** Smocket does not reproduce connection-state recovery. */
+  readonly recovered: boolean;
   /** Server-only view of room membership; a live Set emptied in place on teardown. */
   rooms: Set<string>;
   nsp: NamespaceContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>;
@@ -883,6 +889,12 @@ export interface ClientSocketContract<
   EmitEvents extends EventsMap = ListenEvents,
 > {
   connected: boolean;
+  /** Exact inverse of {@link connected}. */
+  readonly disconnected: boolean;
+  /** Smocket does not reproduce connection-state recovery. */
+  recovered: boolean;
+  /** Mutable auth source read again whenever application code reconnects this client. */
+  auth: Record<string, unknown> | AuthCallback;
   /** Undefined until connected, matching socket.io-client. */
   id: string | undefined;
   /** The shared Manager; compared only by identity across namespaces. */
@@ -953,7 +965,7 @@ export interface ClientSocketContract<
  * auth, so a token can be fetched lazily per connection. The connection is held until
  * the callback fires, and the function is re-evaluated on every reconnect.
  */
-export type AuthCallback = (cb: (data: Record<string, unknown>) => void) => void;
+export type AuthCallback = (cb: (data: object) => void) => void;
 
 /**
  * Options for opening a connection: the caller's `auth` / `query`, carried onto
@@ -1116,7 +1128,9 @@ type ServerSocketParityContract<
 > = Pick<
   ServerSocketContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
   | 'broadcast'
+  | 'connected'
   | 'data'
+  | 'disconnected'
   | 'emit'
   | 'emitWithAck'
   | 'except'
@@ -1129,6 +1143,7 @@ type ServerSocketParityContract<
   | 'listenerCount'
   | 'eventNames'
   | 'rooms'
+  | 'recovered'
   | 'to'
 > & {
   readonly volatile: ServerSocketParityContract<
@@ -1165,7 +1180,15 @@ type ClientSocketParityContract<
   EmitEvents extends EventsMap = ListenEvents,
 > = Pick<
   ClientSocketContract<ListenEvents, EmitEvents>,
-  'connected' | 'emitWithAck' | 'hasListeners' | 'id' | 'io' | 'listeners'
+  | 'auth'
+  | 'connected'
+  | 'disconnected'
+  | 'emitWithAck'
+  | 'hasListeners'
+  | 'id'
+  | 'io'
+  | 'listeners'
+  | 'recovered'
 > & {
   readonly volatile: ClientSocketParityContract<ListenEvents, EmitEvents>;
   timeout(
