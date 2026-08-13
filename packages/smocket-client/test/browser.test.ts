@@ -16,6 +16,9 @@ it('shares the browser registry and preserves the ESM lookup aliases', async () 
     const serverSocket = await accepted;
     expect(serverSocket.handshake.auth).toEqual({ source: 'browser' });
     expect(socket.connected).toBe(true);
+    expect(socket.disconnected).toBe(false);
+    expect(socket.recovered).toBe(false);
+    expect(socket.auth).toEqual({ source: 'browser' });
   } finally {
     await server.close();
   }

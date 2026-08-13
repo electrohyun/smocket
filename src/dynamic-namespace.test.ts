@@ -206,6 +206,24 @@ it('retries dynamic admission after an earlier matcher rejection', async () => {
   ]);
 });
 
+it('dynamic admission reads the current client.auth on a manual retry', async () => {
+  const seen: unknown[] = [];
+  ctx.io.of((_name, auth, next) => {
+    seen.push(auth.token);
+    next(null, auth.token === 'accepted');
+  });
+
+  const client = ctx.openClient({ namespace: '/auth-retry', auth: { token: 'rejected' } });
+  await receive(client, 'connect_error');
+
+  client.auth = { token: 'accepted' };
+  const connected = receive(client, 'connect');
+  client.connect();
+  await connected;
+
+  expect(seen).toEqual(['rejected', 'accepted']);
+});
+
 it('creates a child before middleware and snapshots parent setup at creation', async () => {
   const order: string[] = [];
   ctx.io.on('new_namespace', (namespace) => order.push(`new:${namespace.name}`));

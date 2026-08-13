@@ -17,7 +17,25 @@ it('connect(url) resolves to the server registered for that origin', async () =>
   const serverSocket = await server.nextConnection();
 
   expect(client.connected).toBe(true);
+  expect(client.disconnected).toBe(false);
+  expect(client.recovered).toBe(false);
   expect(serverSocket.id).toBe(client.id);
+});
+
+it('a missing-server socket exposes disconnected state and mutable auth', async () => {
+  const auth = { token: 'first' };
+  const client = connect('http://missing.example', { auth });
+  const connectError = receive(client, 'connect_error');
+
+  expect(client.connected).toBe(false);
+  expect(client.disconnected).toBe(true);
+  expect(client.recovered).toBe(false);
+  expect(client.auth).toBe(auth);
+
+  const replacement = (cb: (data: object) => void): void => cb({ token: 'second' });
+  client.auth = replacement;
+  expect(client.auth).toBe(replacement);
+  await expect(connectError).resolves.toBeInstanceOf(Error);
 });
 
 it('handshake.url is the normalized origin the client connected to', async () => {
@@ -124,6 +142,22 @@ it('a function auth is re-evaluated on each connection, including a reconnect', 
 
   expect(calls).toBe(2);
   expect(serverSocket.handshake.auth).toEqual({ n: 2 });
+});
+
+it('a completed reconnect resets client.recovered to false', async () => {
+  const server = new Server('http://localhost');
+  const client = connect('http://localhost');
+  const first = await server.nextConnection();
+
+  client.recovered = true;
+  const disconnected = new Promise<void>((resolve) => first.once('disconnect', () => resolve()));
+  client.disconnect();
+  await disconnected;
+
+  const reconnected = server.nextConnection();
+  client.connect();
+  await reconnected;
+  expect(client.recovered).toBe(false);
 });
 
 it('the url query wins wholesale over the options query when both are given', async () => {

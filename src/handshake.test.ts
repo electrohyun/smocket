@@ -62,3 +62,38 @@ it('a reconnect replays the client-supplied auth on the fresh socket', async () 
   expect(serverSocketAgain.id).not.toBe(serverSocket.id);
   expect(serverSocketAgain.handshake.auth).toEqual({ token: 'abc' });
 });
+
+it('a reconnect reads a replacement object from client.auth', async () => {
+  const { client, serverSocket } = await ctx.connectClient({ auth: { token: 'first' } });
+
+  const { disconnected } = observeDisconnect(serverSocket);
+  client.disconnect();
+  await disconnected;
+
+  client.auth = { token: 'second' };
+  const reconnected = ctx.nextConnection();
+  client.connect();
+
+  await expect(reconnected).resolves.toMatchObject({
+    handshake: { auth: { token: 'second' } },
+  });
+});
+
+it('a reconnect re-evaluates the current callback from client.auth', async () => {
+  let calls = 0;
+  const { client, serverSocket } = await ctx.connectClient({
+    auth: (cb) => cb({ token: `callback-${(calls += 1)}` }),
+  });
+  expect(serverSocket.handshake.auth).toEqual({ token: 'callback-1' });
+
+  const { disconnected } = observeDisconnect(serverSocket);
+  client.disconnect();
+  await disconnected;
+
+  const reconnected = ctx.nextConnection();
+  client.connect();
+  const serverSocketAgain = await reconnected;
+
+  expect(calls).toBe(2);
+  expect(serverSocketAgain.handshake.auth).toEqual({ token: 'callback-2' });
+});

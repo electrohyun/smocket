@@ -26,6 +26,22 @@ it('a disconnected socket no longer receives emits for that room', async () => {
   expect(msg1.received).toBe(false);
 });
 
+it('client connected and disconnected remain exact inverses across teardown', async () => {
+  const client = ctx.openClient();
+  expect(client.connected).toBe(false);
+  expect(client.disconnected).toBe(true);
+
+  await receive(client, 'connect');
+  expect(client.connected).toBe(true);
+  expect(client.disconnected).toBe(false);
+
+  const disconnected = receive(client, 'disconnect');
+  client.disconnect();
+  await disconnected;
+  expect(client.connected).toBe(false);
+  expect(client.disconnected).toBe(true);
+});
+
 it('a room disappears from the adapter when its last member disconnects', async () => {
   const { client: client1, serverSocket: socket1 } = await ctx.connectClient();
   const { serverSocket: socket2 } = await ctx.connectClient();

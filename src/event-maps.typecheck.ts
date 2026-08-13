@@ -100,7 +100,13 @@ export function assertTypedEventMapsCompile(): void {
 
   io.on('connection', (socket) => {
     const userId: string = socket.data.userId;
+    const serverConnected: boolean = socket.connected;
+    const serverDisconnected: boolean = socket.disconnected;
+    const serverRecovered: boolean = socket.recovered;
     void userId;
+    void serverConnected;
+    void serverDisconnected;
+    void serverRecovered;
 
     socket.on('guess', (text, ack) => {
       const guess: string = text;
@@ -326,6 +332,13 @@ export function assertTypedEventMapsCompile(): void {
   void wrongBroadcastAnswers;
 
   const client = io.connect();
+  const clientConnected: boolean = client.connected;
+  const clientDisconnected: boolean = client.disconnected;
+  const clientRecovered: boolean = client.recovered;
+  client.auth = { token: 'next' };
+  client.auth = (cb) => cb({ token: 'lazy' });
+  // @ts-expect-error auth accepts an object or callback, not a scalar
+  client.auth = 'token';
   const returnedFromConnect: typeof client = client.connect();
   const returnedFromDisconnect: typeof client = client.disconnect();
   const returnedFromClientAliases: typeof client = client
@@ -409,6 +422,9 @@ export function assertTypedEventMapsCompile(): void {
   void clientIncomingAnyListeners;
   void clientOutgoingAnyListeners;
   void clientHasChat;
+  void clientConnected;
+  void clientDisconnected;
+  void clientRecovered;
 
   // @ts-expect-error unknown server event
   io.emit('caht', 'hello');

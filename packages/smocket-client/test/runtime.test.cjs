@@ -23,6 +23,9 @@ test('CommonJS facade and peer share the server registry', async () => {
     assert.deepEqual(serverSocket.handshake.auth, { userId: 'bob' });
     assert.deepEqual(serverSocket.handshake.query, { source: 'cjs' });
     assert.equal(socket.connected, true);
+    assert.equal(socket.disconnected, false);
+    assert.equal(socket.recovered, false);
+    assert.deepEqual(socket.auth, { userId: 'bob' });
   } finally {
     await server.close();
   }

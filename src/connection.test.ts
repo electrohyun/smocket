@@ -7,8 +7,43 @@ const ctx = setupServer();
 it('both sides have a socket id once connected', async () => {
   const { client, serverSocket } = await ctx.connectClient();
   expect(client.connected).toBe(true);
+  expect(client.disconnected).toBe(false);
   expect(client.id).toBeTruthy();
+  expect(serverSocket.connected).toBe(true);
+  expect(serverSocket.disconnected).toBe(false);
+  expect(serverSocket.recovered).toBe(false);
   expect(serverSocket.id).toBe(client.id);
+});
+
+it('server connection state changes at the same lifecycle boundaries as socket.io', async () => {
+  const states: Array<[string, boolean, boolean, boolean]> = [];
+  ctx.io.use((socket, next) => {
+    states.push(['middleware', socket.connected, socket.disconnected, socket.recovered]);
+    next();
+  });
+  ctx.io.on('connection', (socket) => {
+    states.push(['connection', socket.connected, socket.disconnected, socket.recovered]);
+    socket.on('disconnecting', () => {
+      states.push(['disconnecting', socket.connected, socket.disconnected, socket.recovered]);
+    });
+    socket.on('disconnect', () => {
+      states.push(['disconnect', socket.connected, socket.disconnected, socket.recovered]);
+    });
+  });
+
+  const { client, serverSocket } = await ctx.connectClient();
+  const disconnected = new Promise<void>((resolve) =>
+    serverSocket.once('disconnect', () => resolve()),
+  );
+  client.disconnect();
+  await disconnected;
+
+  expect(states).toEqual([
+    ['middleware', false, true, false],
+    ['connection', true, false, false],
+    ['disconnecting', true, false, false],
+    ['disconnect', false, true, false],
+  ]);
 });
 
 it('a socket id is 20 characters of url-safe base64', async () => {
