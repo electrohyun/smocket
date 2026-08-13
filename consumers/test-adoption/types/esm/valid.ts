@@ -1,4 +1,4 @@
-import { Server, type DefaultEventsMap, type Socket } from 'smocket';
+import { Server, type DefaultEventsMap, type ServerSocketContract } from 'smocket';
 
 interface ClientToServerEvents {
   join: (room: string) => void;
@@ -17,8 +17,12 @@ const io = new Server<ClientToServerEvents, ServerToClientEvents, DefaultEventsM
 );
 
 io.on('connection', (socket) => {
-  const typed: Socket<ClientToServerEvents, ServerToClientEvents, DefaultEventsMap, SocketData> =
-    socket;
+  const typed: ServerSocketContract<
+    ClientToServerEvents,
+    ServerToClientEvents,
+    DefaultEventsMap,
+    SocketData
+  > = socket;
   typed.data.userId = 'alice';
   typed.on('join', (room) => typed.emit('ready', room));
 });
