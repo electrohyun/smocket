@@ -244,6 +244,19 @@ composition.
 - [two middlewares run in registration order](../src/middleware.test.ts#L166)
 - [an error in the first middleware short-circuits the second](../src/middleware.test.ts#L181)
 
+### Server Socket packet middleware
+
+Per-packet ordering, mutation, acknowledgements, rejection, and independent asynchronous
+continuation.
+
+- [registers per-socket middleware in order and returns the same socket](../src/socket-middleware.test.ts#L7)
+- [runs incoming catch-alls before middleware and exposes packet mutation downstream](../src/socket-middleware.test.ts#L32)
+- [keeps the acknowledgement callback in the mutable middleware packet](../src/socket-middleware.test.ts#L63)
+- [snapshots middleware when each packet begins processing](../src/socket-middleware.test.ts#L75)
+- [lets a later packet complete while earlier packet middleware is held](../src/socket-middleware.test.ts#L101)
+- [short-circuits on next(error), emits that Error, and does not acknowledge](../src/socket-middleware.test.ts#L135)
+- [does not dispatch a held packet after the socket disconnects](../src/socket-middleware.test.ts#L164)
+
 ### Handshake
 
 The handshake fields a mock can source, and how auth and query reach them.
@@ -576,11 +589,11 @@ The encoder behind the id shape the dual run pins.
 
 What the package exports, including the `io` name the substitution path needs.
 
-- [connecting pairs the client and server socket with the same id](../src/index.test.ts#L27)
-- [exports `io` as socket.io-client's name for connect, so a module swap works](../src/index.test.ts#L37)
-- [exports the contract types, so the swap keeps an app annotations to use](../src/index.test.ts#L49)
-- [exports a server type that keeps the smocket-only members](../src/index.test.ts#L93)
-- [exports the tracing adapter and trace type](../src/index.test.ts#L118)
+- [connecting pairs the client and server socket with the same id](../src/index.test.ts#L29)
+- [exports `io` as socket.io-client's name for connect, so a module swap works](../src/index.test.ts#L39)
+- [exports the contract types, so the swap keeps an app annotations to use](../src/index.test.ts#L51)
+- [exports a server type that keeps the smocket-only members](../src/index.test.ts#L101)
+- [exports the tracing adapter and trace type](../src/index.test.ts#L126)
 
 ### Public direct connection API
 
