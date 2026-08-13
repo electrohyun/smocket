@@ -3060,9 +3060,22 @@ function createNodeListenerState(): NodeListenerState {
   return { warnedEvents: new Set(), maxListeners: 10 };
 }
 
-function assertNodeListener(listener: Listener): void {
+function describeNodeReceivedValue(value: unknown): string {
+  if (value === null) return 'null';
+  if (value === undefined) return 'undefined';
+  if (typeof value === 'object') {
+    const name = Object.prototype.toString.call(value).slice(8, -1);
+    return `an instance of ${name}`;
+  }
+  const rendered = typeof value === 'string' ? `'${value}'` : String(value);
+  return `type ${typeof value} (${rendered})`;
+}
+
+function assertNodeListener(listener: unknown): asserts listener is Listener {
   if (typeof listener !== 'function') {
-    throw new TypeError('The "listener" argument must be of type function. Received undefined');
+    throw new TypeError(
+      `The "listener" argument must be of type function. Received ${describeNodeReceivedValue(listener)}`,
+    );
   }
 }
 
@@ -3114,9 +3127,9 @@ function removeAllNodeListeners(
   event?: OrdinaryEventName,
 ): void {
   if (event === undefined) {
-    for (const name of [...map.keys()]) {
-      if (name !== 'removeListener') removeAllNodeListeners(map, state, remove, name);
-    }
+    const ordinaryNames = new Set(map.keys());
+    ordinaryNames.delete('removeListener');
+    for (const name of ordinaryNames) removeAllNodeListeners(map, state, remove, name);
     removeAllNodeListeners(map, state, remove, 'removeListener');
     state.warnedEvents.clear();
     return;
