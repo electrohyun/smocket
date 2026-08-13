@@ -1873,7 +1873,7 @@
     {
       "declarationFile": "dist/index.d.ts",
       "declaredBy": "Server",
-      "id": "socket.io-4.7.5:4.7.5:declaration-public:Server:instance:connectTimeout:method:e0939eef7813",
+      "id": "socket.io-4.7.5:4.7.5:declaration-public:Server:instance:connectTimeout:method:c3cfb0f97d7f",
       "kind": "method",
       "member": "connectTimeout",
       "optional": false,
@@ -1882,7 +1882,7 @@
       "packageVersion": "4.7.5",
       "readonly": false,
       "receiver": "instance",
-      "signature": "connectTimeout(): number;",
+      "signature": "connectTimeout(v: number): this;",
       "supportLine": "4.7.5",
       "surface": "Server",
       "tier": "declaration-public"
@@ -1890,7 +1890,7 @@
     {
       "declarationFile": "dist/index.d.ts",
       "declaredBy": "Server",
-      "id": "socket.io-4.7.5:4.7.5:declaration-public:Server:instance:connectTimeout:method:c3cfb0f97d7f",
+      "id": "socket.io-4.7.5:4.7.5:declaration-public:Server:instance:connectTimeout:method:e0939eef7813",
       "kind": "method",
       "member": "connectTimeout",
       "optional": false,
@@ -1899,7 +1899,7 @@
       "packageVersion": "4.7.5",
       "readonly": false,
       "receiver": "instance",
-      "signature": "connectTimeout(v: number): this;",
+      "signature": "connectTimeout(): number;",
       "supportLine": "4.7.5",
       "surface": "Server",
       "tier": "declaration-public"
@@ -1941,7 +1941,7 @@
     {
       "declarationFile": "dist/index.d.ts",
       "declaredBy": "Server",
-      "id": "socket.io-4.7.5:4.7.5:declaration-public:Server:instance:constructor:constructor:6819a001f72d",
+      "id": "socket.io-4.7.5:4.7.5:declaration-public:Server:instance:constructor:constructor:8b974010132b",
       "kind": "constructor",
       "member": "constructor",
       "optional": false,
@@ -1950,7 +1950,7 @@
       "packageVersion": "4.7.5",
       "readonly": false,
       "receiver": "instance",
-      "signature": "constructor(srv: undefined | Partial<ServerOptions> | TServerInstance | number, opts?: Partial<ServerOptions>);",
+      "signature": "constructor(srv?: TServerInstance | number, opts?: Partial<ServerOptions>);",
       "supportLine": "4.7.5",
       "surface": "Server",
       "tier": "declaration-public"
@@ -1958,7 +1958,7 @@
     {
       "declarationFile": "dist/index.d.ts",
       "declaredBy": "Server",
-      "id": "socket.io-4.7.5:4.7.5:declaration-public:Server:instance:constructor:constructor:8b974010132b",
+      "id": "socket.io-4.7.5:4.7.5:declaration-public:Server:instance:constructor:constructor:6819a001f72d",
       "kind": "constructor",
       "member": "constructor",
       "optional": false,
@@ -1967,7 +1967,7 @@
       "packageVersion": "4.7.5",
       "readonly": false,
       "receiver": "instance",
-      "signature": "constructor(srv?: TServerInstance | number, opts?: Partial<ServerOptions>);",
+      "signature": "constructor(srv: undefined | Partial<ServerOptions> | TServerInstance | number, opts?: Partial<ServerOptions>);",
       "supportLine": "4.7.5",
       "surface": "Server",
       "tier": "declaration-public"
@@ -2247,7 +2247,7 @@
     {
       "declarationFile": "dist/index.d.ts",
       "declaredBy": "Server",
-      "id": "socket.io-4.7.5:4.7.5:declaration-public:Server:instance:path:method:93cb1674d337",
+      "id": "socket.io-4.7.5:4.7.5:declaration-public:Server:instance:path:method:a4b59735e92b",
       "kind": "method",
       "member": "path",
       "optional": false,
@@ -2256,7 +2256,7 @@
       "packageVersion": "4.7.5",
       "readonly": false,
       "receiver": "instance",
-      "signature": "path(): string;",
+      "signature": "path(v: string): this;",
       "supportLine": "4.7.5",
       "surface": "Server",
       "tier": "declaration-public"
@@ -2264,7 +2264,7 @@
     {
       "declarationFile": "dist/index.d.ts",
       "declaredBy": "Server",
-      "id": "socket.io-4.7.5:4.7.5:declaration-public:Server:instance:path:method:a4b59735e92b",
+      "id": "socket.io-4.7.5:4.7.5:declaration-public:Server:instance:path:method:93cb1674d337",
       "kind": "method",
       "member": "path",
       "optional": false,
@@ -2273,7 +2273,7 @@
       "packageVersion": "4.7.5",
       "readonly": false,
       "receiver": "instance",
-      "signature": "path(v: string): this;",
+      "signature": "path(): string;",
       "supportLine": "4.7.5",
       "surface": "Server",
       "tier": "declaration-public"
@@ -2400,7 +2400,7 @@
     {
       "declarationFile": "dist/index.d.ts",
       "declaredBy": "Server",
-      "id": "socket.io-4.7.5:4.7.5:declaration-public:Server:instance:serveClient:method:cd2eb7cbd3e7",
+      "id": "socket.io-4.7.5:4.7.5:declaration-public:Server:instance:serveClient:method:fea452020da0",
       "kind": "method",
       "member": "serveClient",
       "optional": false,
@@ -2409,7 +2409,7 @@
       "packageVersion": "4.7.5",
       "readonly": false,
       "receiver": "instance",
-      "signature": "serveClient(): boolean;",
+      "signature": "serveClient(v: boolean): this;",
       "supportLine": "4.7.5",
       "surface": "Server",
       "tier": "declaration-public"
@@ -2417,7 +2417,7 @@
     {
       "declarationFile": "dist/index.d.ts",
       "declaredBy": "Server",
-      "id": "socket.io-4.7.5:4.7.5:declaration-public:Server:instance:serveClient:method:fea452020da0",
+      "id": "socket.io-4.7.5:4.7.5:declaration-public:Server:instance:serveClient:method:cd2eb7cbd3e7",
       "kind": "method",
       "member": "serveClient",
       "optional": false,
@@ -2426,7 +2426,7 @@
       "packageVersion": "4.7.5",
       "readonly": false,
       "receiver": "instance",
-      "signature": "serveClient(v: boolean): this;",
+      "signature": "serveClient(): boolean;",
       "supportLine": "4.7.5",
       "surface": "Server",
       "tier": "declaration-public"
@@ -5206,7 +5206,7 @@
     {
       "declarationFile": "build/esm/manager.d.ts",
       "declaredBy": "Manager",
-      "id": "socket.io-client-4.7.5:4.7.5:declaration-public:Manager:instance:constructor:constructor:73a22d6511dc",
+      "id": "socket.io-client-4.7.5:4.7.5:declaration-public:Manager:instance:constructor:constructor:38e6b0aee561",
       "kind": "constructor",
       "member": "constructor",
       "optional": false,
@@ -5215,7 +5215,7 @@
       "packageVersion": "4.7.5",
       "readonly": false,
       "receiver": "instance",
-      "signature": "constructor(uri?: string | Partial<ManagerOptions>, opts?: Partial<ManagerOptions>);",
+      "signature": "constructor(uri?: string, opts?: Partial<ManagerOptions>);",
       "supportLine": "4.7.5",
       "surface": "Manager",
       "tier": "declaration-public"
@@ -5223,7 +5223,7 @@
     {
       "declarationFile": "build/esm/manager.d.ts",
       "declaredBy": "Manager",
-      "id": "socket.io-client-4.7.5:4.7.5:declaration-public:Manager:instance:constructor:constructor:38e6b0aee561",
+      "id": "socket.io-client-4.7.5:4.7.5:declaration-public:Manager:instance:constructor:constructor:73a22d6511dc",
       "kind": "constructor",
       "member": "constructor",
       "optional": false,
@@ -5232,7 +5232,7 @@
       "packageVersion": "4.7.5",
       "readonly": false,
       "receiver": "instance",
-      "signature": "constructor(uri?: string, opts?: Partial<ManagerOptions>);",
+      "signature": "constructor(uri?: string | Partial<ManagerOptions>, opts?: Partial<ManagerOptions>);",
       "supportLine": "4.7.5",
       "surface": "Manager",
       "tier": "declaration-public"
@@ -5393,7 +5393,7 @@
     {
       "declarationFile": "build/esm/manager.d.ts",
       "declaredBy": "Manager",
-      "id": "socket.io-client-4.7.5:4.7.5:declaration-public:Manager:instance:randomizationFactor:method:af609b52ccf7",
+      "id": "socket.io-client-4.7.5:4.7.5:declaration-public:Manager:instance:randomizationFactor:method:463f5b5751ed",
       "kind": "method",
       "member": "randomizationFactor",
       "optional": false,
@@ -5402,7 +5402,7 @@
       "packageVersion": "4.7.5",
       "readonly": false,
       "receiver": "instance",
-      "signature": "randomizationFactor(): number;",
+      "signature": "randomizationFactor(v: number): this;",
       "supportLine": "4.7.5",
       "surface": "Manager",
       "tier": "declaration-public"
@@ -5410,7 +5410,7 @@
     {
       "declarationFile": "build/esm/manager.d.ts",
       "declaredBy": "Manager",
-      "id": "socket.io-client-4.7.5:4.7.5:declaration-public:Manager:instance:randomizationFactor:method:463f5b5751ed",
+      "id": "socket.io-client-4.7.5:4.7.5:declaration-public:Manager:instance:randomizationFactor:method:af609b52ccf7",
       "kind": "method",
       "member": "randomizationFactor",
       "optional": false,
@@ -5419,7 +5419,7 @@
       "packageVersion": "4.7.5",
       "readonly": false,
       "receiver": "instance",
-      "signature": "randomizationFactor(v: number): this;",
+      "signature": "randomizationFactor(): number;",
       "supportLine": "4.7.5",
       "surface": "Manager",
       "tier": "declaration-public"
@@ -5444,7 +5444,7 @@
     {
       "declarationFile": "build/esm/manager.d.ts",
       "declaredBy": "Manager",
-      "id": "socket.io-client-4.7.5:4.7.5:declaration-public:Manager:instance:reconnection:method:77fc10efeab3",
+      "id": "socket.io-client-4.7.5:4.7.5:declaration-public:Manager:instance:reconnection:method:9025115e60dd",
       "kind": "method",
       "member": "reconnection",
       "optional": false,
@@ -5453,7 +5453,7 @@
       "packageVersion": "4.7.5",
       "readonly": false,
       "receiver": "instance",
-      "signature": "reconnection(): boolean;",
+      "signature": "reconnection(v: boolean): this;",
       "supportLine": "4.7.5",
       "surface": "Manager",
       "tier": "declaration-public"
@@ -5461,7 +5461,7 @@
     {
       "declarationFile": "build/esm/manager.d.ts",
       "declaredBy": "Manager",
-      "id": "socket.io-client-4.7.5:4.7.5:declaration-public:Manager:instance:reconnection:method:9025115e60dd",
+      "id": "socket.io-client-4.7.5:4.7.5:declaration-public:Manager:instance:reconnection:method:77fc10efeab3",
       "kind": "method",
       "member": "reconnection",
       "optional": false,
@@ -5470,7 +5470,7 @@
       "packageVersion": "4.7.5",
       "readonly": false,
       "receiver": "instance",
-      "signature": "reconnection(v: boolean): this;",
+      "signature": "reconnection(): boolean;",
       "supportLine": "4.7.5",
       "surface": "Manager",
       "tier": "declaration-public"
@@ -5495,7 +5495,7 @@
     {
       "declarationFile": "build/esm/manager.d.ts",
       "declaredBy": "Manager",
-      "id": "socket.io-client-4.7.5:4.7.5:declaration-public:Manager:instance:reconnectionAttempts:method:a600dba33d23",
+      "id": "socket.io-client-4.7.5:4.7.5:declaration-public:Manager:instance:reconnectionAttempts:method:78a757b80164",
       "kind": "method",
       "member": "reconnectionAttempts",
       "optional": false,
@@ -5504,7 +5504,7 @@
       "packageVersion": "4.7.5",
       "readonly": false,
       "receiver": "instance",
-      "signature": "reconnectionAttempts(): number;",
+      "signature": "reconnectionAttempts(v: number): this;",
       "supportLine": "4.7.5",
       "surface": "Manager",
       "tier": "declaration-public"
@@ -5512,7 +5512,7 @@
     {
       "declarationFile": "build/esm/manager.d.ts",
       "declaredBy": "Manager",
-      "id": "socket.io-client-4.7.5:4.7.5:declaration-public:Manager:instance:reconnectionAttempts:method:78a757b80164",
+      "id": "socket.io-client-4.7.5:4.7.5:declaration-public:Manager:instance:reconnectionAttempts:method:a600dba33d23",
       "kind": "method",
       "member": "reconnectionAttempts",
       "optional": false,
@@ -5521,7 +5521,7 @@
       "packageVersion": "4.7.5",
       "readonly": false,
       "receiver": "instance",
-      "signature": "reconnectionAttempts(v: number): this;",
+      "signature": "reconnectionAttempts(): number;",
       "supportLine": "4.7.5",
       "surface": "Manager",
       "tier": "declaration-public"
@@ -5546,7 +5546,7 @@
     {
       "declarationFile": "build/esm/manager.d.ts",
       "declaredBy": "Manager",
-      "id": "socket.io-client-4.7.5:4.7.5:declaration-public:Manager:instance:reconnectionDelay:method:102d59939ae8",
+      "id": "socket.io-client-4.7.5:4.7.5:declaration-public:Manager:instance:reconnectionDelay:method:18cf5d4d4759",
       "kind": "method",
       "member": "reconnectionDelay",
       "optional": false,
@@ -5555,7 +5555,7 @@
       "packageVersion": "4.7.5",
       "readonly": false,
       "receiver": "instance",
-      "signature": "reconnectionDelay(): number;",
+      "signature": "reconnectionDelay(v: number): this;",
       "supportLine": "4.7.5",
       "surface": "Manager",
       "tier": "declaration-public"
@@ -5563,7 +5563,7 @@
     {
       "declarationFile": "build/esm/manager.d.ts",
       "declaredBy": "Manager",
-      "id": "socket.io-client-4.7.5:4.7.5:declaration-public:Manager:instance:reconnectionDelay:method:18cf5d4d4759",
+      "id": "socket.io-client-4.7.5:4.7.5:declaration-public:Manager:instance:reconnectionDelay:method:102d59939ae8",
       "kind": "method",
       "member": "reconnectionDelay",
       "optional": false,
@@ -5572,7 +5572,7 @@
       "packageVersion": "4.7.5",
       "readonly": false,
       "receiver": "instance",
-      "signature": "reconnectionDelay(v: number): this;",
+      "signature": "reconnectionDelay(): number;",
       "supportLine": "4.7.5",
       "surface": "Manager",
       "tier": "declaration-public"
@@ -5597,7 +5597,7 @@
     {
       "declarationFile": "build/esm/manager.d.ts",
       "declaredBy": "Manager",
-      "id": "socket.io-client-4.7.5:4.7.5:declaration-public:Manager:instance:reconnectionDelayMax:method:b0fac52d3812",
+      "id": "socket.io-client-4.7.5:4.7.5:declaration-public:Manager:instance:reconnectionDelayMax:method:35554e5d61df",
       "kind": "method",
       "member": "reconnectionDelayMax",
       "optional": false,
@@ -5606,7 +5606,7 @@
       "packageVersion": "4.7.5",
       "readonly": false,
       "receiver": "instance",
-      "signature": "reconnectionDelayMax(): number;",
+      "signature": "reconnectionDelayMax(v: number): this;",
       "supportLine": "4.7.5",
       "surface": "Manager",
       "tier": "declaration-public"
@@ -5614,7 +5614,7 @@
     {
       "declarationFile": "build/esm/manager.d.ts",
       "declaredBy": "Manager",
-      "id": "socket.io-client-4.7.5:4.7.5:declaration-public:Manager:instance:reconnectionDelayMax:method:35554e5d61df",
+      "id": "socket.io-client-4.7.5:4.7.5:declaration-public:Manager:instance:reconnectionDelayMax:method:b0fac52d3812",
       "kind": "method",
       "member": "reconnectionDelayMax",
       "optional": false,
@@ -5623,7 +5623,7 @@
       "packageVersion": "4.7.5",
       "readonly": false,
       "receiver": "instance",
-      "signature": "reconnectionDelayMax(v: number): this;",
+      "signature": "reconnectionDelayMax(): number;",
       "supportLine": "4.7.5",
       "surface": "Manager",
       "tier": "declaration-public"
@@ -5699,7 +5699,7 @@
     {
       "declarationFile": "build/esm/manager.d.ts",
       "declaredBy": "Manager",
-      "id": "socket.io-client-4.7.5:4.7.5:declaration-public:Manager:instance:timeout:method:967a65e0ad09",
+      "id": "socket.io-client-4.7.5:4.7.5:declaration-public:Manager:instance:timeout:method:015c80072b07",
       "kind": "method",
       "member": "timeout",
       "optional": false,
@@ -5708,7 +5708,7 @@
       "packageVersion": "4.7.5",
       "readonly": false,
       "receiver": "instance",
-      "signature": "timeout(): number | boolean;",
+      "signature": "timeout(v: number | boolean): this;",
       "supportLine": "4.7.5",
       "surface": "Manager",
       "tier": "declaration-public"
@@ -5716,7 +5716,7 @@
     {
       "declarationFile": "build/esm/manager.d.ts",
       "declaredBy": "Manager",
-      "id": "socket.io-client-4.7.5:4.7.5:declaration-public:Manager:instance:timeout:method:015c80072b07",
+      "id": "socket.io-client-4.7.5:4.7.5:declaration-public:Manager:instance:timeout:method:967a65e0ad09",
       "kind": "method",
       "member": "timeout",
       "optional": false,
@@ -5725,7 +5725,7 @@
       "packageVersion": "4.7.5",
       "readonly": false,
       "receiver": "instance",
-      "signature": "timeout(v: number | boolean): this;",
+      "signature": "timeout(): number | boolean;",
       "supportLine": "4.7.5",
       "surface": "Manager",
       "tier": "declaration-public"
@@ -8098,7 +8098,7 @@
     {
       "declarationFile": "dist/index.d.ts",
       "declaredBy": "Server",
-      "id": "socket.io-4.8.3:4.8.3:declaration-public:Server:instance:connectTimeout:method:b509e4523b52",
+      "id": "socket.io-4.8.3:4.8.3:declaration-public:Server:instance:connectTimeout:method:c58e64626690",
       "kind": "method",
       "member": "connectTimeout",
       "optional": false,
@@ -8107,7 +8107,7 @@
       "packageVersion": "4.8.3",
       "readonly": false,
       "receiver": "instance",
-      "signature": "connectTimeout(): number;",
+      "signature": "connectTimeout(v: number): this;",
       "supportLine": "4.8.3",
       "surface": "Server",
       "tier": "declaration-public"
@@ -8115,7 +8115,7 @@
     {
       "declarationFile": "dist/index.d.ts",
       "declaredBy": "Server",
-      "id": "socket.io-4.8.3:4.8.3:declaration-public:Server:instance:connectTimeout:method:c58e64626690",
+      "id": "socket.io-4.8.3:4.8.3:declaration-public:Server:instance:connectTimeout:method:b509e4523b52",
       "kind": "method",
       "member": "connectTimeout",
       "optional": false,
@@ -8124,7 +8124,7 @@
       "packageVersion": "4.8.3",
       "readonly": false,
       "receiver": "instance",
-      "signature": "connectTimeout(v: number): this;",
+      "signature": "connectTimeout(): number;",
       "supportLine": "4.8.3",
       "surface": "Server",
       "tier": "declaration-public"
@@ -8166,7 +8166,7 @@
     {
       "declarationFile": "dist/index.d.ts",
       "declaredBy": "Server",
-      "id": "socket.io-4.8.3:4.8.3:declaration-public:Server:instance:constructor:constructor:2efa5560e08e",
+      "id": "socket.io-4.8.3:4.8.3:declaration-public:Server:instance:constructor:constructor:97ed455d26f0",
       "kind": "constructor",
       "member": "constructor",
       "optional": false,
@@ -8175,7 +8175,7 @@
       "packageVersion": "4.8.3",
       "readonly": false,
       "receiver": "instance",
-      "signature": "constructor(srv: undefined | Partial<ServerOptions> | TServerInstance | number, opts?: Partial<ServerOptions>);",
+      "signature": "constructor(srv?: TServerInstance | number, opts?: Partial<ServerOptions>);",
       "supportLine": "4.8.3",
       "surface": "Server",
       "tier": "declaration-public"
@@ -8183,7 +8183,7 @@
     {
       "declarationFile": "dist/index.d.ts",
       "declaredBy": "Server",
-      "id": "socket.io-4.8.3:4.8.3:declaration-public:Server:instance:constructor:constructor:97ed455d26f0",
+      "id": "socket.io-4.8.3:4.8.3:declaration-public:Server:instance:constructor:constructor:2efa5560e08e",
       "kind": "constructor",
       "member": "constructor",
       "optional": false,
@@ -8192,7 +8192,7 @@
       "packageVersion": "4.8.3",
       "readonly": false,
       "receiver": "instance",
-      "signature": "constructor(srv?: TServerInstance | number, opts?: Partial<ServerOptions>);",
+      "signature": "constructor(srv: undefined | Partial<ServerOptions> | TServerInstance | number, opts?: Partial<ServerOptions>);",
       "supportLine": "4.8.3",
       "surface": "Server",
       "tier": "declaration-public"
@@ -8489,7 +8489,7 @@
     {
       "declarationFile": "dist/index.d.ts",
       "declaredBy": "Server",
-      "id": "socket.io-4.8.3:4.8.3:declaration-public:Server:instance:path:method:f8ccd9000887",
+      "id": "socket.io-4.8.3:4.8.3:declaration-public:Server:instance:path:method:ebdb57c2b80b",
       "kind": "method",
       "member": "path",
       "optional": false,
@@ -8498,7 +8498,7 @@
       "packageVersion": "4.8.3",
       "readonly": false,
       "receiver": "instance",
-      "signature": "path(): string;",
+      "signature": "path(v: string): this;",
       "supportLine": "4.8.3",
       "surface": "Server",
       "tier": "declaration-public"
@@ -8506,7 +8506,7 @@
     {
       "declarationFile": "dist/index.d.ts",
       "declaredBy": "Server",
-      "id": "socket.io-4.8.3:4.8.3:declaration-public:Server:instance:path:method:ebdb57c2b80b",
+      "id": "socket.io-4.8.3:4.8.3:declaration-public:Server:instance:path:method:f8ccd9000887",
       "kind": "method",
       "member": "path",
       "optional": false,
@@ -8515,7 +8515,7 @@
       "packageVersion": "4.8.3",
       "readonly": false,
       "receiver": "instance",
-      "signature": "path(v: string): this;",
+      "signature": "path(): string;",
       "supportLine": "4.8.3",
       "surface": "Server",
       "tier": "declaration-public"
@@ -8642,7 +8642,7 @@
     {
       "declarationFile": "dist/index.d.ts",
       "declaredBy": "Server",
-      "id": "socket.io-4.8.3:4.8.3:declaration-public:Server:instance:serveClient:method:c91da9cc411f",
+      "id": "socket.io-4.8.3:4.8.3:declaration-public:Server:instance:serveClient:method:569a690eda66",
       "kind": "method",
       "member": "serveClient",
       "optional": false,
@@ -8651,7 +8651,7 @@
       "packageVersion": "4.8.3",
       "readonly": false,
       "receiver": "instance",
-      "signature": "serveClient(): boolean;",
+      "signature": "serveClient(v: boolean): this;",
       "supportLine": "4.8.3",
       "surface": "Server",
       "tier": "declaration-public"
@@ -8659,7 +8659,7 @@
     {
       "declarationFile": "dist/index.d.ts",
       "declaredBy": "Server",
-      "id": "socket.io-4.8.3:4.8.3:declaration-public:Server:instance:serveClient:method:569a690eda66",
+      "id": "socket.io-4.8.3:4.8.3:declaration-public:Server:instance:serveClient:method:c91da9cc411f",
       "kind": "method",
       "member": "serveClient",
       "optional": false,
@@ -8668,7 +8668,7 @@
       "packageVersion": "4.8.3",
       "readonly": false,
       "receiver": "instance",
-      "signature": "serveClient(v: boolean): this;",
+      "signature": "serveClient(): boolean;",
       "supportLine": "4.8.3",
       "surface": "Server",
       "tier": "declaration-public"
@@ -11414,7 +11414,7 @@
     {
       "declarationFile": "build/esm/manager.d.ts",
       "declaredBy": "Manager",
-      "id": "socket.io-client-4.8.3:4.8.3:declaration-public:Manager:instance:constructor:constructor:870afe61bbd0",
+      "id": "socket.io-client-4.8.3:4.8.3:declaration-public:Manager:instance:constructor:constructor:16e261ed1565",
       "kind": "constructor",
       "member": "constructor",
       "optional": false,
@@ -11423,7 +11423,7 @@
       "packageVersion": "4.8.3",
       "readonly": false,
       "receiver": "instance",
-      "signature": "constructor(uri?: string | Partial<ManagerOptions>, opts?: Partial<ManagerOptions>);",
+      "signature": "constructor(uri?: string, opts?: Partial<ManagerOptions>);",
       "supportLine": "4.8.3",
       "surface": "Manager",
       "tier": "declaration-public"
@@ -11431,7 +11431,7 @@
     {
       "declarationFile": "build/esm/manager.d.ts",
       "declaredBy": "Manager",
-      "id": "socket.io-client-4.8.3:4.8.3:declaration-public:Manager:instance:constructor:constructor:16e261ed1565",
+      "id": "socket.io-client-4.8.3:4.8.3:declaration-public:Manager:instance:constructor:constructor:870afe61bbd0",
       "kind": "constructor",
       "member": "constructor",
       "optional": false,
@@ -11440,7 +11440,7 @@
       "packageVersion": "4.8.3",
       "readonly": false,
       "receiver": "instance",
-      "signature": "constructor(uri?: string, opts?: Partial<ManagerOptions>);",
+      "signature": "constructor(uri?: string | Partial<ManagerOptions>, opts?: Partial<ManagerOptions>);",
       "supportLine": "4.8.3",
       "surface": "Manager",
       "tier": "declaration-public"
@@ -11601,7 +11601,7 @@
     {
       "declarationFile": "build/esm/manager.d.ts",
       "declaredBy": "Manager",
-      "id": "socket.io-client-4.8.3:4.8.3:declaration-public:Manager:instance:randomizationFactor:method:c479e9d210dd",
+      "id": "socket.io-client-4.8.3:4.8.3:declaration-public:Manager:instance:randomizationFactor:method:3d87e9b21a52",
       "kind": "method",
       "member": "randomizationFactor",
       "optional": false,
@@ -11610,7 +11610,7 @@
       "packageVersion": "4.8.3",
       "readonly": false,
       "receiver": "instance",
-      "signature": "randomizationFactor(): number;",
+      "signature": "randomizationFactor(v: number): this;",
       "supportLine": "4.8.3",
       "surface": "Manager",
       "tier": "declaration-public"
@@ -11618,7 +11618,7 @@
     {
       "declarationFile": "build/esm/manager.d.ts",
       "declaredBy": "Manager",
-      "id": "socket.io-client-4.8.3:4.8.3:declaration-public:Manager:instance:randomizationFactor:method:3d87e9b21a52",
+      "id": "socket.io-client-4.8.3:4.8.3:declaration-public:Manager:instance:randomizationFactor:method:c479e9d210dd",
       "kind": "method",
       "member": "randomizationFactor",
       "optional": false,
@@ -11627,7 +11627,7 @@
       "packageVersion": "4.8.3",
       "readonly": false,
       "receiver": "instance",
-      "signature": "randomizationFactor(v: number): this;",
+      "signature": "randomizationFactor(): number;",
       "supportLine": "4.8.3",
       "surface": "Manager",
       "tier": "declaration-public"
@@ -11652,7 +11652,7 @@
     {
       "declarationFile": "build/esm/manager.d.ts",
       "declaredBy": "Manager",
-      "id": "socket.io-client-4.8.3:4.8.3:declaration-public:Manager:instance:reconnection:method:51b93ff7d041",
+      "id": "socket.io-client-4.8.3:4.8.3:declaration-public:Manager:instance:reconnection:method:a89023a3511e",
       "kind": "method",
       "member": "reconnection",
       "optional": false,
@@ -11661,7 +11661,7 @@
       "packageVersion": "4.8.3",
       "readonly": false,
       "receiver": "instance",
-      "signature": "reconnection(): boolean;",
+      "signature": "reconnection(v: boolean): this;",
       "supportLine": "4.8.3",
       "surface": "Manager",
       "tier": "declaration-public"
@@ -11669,7 +11669,7 @@
     {
       "declarationFile": "build/esm/manager.d.ts",
       "declaredBy": "Manager",
-      "id": "socket.io-client-4.8.3:4.8.3:declaration-public:Manager:instance:reconnection:method:a89023a3511e",
+      "id": "socket.io-client-4.8.3:4.8.3:declaration-public:Manager:instance:reconnection:method:51b93ff7d041",
       "kind": "method",
       "member": "reconnection",
       "optional": false,
@@ -11678,7 +11678,7 @@
       "packageVersion": "4.8.3",
       "readonly": false,
       "receiver": "instance",
-      "signature": "reconnection(v: boolean): this;",
+      "signature": "reconnection(): boolean;",
       "supportLine": "4.8.3",
       "surface": "Manager",
       "tier": "declaration-public"
@@ -11703,7 +11703,7 @@
     {
       "declarationFile": "build/esm/manager.d.ts",
       "declaredBy": "Manager",
-      "id": "socket.io-client-4.8.3:4.8.3:declaration-public:Manager:instance:reconnectionAttempts:method:f3b306081404",
+      "id": "socket.io-client-4.8.3:4.8.3:declaration-public:Manager:instance:reconnectionAttempts:method:5189dfcce418",
       "kind": "method",
       "member": "reconnectionAttempts",
       "optional": false,
@@ -11712,7 +11712,7 @@
       "packageVersion": "4.8.3",
       "readonly": false,
       "receiver": "instance",
-      "signature": "reconnectionAttempts(): number;",
+      "signature": "reconnectionAttempts(v: number): this;",
       "supportLine": "4.8.3",
       "surface": "Manager",
       "tier": "declaration-public"
@@ -11720,7 +11720,7 @@
     {
       "declarationFile": "build/esm/manager.d.ts",
       "declaredBy": "Manager",
-      "id": "socket.io-client-4.8.3:4.8.3:declaration-public:Manager:instance:reconnectionAttempts:method:5189dfcce418",
+      "id": "socket.io-client-4.8.3:4.8.3:declaration-public:Manager:instance:reconnectionAttempts:method:f3b306081404",
       "kind": "method",
       "member": "reconnectionAttempts",
       "optional": false,
@@ -11729,7 +11729,7 @@
       "packageVersion": "4.8.3",
       "readonly": false,
       "receiver": "instance",
-      "signature": "reconnectionAttempts(v: number): this;",
+      "signature": "reconnectionAttempts(): number;",
       "supportLine": "4.8.3",
       "surface": "Manager",
       "tier": "declaration-public"
@@ -11754,7 +11754,7 @@
     {
       "declarationFile": "build/esm/manager.d.ts",
       "declaredBy": "Manager",
-      "id": "socket.io-client-4.8.3:4.8.3:declaration-public:Manager:instance:reconnectionDelay:method:6db172d6c702",
+      "id": "socket.io-client-4.8.3:4.8.3:declaration-public:Manager:instance:reconnectionDelay:method:616159f31d2d",
       "kind": "method",
       "member": "reconnectionDelay",
       "optional": false,
@@ -11763,7 +11763,7 @@
       "packageVersion": "4.8.3",
       "readonly": false,
       "receiver": "instance",
-      "signature": "reconnectionDelay(): number;",
+      "signature": "reconnectionDelay(v: number): this;",
       "supportLine": "4.8.3",
       "surface": "Manager",
       "tier": "declaration-public"
@@ -11771,7 +11771,7 @@
     {
       "declarationFile": "build/esm/manager.d.ts",
       "declaredBy": "Manager",
-      "id": "socket.io-client-4.8.3:4.8.3:declaration-public:Manager:instance:reconnectionDelay:method:616159f31d2d",
+      "id": "socket.io-client-4.8.3:4.8.3:declaration-public:Manager:instance:reconnectionDelay:method:6db172d6c702",
       "kind": "method",
       "member": "reconnectionDelay",
       "optional": false,
@@ -11780,7 +11780,7 @@
       "packageVersion": "4.8.3",
       "readonly": false,
       "receiver": "instance",
-      "signature": "reconnectionDelay(v: number): this;",
+      "signature": "reconnectionDelay(): number;",
       "supportLine": "4.8.3",
       "surface": "Manager",
       "tier": "declaration-public"
@@ -11805,7 +11805,7 @@
     {
       "declarationFile": "build/esm/manager.d.ts",
       "declaredBy": "Manager",
-      "id": "socket.io-client-4.8.3:4.8.3:declaration-public:Manager:instance:reconnectionDelayMax:method:02220f297ec1",
+      "id": "socket.io-client-4.8.3:4.8.3:declaration-public:Manager:instance:reconnectionDelayMax:method:366f9ee404a7",
       "kind": "method",
       "member": "reconnectionDelayMax",
       "optional": false,
@@ -11814,7 +11814,7 @@
       "packageVersion": "4.8.3",
       "readonly": false,
       "receiver": "instance",
-      "signature": "reconnectionDelayMax(): number;",
+      "signature": "reconnectionDelayMax(v: number): this;",
       "supportLine": "4.8.3",
       "surface": "Manager",
       "tier": "declaration-public"
@@ -11822,7 +11822,7 @@
     {
       "declarationFile": "build/esm/manager.d.ts",
       "declaredBy": "Manager",
-      "id": "socket.io-client-4.8.3:4.8.3:declaration-public:Manager:instance:reconnectionDelayMax:method:366f9ee404a7",
+      "id": "socket.io-client-4.8.3:4.8.3:declaration-public:Manager:instance:reconnectionDelayMax:method:02220f297ec1",
       "kind": "method",
       "member": "reconnectionDelayMax",
       "optional": false,
@@ -11831,7 +11831,7 @@
       "packageVersion": "4.8.3",
       "readonly": false,
       "receiver": "instance",
-      "signature": "reconnectionDelayMax(v: number): this;",
+      "signature": "reconnectionDelayMax(): number;",
       "supportLine": "4.8.3",
       "surface": "Manager",
       "tier": "declaration-public"
@@ -11907,7 +11907,7 @@
     {
       "declarationFile": "build/esm/manager.d.ts",
       "declaredBy": "Manager",
-      "id": "socket.io-client-4.8.3:4.8.3:declaration-public:Manager:instance:timeout:method:013f00167315",
+      "id": "socket.io-client-4.8.3:4.8.3:declaration-public:Manager:instance:timeout:method:fe6aba66046b",
       "kind": "method",
       "member": "timeout",
       "optional": false,
@@ -11916,7 +11916,7 @@
       "packageVersion": "4.8.3",
       "readonly": false,
       "receiver": "instance",
-      "signature": "timeout(): number | boolean;",
+      "signature": "timeout(v: number | boolean): this;",
       "supportLine": "4.8.3",
       "surface": "Manager",
       "tier": "declaration-public"
@@ -11924,7 +11924,7 @@
     {
       "declarationFile": "build/esm/manager.d.ts",
       "declaredBy": "Manager",
-      "id": "socket.io-client-4.8.3:4.8.3:declaration-public:Manager:instance:timeout:method:fe6aba66046b",
+      "id": "socket.io-client-4.8.3:4.8.3:declaration-public:Manager:instance:timeout:method:013f00167315",
       "kind": "method",
       "member": "timeout",
       "optional": false,
@@ -11933,7 +11933,7 @@
       "packageVersion": "4.8.3",
       "readonly": false,
       "receiver": "instance",
-      "signature": "timeout(v: number | boolean): this;",
+      "signature": "timeout(): number | boolean;",
       "supportLine": "4.8.3",
       "surface": "Manager",
       "tier": "declaration-public"
