@@ -42,7 +42,7 @@ function run(command, args, cwd, environmentOverrides = {}) {
       stderr += chunk;
     });
     child.on('error', reject);
-    child.on('exit', (code, signal) => {
+    child.on('close', (code, signal) => {
       if (code === 0) {
         resolvePromise({ stdout, stderr });
         return;
