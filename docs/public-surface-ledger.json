@@ -536,8 +536,8 @@
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:server-Socket:instance:connected:property:b79ee73456d2",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/275"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0033-socket-state-follows-lifecycle-not-delivery-readiness.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:server-Socket:instance:constructor:constructor:ba64772be3e3",
@@ -556,8 +556,8 @@
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:server-Socket:instance:disconnected:getter:9c2c1e131176",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/275"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0033-socket-state-follows-lifecycle-not-delivery-readiness.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:server-Socket:instance:emit:method:0d0b5ed8b50e",
@@ -701,8 +701,8 @@
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:server-Socket:instance:recovered:property:e226ec582c6d",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/275"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0033-socket-state-follows-lifecycle-not-delivery-readiness.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:server-Socket:instance:removeAllListeners:method:7fe337d200c5",
@@ -1711,8 +1711,8 @@
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:server-Socket:instance:connected:property:ea403199a1aa",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/275"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0033-socket-state-follows-lifecycle-not-delivery-readiness.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:server-Socket:instance:constructor:constructor:36f1168a15e9",
@@ -1731,8 +1731,8 @@
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:server-Socket:instance:disconnected:getter:f46452a1abb9",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/275"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0033-socket-state-follows-lifecycle-not-delivery-readiness.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:server-Socket:instance:emit:method:9e903e0753e3",
@@ -1876,8 +1876,8 @@
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:server-Socket:instance:recovered:property:8b1ee0738ffe",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/275"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0033-socket-state-follows-lifecycle-not-delivery-readiness.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:server-Socket:instance:removeAllListeners:method:323f4ad67408",
@@ -2712,12 +2712,12 @@
     {
       "id": "socket.io-client-4.7.5:4.7.5:declaration-public:client-Socket:instance:active:getter:ff185f91728a",
       "disposition": "out-of-scope",
-      "reference": "https://github.com/electrohyun/smocket/issues/275"
+      "reference": "docs/decisions/0033-socket-state-follows-lifecycle-not-delivery-readiness.md"
     },
     {
       "id": "socket.io-client-4.7.5:4.7.5:declaration-public:client-Socket:instance:auth:property:ac92cc435254",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/275"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0033-socket-state-follows-lifecycle-not-delivery-readiness.md"
     },
     {
       "id": "socket.io-client-4.7.5:4.7.5:declaration-public:client-Socket:instance:close:method:a303aed9afda",
@@ -2751,8 +2751,8 @@
     },
     {
       "id": "socket.io-client-4.7.5:4.7.5:declaration-public:client-Socket:instance:disconnected:getter:9895b507745a",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/275"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0033-socket-state-follows-lifecycle-not-delivery-readiness.md"
     },
     {
       "id": "socket.io-client-4.7.5:4.7.5:declaration-public:client-Socket:instance:emit:method:6786a090c6bb",
@@ -2847,12 +2847,12 @@
     {
       "id": "socket.io-client-4.7.5:4.7.5:declaration-public:client-Socket:instance:receiveBuffer:property:7b78ac06254c",
       "disposition": "out-of-scope",
-      "reference": "https://github.com/electrohyun/smocket/issues/275"
+      "reference": "docs/decisions/0033-socket-state-follows-lifecycle-not-delivery-readiness.md"
     },
     {
       "id": "socket.io-client-4.7.5:4.7.5:declaration-public:client-Socket:instance:recovered:property:0aa88cb45814",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/275"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0033-socket-state-follows-lifecycle-not-delivery-readiness.md"
     },
     {
       "id": "socket.io-client-4.7.5:4.7.5:declaration-public:client-Socket:instance:removeAllListeners:method:72dd5b951509",
@@ -2872,7 +2872,7 @@
     {
       "id": "socket.io-client-4.7.5:4.7.5:declaration-public:client-Socket:instance:sendBuffer:property:b45c4422b462",
       "disposition": "out-of-scope",
-      "reference": "https://github.com/electrohyun/smocket/issues/275"
+      "reference": "docs/decisions/0033-socket-state-follows-lifecycle-not-delivery-readiness.md"
     },
     {
       "id": "socket.io-client-4.7.5:4.7.5:declaration-public:client-Socket:instance:timeout:method:8899e81854b8",
@@ -3182,12 +3182,12 @@
     {
       "id": "socket.io-client-4.8.3:4.8.3:declaration-public:client-Socket:instance:active:getter:ee68924dcd69",
       "disposition": "out-of-scope",
-      "reference": "https://github.com/electrohyun/smocket/issues/275"
+      "reference": "docs/decisions/0033-socket-state-follows-lifecycle-not-delivery-readiness.md"
     },
     {
       "id": "socket.io-client-4.8.3:4.8.3:declaration-public:client-Socket:instance:auth:property:63b50f00ae31",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/275"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0033-socket-state-follows-lifecycle-not-delivery-readiness.md"
     },
     {
       "id": "socket.io-client-4.8.3:4.8.3:declaration-public:client-Socket:instance:close:method:8c8008f33ad0",
@@ -3221,8 +3221,8 @@
     },
     {
       "id": "socket.io-client-4.8.3:4.8.3:declaration-public:client-Socket:instance:disconnected:getter:3fc000b4626e",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/275"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0033-socket-state-follows-lifecycle-not-delivery-readiness.md"
     },
     {
       "id": "socket.io-client-4.8.3:4.8.3:declaration-public:client-Socket:instance:emit:method:96db08da912d",
@@ -3317,12 +3317,12 @@
     {
       "id": "socket.io-client-4.8.3:4.8.3:declaration-public:client-Socket:instance:receiveBuffer:property:5dd3efb90bf8",
       "disposition": "out-of-scope",
-      "reference": "https://github.com/electrohyun/smocket/issues/275"
+      "reference": "docs/decisions/0033-socket-state-follows-lifecycle-not-delivery-readiness.md"
     },
     {
       "id": "socket.io-client-4.8.3:4.8.3:declaration-public:client-Socket:instance:recovered:property:f14f504e0895",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/275"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0033-socket-state-follows-lifecycle-not-delivery-readiness.md"
     },
     {
       "id": "socket.io-client-4.8.3:4.8.3:declaration-public:client-Socket:instance:removeAllListeners:method:d7f17336b179",
@@ -3342,7 +3342,7 @@
     {
       "id": "socket.io-client-4.8.3:4.8.3:declaration-public:client-Socket:instance:sendBuffer:property:22468b660b0e",
       "disposition": "out-of-scope",
-      "reference": "https://github.com/electrohyun/smocket/issues/275"
+      "reference": "docs/decisions/0033-socket-state-follows-lifecycle-not-delivery-readiness.md"
     },
     {
       "id": "socket.io-client-4.8.3:4.8.3:declaration-public:client-Socket:instance:timeout:method:4e8864cc31f5",
