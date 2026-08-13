@@ -23,6 +23,8 @@
 - **Whether something is in scope for smocket:** [scope.md](./scope.md)
 - **Why the code is shaped the way it is:** [decisions/](./decisions/README.md)
 - **Where smocket differs from real socket.io:** [differences.md](./differences.md)
+- **Why the root package has no runtime dependencies:**
+  [package-policy.md](./package-policy.md)
 - **What a version number promises when you upgrade:** [decisions/0019](./decisions/0019-what-counts-as-a-breaking-change.md)
 - **How to register a custom adapter, and why:** [adapter-registration.md](./adapter-registration.md)
 - **What the issue and pull request labels mean:** [labels.md](./labels.md)
