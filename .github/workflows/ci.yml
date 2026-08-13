@@ -98,18 +98,8 @@ jobs:
       # behaves in Node. #139 is what happens without it.
       - name: Run the mock target in a browser
         run: pnpm test:browser
-      - name: Run the runner-mapped candidate application in Chromium
-        shell: bash
-        run: |
-          candidate_dir="$RUNNER_TEMP/smocket-browser-candidate"
-          version="$(node -p "require('./package.json').version")"
-          mkdir -p "$candidate_dir"
-          pnpm build
-          npm pack . --ignore-scripts --pack-destination "$candidate_dir"
-          node scripts/run-clean-adoption.mjs candidate \
-            --version "$version" \
-            --tarball "$candidate_dir/smocket-$version.tgz" \
-            --browser
+      - name: Run candidate packages in Chromium
+        run: pnpm consumer:client:candidate -- --browser
 
   node-floor:
     name: declared node floor
@@ -128,6 +118,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
+      - run: pnpm --filter smocket-client build
       # Lower tier: the exact floor `engines.node` declares. Nothing installed
       # is invoked here, not even pnpm, because pnpm 11 would not start on this
       # version either. `scripts/smoke.mjs` imports `node:assert` and `dist/`
@@ -138,6 +129,7 @@ jobs:
         with:
           node-version: 20.0.0
       - run: node scripts/smoke.mjs
+      - run: node --test packages/smocket-client/test/runtime.test.mjs packages/smocket-client/test/runtime.test.cjs
       # Upper tier: the whole mock suite against `dist/`, on the lowest Node 20
       # that can run it. That is 20.13.0 and not 20.0.0 because vitest 4 pulls
       # in rolldown, rolldown calls `util.styleText`, and Node 20 grew that
@@ -263,19 +255,11 @@ jobs:
       # package surface.
       - name: Verify the packed package
         run: pnpm check:package
+      - name: Verify the client facade package
+        run: pnpm check:client-package
       - name: Run the existing candidate-package consumer
         run: pnpm consumer:chat-room:candidate
-      # The adoption fixture must see the same kind of package input a release
-      # candidate has: one tarball installed outside the checkout, never a
-      # workspace resolution. #284 can pass this explicit path forward without
-      # changing the fixture's package boundary.
-      - name: Run every clean-adoption fixture against a candidate tarball
-        shell: bash
-        run: |
-          candidate_dir="$RUNNER_TEMP/smocket-candidate"
-          version="$(node -p "require('./package.json').version")"
-          mkdir -p "$candidate_dir"
-          npm pack . --ignore-scripts --pack-destination "$candidate_dir"
-          node scripts/run-clean-adoption.mjs candidate \
-            --version "$version" \
-            --tarball "$candidate_dir/smocket-$version.tgz"
+      # The adoption fixture installs both candidate tarballs outside the checkout,
+      # so neither package can pass through a workspace resolution.
+      - name: Run every clean-adoption fixture against candidate tarballs
+        run: pnpm consumer:client:candidate

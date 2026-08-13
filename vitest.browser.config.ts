@@ -29,7 +29,11 @@ export default defineConfig({
     // The chat-room application uses Node's built-in test runner. The import
     // detector is browser-compatible; npm packing tests need Node child
     // processes and the filesystem, so they stay in the Node projects.
-    include: ['src/**/*.test.ts', 'scripts/detect-external-imports.test.ts'],
+    include: [
+      'src/**/*.test.ts',
+      'scripts/detect-external-imports.test.ts',
+      'packages/smocket-client/test/browser.test.ts',
+    ],
     browser: {
       enabled: true,
       provider: playwright(),
