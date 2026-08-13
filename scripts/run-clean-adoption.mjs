@@ -54,6 +54,7 @@ const packageInput =
     : (version ?? '<missing version>');
 const clientPackageInput =
   clientArchivePath === undefined ? undefined : `file:${clientArchivePath}`;
+const clientSubstitutionTarget = clientPackageInput === undefined ? 'smocket' : 'smocket-client';
 
 await withContext(
   {
@@ -131,7 +132,11 @@ function run(command, args, cwd, context) {
     const executableArgs = useWindowsCommandShell ? ['/d', '/s', '/c', command, ...args] : args;
     const child = spawn(executable, executableArgs, {
       cwd,
-      env: { ...process.env, npm_config_update_notifier: 'false' },
+      env: {
+        ...process.env,
+        SMOCKET_CLIENT_TARGET: clientSubstitutionTarget,
+        npm_config_update_notifier: 'false',
+      },
       stdio: 'inherit',
     });
 
@@ -202,6 +207,7 @@ async function assertInstalledIdentity(projectRoot, packageInput) {
       console.log(`clean adoption source version: ${version}`);
       console.log(`clean adoption installed version: ${installed.version}`);
       console.log(`clean adoption resolved identity: ${resolvedPath}`);
+      console.log(`clean adoption client substitution target: ${clientSubstitutionTarget}`);
 
       if (clientPackageInput !== undefined) {
         const clientPackagePath = join(
