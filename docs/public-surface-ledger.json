@@ -286,8 +286,8 @@
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:package-root:module:Event:type-export:45cf11dd4743",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/268"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0034-packet-middleware-completes-independently.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:package-root:module:Namespace:type-and-value-export:11e20bc1206b",
@@ -746,8 +746,8 @@
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:server-Socket:instance:use:method:be83a9f1c589",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/268"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0034-packet-middleware-completes-independently.md"
     },
     {
       "id": "socket.io-4.7.5:4.7.5:declaration-public:server-Socket:instance:volatile:getter:cbc2a9458ac0",
@@ -1456,8 +1456,8 @@
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:package-root:module:Event:type-export:1707229260a6",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/268"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0034-packet-middleware-completes-independently.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:package-root:module:ExtendedError:type-export:e81c8a344d38",
@@ -1921,8 +1921,8 @@
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:server-Socket:instance:use:method:82c76dec6cde",
-      "disposition": "tracked-issue",
-      "reference": "https://github.com/electrohyun/smocket/issues/268"
+      "disposition": "implemented",
+      "reference": "docs/decisions/0034-packet-middleware-completes-independently.md"
     },
     {
       "id": "socket.io-4.8.3:4.8.3:declaration-public:server-Socket:instance:volatile:getter:06cde38b75a2",

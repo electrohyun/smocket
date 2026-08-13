@@ -1,6 +1,7 @@
 # 0010. A single defer primitive keeps per-socket order FIFO
 
 **Status:** Accepted · 2026-07-28 · #67
+**Clarified by:** [0034](./0034-packet-middleware-completes-independently.md)
 
 > **TL;DR** Connection completion and every emit are scheduled through one
 > `defer` (a `queueMicrotask` wrapper), so each socket observes events in send

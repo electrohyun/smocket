@@ -45,3 +45,4 @@ these are written.
 | [0031](./0031-adapter-registration-and-removal-lifecycle.md)            | Adapters register before admission and may observe whole-socket removal                 | Accepted | #278          |
 | [0032](./0032-trace-final-broadcast-routing.md)                         | Trace final broadcast routing without retaining payloads                                | Accepted | #262          |
 | [0033](./0033-socket-state-follows-lifecycle-not-delivery-readiness.md) | Socket state follows lifecycle while volatile delivery uses private client readiness    | Accepted | #275          |
+| [0034](./0034-packet-middleware-completes-independently.md)             | Packet middleware preserves entry order and completes independently                     | Accepted | #268          |
