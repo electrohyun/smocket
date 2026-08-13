@@ -212,6 +212,21 @@ Collecting an ack from every recipient of a broadcast, and answering on expiry.
 - [socket timeout transfers once to the except operator](../src/broadcast-timeout.test.ts#L204)
 - [socket timeout transfers once to the broadcast operator](../src/broadcast-timeout.test.ts#L204)
 
+### Broadcast Promise acknowledgements
+
+Awaiting every selected recipient, including timeout errors, snapshots, and wrapper
+composition.
+
+- [broadcast emitWithAck resolves responses in acknowledgement arrival order](../src/broadcast-promise-ack.test.ts#L9)
+- [untimed broadcast acknowledgement collection keeps the timer race and resolves [] for nobody](../src/broadcast-promise-ack.test.ts#L25)
+- [timeout rejection exposes partial responses and late acknowledgements mutate that array once](../src/broadcast-promise-ack.test.ts#L51)
+- [server, namespace, room, exclusion, and socket broadcast share Promise collection](../src/broadcast-promise-ack.test.ts#L84)
+- [timeout-first and narrowing-first Promise broadcasts select the same responders](../src/broadcast-promise-ack.test.ts#L114)
+- [Promise broadcast hides its collector ack and observes each selected socket once](../src/broadcast-promise-ack.test.ts#L130)
+- [reserved Promise broadcasts reject without outgoing observation](../src/broadcast-promise-ack.test.ts#L140)
+- [dynamic parent Promise acknowledgements resolve [] without reaching concrete children](../src/broadcast-promise-ack.test.ts#L151)
+- [Promise broadcast snapshots one request and each acknowledgement response independently](../src/broadcast-promise-ack.test.ts#L170)
+
 ### Connection middleware
 
 `io.use`: admitting a connection, rejecting one, and the order two run in.
@@ -487,6 +502,12 @@ Holding a socket's client-inbound stream so a race can be interleaved on purpose
 - [gates order through the queue, not the timer: only the head is ever scheduled](../src/delay-adapter.test.ts#L141)
 - [ignores a non-finite delay rather than storing NaN or Infinity](../src/delay-adapter.test.ts#L177)
 
+### Native broadcast Promise policy
+
+Applying Smocket-only pre-connect volatile selection before acknowledgement counting.
+
+- [volatile Promise collection excludes pre-connect recipients from its expected count](../src/broadcast-promise-ack-native.test.ts#L5)
+
 ### Socket id encoding
 
 The encoder behind the id shape the dual run pins.
@@ -514,8 +535,6 @@ has not been measured, not that it is missing from socket.io.
 - **Adapter utility methods on a broadcast operator.** `allSockets`, `fetchSockets`,
   `socketsJoin`, `socketsLeave`, and `disconnectSockets` act on the set a broadcast
   would target, which is the routing decision smocket already reproduces.
-- **`emitWithAck` on a broadcast operator.** The callback form of collecting every
-  recipient's ack is covered; the promise form is not.
 - **`socket.use(fn)`.** Per-packet middleware on one socket, which is a different seam
   from the connection middleware `io.use` covered above.
 - **Listener introspection.** `listeners`, `listenerCount`, and `eventNames`.
