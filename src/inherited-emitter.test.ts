@@ -75,6 +75,7 @@ it('ParentNamespace snapshots inherited listener ordering when each child is cre
   parent.prependListener('connection', prepended);
   parent.once('connection', once);
   parent.prependOnceListener('connection', prependedOnce);
+  expect(parent.listeners('connection')).toEqual([prependedOnce, prepended, normal, once]);
 
   const first = ctx.openClient({ namespace: '/parent-emitter-a' });
   await receive(first, 'connect');
@@ -283,6 +284,17 @@ it('Node receivers warn once when a listener count exceeds their local maximum',
       { name: 'MaxListenersExceededWarning', count: 2, type: 'crowded' },
       { name: 'MaxListenersExceededWarning', count: 11, type: 'connection' },
     ]);
+
+    const hostlessNamespace = ctx.io.of('/listener-warning-without-process');
+    hostlessNamespace.setMaxListeners(1);
+    vi.stubGlobal('process', undefined);
+    try {
+      hostlessNamespace.on('crowded', () => {});
+      hostlessNamespace.on('crowded', () => {});
+    } finally {
+      vi.unstubAllGlobals();
+    }
+    expect(hostlessNamespace.listenerCount('crowded')).toBe(2);
   }
   warningSpy?.mockRestore();
 });
@@ -290,6 +302,9 @@ it('Node receivers warn once when a listener count exceeds their local maximum',
 it('Namespace removal and filtered counts follow Node EventEmitter', () => {
   const namespace = ctx.io.of('/namespace-removal');
   const listener = () => {};
+
+  expect(namespace.listeners('missing')).toEqual([]);
+  expect(namespace.rawListeners('missing')).toEqual([]);
 
   namespace.on('event', listener);
   namespace.once('event', listener);
@@ -303,6 +318,21 @@ it('Namespace removal and filtered counts follow Node EventEmitter', () => {
   namespace.on('other', listener);
   expect(namespace.removeAllListeners()).toBe(namespace);
   expect(namespace.eventNames()).toEqual([]);
+});
+
+it('removeAllListeners can clear a lone removeListener observer', async () => {
+  const namespace = ctx.io.of('/remove-listener-only');
+  const { serverSocket } = await ctx.connectClient();
+
+  namespace.on('removeListener', () => {});
+  expect(namespace.removeAllListeners()).toBe(namespace);
+  expect(namespace.eventNames()).toEqual([]);
+
+  serverSocket.removeAllListeners();
+  serverSocket.on('removeListener', () => {});
+  expect(serverSocket.removeAllListeners()).toBe(serverSocket);
+  expect(serverSocket.eventNames()).toEqual([]);
+  expect(serverSocket.rawListeners('missing')).toEqual([]);
 });
 
 it('Node eventNames uses property-key order for integers, strings, and symbols', async () => {
