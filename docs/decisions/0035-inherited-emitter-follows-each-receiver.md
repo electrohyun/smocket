@@ -43,6 +43,11 @@ supported Socket.IO versions on Namespace, ParentNamespace, and server Socket. S
 inherits the Namespace result through delegation. Smocket preserves that error boundary
 instead of making the meta-events usable where Socket.IO does not.
 
+Bulk removal of the final `removeListener` observer is not fixed by this decision.
+Socket.IO follows a host Node difference where Node 22 throws the reserved-event error
+after removal and Node 24 returns normally. Issue #309 tracks the receiver and version
+matrix before Smocket chooses behavior for that edge.
+
 Max-listener state defaults to 10 and is local to each Node receiver. Exceeding it emits
 `MaxListenersExceededWarning` when the host provides `process.emitWarning`. Browser use
 keeps the same state API without inventing a Node warning channel.

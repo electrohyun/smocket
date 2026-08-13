@@ -320,21 +320,6 @@ it('Namespace removal and filtered counts follow Node EventEmitter', () => {
   expect(namespace.eventNames()).toEqual([]);
 });
 
-it('removeAllListeners can clear a lone removeListener observer', async () => {
-  const namespace = ctx.io.of('/remove-listener-only');
-  const { serverSocket } = await ctx.connectClient();
-
-  namespace.on('removeListener', () => {});
-  expect(namespace.removeAllListeners()).toBe(namespace);
-  expect(namespace.eventNames()).toEqual([]);
-
-  serverSocket.removeAllListeners();
-  serverSocket.on('removeListener', () => {});
-  expect(serverSocket.removeAllListeners()).toBe(serverSocket);
-  expect(serverSocket.eventNames()).toEqual([]);
-  expect(serverSocket.rawListeners('missing')).toEqual([]);
-});
-
 it('Node eventNames uses property-key order for integers, strings, and symbols', async () => {
   const namespace = ctx.io.of('/event-name-order');
   const { serverSocket } = await ctx.connectClient();
