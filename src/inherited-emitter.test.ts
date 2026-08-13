@@ -369,6 +369,14 @@ it('Namespace meta-events collide with Socket.IO reserved outgoing names', () =>
   expect(namespace.listenerCount('tracked')).toBe(0);
 });
 
+it('Server delegates the newListener collision to the root Namespace', () => {
+  const root = ctx.io.of('/');
+
+  ctx.io.on('newListener', () => {});
+  expect(() => ctx.io.on('tracked', () => {})).toThrow('"newListener" is a reserved event name');
+  expect(root.listenerCount('tracked')).toBe(0);
+});
+
 it('server Socket meta-events collide before add and after once removal', async () => {
   const { serverSocket } = await ctx.connectClient();
   const once = vi.fn();
