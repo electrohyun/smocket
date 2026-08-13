@@ -236,6 +236,12 @@ async function runNodeFixtures(projectRoot, packageInput) {
   );
   await run(
     process.execPath,
+    ['types/cjs/dist/valid.cjs'],
+    projectRoot,
+    fixtureContext('Node.js', 'Node16 CommonJS emitted runtime', packageInput, 'types/cjs'),
+  );
+  await run(
+    process.execPath,
     [tsc, '-p', 'types/invalid'],
     projectRoot,
     fixtureContext('TypeScript', 'Node16 ESM negative contract', packageInput, 'types/invalid'),
@@ -282,6 +288,17 @@ async function runPublishedFixtures(projectRoot, packageInput) {
     [tsc, '-p', 'types/cjs'],
     projectRoot,
     fixtureContext('TypeScript', 'Node16 CommonJS', packageInput, 'published types/cjs'),
+  );
+  await run(
+    process.execPath,
+    ['types/cjs/dist/valid.cjs'],
+    projectRoot,
+    fixtureContext(
+      'Node.js',
+      'Node16 CommonJS emitted runtime',
+      packageInput,
+      'published types/cjs',
+    ),
   );
   await run(
     process.execPath,
