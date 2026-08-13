@@ -149,7 +149,7 @@ function resolveAuth(
   done: (auth: Record<string, unknown>) => void,
 ): void {
   if (typeof auth === 'function') {
-    auth((data) => done((data ?? {}) as Record<string, unknown>));
+    auth((data) => done(data as Record<string, unknown>));
   } else {
     done(auth ?? {});
   }
