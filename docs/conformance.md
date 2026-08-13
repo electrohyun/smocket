@@ -108,7 +108,7 @@ packet effects stay outside the transport-free mock boundary.
 What a namespace isolates: connections, emits, rooms, and socket ids.
 
 - [io.of normalizes empty and bare static namespace names](../src/namespace.test.ts#L8)
-- [a registered static namespace admits the normalized harness name](../src/namespace.test.ts#L18)
+- [a registered static namespace admits the normalized connection name](../src/namespace.test.ts#L18)
 - [an unregistered static namespace is rejected without membership](../src/namespace.test.ts#L27)
 - [a client can retry after its static namespace is registered](../src/namespace.test.ts#L50)
 - [io.of(nsp).on('connection') fires only for connections on that namespace](../src/namespace.test.ts#L69)
@@ -537,7 +537,25 @@ What the package exports, including the `io` name the substitution path needs.
 - [connecting pairs the client and server socket with the same id](../src/index.test.ts#L24)
 - [exports `io` as socket.io-client's name for connect, so a module swap works](../src/index.test.ts#L34)
 - [exports the contract types, so the swap keeps an app annotations to use](../src/index.test.ts#L46)
-- [exports a server type that keeps the two smocket-only members](../src/index.test.ts#L88)
+- [exports a server type that keeps the smocket-only members](../src/index.test.ts#L88)
+
+### Public direct connection API
+
+Pairing direct clients with server sockets, namespace queue order, admission outcomes,
+and close settlement.
+
+- [connect and nextConnection expose both sides of one admitted socket](../src/connection-api.test.ts#L18)
+- [pairs wait-before-connect and connect-before-wait in connection order](../src/connection-api.test.ts#L38)
+- [pairs connect-before-wait on a registered named namespace](../src/connection-api.test.ts#L51)
+- [pairs multiple waiting observers with clients in FIFO order](../src/connection-api.test.ts#L63)
+- [returns multiple ready sockets in FIFO order](../src/connection-api.test.ts#L73)
+- [normalizes namespace names while keeping their queues isolated](../src/connection-api.test.ts#L87)
+- [keeps direct connections in the established Manager groups](../src/connection-api.test.ts#L103)
+- [skips rejected admission and resolves the waiter with the next accepted socket](../src/connection-api.test.ts#L120)
+- [skips cancelled admission and resolves the waiter with the next accepted socket](../src/connection-api.test.ts#L138)
+- [close rejects pending static and dynamic namespace observers](../src/connection-api.test.ts#L164)
+- [close discards unclaimed sockets and rejects later observers](../src/connection-api.test.ts#L183)
+- [close preserves a ready socket claimed before teardown](../src/connection-api.test.ts#L193)
 
 <!-- conformance:generated end -->
 

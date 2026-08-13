@@ -52,7 +52,7 @@ adapters from [0008](./0008-adapter-api-before-v1.md) do not schedule at all.
 Scheduling goes through an injected `DeliveryTimer` (default: `setTimeout` / `Date.now`),
 so a test drives delay with Vitest's fake timers and never waits on the wall clock. Tests
 that use it run against the mock target only, built on smocket's `Server` directly rather
-than the dual-run harness, since real socket.io has nothing to compare against.
+than the dual-run fixture, since real socket.io has nothing to compare against.
 
 One consequence follows from delaying only the event stream: a disconnect that follows a
 delayed event is itself on the next tick, so the client can observe the disconnect before
