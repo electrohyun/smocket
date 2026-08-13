@@ -32,6 +32,7 @@ import type {
  * `never[]` parameters so callbacks of any argument shape are accepted.
  */
 type Listener = (...args: never[]) => void;
+type OrdinaryEventName = string | symbol;
 
 /** Socket.IO's permissive callback shape for the live catch-all lookup arrays. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1587,7 +1588,7 @@ function assertNotReservedEvent(event: string): void {
  */
 class Emitter {
   /** Ordinary named listeners. Catch-all registries intentionally stay separate. */
-  protected readonly eventListeners = new Map<string, Listener[]>();
+  protected readonly eventListeners = new Map<OrdinaryEventName, Listener[]>();
   /** Catch-all listeners, fired for every non-reserved event before the specific ones. */
   private anyListeners: AnyListener[] | undefined;
   /** Outgoing catch-all listeners, fired for every event this socket sends (#111). */
@@ -1812,10 +1813,15 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
       (entry) => (entry as { listener?: Listener }).listener ?? entry,
     ) as AnyListener[]) as ServerSocketContract['listeners'];
 
-  /** Count registrations rather than unique function identities. */
-  listenerCount(event: string): number {
-    return this.eventListeners.get(event)?.length ?? 0;
-  }
+  /** Count every registration, or only direct and original `once` identity matches. */
+  listenerCount = ((event: OrdinaryEventName, listener?: Listener) => {
+    const entries = this.eventListeners.get(event) ?? [];
+    return listener === undefined
+      ? entries.length
+      : entries.filter(
+          (entry) => entry === listener || (entry as { listener?: Listener }).listener === listener,
+        ).length;
+  }) as ServerSocketContract['listenerCount'];
 
   /** Map key order matches Node's insertion order, including delete and re-add. */
   eventNames(): (string | symbol)[] {
@@ -2608,7 +2614,11 @@ function emitWithAck(
 // Store listeners in arrays, not Sets, so a callback registered twice is kept
 // twice and fired once per registration, the way real socket.io's emitters do
 // (#125). A Set would de-duplicate, calling a doubly-registered callback once.
-function addListener(map: Map<string, Listener[]>, event: string, listener: Listener): void {
+function addListener(
+  map: Map<OrdinaryEventName, Listener[]>,
+  event: OrdinaryEventName,
+  listener: Listener,
+): void {
   const list = map.get(event) ?? [];
   list.push(listener);
   map.set(event, list);
@@ -2626,8 +2636,8 @@ function removeFirst<Entry>(list: Entry[] | undefined, listener: Entry): void {
  * Catch-all backing arrays do not use this helper because their detach rules differ.
  */
 function removeOrdinaryListener(
-  map: Map<string, Listener[]>,
-  event: string,
+  map: Map<OrdinaryEventName, Listener[]>,
+  event: OrdinaryEventName,
   listener: Listener,
   fromEnd = false,
 ): void {

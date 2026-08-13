@@ -766,8 +766,13 @@ export interface ServerSocketContract<
   ): this;
   /** Return a fresh snapshot, with `once` wrappers exposed as their original listeners. */
   listeners: IoServerSocket<ListenEvents, EmitEvents, ServerSideEvents, SocketData>['listeners'];
-  /** Count every registration for an event, including duplicates and `once` listeners. */
-  listenerCount(event: string): number;
+  /** Count all registrations, or only those matching a direct or original `once` listener. */
+  listenerCount: IoServerSocket<
+    ListenEvents,
+    EmitEvents,
+    ServerSideEvents,
+    SocketData
+  >['listenerCount'];
   /** Names with at least one ordinary listener, in registry insertion order. */
   eventNames(): (string | symbol)[];
   /** Remove one registration. The server is Node's emitter, so a listener is required (0017). */
