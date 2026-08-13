@@ -520,6 +520,20 @@ Factory isolation, setup boundaries, and whole-socket cleanup.
 - [signals whole-socket removal once for the close teardown path](../src/adapter-lifecycle.test.ts#L182)
 - [signals cleanup once for rejected and cancelled admission without lifecycle events](../src/adapter-lifecycle.test.ts#L219)
 
+### TracingAdapter
+
+Recording immutable final broadcast routing decisions without payloads.
+
+- [records one final decision for Server, Namespace, room, exclusion, and Socket entry points](../src/tracing-adapter.test.ts#L28)
+- [keeps root and named namespace history isolated](../src/tracing-adapter.test.ts#L88)
+- [records a dynamic parent broadcast once in each concrete namespace](../src/tracing-adapter.test.ts#L108)
+- [records empty and volatile final recipient sets plus callback and Promise ack broadcasts](../src/tracing-adapter.test.ts#L127)
+- [records before outgoing observation and delivery without changing FIFO](../src/tracing-adapter.test.ts#L154)
+- [excludes direct socket traffic and failed broadcast encoding](../src/tracing-adapter.test.ts#L184)
+- [returns caller-cleared immutable snapshots with no payload reference](../src/tracing-adapter.test.ts#L203)
+- [observes recipients after a wrapped custom adapter changes routing](../src/tracing-adapter.test.ts#L237)
+- [composes with DelayingAdapter scheduling and removal](../src/tracing-adapter.test.ts#L266)
+
 ### DelayingAdapter
 
 Holding a socket's client-inbound stream so a race can be interleaved on purpose.
@@ -555,10 +569,11 @@ The encoder behind the id shape the dual run pins.
 
 What the package exports, including the `io` name the substitution path needs.
 
-- [connecting pairs the client and server socket with the same id](../src/index.test.ts#L24)
-- [exports `io` as socket.io-client's name for connect, so a module swap works](../src/index.test.ts#L34)
-- [exports the contract types, so the swap keeps an app annotations to use](../src/index.test.ts#L46)
-- [exports a server type that keeps the smocket-only members](../src/index.test.ts#L88)
+- [connecting pairs the client and server socket with the same id](../src/index.test.ts#L26)
+- [exports `io` as socket.io-client's name for connect, so a module swap works](../src/index.test.ts#L36)
+- [exports the contract types, so the swap keeps an app annotations to use](../src/index.test.ts#L48)
+- [exports a server type that keeps the smocket-only members](../src/index.test.ts#L90)
+- [exports the tracing adapter and trace type](../src/index.test.ts#L115)
 
 ### Public direct connection API
 
