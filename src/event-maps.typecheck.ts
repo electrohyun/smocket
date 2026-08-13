@@ -76,6 +76,60 @@ export function assertTypedEventMapsCompile(): void {
     .send('parent message', 1)
     .write('parent message', 2);
   const parentCompressed: ReturnType<typeof regexpParent.to> = regexpParent.compress(false);
+  const untypedListener = (): void => {};
+  const returnedServerEmitter: typeof io = io
+    .addListener('server-event', untypedListener)
+    .prependListener('server-event', untypedListener)
+    .prependOnceListener('server-event', untypedListener)
+    .removeListener('server-event', untypedListener)
+    .off('server-event', untypedListener)
+    .removeAllListeners('server-event')
+    .setMaxListeners(20);
+  io.once('new_namespace', (child) => void child.name);
+  io.listeners('health')[0]?.();
+  // @ts-expect-error unknown Server listener event
+  io.listeners('healt');
+  const serverRawListeners: AnyListener[] = io.rawListeners('new_namespace');
+  const serverEmitterEventNames: (string | symbol)[] = io.eventNames();
+  const serverEmitterListenerCount: number = io.listenerCount('new_namespace');
+  const serverEmitterMaxListeners: number = io.getMaxListeners();
+  const returnedNamespaceEmitter: typeof namespace = namespace
+    .addListener('namespace-event', untypedListener)
+    .prependListener('namespace-event', untypedListener)
+    .prependOnceListener('namespace-event', untypedListener)
+    .removeListener('namespace-event', untypedListener)
+    .off('namespace-event', untypedListener)
+    .removeAllListeners('namespace-event')
+    .setMaxListeners(20);
+  namespace.once('connection', (socket) => void socket.id);
+  namespace.listeners('health')[0]?.();
+  // @ts-expect-error unknown Namespace listener event
+  namespace.listeners('healt');
+  const namespaceListeners: AnyListener[] = namespace.listeners('connection');
+  const namespaceRawListeners: AnyListener[] = namespace.rawListeners('connection');
+  const namespaceListenerCount: number = namespace.listenerCount('connection');
+  const namespaceEventNames: (string | symbol)[] = namespace.eventNames();
+  const namespaceMaxListeners: number = namespace.getMaxListeners();
+  const returnedParentEmitter: typeof regexpParent = regexpParent
+    .addListener('parent-event', untypedListener)
+    .prependListener('parent-event', untypedListener)
+    .prependOnceListener('parent-event', untypedListener)
+    .removeListener('parent-event', untypedListener)
+    .off('parent-event', untypedListener)
+    .removeAllListeners('parent-event')
+    .setMaxListeners(20);
+  void returnedServerEmitter;
+  void serverRawListeners;
+  void serverEmitterEventNames;
+  void serverEmitterListenerCount;
+  void serverEmitterMaxListeners;
+  void returnedNamespaceEmitter;
+  void namespaceListeners;
+  void namespaceRawListeners;
+  void namespaceListenerCount;
+  void namespaceEventNames;
+  void namespaceMaxListeners;
+  void returnedParentEmitter;
   const matcherParent = io.of((name, auth, next) => {
     const normalizedName: string = name;
     const tenant: unknown = auth.tenant;
@@ -122,6 +176,24 @@ export function assertTypedEventMapsCompile(): void {
       void guess;
       ack(true);
     });
+    socket.once('guess', (text, ack) => {
+      const guess: string = text;
+      void guess;
+      ack(true);
+    });
+    const returnedFromServerEmitter: typeof socket = socket
+      .addListener('server-event', untypedListener)
+      .prependListener('server-event', untypedListener)
+      .prependOnceListener('server-event', untypedListener)
+      .removeListener('server-event', untypedListener)
+      .off('server-event', untypedListener)
+      .removeAllListeners('server-event')
+      .setMaxListeners(20);
+    const serverRawListeners: AnyListener[] = socket.rawListeners('guess');
+    const serverMaxListeners: number = socket.getMaxListeners();
+    void returnedFromServerEmitter;
+    void serverRawListeners;
+    void serverMaxListeners;
 
     const guessListeners = socket.listeners('guess');
     guessListeners[0]?.('typed guess', (accepted) => {
@@ -361,6 +433,14 @@ export function assertTypedEventMapsCompile(): void {
     const text: string = message;
     void text;
   });
+  const returnedFromClientEmitterAliases: typeof client = client
+    .addEventListener('chat', (message) => void message)
+    .removeEventListener('chat')
+    .removeListener('chat')
+    .removeAllListeners('chat');
+  // @ts-expect-error source-public aliases retain the mapped event names
+  client.addEventListener('caht', () => {});
+  void returnedFromClientEmitterAliases;
   const chatListeners = client.listeners('chat');
   chatListeners[0]?.('typed chat');
   const connectListeners = client.listeners('connect');

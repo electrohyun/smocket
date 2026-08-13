@@ -472,6 +472,27 @@ chain.
 - [client disconnect returns the socket whether or not it is connected](../src/emitter-returns.test.ts#L159)
 - [server socket disconnect returns that socket](../src/emitter-returns.test.ts#L165)
 
+### Inherited emitter compatibility
+
+Node and component-emitter aliases, listener order, wrappers, removal, delegation, and
+max-listener state.
+
+- [Server listener methods delegate state and runtime identity to the root Namespace](../src/inherited-emitter.test.ts#L7)
+- [Namespace prepend methods order connection listeners and expose once wrappers](../src/inherited-emitter.test.ts#L32)
+- [ParentNamespace snapshots inherited listener ordering when each child is created](../src/inherited-emitter.test.ts#L62)
+- [server Socket inherited methods preserve Node ordering and raw listener identity](../src/inherited-emitter.test.ts#L99)
+- [named listener callbacks receive their Namespace or Socket receiver](../src/inherited-emitter.test.ts#L130)
+- [Node emitter aliases remove the last matching registration](../src/inherited-emitter.test.ts#L190)
+- [once wrapper identity properties remain specific to each emitter side](../src/inherited-emitter.test.ts#L206)
+- [max-listener state is receiver-local and Server delegates it to root](../src/inherited-emitter.test.ts#L225)
+- [Node receivers warn once when a listener count exceeds their local maximum](../src/inherited-emitter.test.ts#L248)
+- [Namespace removal and filtered counts follow Node EventEmitter](../src/inherited-emitter.test.ts#L290)
+- [Node eventNames uses property-key order for integers, strings, and symbols](../src/inherited-emitter.test.ts#L308)
+- [Namespace meta-events collide with Socket.IO reserved outgoing names](../src/inherited-emitter.test.ts#L325)
+- [server Socket meta-events collide before add and after once removal](../src/inherited-emitter.test.ts#L342)
+- [client source and declaration aliases share component-emitter identity](../src/inherited-emitter.test.ts#L362)
+- [client removeAllListeners with no event clears every ordinary listener](../src/inherited-emitter.test.ts#L391)
+
 ## smocket only
 
 These have no oracle to compare against: they cover the API smocket adds

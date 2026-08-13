@@ -229,6 +229,12 @@ const AREAS = [
     blurb:
       'What emit, listener, middleware, connect, and disconnect methods hand back, and which chain.',
   },
+  {
+    file: 'src/inherited-emitter.test.ts',
+    title: 'Inherited emitter compatibility',
+    blurb:
+      'Node and component-emitter aliases, listener order, wrappers, removal, delegation, and max-listener state.',
+  },
 ];
 
 /** Run one vitest project and return its JSON report. */
