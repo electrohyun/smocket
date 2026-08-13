@@ -70,7 +70,9 @@
     "case-study:chat-room:record": "node scripts/run-chat-room-case-study.mjs --write",
     "case-study:chat-room:check": "node scripts/run-chat-room-case-study.mjs --check",
     "conformance": "node scripts/conformance-report.mjs",
-    "check:conformance": "node scripts/conformance-report.mjs --check"
+    "check:conformance": "node scripts/conformance-report.mjs --check",
+    "public-surface": "node scripts/check-public-surface.mjs --write",
+    "check:public-surface": "node scripts/check-public-surface.mjs --check && node --test scripts/check-public-surface.test.mjs"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.5",
@@ -85,9 +87,13 @@
     "prettier": "^3.9.5",
     "publint": "^0.3.23",
     "socket.io": "^4.8.3",
+    "socket.io-4.7": "npm:socket.io@4.7.5",
+    "socket.io-4.8": "npm:socket.io@4.8.3",
     "socket.io-client": "^4.8.3",
+    "socket.io-client-4.7": "npm:socket.io-client@4.7.5",
+    "socket.io-client-4.8": "npm:socket.io-client@4.8.3",
     "tsup": "^8.5.1",
-    "typescript": "^6.0.3",
+    "typescript": "6.0.3",
     "typescript-eslint": "^8.64.0",
     "vitest": "^4.1.10"
   }
