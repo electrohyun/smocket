@@ -124,6 +124,21 @@ An application module written as TypeScript ESM still needs whatever transform
 the project already uses (babel-jest with `@babel/preset-typescript`, or ts-jest).
 That part is not smocket-specific.
 
+## Executable clean-consumer evidence
+
+[`consumers/test-adoption/`](../consumers/test-adoption/) keeps the application
+imports above unchanged and is assembled outside the checkout. Candidate validation
+installs one explicit `npm pack` tarball; published validation installs the exact
+registry version. The fixture reports the package input, requested and installed
+versions, and resolved module path before running the suite-alias Vitest case, the
+hoisted per-file Vitest mock, named-import Jest mapping, installed TypeScript
+Node16 ESM/CJS checks, and a static namespace. Chromium runs the mapped application
+against that same candidate tarball.
+
+The runner deliberately requires an explicit `--tarball` and exact `--version` for
+candidate mode. Release automation can therefore pass a previously verified archive
+rather than repacking one during consumer validation.
+
 ## A fresh server per test
 
 Construct a new `Server` on the same url in `beforeEach`, then close it in `afterEach`.

@@ -143,9 +143,10 @@ next test starts without this server or its room state.
 That run is green. The file above is a Vitest test because the suite here uses
 Vitest. Smocket has no runtime dependency on a test runner: runner packages appear
 only in the [development dependencies](package.json). This repository executes
-Smocket with Vitest and `node:test`; it does not yet include a clean Jest consumer.
-The Jest configuration is documented, but clean Jest adoption remains unverified
-and is tracked in [#280](https://github.com/electrohyun/smocket/issues/280).
+Smocket with Vitest and `node:test`, plus the documented Vitest and Jest paths
+from clean consumers. Each run installs either one candidate tarball or an exact
+published version outside the checkout, so a workspace resolution is not counted
+as adoption evidence.
 
 `connect(url)` and `io.on('connection')` are socket.io-client's and socket.io's own
 entry points, so the code above is the code an application already has, with the
@@ -170,8 +171,8 @@ receive something takes the marker pattern rather than a wait, and that is a
 An existing application does not have to be rewritten to run against smocket.
 smocket exports `io` under socket.io-client's own name, so a test runner pointed
 at smocket resolves the app's own import and the app's code runs unchanged.
-[Test-runner integration](docs/test-runner-integration.md) has the Vitest setups and
-the currently unverified Jest setup.
+[Test-runner integration](docs/test-runner-integration.md) has the executable Vitest
+and Jest setups.
 
 ## Examples
 
@@ -339,11 +340,10 @@ import swapped.
 <summary>Does it work in Jest, or another CJS runner?</summary>
 
 The package ships both ESM and CJS builds with type declarations for each, and CI
-verifies that both resolve. That verifies a prerequisite for CJS runners, not clean
-Jest adoption. [Test-runner integration](docs/test-runner-integration.md#jest)
-documents the `moduleNameMapper` setup, but this repository does not yet execute a
-clean Jest consumer, so that full path remains unverified. [#280](https://github.com/electrohyun/smocket/issues/280)
-owns the missing executable evidence.
+verifies that both resolve. The clean adoption fixture also runs the documented
+`moduleNameMapper` setup through a named CommonJS `socket.io-client` import after
+installing either a candidate tarball or the exact published package. See
+[test-runner integration](docs/test-runner-integration.md#jest).
 
 </details>
 
