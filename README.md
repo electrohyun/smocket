@@ -88,12 +88,13 @@ io.on('connection', (socket) => {
 ## Quick start
 
 ```bash
-npm install -D smocket
+npm install -D smocket smocket-client
 ```
 
 ```ts
 // chat.test.ts
-import { connect, Server } from 'smocket';
+import { connect } from 'smocket-client';
+import { Server } from 'smocket';
 import { afterEach, beforeEach, expect, test } from 'vitest';
 
 const URL = 'http://localhost:3000';
@@ -149,10 +150,9 @@ tarballs outside the checkout, while published validation installs an exact root
 version. Neither path counts a workspace resolution as package validation.
 
 `connect(url)` and `io.on('connection')` are socket.io-client's and socket.io's own
-entry points, so the code above is the code an application already has, with the
-import changed. An application that keeps its original client import can install
-`smocket-client` at the same exact version as `smocket` and map `socket.io-client`
-to that package instead.
+entry points, so the code above keeps the same split between client and server APIs
+while changing only their package names. An application that keeps its original
+client import can map `socket.io-client` to `smocket-client` instead.
 
 Bob receives what Alice sent, and Alice does not, because `socket.to` excludes the
 sender. The test above asserts only the first half, since proving a socket did not
