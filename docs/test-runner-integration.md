@@ -1,16 +1,21 @@
 # Test-runner integration
 
-> **TL;DR** An application imports `io` from `socket.io-client`, and a test
-> resolves that specifier to smocket instead, so the application code runs
-> unchanged against an in-memory server. Vitest does it with `resolve.alias` or
-> `vi.mock`, Jest with `moduleNameMapper`.
+> **TL;DR** An application imports from `socket.io-client`, and a test resolves
+> that specifier to `smocket-client`, so named, default, ESM, and CommonJS client
+> imports run unchanged against an in-memory `smocket` server.
 
 ## What gets swapped
 
-smocket exports `io` as an alias of `connect` for this path, so the module a test
-substitutes carries the name application code already imports. Only the named
-export exists, so an application written as `import io from 'socket.io-client'`
-has to move to the named import first.
+Install both packages at the same exact version. `smocket-client` is a thin facade whose
+default, `io`, and `connect` exports are one function. Its CommonJS root is callable and
+has `.io` and `.connect` properties referring to itself. It delegates every lookup to its
+exact-version `smocket` peer, so the client and a `Server` imported from `smocket` share
+one in-process origin registry when both imports use ESM or both use CommonJS. A test setup
+must not mix the two module formats because that can load separate root package instances.
+
+The root package still exports named `io` and `connect` for existing test aliases. New
+package-name substitutions should point to `smocket-client` because it also preserves
+default imports and the client-side `Socket` type name.
 
 ```ts
 // src/chat.ts, application code, unchanged by every setup below
@@ -82,7 +87,7 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   resolve: {
     alias: {
-      'socket.io-client': 'smocket',
+      'socket.io-client': 'smocket-client',
     },
   },
 });
@@ -96,10 +101,7 @@ tests against a real server wants.
 ```ts
 import { vi } from 'vitest';
 
-vi.mock('socket.io-client', async () => {
-  const smocket = await vi.importActual<typeof import('smocket')>('smocket');
-  return { io: smocket.io };
-});
+vi.mock('socket.io-client', () => import('smocket-client'));
 ```
 
 `vi.mock` is hoisted above the imports, so the file still imports the application
@@ -115,7 +117,7 @@ module the normal way.
 module.exports = {
   testEnvironment: 'node',
   moduleNameMapper: {
-    '^socket\\.io-client$': 'smocket',
+    '^socket\\.io-client$': 'smocket-client',
   },
 };
 ```
@@ -124,20 +126,20 @@ An application module written as TypeScript ESM still needs whatever transform
 the project already uses (babel-jest with `@babel/preset-typescript`, or ts-jest).
 That part is not smocket-specific.
 
-## Executable clean-consumer evidence
+## Executable clean-consumer validation
 
 [`consumers/test-adoption/`](../consumers/test-adoption/) keeps the application
 imports above unchanged and is assembled outside the checkout. Candidate validation
-installs one explicit `npm pack` tarball; published validation installs the exact
-registry version. The fixture reports the package input, requested and installed
-versions, and resolved module path before running the suite-alias Vitest case, the
-hoisted per-file Vitest mock, named-import Jest mapping, installed TypeScript
-Node16 ESM/CJS checks, and a static namespace. Chromium runs the mapped application
-against that same candidate tarball.
+installs explicit `smocket` and `smocket-client` tarballs at one version. Published
+validation installs the exact root registry version until the facade has its first
+release. The fixture reports both installed module paths before running the existing
+Vitest and Jest adoption cases, facade ESM and callable CommonJS cases, Node16 and
+bundler type checks, and static namespace coverage. Chromium runs the mapped
+application and facade registry-sharing case against those installed tarballs.
 
-The runner deliberately requires an explicit `--tarball` and exact `--version` for
-candidate mode. Release automation can therefore pass a previously verified archive
-rather than repacking one during consumer validation.
+The runner deliberately requires explicit tarball paths and an exact version for
+candidate mode. Release automation can therefore pass the same two archives through
+every consumer check.
 
 ## A fresh server per test
 
