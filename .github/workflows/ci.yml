@@ -228,10 +228,10 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # publint checks the published manifest; arethetypeswrong checks that the
-      # type declarations resolve for both module systems (the substitution path
-      # depends on it).
-      - name: Verify packaging (publint + arethetypeswrong)
+      # The package check inspects the source and packed manifests plus the
+      # tarball payload before publint and arethetypeswrong validate the public
+      # package surface.
+      - name: Verify the packed package
         run: pnpm check:package
       - name: Run the candidate-package consumer
         run: pnpm consumer:chat-room:candidate

@@ -1,0 +1,12 @@
+{
+  "name": "smocket-unused-runtime-dependency-negative-fixture",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "files": [
+    "index.js"
+  ],
+  "dependencies": {
+    "unused-runtime-dependency": "file:./dependency"
+  }
+}
