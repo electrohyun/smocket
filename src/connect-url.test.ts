@@ -342,3 +342,34 @@ it('a failed client carries the complete catch-all listener surface', async () =
     consoleError.mockRestore();
   }
 });
+
+it('a failed client carries component-emitter listener introspection', async () => {
+  const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+  try {
+    const client = connect('http://localhost:9995');
+    const listener = () => {};
+    const failed = new Promise<void>((resolve) => client.once('connect_error', () => resolve()));
+
+    expect(client.listeners('missing')).not.toBe(client.listeners('missing'));
+    expect(client.hasListeners('missing')).toBe(false);
+    expect('listenerCount' in client).toBe(false);
+    expect('eventNames' in client).toBe(false);
+
+    client.once('custom', listener);
+    const live = client.listeners('custom');
+    const wrapper = live[0] as typeof listener & { fn?: typeof listener };
+    expect(client.listeners('custom')).toBe(live);
+    expect(wrapper.fn).toBe(listener);
+    expect(client.hasListeners('custom')).toBe(true);
+
+    client.off('custom', listener);
+    expect(live).toEqual([]);
+    expect(client.listeners('custom')).not.toBe(live);
+    expect(client.hasListeners('custom')).toBe(false);
+
+    await failed;
+    expect(consoleError).toHaveBeenCalledOnce();
+  } finally {
+    consoleError.mockRestore();
+  }
+});

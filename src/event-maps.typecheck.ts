@@ -108,6 +108,26 @@ export function assertTypedEventMapsCompile(): void {
       ack(true);
     });
 
+    const guessListeners = socket.listeners('guess');
+    guessListeners[0]?.('typed guess', (accepted) => {
+      const result: boolean = accepted;
+      void result;
+    });
+    const disconnectListeners = socket.listeners('disconnect');
+    disconnectListeners[0]?.('server shutting down');
+    socket
+      .timeout(100)
+      .listeners('guess')[0]?.('timed guess', () => {});
+    socket.volatile.listeners('guess')[0]?.('volatile guess', () => {});
+    const serverListenerCount: number = socket.listenerCount('guess');
+    const serverEventNames: (string | symbol)[] = socket.eventNames();
+    // @ts-expect-error unknown server listen event
+    socket.listeners('gues');
+    // @ts-expect-error listener arguments retain the incoming event tuple
+    guessListeners[0]?.(42, () => {});
+    // @ts-expect-error hasListeners belongs only to the component-emitter client
+    socket.hasListeners('guess');
+
     socket.on('disconnect', (reason, description) => {
       const disconnectReason: DisconnectReason = reason;
       const disconnectDescription: { code: number } = description;
@@ -184,6 +204,8 @@ export function assertTypedEventMapsCompile(): void {
     void incomingAnyListeners;
     void outgoingAnyListeners;
     void returnedServerSocket;
+    void serverListenerCount;
+    void serverEventNames;
 
     // @ts-expect-error unknown incoming event
     socket.on('gues', () => {});
@@ -305,6 +327,23 @@ export function assertTypedEventMapsCompile(): void {
     const text: string = message;
     void text;
   });
+  const chatListeners = client.listeners('chat');
+  chatListeners[0]?.('typed chat');
+  const connectListeners = client.listeners('connect');
+  connectListeners[0]?.();
+  client.timeout(100).listeners('chat')[0]?.('timed chat');
+  client.volatile.listeners('chat')[0]?.('volatile chat');
+  const clientHasChat: boolean = client.hasListeners('chat');
+  // @ts-expect-error unknown client listen event
+  client.listeners('caht');
+  // @ts-expect-error unknown client listen event
+  client.hasListeners('caht');
+  // @ts-expect-error listener arguments retain the incoming event tuple
+  chatListeners[0]?.(42);
+  // @ts-expect-error listenerCount belongs only to the Node server socket
+  client.listenerCount('chat');
+  // @ts-expect-error eventNames belongs only to the Node server socket
+  client.eventNames();
   client.emit('new_namespace', 'client payload');
   client.on('disconnect', (reason, description) => {
     const disconnectReason: IoClientSocket.DisconnectReason = reason;
@@ -359,6 +398,7 @@ export function assertTypedEventMapsCompile(): void {
   void returnedFromClientCatchAlls;
   void clientIncomingAnyListeners;
   void clientOutgoingAnyListeners;
+  void clientHasChat;
 
   // @ts-expect-error unknown server event
   io.emit('caht', 'hello');
@@ -466,6 +506,25 @@ export function assertRealSocketIoListenerInferenceCompiles(
       void guess;
       ack(true);
     });
+    const guessListeners = socket.listeners('guess');
+    guessListeners[0]?.('typed guess', (accepted) => {
+      const result: boolean = accepted;
+      void result;
+    });
+    const disconnectListeners = socket.listeners('disconnect');
+    disconnectListeners[0]?.('server shutting down');
+    socket
+      .timeout(100)
+      .listeners('guess')[0]?.('timed guess', () => {});
+    socket.volatile.listeners('guess')[0]?.('volatile guess', () => {});
+    const serverListenerCount: number = socket.listenerCount('guess');
+    const serverEventNames: (string | symbol)[] = socket.eventNames();
+    // @ts-expect-error unknown server listen event
+    socket.listeners('gues');
+    // @ts-expect-error listener arguments retain the incoming event tuple
+    guessListeners[0]?.(42, () => {});
+    // @ts-expect-error hasListeners belongs only to the component-emitter client
+    socket.hasListeners('guess');
     socket.on('disconnect', (_reason, description) => {
       const disconnectDescription: { code: number } = description;
       void disconnectDescription;
@@ -534,6 +593,8 @@ export function assertRealSocketIoListenerInferenceCompiles(
     void incomingAnyListeners;
     void outgoingAnyListeners;
     void returnedServerSocket;
+    void serverListenerCount;
+    void serverEventNames;
     // @ts-expect-error server send follows the mapped server-to-client message tuple
     socket.send(42, 'wrong');
     // @ts-expect-error room narrowing accepts only a room or room array
@@ -665,6 +726,23 @@ export function assertRealSocketIoClientAckTypesCompile(
     .prependAnyOutgoing((_event, ..._args) => {});
   const incomingAnyListeners: AnyListener[] = client.listenersAny();
   const outgoingAnyListeners: AnyListener[] = client.listenersAnyOutgoing();
+  const chatListeners = client.listeners('chat');
+  chatListeners[0]?.('typed chat');
+  const connectListeners = client.listeners('connect');
+  connectListeners[0]?.();
+  client.timeout(100).listeners('chat')[0]?.('timed chat');
+  client.volatile.listeners('chat')[0]?.('volatile chat');
+  const clientHasChat: boolean = client.hasListeners('chat');
+  // @ts-expect-error unknown client listen event
+  client.listeners('caht');
+  // @ts-expect-error unknown client listen event
+  client.hasListeners('caht');
+  // @ts-expect-error listener arguments retain the incoming event tuple
+  chatListeners[0]?.(42);
+  // @ts-expect-error listenerCount belongs only to the Node server socket
+  client.listenerCount('chat');
+  // @ts-expect-error eventNames belongs only to the Node server socket
+  client.eventNames();
   client
     .onAny(annotatedIncomingCatchAll)
     .prependAny(annotatedIncomingCatchAll)
@@ -694,6 +772,7 @@ export function assertRealSocketIoClientAckTypesCompile(
   void returnedFromCatchAlls;
   void incomingAnyListeners;
   void outgoingAnyListeners;
+  void clientHasChat;
   // @ts-expect-error client compression accepts only a boolean
   client.compress('false');
 }
