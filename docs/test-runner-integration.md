@@ -4,6 +4,10 @@
 > that specifier to `smocket-client`, so named, default, ESM, and CommonJS client
 > imports run unchanged against an in-memory `smocket` server.
 
+If setup fails before the first application event, start with the
+[troubleshooting guide](./troubleshooting.md). It separates URL, namespace, lifecycle,
+runner alias, package-format, and event-map failures by their actual signals.
+
 ## What gets swapped
 
 Install both packages at the same exact version. `smocket-client` is a thin facade whose

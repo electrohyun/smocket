@@ -8,6 +8,8 @@
 
 - **How to run smocket inside a test runner:**
   [test-runner-integration.md](./test-runner-integration.md)
+- **Why a test setup failed and how to correct it:**
+  [troubleshooting.md](./troubleshooting.md)
 - **Which behaviours are verified against real socket.io:**
   [conformance.md](./conformance.md)
 - **How upstream public declarations are classified and regenerated:**
