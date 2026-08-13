@@ -140,9 +140,12 @@ The `afterEach` waits for `close()` to disconnect both clients and remove the
 server from smocket's [origin registry](docs/glossary.md#origin-registry), so the
 next test starts without this server or its room state.
 
-That run is green. The file above is a vitest test because the suite here is
-vitest, and a project without a runner installs one the way it always would.
-smocket does not depend on a test runner and does not care which one you use.
+That run is green. The file above is a Vitest test because the suite here uses
+Vitest. Smocket has no runtime dependency on a test runner: runner packages appear
+only in the [development dependencies](package.json). This repository executes
+Smocket with Vitest and `node:test`; it does not yet include a clean Jest consumer.
+The Jest configuration is documented, but clean Jest adoption remains unverified
+and is tracked in [#280](https://github.com/electrohyun/smocket/issues/280).
 
 `connect(url)` and `io.on('connection')` are socket.io-client's and socket.io's own
 entry points, so the code above is the code an application already has, with the
@@ -155,20 +158,20 @@ receive something takes the marker pattern rather than a wait, and that is a
 
 ### Where to start from here
 
-| Coming from                                  | Start at                                                                              |
-| -------------------------------------------- | ------------------------------------------------------------------------------------- |
-| Vitest                                       | the quick start above, which is a vitest file                                         |
-| Jest, or another CJS runner                  | [test-runner integration](docs/test-runner-integration.md#jest)                       |
-| An app that imports `socket.io-client`       | [test-runner integration](docs/test-runner-integration.md), which swaps the specifier |
-| A hand-written socket mock                   | [the problem](#the-problem)                                                           |
-| Wanting to read a program rather than a test | [examples/chat-room](examples/chat-room/)                                             |
-| Wanting the exact guarantees                 | [the conformance report](docs/conformance.md)                                         |
+| Coming from                                  | Start at                                                                                |
+| -------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Vitest                                       | the quick start above, which is a vitest file                                           |
+| Jest, or another CJS runner                  | [the documented setup and current evidence limit](docs/test-runner-integration.md#jest) |
+| An app that imports `socket.io-client`       | [test-runner integration](docs/test-runner-integration.md), which swaps the specifier   |
+| A hand-written socket mock                   | [the problem](#the-problem)                                                             |
+| Wanting to read a program rather than a test | [examples/chat-room](examples/chat-room/)                                               |
+| Wanting the exact guarantees                 | [the conformance report](docs/conformance.md)                                           |
 
 An existing application does not have to be rewritten to run against smocket.
 smocket exports `io` under socket.io-client's own name, so a test runner pointed
 at smocket resolves the app's own import and the app's code runs unchanged.
-[Test-runner integration](docs/test-runner-integration.md) has the Vitest and Jest
-setups.
+[Test-runner integration](docs/test-runner-integration.md) has the Vitest setups and
+the currently unverified Jest setup.
 
 ## Examples
 
@@ -185,12 +188,20 @@ request. It is also available as a
 
 ## How it compares
 
-**Against a hand-written mock.** The difference is not effort saved. It is whether
-the test can be written at all. A hand-written mock is a listener map, and a
-listener map answers "did my handler run." The moment a test needs a second
-participant, the question changes to "who received this," and that answer comes
-from room membership and the broadcast variant rather than from the socket. That is
-the layer smocket reproduces.
+**Against a hand-written mock.** In the
+[one-workflow case study](docs/application-case-study.md), the handwritten mock passed
+the same workflow and assertions as real Socket.IO and published Smocket. It had no
+package dependency and needed no port; Smocket needed one package dependency and also
+needed no port, while real Socket.IO owned the local server and port setup. The
+dependency and port setup was therefore simpler for Smocket than for real Socket.IO,
+and simpler still for the handwritten target than for Smocket. The separate ownership
+tradeoff was that the application owned the handwritten mock's behavior implementation,
+while the Smocket package supplied that behavior behind a smaller fixture bootstrap.
+
+It is reasonable to infer that a change to the exercised event or room semantics may
+require the application to maintain its handwritten implementation. The study did not
+observe such a future change, and its single workflow does not establish a universal
+productivity result or describe every handwritten mock.
 
 **Against HTTP mocking.** A different layer, not a different tool for the same job.
 HTTP mocking answers what a request returns, at the transport. socket.io's delivery
@@ -327,12 +338,12 @@ import swapped.
 <details>
 <summary>Does it work in Jest, or another CJS runner?</summary>
 
-Yes. The package ships both ESM and CJS builds with type declarations for each, and
-CI verifies on every run that both resolve, since the substitution path depends on
-it. Jest swaps the specifier with `moduleNameMapper`, and
-[test-runner integration](docs/test-runner-integration.md#jest) has the setup.
-Vitest is the default in the examples here because it is what the suite itself
-uses.
+The package ships both ESM and CJS builds with type declarations for each, and CI
+verifies that both resolve. That verifies a prerequisite for CJS runners, not clean
+Jest adoption. [Test-runner integration](docs/test-runner-integration.md#jest)
+documents the `moduleNameMapper` setup, but this repository does not yet execute a
+clean Jest consumer, so that full path remains unverified. [#280](https://github.com/electrohyun/smocket/issues/280)
+owns the missing executable evidence.
 
 </details>
 

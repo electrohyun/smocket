@@ -1,5 +1,5 @@
 > 이 문서는 [README.md](README.md)의 한국어판입니다.
-> 기준 커밋: `e29a1a3`. 두 문서가 어긋나면 영어 원문이 정본입니다.
+> 기준 커밋: `480ffec`. 두 문서가 어긋나면 영어 원문이 정본입니다.
 
 <p align="center">
   <!-- The banner carries the wordmark and the one-line pitch, which is why no
@@ -145,9 +145,11 @@ npx vitest run
 [origin registry](docs/glossary.md#origin-registry)에서 서버를 제거할 때까지 기다립니다.
 따라서 다음 테스트에는 이전 서버와 room 상태가 남지 않습니다.
 
-위 코드는 이 저장소에서 사용하는 Vitest로 작성했지만, smocket 자체는 특정 테스트 러너에
-의존하지 않습니다. 프로젝트에 테스트 러너가 없다면 평소와 같은 방식으로 하나를 설치하면
-되고, 이미 사용 중인 러너가 있다면 그대로 사용하면 됩니다.
+위 코드는 이 저장소에서 사용하는 Vitest로 작성했습니다. smocket은 테스트 러너에 대한
+런타임 의존성이 없으며, 러너 패키지는 [개발 의존성](package.json)에만 있습니다. 이
+저장소는 Vitest와 `node:test`에서 smocket을 실행하지만, 아직 독립된 clean Jest consumer는
+없습니다. Jest 설정은 문서화되어 있으나 clean Jest 도입은 아직 검증되지 않았으며
+[#280](https://github.com/electrohyun/smocket/issues/280)에서 추적합니다.
 
 `connect(url)`과 `io.on('connection')`은 각각 socket.io-client와 socket.io가 실제로
 사용하는 진입점입니다. 애플리케이션에서 평소 작성하던 연결 코드와 같고, import만
@@ -163,7 +165,7 @@ smocket으로 바뀝니다.
 | 현재 상황                             | 시작할 곳                                                                |
 | ------------------------------------- | ------------------------------------------------------------------------ |
 | Vitest                                | 위의 빠른 시작 예제                                                      |
-| Jest 또는 다른 CJS 러너               | [테스트 러너 통합](docs/test-runner-integration.md#jest)                 |
+| Jest 또는 다른 CJS 러너               | [문서화된 설정과 현재 근거의 한계](docs/test-runner-integration.md#jest) |
 | `socket.io-client`를 import하는 앱    | 모듈 경로를 교체하는 [테스트 러너 통합](docs/test-runner-integration.md) |
 | 직접 작성한 소켓 mock                 | [문제](#the-problem)                                                     |
 | 실행 가능한 프로그램을 보고 싶은 경우 | [examples/chat-room](examples/chat-room/)                                |
@@ -172,7 +174,7 @@ smocket으로 바뀝니다.
 기존 애플리케이션을 smocket에 맞춰 다시 작성할 필요는 없습니다. smocket은
 socket.io-client와 같은 이름의 `io`를 내보냅니다. 테스트 러너에서
 `socket.io-client`가 smocket을 가리키도록 설정하면 애플리케이션의 import를 바꾸지 않고도
-같은 코드를 실행할 수 있습니다. Vitest와 Jest 설정은
+같은 코드를 실행할 수 있습니다. Vitest 설정과 아직 검증되지 않은 Jest 설정은
 [테스트 러너 통합](docs/test-runner-integration.md)에서 확인할 수 있습니다.
 
 ## 예제
@@ -190,10 +192,18 @@ request에서 만든 tarball을 설치한 뒤 같은 애플리케이션을 실�
 
 ## 다른 방식과의 비교
 
-**직접 작성한 mock과 비교.** 핵심은 필요한 테스트를 표현할 수 있는 범위입니다. 직접 만든
-리스너 맵은 "내 핸들러가 실행됐는가"까지만 답할 수 있습니다. 참여자가 둘 이상이면 질문은
-"이 이벤트를 누가 받았는가"로 바뀌며, 그 답은 room 멤버십과 broadcast 방식에서 나옵니다.
-smocket은 바로 이 계층을 재현합니다.
+**직접 작성한 mock과 비교.** [단일 워크플로 사례 연구](docs/application-case-study.md)에서
+handwritten mock은 실제 Socket.IO 및 배포된 smocket과 같은 워크플로와 assertion을
+통과했습니다. handwritten mock은 패키지 의존성과 포트가 필요하지 않았습니다. smocket은
+패키지 의존성 하나가 필요했지만 포트는 필요하지 않았고, 실제 Socket.IO는 로컬 서버와
+포트 설정을 직접 소유했습니다. 따라서 의존성과 포트 설정은 실제 Socket.IO보다 smocket이
+단순했고, smocket보다 handwritten 대상이 더 단순했습니다. 별도의 소유권 차이는
+애플리케이션이 handwritten mock의 동작 구현을 소유하고, smocket fixture는 더 작은
+bootstrap 뒤에서 패키지가 제공하는 동작을 사용했다는 점입니다.
+
+검증한 이벤트나 room 의미가 바뀌면 애플리케이션이 handwritten 구현을 유지보수해야 할 수
+있다는 점은 합리적인 추론입니다. 사례 연구는 그런 미래 변경을 관찰하지 않았으며, 하나의
+워크플로만으로 보편적인 생산성 결과나 모든 handwritten mock의 특성을 말할 수 없습니다.
 
 **HTTP mocking과 비교.** 두 도구는 서로 다른 계층을 다룹니다. HTTP mocking은 트랜스포트
 계층에서 요청에 어떤 응답을 돌려줄지 정합니다. socket.io의 전달 규칙은 그 위에서 어떤
@@ -316,11 +326,12 @@ smocket은 어떤 소켓이 어떤 이벤트를 어느 room과 namespace에서 �
 <details>
 <summary>Jest나 다른 CJS 러너에서도 동작하나요?</summary>
 
-네. 패키지는 ESM과 CJS 빌드에 맞는 타입 선언을 각각 제공하며, CI에서 두 형식이 올바르게
-불러와지는지 매번 확인합니다. Jest에서는 `moduleNameMapper`로 `socket.io-client`가
-smocket을 가리키도록 설정합니다. 자세한 내용은
-[테스트 러너 통합](docs/test-runner-integration.md#jest)에 있습니다. 이 저장소가 Vitest로
-테스트하기 때문에 예제도 Vitest로 작성했을 뿐입니다.
+패키지는 ESM과 CJS 빌드에 맞는 타입 선언을 각각 제공하며, CI에서 두 형식이 올바르게
+불러와지는지 확인합니다. 이는 CJS 러너의 전제 조건을 검증하지만 clean Jest 도입 전체를
+검증하지는 않습니다. [테스트 러너 통합](docs/test-runner-integration.md#jest)은
+`moduleNameMapper` 설정을 문서화하지만, 이 저장소에는 이를 실행하는 독립된 clean Jest
+consumer가 아직 없습니다. 따라서 전체 경로는 미검증 상태이며, 부족한 실행 근거는
+[#280](https://github.com/electrohyun/smocket/issues/280)에서 다룹니다.
 
 </details>
 
