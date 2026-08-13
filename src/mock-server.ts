@@ -208,7 +208,15 @@ function decodePayload(payload: EncodedPayload): unknown[] {
  * `connectClient` path connects before it awaits `nextConnection`, while a
  * reconnect awaits `nextConnection` before it calls `connect`.
  */
-type Waiter = (socket: ServerSocket) => void;
+interface Waiter {
+  resolve(socket: ServerSocket): void;
+  reject(error: Error): void;
+}
+
+/** Give every closed direct-connection call the same ordinary rejection shape. */
+function serverClosedError(): Error {
+  return new Error('server is closed');
+}
 
 /**
  * The room bookkeeping for one namespace, reproducing socket.io's per-namespace
@@ -691,7 +699,7 @@ class Namespace implements NamespaceContract {
    * Handlers registered through `on`, keyed by event. This is the app-facing entry
    * point: `io.on('connection', cb)` wires per-socket handlers, and each is fired
    * with the new server socket as the pairing completes. The `nextConnection`
-   * harness path resolves the same socket; the two are the two ways to reach a
+   * `nextConnection` path resolves the same socket; the two are the two ways to reach a
    * fresh connection, not two different connections. Kept per-event (not one merged
    * set) so `connection` and its `connect` synonym stay separate registries, matching
    * real socket.io, where a listener on each fires once and the same function on both
@@ -915,23 +923,24 @@ class Namespace implements NamespaceContract {
   nextConnection(): Promise<ServerSocket> {
     const socket = this.ready.shift();
     if (socket) return Promise.resolve(socket);
-    return new Promise<ServerSocket>((resolve) => this.waiters.push(resolve));
+    return new Promise<ServerSocket>((resolve, reject) => this.waiters.push({ resolve, reject }));
   }
 
   /** Hand a freshly connected server socket to a waiter, or park it as ready. */
   private offer(serverSocket: ServerSocket): void {
     const waiter = this.waiters.shift();
     if (waiter) {
-      waiter(serverSocket);
+      waiter.resolve(serverSocket);
     } else {
       this.ready.push(serverSocket);
     }
   }
 
-  /** Close every connected socket in this namespace and discard unclaimed connections. */
+  /** Close every socket, reject observers, and discard unclaimed connections. */
   async close(): Promise<void> {
     this.closed = true;
     this.ready.length = 0;
+    for (const waiter of this.waiters.splice(0)) waiter.reject(serverClosedError());
     await Promise.all([...this.sockets.values()].map((socket) => socket.closeFromServer()));
   }
 
@@ -1290,7 +1299,9 @@ export class Server<
     const waiters = this.dynamicWaiters.get(normalized);
     if (waiters) {
       this.dynamicWaiters.delete(normalized);
-      for (const waiter of waiters) void namespace.nextConnection().then(waiter);
+      for (const waiter of waiters) {
+        void namespace.nextConnection().then(waiter.resolve, waiter.reject);
+      }
     }
     if (emitLifecycle && normalized !== '/') this.emitNewNamespace(namespace);
     return namespace;
@@ -1440,6 +1451,7 @@ export class Server<
   nextConnection(
     namespace = '/',
   ): Promise<ServerSocketContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>> {
+    if (this.closed) return Promise.reject(serverClosedError());
     const normalized = normalizeNamespace(namespace);
     const concrete = this.namespaces.get(normalized);
     if (concrete) {
@@ -1449,9 +1461,9 @@ export class Server<
     }
     const regexpParent = this.matchingRegExpParent(normalized);
     if (!regexpParent && this.parents.length > 0) {
-      return new Promise<ServerSocket>((resolve) => {
+      return new Promise<ServerSocket>((resolve, reject) => {
         const waiters = this.dynamicWaiters.get(normalized) ?? [];
-        waiters.push(resolve);
+        waiters.push({ resolve, reject });
         this.dynamicWaiters.set(normalized, waiters);
       }) as Promise<ServerSocketContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>>;
     }
@@ -1543,6 +1555,10 @@ export class Server<
     const alreadyClosing = this.closed;
     this.closed = true;
     if (servers.get(this.origin) === this) servers.delete(this.origin);
+    for (const waiters of this.dynamicWaiters.values()) {
+      for (const waiter of waiters) waiter.reject(serverClosedError());
+    }
+    this.dynamicWaiters.clear();
     this.closePromise ??= Promise.all(
       [...this.namespaces.values()].map((namespace) => namespace.close()),
     ).then(() => undefined);

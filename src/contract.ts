@@ -606,7 +606,7 @@ export interface ServerContract<
   /**
    * The app-facing server entry point: `io.on('connection', cb)` fires `cb` with
    * each new server-side socket, socket.io's primary way to wire per-socket
-   * handlers. The `nextConnection` harness path resolves the same socket; this is
+   * handlers. The `nextConnection` path resolves the same socket; this is
    * the on-based path code written for real socket.io actually uses.
    *
    * The return stays `void` while every other `on` in this file narrowed to `this`,
@@ -682,9 +682,9 @@ export interface ServerContract<
 }
 
 /**
- * `ServerContract` plus the two server members socket.io has no equivalent for, so an
+ * `ServerContract` plus the server members socket.io has no equivalent for, so an
  * application can annotate a smocket server without losing them. `new Server(url)` already
- * carries both; this is the name to write down when that value goes into a typed position.
+ * carries every member; this is the name to write down when that value goes into a typed position.
  *
  * They cannot join `ServerContract` itself. That interface is the subset real socket.io is
  * verified against, and the `Ensure<>` proofs at the bottom of this file stop compiling the
@@ -705,9 +705,18 @@ export interface SmocketServer<
    */
   adapter(factory: AdapterFactory<ListenEvents, EmitEvents, ServerSideEvents, SocketData>): void;
   /**
+   * Open a client directly on this server without resolving it through the origin
+   * registry. This is the client half of the public direct connection API.
+   */
+  connect(
+    namespace?: string,
+    options?: ConnectOptions,
+  ): ClientSocketContract<EmitEvents, ListenEvents>;
+  /**
    * Resolve with the server-side socket of the next client to connect on `namespace`,
    * which defaults to `/`. Pairs a connect with its server side when the caller drives
-   * the connection itself rather than through a helper.
+   * the connection itself rather than through a helper. Rejects with an ordinary
+   * `Error` if the server closes before the pairing completes or was already closed.
    */
   nextConnection(
     namespace?: string,
@@ -921,12 +930,12 @@ export type AuthCallback = (cb: (data: Record<string, unknown>) => void) => void
 /**
  * Options for opening a connection: the caller's `auth` / `query`, carried onto
  * `socket.handshake` (0006). Shared by the public `connect(url, opts)` and the test
- * harness's `connectClient`, so both forward the same fields; `connect` takes the
+ * fixture's `connectClient`, so both forward the same fields; `connect` takes the
  * namespace from the url path, so it reads only `auth` and `query`.
  */
 export interface ConnectOptions {
   /**
-   * Namespace to attach to, `/` by default. Used by the harness `connectClient`;
+   * Namespace to attach to, `/` by default. Used by the fixture `connectClient`;
    * `connect(url)` derives the namespace from the url path and ignores this.
    */
   namespace?: string;
@@ -985,7 +994,7 @@ export interface ServerContext<
   /**
    * Connect `count` clients and return them paired with their server-side
    * sockets, in connection order. Sugar over `connectClient` for the recurring
-   * multi-client setup; connections are made one at a time, since the harness
+   * multi-client setup; connections are made one at a time, since the fixture
    * pairs each connect with the next `connection`, so connecting concurrently
    * would mismatch the pairs.
    */
