@@ -373,6 +373,17 @@ Which public emit names throw before delivery or outgoing observation.
 - [removeAllListeners() does not stop room cleanup](../src/remove-listeners.test.ts#L277)
 - [removeAllListeners() leaves catch-all listeners in place](../src/remove-listeners.test.ts#L287)
 
+### Listener introspection
+
+Side-specific snapshots, live arrays, counts, names, and once wrappers.
+
+- [a fresh server socket exposes only its internal error listener](../src/listener-introspection.test.ts#L6)
+- [server listeners are fresh snapshots with duplicates and unwrapped once callbacks](../src/listener-introspection.test.ts#L16)
+- [server event names delete empty keys and reinsert them at the end](../src/listener-introspection.test.ts#L36)
+- [client listeners expose the live array and component-emitter once wrapper](../src/listener-introspection.test.ts#L60)
+- [client last-off and once exhaustion empty and detach the old backing array](../src/listener-introspection.test.ts#L98)
+- [client introspection is available before connect for reserved events](../src/listener-introspection.test.ts#L122)
+
 ### Disconnect
 
 Room cleanup, the reason each side reports, and what happens to a pending ack.
@@ -473,6 +484,7 @@ Resolving a url to a server, and what the url contributes to the handshake.
 - [closing a replaced server does not unregister its replacement](../src/connect-url.test.ts#L267)
 - [the socket from a failed connect still chains](../src/connect-url.test.ts#L279)
 - [a failed client carries the complete catch-all listener surface](../src/connect-url.test.ts#L315)
+- [a failed client carries component-emitter listener introspection](../src/connect-url.test.ts#L346)
 
 ### Binary passthrough guard
 
@@ -538,7 +550,6 @@ has not been measured, not that it is missing from socket.io.
   would target, which is the routing decision smocket already reproduces.
 - **`socket.use(fn)`.** Per-packet middleware on one socket, which is a different seam
   from the connection middleware `io.use` covered above.
-- **Listener introspection.** `listeners`, `listenerCount`, and `eventNames`.
 
 What is deliberately absent instead of merely uncovered is in
 [scope.md](./scope.md), and where smocket and socket.io disagree on purpose is in
