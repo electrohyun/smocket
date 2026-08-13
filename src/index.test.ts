@@ -4,7 +4,9 @@ import {
   connect,
   io,
   Server,
+  TracingAdapter,
   type AdapterContract,
+  type BroadcastTrace,
   type BroadcastContract,
   type ClientSocketContract,
   type ConnectionMiddleware,
@@ -108,4 +110,20 @@ it('exports a server type that keeps the smocket-only members', async () => {
   // The narrower type is still assignable from it, so existing annotations keep working.
   const narrowed: ServerContract = server;
   expect(narrowed.of('/').name).toBe('/');
+});
+
+it('exports the tracing adapter and trace type', () => {
+  const tracer = new TracingAdapter();
+  const trace: BroadcastTrace = Object.freeze({
+    event: 'event',
+    rooms: Object.freeze([]),
+    exceptRooms: Object.freeze([]),
+    excluded: Object.freeze([]),
+    recipients: Object.freeze([]),
+    volatile: false,
+  });
+  tracer.traceBroadcast(trace);
+
+  expect(tracer).toBeInstanceOf(TracingAdapter);
+  expect(tracer.getTraces()).toEqual([trace]);
 });

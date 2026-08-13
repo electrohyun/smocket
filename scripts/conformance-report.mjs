@@ -187,6 +187,11 @@ const AREAS = [
     blurb: 'Factory isolation, setup boundaries, and whole-socket cleanup.',
   },
   {
+    file: 'src/tracing-adapter.test.ts',
+    title: 'TracingAdapter',
+    blurb: 'Recording immutable final broadcast routing decisions without payloads.',
+  },
+  {
     file: 'src/delay-adapter.test.ts',
     title: 'DelayingAdapter',
     blurb: "Holding a socket's client-inbound stream so a race can be interleaved on purpose.",
