@@ -252,9 +252,15 @@ it('the client outgoing catch-all omits ack callbacks for emit and emitWithAck',
   client.onAnyOutgoing((...args: unknown[]) => seen.push(args));
   serverSocket.on('ask-client', (_q: unknown, ack: (v: string) => void) => ack('ok'));
 
-  client.emit('ask-client', 'q1', () => undefined);
-  const answer = await client.emitWithAck('ask-client', 'q2');
+  const callbackAnswer = new Promise<string>((resolve) => {
+    client.emit('ask-client', 'q1', (value: string) => resolve(value));
+  });
+  const [emitAnswer, answer] = await Promise.all([
+    callbackAnswer,
+    client.emitWithAck('ask-client', 'q2'),
+  ]);
 
+  expect(emitAnswer).toBe('ok');
   expect(answer).toBe('ok');
   expect(seen).toEqual([
     ['ask-client', 'q1'],
