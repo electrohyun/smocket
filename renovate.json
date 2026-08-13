@@ -13,6 +13,18 @@
       "automerge": false
     },
     {
+      "description": "The 4.7 aliases are exact public-surface inputs for the supported 4.7 line. Allow later 4.7 patches to surface as conformance work, but never collapse this line into 4.8 or a future major.",
+      "matchManagers": ["npm"],
+      "matchDepNames": ["socket.io-4.7", "socket.io-client-4.7"],
+      "allowedVersions": "/^4\\.7\\./"
+    },
+    {
+      "description": "The 4.8 aliases are exact public-surface inputs for the supported 4.8 line. Allow later 4.8 patches to surface as conformance work, but never move this line to a future minor or major.",
+      "matchManagers": ["npm"],
+      "matchDepNames": ["socket.io-4.8", "socket.io-client-4.8"],
+      "allowedVersions": "/^4\\.8\\./"
+    },
+    {
       "description": "All build and test tooling in one weekly PR, with the patch stream separated so patches can be told apart from minors. separateMinorPatch was originally added to give the patch auto-merge rule something to match, and it is kept after that rule was dropped because a patch bundle is readable at a glance while a minor bundle is worth reading.",
       "matchDepTypes": ["devDependencies"],
       "matchPackageNames": ["!socket.io", "!socket.io-client"],
