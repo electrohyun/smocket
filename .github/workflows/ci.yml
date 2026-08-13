@@ -165,7 +165,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Pin socket.io ${{ matrix.socketio }}
-        run: pnpm add -D socket.io@${{ matrix.socketio }} socket.io-client@${{ matrix.socketio }}
+        run: pnpm add --workspace-root -D socket.io@${{ matrix.socketio }} socket.io-client@${{ matrix.socketio }}
       - name: Typecheck against socket.io ${{ matrix.socketio }}
         run: pnpm typecheck
       - name: Run the suite against real socket.io ${{ matrix.socketio }}
