@@ -159,6 +159,20 @@ export function assertTypedEventMapsCompile(): void {
       void timeoutError;
       void value;
     });
+    const socketBroadcastAnswers: Promise<number[]> = socket.broadcast
+      .timeout(100)
+      .emitWithAck('question', 'value?');
+    const socketTimeoutFirstAnswers: Promise<number[]> = socket
+      .timeout(100)
+      .broadcast.to('room')
+      .except('muted')
+      .emitWithAck('question', 'value?');
+    const socketVolatileAnswers: Promise<number[]> = socket.broadcast.volatile
+      .timeout(100)
+      .emitWithAck('question', 'value?');
+    void socketBroadcastAnswers;
+    void socketTimeoutFirstAnswers;
+    void socketVolatileAnswers;
     // @ts-expect-error an ack with no response value cannot back emitWithAck
     socket.emitWithAck('done');
     void answer;
@@ -225,6 +239,59 @@ export function assertTypedEventMapsCompile(): void {
     void timeoutError;
     void values;
   });
+  const roomOperator = io.to('room');
+  const timedRoomOperator = roomOperator.timeout(100);
+  const serverBroadcastAnswers: Promise<number[]> = io
+    .timeout(100)
+    .emitWithAck('question', 'value?');
+  const namespaceBroadcastAnswers: Promise<number[]> = io
+    .of('/admin')
+    .timeout(100)
+    .emitWithAck('question', 'value?');
+  const narrowingFirstAnswers: Promise<number[]> = io
+    .to('room')
+    .except('muted')
+    .timeout(100)
+    .emitWithAck('question', 'value?');
+  const timeoutFirstAnswers: Promise<number[]> = io
+    .timeout(100)
+    .to('room')
+    .except('muted')
+    .emitWithAck('question', 'value?');
+  const volatileFirstAnswers: Promise<number[]> = io.volatile
+    .to('room')
+    .timeout(100)
+    .emitWithAck('question', 'value?');
+  const timeoutVolatileAnswers: Promise<number[]> = timedRoomOperator.volatile.emitWithAck(
+    'question',
+    'value?',
+  );
+  // @ts-expect-error an ordinary broadcast event lacks the error-first collector shape until timeout decoration
+  roomOperator.emitWithAck('question', 'value?');
+  // @ts-expect-error an event without an acknowledgement cannot back broadcast emitWithAck
+  timedRoomOperator.emitWithAck('chat', 'hello');
+  // @ts-expect-error an acknowledgement with no response value cannot back broadcast emitWithAck
+  timedRoomOperator.emitWithAck('done');
+  // @ts-expect-error wrong broadcast Promise payload
+  timedRoomOperator.emitWithAck('question', 42);
+  // @ts-expect-error the caller does not supply the internal collector callback
+  timedRoomOperator.emitWithAck('question', 'value?', () => undefined);
+  // @ts-expect-error unknown broadcast Promise event
+  timedRoomOperator.emitWithAck('questoin', 'value?');
+  // @ts-expect-error multiple-response decoration returns an array
+  const wrongBroadcastAnswers: Promise<number> = timedRoomOperator.emitWithAck(
+    'question',
+    'value?',
+  );
+  void roomOperator;
+  void timedRoomOperator;
+  void serverBroadcastAnswers;
+  void namespaceBroadcastAnswers;
+  void narrowingFirstAnswers;
+  void timeoutFirstAnswers;
+  void volatileFirstAnswers;
+  void timeoutVolatileAnswers;
+  void wrongBroadcastAnswers;
 
   const client = io.connect();
   const returnedFromConnect: typeof client = client.connect();
@@ -441,6 +508,20 @@ export function assertRealSocketIoListenerInferenceCompiles(
       void timeoutError;
       void value;
     });
+    const socketBroadcastAnswers: Promise<number[]> = socket.broadcast
+      .timeout(100)
+      .emitWithAck('question', 'value?');
+    const socketTimeoutFirstAnswers: Promise<number[]> = socket
+      .timeout(100)
+      .broadcast.to('room')
+      .except('muted')
+      .emitWithAck('question', 'value?');
+    const socketVolatileAnswers: Promise<number[]> = socket.broadcast.volatile
+      .timeout(100)
+      .emitWithAck('question', 'value?');
+    void socketBroadcastAnswers;
+    void socketTimeoutFirstAnswers;
+    void socketVolatileAnswers;
     const returnedServerSocket: typeof socket = socket.disconnect();
     // @ts-expect-error an ack with no response value cannot back emitWithAck
     socket.emitWithAck('done');
@@ -510,6 +591,44 @@ export function assertRealSocketIoListenerInferenceCompiles(
   typedNamespace.write('wrong', 'count');
   // @ts-expect-error compression accepts only a boolean
   io.compress('false');
+  const serverBroadcastAnswers: Promise<number[]> = io
+    .timeout(100)
+    .emitWithAck('question', 'value?');
+  const namespaceBroadcastAnswers: Promise<number[]> = io
+    .of('/admin')
+    .timeout(100)
+    .emitWithAck('question', 'value?');
+  const narrowingFirstAnswers: Promise<number[]> = io
+    .to('room')
+    .except('muted')
+    .timeout(100)
+    .emitWithAck('question', 'value?');
+  const timeoutFirstAnswers: Promise<number[]> = io
+    .timeout(100)
+    .to('room')
+    .except('muted')
+    .emitWithAck('question', 'value?');
+  const volatileAnswers: Promise<number[]> = io.volatile
+    .to('room')
+    .timeout(100)
+    .emitWithAck('question', 'value?');
+  // @ts-expect-error an ordinary broadcast event lacks the error-first collector shape until timeout decoration
+  io.to('room').emitWithAck('question', 'value?');
+  // @ts-expect-error an event without an acknowledgement cannot back broadcast emitWithAck
+  io.timeout(100).emitWithAck('chat', 'hello');
+  // @ts-expect-error an acknowledgement with no response value cannot back broadcast emitWithAck
+  io.timeout(100).emitWithAck('done');
+  // @ts-expect-error wrong broadcast Promise payload
+  io.timeout(100).emitWithAck('question', 42);
+  // @ts-expect-error the caller does not supply the internal collector callback
+  io.timeout(100).emitWithAck('question', 'value?', () => undefined);
+  // @ts-expect-error unknown broadcast Promise event
+  io.timeout(100).emitWithAck('questoin', 'value?');
+  void serverBroadcastAnswers;
+  void namespaceBroadcastAnswers;
+  void narrowingFirstAnswers;
+  void timeoutFirstAnswers;
+  void volatileAnswers;
 }
 
 export function assertRealSocketIoDefaultsCompile(

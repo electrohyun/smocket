@@ -98,6 +98,12 @@ const AREAS = [
     blurb: 'Collecting an ack from every recipient of a broadcast, and answering on expiry.',
   },
   {
+    file: 'src/broadcast-promise-ack.test.ts',
+    title: 'Broadcast Promise acknowledgements',
+    blurb:
+      'Awaiting every selected recipient, including timeout errors, snapshots, and wrapper composition.',
+  },
+  {
     file: 'src/middleware.test.ts',
     title: 'Connection middleware',
     blurb: '`io.use`: admitting a connection, rejecting one, and the order two run in.',
@@ -174,6 +180,11 @@ const AREAS = [
     file: 'src/delay-adapter.test.ts',
     title: 'DelayingAdapter',
     blurb: "Holding a socket's client-inbound stream so a race can be interleaved on purpose.",
+  },
+  {
+    file: 'src/broadcast-promise-ack-native.test.ts',
+    title: 'Native broadcast Promise policy',
+    blurb: 'Applying Smocket-only pre-connect volatile selection before acknowledgement counting.',
   },
   {
     file: 'src/socket-id.test.ts',
