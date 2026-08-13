@@ -12,6 +12,7 @@ import {
   isBundledDependencyEntry,
   normalizeTarEntryPath,
 } from './check-packed-package.mjs';
+import { inspectClientPackagePolicy } from './check-client-package.mjs';
 import { detectExternalImports } from './detect-external-imports.js';
 
 const emptyManifest = { name: 'smocket', version: '0.0.0' };
@@ -166,6 +167,66 @@ describe('packed payload policy', () => {
 
   it('does not confuse a similarly named path with node_modules', () => {
     expect(inspect({ tarEntries: ['package/not-node_modules/index.js'] }).passed).toBe(true);
+  });
+});
+
+describe('client facade package policy', () => {
+  const rootManifest = { name: 'smocket', version: '1.2.3' };
+  const clientManifest = {
+    name: 'smocket-client',
+    version: '1.2.3',
+    peerDependencies: { smocket: '1.2.3' },
+  };
+
+  function inspectClient(
+    sourceManifest: Record<string, unknown> = clientManifest,
+    packedManifest: Record<string, unknown> = clientManifest,
+    tarEntries = ['package/package.json', 'package/dist/index.mjs'],
+  ) {
+    return inspectClientPackagePolicy({
+      rootManifest,
+      sourceManifest,
+      packedManifest,
+      tarEntries,
+    });
+  }
+
+  it('accepts synchronized manifests with one exact peer and no bundled payload', () => {
+    expect(inspectClient()).toEqual({ passed: true, violations: [] });
+  });
+
+  it('rejects a source or packed version that differs from the root', () => {
+    expect(inspectClient({ ...clientManifest, version: '1.2.4' }).violations).toContain(
+      'source manifest version must equal smocket 1.2.3',
+    );
+    expect(
+      inspectClient(clientManifest, { ...clientManifest, version: '1.2.4' }).violations,
+    ).toContain('packed manifest version must equal smocket 1.2.3');
+  });
+
+  it('rejects a range, an extra peer, and a runtime dependency', () => {
+    const invalid = {
+      ...clientManifest,
+      dependencies: { helper: '1.0.0' },
+      peerDependencies: { smocket: '^1.2.3', helper: '1.0.0' },
+    };
+    const result = inspectClient(invalid);
+
+    expect(result.violations).toContain(
+      'source manifest must have only the exact smocket 1.2.3 peer',
+    );
+    expect(result.violations).toContain('source manifest dependencies must be absent or empty');
+  });
+
+  it('rejects a bundled dependency entry', () => {
+    const result = inspectClient(clientManifest, clientManifest, [
+      'package/package.json',
+      'package/node_modules/smocket/dist/index.js',
+    ]);
+
+    expect(result.violations).toContain(
+      'packed tarball must not contain package/node_modules/smocket/dist/index.js',
+    );
   });
 });
 

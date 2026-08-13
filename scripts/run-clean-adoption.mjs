@@ -34,7 +34,7 @@ for (let index = 0; index < arguments_.length; index += 2) {
 
   if (!flag?.startsWith('--') || value === undefined) {
     throw new Error(
-      'Usage: node scripts/run-clean-adoption.mjs <candidate|published> --version <exact-version> [--tarball <absolute-path>] [--browser]',
+      'Usage: node scripts/run-clean-adoption.mjs <candidate|published> --version <exact-version> [--tarball <absolute-path>] [--client-tarball <absolute-path>] [--browser]',
     );
   }
 
@@ -47,10 +47,13 @@ if (!new Set(['candidate', 'published']).has(mode)) {
 
 const version = options.get('--version');
 const archivePath = options.get('--tarball');
+const clientArchivePath = options.get('--client-tarball');
 const packageInput =
   mode === 'candidate'
     ? `file:${archivePath ?? '<missing tarball>'}`
     : (version ?? '<missing version>');
+const clientPackageInput =
+  clientArchivePath === undefined ? undefined : `file:${clientArchivePath}`;
 
 await withContext(
   {
@@ -70,6 +73,14 @@ await withContext(
       assert.equal(typeof archivePath, 'string', 'candidate mode requires --tarball');
       assert.equal(isAbsolute(archivePath), true, 'candidate --tarball must be an absolute path');
       await access(archivePath);
+      if (clientArchivePath !== undefined) {
+        assert.equal(
+          isAbsolute(clientArchivePath),
+          true,
+          'candidate --client-tarball must be an absolute path',
+        );
+        await access(clientArchivePath);
+      }
     } else {
       assert.equal(
         archivePath,
@@ -115,14 +126,17 @@ async function withContext(context, operation) {
 
 function run(command, args, cwd, context) {
   return new Promise((resolveRun, reject) => {
-    const child = spawn(command, args, {
+    const useWindowsCommandShell = process.platform === 'win32' && command === 'npm';
+    const executable = useWindowsCommandShell ? (process.env.ComSpec ?? 'cmd.exe') : command;
+    const executableArgs = useWindowsCommandShell ? ['/d', '/s', '/c', command, ...args] : args;
+    const child = spawn(executable, executableArgs, {
       cwd,
       env: { ...process.env, npm_config_update_notifier: 'false' },
       stdio: 'inherit',
     });
 
     child.on('error', (error) => {
-      reject(contextualError(context, `could not start ${command}: ${error.message}`, error));
+      reject(contextualError(context, `could not start ${executable}: ${error.message}`, error));
     });
     child.on('exit', (code, signal) => {
       if (code === 0) {
@@ -145,12 +159,15 @@ async function assembleProject(projectRoot, packageInput) {
     applicationFiles.map((file) => cp(join(exampleRoot, file), join(projectRoot, 'shared', file))),
   );
 
+  const dependencies = { smocket: packageInput };
+  if (clientPackageInput !== undefined) dependencies['smocket-client'] = clientPackageInput;
+
   const manifest = {
     name: 'smocket-clean-adoption',
     private: true,
     type: 'module',
     engines: { node: '>=20' },
-    dependencies: { smocket: packageInput },
+    dependencies,
     devDependencies: fixtureToolVersions,
   };
 
@@ -185,6 +202,36 @@ async function assertInstalledIdentity(projectRoot, packageInput) {
       console.log(`clean adoption source version: ${version}`);
       console.log(`clean adoption installed version: ${installed.version}`);
       console.log(`clean adoption resolved identity: ${resolvedPath}`);
+
+      if (clientPackageInput !== undefined) {
+        const clientPackagePath = join(
+          projectRoot,
+          'node_modules',
+          'smocket-client',
+          'package.json',
+        );
+        const installedClient = await readJson(clientPackagePath);
+        const resolvedClientPath = createRequire(join(projectRoot, 'package.json')).resolve(
+          'smocket-client',
+        );
+        assert.equal(
+          installedClient.version,
+          version,
+          'installed smocket-client version differs from the root version',
+        );
+        assert.equal(
+          installedClient.peerDependencies?.smocket,
+          version,
+          'installed smocket-client peer must be the exact root version',
+        );
+        assert.equal(
+          isInside(repositoryRoot, resolvedClientPath),
+          false,
+          'smocket-client must resolve from the clean consumer, not the checkout',
+        );
+        console.log(`clean adoption client input: ${clientPackageInput}`);
+        console.log(`clean adoption client resolved identity: ${resolvedClientPath}`);
+      }
     },
   );
 }
@@ -272,6 +319,50 @@ async function runNodeFixtures(projectRoot, packageInput) {
   );
 }
 
+async function runClientPackageFixtures(projectRoot) {
+  const tsc = join(projectRoot, 'node_modules', 'typescript', 'bin', 'tsc');
+
+  await run(
+    process.execPath,
+    ['client-package/runtime.mjs'],
+    projectRoot,
+    fixtureContext(
+      'Node.js',
+      'ESM package import',
+      clientPackageInput,
+      'client-package/runtime.mjs',
+    ),
+  );
+  await run(
+    process.execPath,
+    ['client-package/runtime.cjs'],
+    projectRoot,
+    fixtureContext(
+      'Node.js',
+      'callable CommonJS package root',
+      clientPackageInput,
+      'client-package/runtime.cjs',
+    ),
+  );
+  await run(
+    process.execPath,
+    [tsc, '-p', 'client-package/tsconfig.node16.json'],
+    projectRoot,
+    fixtureContext(
+      'TypeScript',
+      'Node16 ESM and CommonJS',
+      clientPackageInput,
+      'client-package types',
+    ),
+  );
+  await run(
+    process.execPath,
+    [tsc, '-p', 'client-package/tsconfig.bundler.json'],
+    projectRoot,
+    fixtureContext('TypeScript', 'bundler ESM', clientPackageInput, 'client-package types'),
+  );
+}
+
 async function runPublishedFixtures(projectRoot, packageInput) {
   const vitest = join(projectRoot, 'node_modules', 'vitest', 'vitest.mjs');
   const jest = join(projectRoot, 'node_modules', 'jest', 'bin', 'jest.js');
@@ -333,6 +424,25 @@ async function runBrowserFixture(projectRoot, packageInput) {
     projectRoot,
     fixtureContext('Vitest Playwright', 'Chromium browser ESM', packageInput, 'browser'),
   );
+  if (clientPackageInput !== undefined) {
+    await run(
+      process.execPath,
+      [
+        vitest,
+        'run',
+        'client-package/browser.test.js',
+        '--config',
+        'client-package/vitest.config.js',
+      ],
+      projectRoot,
+      fixtureContext(
+        'Vitest Playwright',
+        'Chromium browser ESM',
+        clientPackageInput,
+        'client-package/browser.test.js',
+      ),
+    );
+  }
 }
 
 const temporaryRoot = await mkdtemp(join(tmpdir(), 'smocket-clean-adoption-'));
@@ -361,6 +471,7 @@ try {
 
   if (mode === 'candidate') {
     await runNodeFixtures(projectRoot, packageInput);
+    if (clientPackageInput !== undefined) await runClientPackageFixtures(projectRoot);
     if (options.get('--browser') === true) await runBrowserFixture(projectRoot, packageInput);
   } else {
     await runPublishedFixtures(projectRoot, packageInput);

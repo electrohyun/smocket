@@ -1,0 +1,61 @@
+{
+  "name": "smocket-client",
+  "version": "0.4.2",
+  "description": "Socket.IO Client-compatible facade for smocket's supported in-process test surface.",
+  "type": "module",
+  "license": "MIT",
+  "author": "electrohyun",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/electrohyun/smocket.git",
+    "directory": "packages/smocket-client"
+  },
+  "bugs": "https://github.com/electrohyun/smocket/issues",
+  "homepage": "https://github.com/electrohyun/smocket#readme",
+  "keywords": [
+    "socket.io-client",
+    "socketio",
+    "mock",
+    "mocking",
+    "testing",
+    "typescript"
+  ],
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.cts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@11.21.0",
+  "scripts": {
+    "build": "node scripts/clean-dist.mjs && tsc -p tsconfig.esm.json && tsc -p tsconfig.cjs.json",
+    "prepublishOnly": "pnpm run build && node ../../scripts/check-client-package.mjs && node ../../scripts/check-client-release-order.mjs",
+    "test": "node --test test/runtime.test.mjs test/runtime.test.cjs",
+    "typecheck": "tsc -p tsconfig.esm.json --noEmit && tsc -p tsconfig.cjs.json --noEmit",
+    "publint": "publint",
+    "attw": "node ../../scripts/run-client-attw.mjs"
+  },
+  "peerDependencies": {
+    "smocket": "0.4.2"
+  },
+  "devDependencies": {
+    "smocket": "workspace:*"
+  }
+}
