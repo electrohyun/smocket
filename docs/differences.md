@@ -73,6 +73,12 @@ than discovered in a failing suite.
   socket removal drains queued delivery in order and clears the sid state. See
   [0018](./decisions/0018-delivery-scheduling-adapter-hook.md) and
   [0031](./decisions/0031-adapter-registration-and-removal-lifecycle.md).
+- **`TracingAdapter` records final broadcast routing decisions.** It stores one immutable,
+  payload-free trace per successful concrete-namespace broadcast after exclusions and
+  volatile filtering. Empty-recipient broadcasts are recorded, while direct Socket emits,
+  reserved events, and encoding failures are not. It can wrap another Smocket adapter so
+  tracing does not replace custom routing, scheduling, or cleanup. See
+  [0032](./decisions/0032-trace-final-broadcast-routing.md).
 
 ## C. Known gaps, not deliberate, recorded until corrected
 
