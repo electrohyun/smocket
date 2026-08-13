@@ -25,6 +25,7 @@ import type {
   ServerSocketContract,
   SmocketAdapter,
   SmocketServer,
+  SocketMiddleware,
   SupportedServerListenerEvents,
   TimeoutBroadcastContract,
 } from './contract';
@@ -1835,11 +1836,19 @@ class Emitter {
    * rather than received from the peer.
    */
   dispatch(event: string, args: unknown[]): void {
+    this.dispatchCatchAll(event, args);
+    this.dispatchNamed(event, args);
+  }
+
+  protected dispatchCatchAll(event: string, args: unknown[]): void {
     if (this.anyListeners?.length && !RESERVED_EVENTS.has(event)) {
       for (const any of [...this.anyListeners]) {
         (any as (...a: unknown[]) => void)(event, ...args);
       }
     }
+  }
+
+  protected dispatchNamed(event: string, args: unknown[]): void {
     const list = this.eventListeners.get(event);
     if (!list) return;
     for (const listener of [...list]) (listener as (...a: unknown[]) => void)(...args);
@@ -1878,6 +1887,7 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
   readonly id: string;
   connected = false;
   readonly recovered = false;
+  private readonly packetMiddleware: SocketMiddleware[] = [];
   readonly rooms = new Set<string>();
   /**
    * The namespace this socket lives on. `nsp.adapter` records its membership and
@@ -1952,6 +1962,41 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
     (wrapper as { listener?: Listener }).listener = listener;
     addListener(this.eventListeners, event, wrapper);
     return this;
+  }
+
+  use(middleware: SocketMiddleware): this {
+    this.packetMiddleware.push(middleware);
+    return this;
+  }
+
+  override dispatch(event: string, args: unknown[]): void {
+    if (RESERVED_EVENTS.has(event) || this.packetMiddleware.length === 0) {
+      super.dispatch(event, args);
+      return;
+    }
+
+    this.dispatchCatchAll(event, args);
+    const packet = [event, ...args] as [string, ...unknown[]];
+    const chain = [...this.packetMiddleware];
+    const run = (index: number): void => {
+      const middleware = chain[index];
+      if (!middleware) {
+        defer(() => {
+          if (!this.connected) return;
+          const [nextEvent, ...nextArgs] = packet;
+          this.dispatchNamed(nextEvent, nextArgs);
+        });
+        return;
+      }
+      middleware(packet, (error) => {
+        if (error) {
+          super.dispatch('error', [error]);
+          return;
+        }
+        run(index + 1);
+      });
+    };
+    run(0);
   }
 
   /** Wire the paired client in; called by `Namespace.pair` before completion. */
