@@ -15,7 +15,7 @@ it('io.of normalizes empty and bare static namespace names', () => {
   expect(game.name).toBe('/game');
 });
 
-it('a registered static namespace admits the normalized harness name', async () => {
+it('a registered static namespace admits the normalized connection name', async () => {
   const game = ctx.io.of('game');
   const { client, serverSocket } = await ctx.connectClient({ namespace: 'game' });
 

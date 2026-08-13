@@ -85,10 +85,10 @@ it('exports the contract types, so the swap keeps an app annotations to use', as
   ]).not.toContain(undefined);
 });
 
-it('exports a server type that keeps the two smocket-only members', async () => {
-  // `ServerContract` stops where socket.io stops, so annotating with it drops `adapter`
-  // and `nextConnection`, which `differences.md` section B documents as public. Both calls
-  // below are the assertion: they stop compiling if `SmocketServer` loses either member.
+it('exports a server type that keeps the smocket-only members', async () => {
+  // `ServerContract` stops where socket.io stops, so annotating with it drops `adapter`,
+  // `connect`, and `nextConnection`, which `differences.md` section B documents as public.
+  // These calls stop compiling if `SmocketServer` loses any member.
   const server: SmocketServer = new Server('http://localhost');
 
   let built = 0;
@@ -98,10 +98,11 @@ it('exports a server type that keeps the two smocket-only members', async () => 
   });
 
   const pending = server.nextConnection('/');
-  const client = connect('http://localhost');
+  const client = server.connect('/', { auth: { source: 'native' } });
   const serverSocket: ServerSocketContract = await pending;
 
   expect(serverSocket.id).toBe(client.id);
+  expect(serverSocket.handshake.auth).toEqual({ source: 'native' });
   expect(built).toBeGreaterThan(0);
 
   // The narrower type is still assignable from it, so existing annotations keep working.

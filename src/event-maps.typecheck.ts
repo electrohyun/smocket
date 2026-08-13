@@ -1,4 +1,4 @@
-import { Server, type DefaultEventsMap } from './index';
+import { Server, type DefaultEventsMap, type SmocketServer } from './index';
 import type { DisconnectReason, Server as IoServer } from 'socket.io';
 import type { Socket as IoClientSocket } from 'socket.io-client';
 
@@ -438,6 +438,36 @@ export function assertDefaultEventMapStaysUntyped(): void {
   io.emit('anything', 1, true);
   io.connect().emit('anything', 1, true);
   void io.close();
+}
+
+export function assertNativeConnectionApiPreservesEventMaps(): void {
+  const server: SmocketServer<
+    ClientToServerEvents,
+    ServerToClientEvents,
+    InterServerEvents,
+    SocketData
+  > = new Server('http://localhost:3004');
+  const client = server.connect('/game', {
+    auth: { userId: 'native-user' },
+    query: { source: 'direct' },
+  });
+
+  client.emit('guess', 'answer', (accepted) => {
+    const inferred: boolean = accepted;
+    void inferred;
+  });
+  client.on('chat', (message) => {
+    const inferred: string = message;
+    void inferred;
+  });
+  // @ts-expect-error native clients emit the client-to-server map
+  client.emit('chat', 'wrong direction');
+  // @ts-expect-error native clients listen to the server-to-client map
+  client.on('guess', () => undefined);
+
+  const socket = server.nextConnection('/game');
+  void socket;
+  void server.close();
 }
 
 export function assertSocketDataDefaultMatchesSocketIo(): void {

@@ -202,6 +202,12 @@ const AREAS = [
     blurb: 'What the package exports, including the `io` name the substitution path needs.',
   },
   {
+    file: 'src/connection-api.test.ts',
+    title: 'Public direct connection API',
+    blurb:
+      'Pairing direct clients with server sockets, namespace queue order, admission outcomes, and close settlement.',
+  },
+  {
     file: 'src/emitter-returns.test.ts',
     title: 'Return values',
     blurb:
