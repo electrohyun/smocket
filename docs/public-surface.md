@@ -11,10 +11,12 @@ lockfile also pin the extractor's TypeScript version and pnpm toolchain.
 
 The inventory covers package export maps and root declarations, `Server`,
 `Namespace`, reachable `ParentNamespace`, `BroadcastOperator`, both Socket
-directions, `Manager`, and the built-in Adapter. It expands inherited receiver
-members, keeps `declaredBy`, and records overload index, declaration kind,
-readonly state, optionality, and the normalized declaration signature. The two
-supported versions stay separate, including exports and signatures that differ.
+directions, `Manager`, and the built-in Adapter. It expands inherited instance
+members and class static members, keeps `declaredBy`, and records receiver,
+overload index, declaration kind, readonly state, optionality, and the normalized
+declaration signature. Private and protected static declarations are excluded.
+The two supported versions stay separate, including exports and signatures that
+differ.
 
 Evidence tiers stay distinct:
 

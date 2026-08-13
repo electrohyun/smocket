@@ -46,8 +46,15 @@ test('reports every unclassified fixture key with its exact signature', () => {
   const inventory = fixtureInventory();
   const existing = inventory.entries.find((entry) => entry.member === 'existing');
   assert.ok(existing);
-  const added = inventory.entries.filter((entry) => entry.member === 'added');
-  assert.equal(added.length, 2);
+  const added = inventory.entries.filter((entry) => entry.member.startsWith('added'));
+  const instanceAdded = added.filter((entry) => entry.member === 'added');
+  const staticAdded = added.find((entry) => entry.member === 'addedStatic');
+  assert.equal(added.length, 3);
+  assert.equal(
+    inventory.entries.some((entry) => entry.member === 'hiddenStatic'),
+    false,
+  );
+  assert.ok(staticAdded);
   const errors = reconcileInventory(inventory, {
     schemaVersion: 1,
     inventory: 'public-surface.generated.json',
@@ -68,15 +75,21 @@ test('reports every unclassified fixture key with its exact signature', () => {
   });
 
   assert.deepEqual(errors, [
-    `Unclassified public-surface entries (2):\n${added
-      .map((entry) => `- ${entry.id}\n` + `  FixtureSurface.added\n` + `  ${entry.signature}`)
+    `Unclassified public-surface entries (3):\n${added
+      .map(
+        (entry) =>
+          `- ${entry.id}\n` + `  FixtureSurface.${entry.member}\n` + `  ${entry.signature}`,
+      )
       .join('\n')}`,
   ]);
   assert.deepEqual(
-    added.map((entry) => [entry.overloadIndex, entry.signature]),
+    instanceAdded.map((entry) => [entry.overloadIndex, entry.signature]),
     [
       [0, 'added(value: string): void;'],
       [1, 'added(value: number): number;'],
     ],
   );
+  assert.equal(staticAdded.receiver, 'static');
+  assert.equal(staticAdded.overloadIndex, 0);
+  assert.equal(staticAdded.signature, 'static addedStatic(value: boolean): boolean;');
 });
