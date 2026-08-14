@@ -111,10 +111,11 @@ requirements and progress.
   review.
 - [#213] remains the parent direction discussion for roadmap feedback and new use cases.
 
-## Pre-v1 release sequence
+## Release sequence to v1.0.0
 
 [ADR 0019](./decisions/0019-what-counts-as-a-breaking-change.md) classifies every change.
-The roadmap applies its pre-v1 shift without duplicating the decision table.
+For releases before 1.0.0, the roadmap applies that version rule without duplicating its
+decision table.
 
 ### v0.5.0
 
@@ -134,17 +135,17 @@ and the test that proves the corrected behaviour.
 ### Stabilization
 
 After v0.5.0, conformance corrections, documentation fixes, and compatible small
-improvements use that line's patch releases. Another required pre-v1 minor would prompt
-consideration of v0.6.0. The roadmap does not lock intermediate version numbers or release
-count in advance.
+improvements use that line's patch releases. Another required minor before 1.0.0 would
+prompt consideration of v0.6.0. The roadmap does not lock intermediate version numbers or
+release count in advance.
 
 ```mermaid
 flowchart TD
     A["v0.4.2"] --> B["Fidelity and extensibility review"]
     B --> C{"Classify findings"}
 
-    C -->|"v1 required · pre-v1 patch"| D["Include in v0.5.0 set"]
-    C -->|"v1 required · pre-v1 minor"| E["Freeze v0.5.0 set"]
+    C -->|"required for v1.0.0 · patch before 1.0.0"| D["Include in v0.5.0 set"]
+    C -->|"required for v1.0.0 · minor before 1.0.0"| E["Freeze v0.5.0 set"]
     C -->|"optional or deferred"| F["Post-v1"]
     C -->|"outside scope"| G["Explicit non-goal"]
 
