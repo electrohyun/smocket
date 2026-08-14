@@ -1,4 +1,5 @@
 import { expect, it, vi } from 'vitest';
+import { hostEmitsFinalRemoveListenerMetaEvent as detectHostMetaEvent } from './host-emitter';
 import { setupServer } from './setup-server';
 import { receive } from './test-events';
 
@@ -418,6 +419,25 @@ function expectFinalObserverRemoval(
 }
 
 it('bulk removal of the final removeListener observer follows the host and receiver', async () => {
+  class BranchProbe {
+    emit(_event: string | symbol, ..._args: unknown[]): boolean {
+      return false;
+    }
+    on(): this {
+      return this;
+    }
+    removeAllListeners(): this {
+      this.emit('ordinary');
+      this.emit('removeListener');
+      return this;
+    }
+  }
+
+  expect(detectHostMetaEvent(null)).toBe(false);
+  expect(detectHostMetaEvent({ getBuiltinModule: () => ({ EventEmitter: BranchProbe }) })).toBe(
+    true,
+  );
+
   const namespace = ctx.io.of('/bulk-remove-listener');
   const parent = ctx.io.of(/^\/bulk-remove-listener-/);
   const root = ctx.io.of('/');
