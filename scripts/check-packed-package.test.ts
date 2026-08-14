@@ -1,5 +1,6 @@
 import { spawnSync } from 'node:child_process';
-import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { cp, mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -14,6 +15,7 @@ import {
 } from './check-packed-package.mjs';
 import { inspectClientPackagePolicy } from './check-client-package.mjs';
 import { detectExternalImports } from './detect-external-imports.js';
+import { loadReleaseCandidate } from './release-candidate.mjs';
 
 const emptyManifest = { name: 'smocket', version: '0.0.0' };
 
@@ -299,3 +301,111 @@ it('rejects the lock-consistent unused runtime dependency fixture after packing 
     await rm(temporaryRoot, { recursive: true, force: true });
   }
 }, 20_000); // Windows process startup and two npm pack runs can exceed Vitest's 5s default.
+
+async function writeJson(path: string, value: unknown) {
+  await writeFile(path, `${JSON.stringify(value, null, 2)}\n`);
+}
+
+async function packFixture(packageRoot: string, outputRoot: string) {
+  const args = ['pack', '.', '--ignore-scripts', '--pack-destination', outputRoot];
+  const useWindowsCommandShell = process.platform === 'win32';
+  const executable = useWindowsCommandShell ? (process.env.ComSpec ?? 'cmd.exe') : 'npm';
+  const executableArgs = useWindowsCommandShell ? ['/d', '/s', '/c', 'npm', ...args] : args;
+  const result = spawnSync(executable, executableArgs, {
+    cwd: packageRoot,
+    env: {
+      ...process.env,
+      npm_config_cache: join(outputRoot, '.npm-cache'),
+      npm_config_update_notifier: 'false',
+    },
+    encoding: 'utf8',
+  });
+  expect(result.error).toBeUndefined();
+  expect(result.status, result.stderr).toBe(0);
+}
+
+async function makeCandidateFixture() {
+  const root = await mkdtemp(join(tmpdir(), 'smocket-release-candidate-test-'));
+  const output = join(root, 'candidate');
+  const rootPackage = join(root, 'root-package');
+  const clientPackage = join(root, 'client-package');
+  await Promise.all([mkdir(output), mkdir(rootPackage), mkdir(clientPackage)]);
+  await writeJson(join(rootPackage, 'package.json'), {
+    name: 'smocket',
+    version: '1.2.3',
+  });
+  await writeJson(join(clientPackage, 'package.json'), {
+    name: 'smocket-client',
+    version: '1.2.3',
+    peerDependencies: { smocket: '1.2.3' },
+  });
+  await packFixture(rootPackage, output);
+  await packFixture(clientPackage, output);
+
+  const entries = await Promise.all(
+    (
+      [
+        ['smocket', 'smocket-1.2.3.tgz'],
+        ['smocket-client', 'smocket-client-1.2.3.tgz'],
+      ] as const
+    ).map(async ([name, filename]) => {
+      const archivePath = join(output, filename);
+      const archive = await readFile(archivePath);
+      return {
+        name,
+        version: '1.2.3',
+        filename,
+        sha256: createHash('sha256').update(archive).digest('hex'),
+        size: (await stat(archivePath)).size,
+      };
+    }),
+  );
+  const manifestPath = join(output, 'release-candidate.json');
+  await writeJson(manifestPath, { schemaVersion: 1, version: '1.2.3', packages: entries });
+  return { root, output, manifestPath };
+}
+
+describe('immutable release candidate manifest', () => {
+  it('loads a synchronized digest-verified two-package candidate', async () => {
+    const candidate = await makeCandidateFixture();
+    try {
+      await expect(loadReleaseCandidate(candidate.manifestPath)).resolves.toMatchObject({
+        version: '1.2.3',
+        rootTarball: join(candidate.output, 'smocket-1.2.3.tgz'),
+        clientTarball: join(candidate.output, 'smocket-client-1.2.3.tgz'),
+      });
+    } finally {
+      await rm(candidate.root, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects a candidate tarball changed after manifest creation', async () => {
+    const candidate = await makeCandidateFixture();
+    try {
+      const archivePath = join(candidate.output, 'smocket-1.2.3.tgz');
+      const archive = await readFile(archivePath);
+      const lastByte = archive.length - 1;
+      archive[lastByte] = (archive[lastByte] ?? 0) ^ 1;
+      await writeFile(archivePath, archive);
+      await expect(loadReleaseCandidate(candidate.manifestPath)).rejects.toThrow(
+        'smocket candidate digest changed after manifest creation',
+      );
+    } finally {
+      await rm(candidate.root, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects archive paths outside the candidate directory', async () => {
+    const candidate = await makeCandidateFixture();
+    try {
+      const manifest = JSON.parse(await readFile(candidate.manifestPath, 'utf8'));
+      manifest.packages[0].filename = '../smocket-1.2.3.tgz';
+      await writeJson(candidate.manifestPath, manifest);
+      await expect(loadReleaseCandidate(candidate.manifestPath)).rejects.toThrow(
+        'Invalid smocket release candidate entry',
+      );
+    } finally {
+      await rm(candidate.root, { recursive: true, force: true });
+    }
+  });
+});

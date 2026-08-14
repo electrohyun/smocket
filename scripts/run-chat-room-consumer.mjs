@@ -11,14 +11,21 @@ import {
   writeFile,
 } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { dirname, join, relative, sep } from 'node:path';
+import { dirname, isAbsolute, join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const modes = new Set(['candidate', 'published']);
 const mode = process.argv[2];
+const tarballIndex = process.argv.indexOf('--tarball');
+const suppliedTarball = tarballIndex === -1 ? undefined : process.argv[tarballIndex + 1];
 
 if (!modes.has(mode)) {
-  throw new Error('Usage: node scripts/run-chat-room-consumer.mjs <candidate|published>');
+  throw new Error(
+    'Usage: node scripts/run-chat-room-consumer.mjs <candidate|published> [--tarball <absolute-path>]',
+  );
+}
+if (tarballIndex !== -1 && (suppliedTarball === undefined || suppliedTarball.startsWith('--'))) {
+  throw new Error('--tarball requires a path');
 }
 
 const repositoryRoot = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -117,20 +124,24 @@ async function installPublished(projectRoot) {
 
 async function installCandidate(projectRoot, temporaryRoot) {
   const rootManifest = await readJson(join(repositoryRoot, 'package.json'));
-  const archiveRoot = join(temporaryRoot, 'package');
-
-  await access(join(repositoryRoot, 'dist', 'index.js'));
-  await mkdir(archiveRoot);
-  await run(
-    'npm',
-    ['pack', '.', '--ignore-scripts', '--pack-destination', archiveRoot],
-    repositoryRoot,
-  );
-
-  const archives = (await readdir(archiveRoot)).filter((file) => file.endsWith('.tgz'));
-  assert.equal(archives.length, 1, 'npm pack must produce exactly one tarball');
-
-  const archivePath = join(archiveRoot, archives[0]);
+  let archivePath;
+  if (suppliedTarball === undefined) {
+    const archiveRoot = join(temporaryRoot, 'package');
+    await access(join(repositoryRoot, 'dist', 'index.js'));
+    await mkdir(archiveRoot);
+    await run(
+      'npm',
+      ['pack', '.', '--ignore-scripts', '--pack-destination', archiveRoot],
+      repositoryRoot,
+    );
+    const archives = (await readdir(archiveRoot)).filter((file) => file.endsWith('.tgz'));
+    assert.equal(archives.length, 1, 'npm pack must produce exactly one tarball');
+    archivePath = join(archiveRoot, archives[0]);
+  } else {
+    assert.equal(isAbsolute(suppliedTarball), true, 'candidate --tarball must be an absolute path');
+    await access(suppliedTarball);
+    archivePath = suppliedTarball;
+  }
   const manifestPath = join(projectRoot, 'package.json');
   const manifest = await readJson(manifestPath);
   const packageInput = asFileDependency(relative(projectRoot, archivePath));

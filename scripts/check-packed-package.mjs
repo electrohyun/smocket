@@ -169,6 +169,22 @@ export function readTarEntries(archive) {
   return entries;
 }
 
+export function readPackedPackage(archive) {
+  const entries = readTarEntries(archive);
+  const manifestEntries = entries.filter(
+    (entry) => entry.path === 'package/package.json' && !['1', '2', '5'].includes(entry.type),
+  );
+  if (manifestEntries.length !== 1) {
+    throw new Error(
+      `Packed tarball must contain exactly one package/package.json; found ${manifestEntries.length}`,
+    );
+  }
+  return {
+    entries,
+    manifest: JSON.parse(manifestEntries[0].content.toString('utf8')),
+  };
+}
+
 function isEmptyObject(value) {
   return (
     typeof value === 'object' &&
@@ -277,36 +293,32 @@ function parsePackOutput(stdout) {
   return result[0].filename;
 }
 
-export async function checkPackedPackage(packageRoot) {
+export async function checkPackedPackage(packageRoot, suppliedArchivePath) {
   const resolvedRoot = resolve(packageRoot);
   const sourceManifestPath = join(resolvedRoot, 'package.json');
   const sourceManifest = JSON.parse(await readFile(sourceManifestPath, 'utf8'));
   const temporaryRoot = await mkdtemp(join(tmpdir(), 'smocket-package-policy-'));
 
   try {
-    const { stdout } = await run(
-      'npm',
-      ['pack', '.', '--json', '--ignore-scripts', '--pack-destination', temporaryRoot],
-      resolvedRoot,
-      { npm_config_cache: join(temporaryRoot, 'npm-cache') },
-    );
-    const filename = parsePackOutput(stdout);
-    const archives = (await readdir(temporaryRoot)).filter((file) => file.endsWith('.tgz'));
-    if (archives.length !== 1 || archives[0] !== basename(filename)) {
-      throw new Error('npm pack must produce exactly the reported tarball');
+    let archivePath;
+    if (suppliedArchivePath === undefined) {
+      const { stdout } = await run(
+        'npm',
+        ['pack', '.', '--json', '--ignore-scripts', '--pack-destination', temporaryRoot],
+        resolvedRoot,
+        { npm_config_cache: join(temporaryRoot, 'npm-cache') },
+      );
+      const filename = parsePackOutput(stdout);
+      const archives = (await readdir(temporaryRoot)).filter((file) => file.endsWith('.tgz'));
+      if (archives.length !== 1 || archives[0] !== basename(filename)) {
+        throw new Error('npm pack must produce exactly the reported tarball');
+      }
+      archivePath = join(temporaryRoot, archives[0]);
+    } else {
+      archivePath = resolve(suppliedArchivePath);
     }
 
-    const archivePath = join(temporaryRoot, archives[0]);
-    const entries = readTarEntries(await readFile(archivePath));
-    const packedManifestEntries = entries.filter(
-      (entry) => entry.path === 'package/package.json' && !['1', '2', '5'].includes(entry.type),
-    );
-    if (packedManifestEntries.length !== 1) {
-      throw new Error(
-        `Packed tarball must contain exactly one package/package.json; found ${packedManifestEntries.length}`,
-      );
-    }
-    const packedManifest = JSON.parse(packedManifestEntries[0].content.toString('utf8'));
+    const { entries, manifest: packedManifest } = readPackedPackage(await readFile(archivePath));
     const result = inspectRootPackagePolicy({
       sourceManifest,
       packedManifest,
@@ -339,8 +351,14 @@ function formatViolation(violation) {
 
 async function main() {
   const repositoryRoot = dirname(dirname(fileURLToPath(import.meta.url)));
-  const packageRoot = process.argv[2] ? resolve(process.argv[2]) : repositoryRoot;
-  const result = await checkPackedPackage(packageRoot);
+  const tarballIndex = process.argv.indexOf('--tarball');
+  const tarball = tarballIndex === -1 ? undefined : process.argv[tarballIndex + 1];
+  if (tarballIndex !== -1 && (tarball === undefined || tarball.startsWith('--'))) {
+    throw new Error('--tarball requires a path');
+  }
+  const positional = process.argv[2]?.startsWith('--') === false ? process.argv[2] : undefined;
+  const packageRoot = positional ? resolve(positional) : repositoryRoot;
+  const result = await checkPackedPackage(packageRoot, tarball);
 
   if (!result.passed) {
     console.error(
