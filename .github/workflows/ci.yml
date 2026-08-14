@@ -265,7 +265,7 @@ jobs:
       - name: Verify every package and candidate consumer against one artifact set
         run: pnpm check:release-candidate
       - name: Preserve the verified candidate for later read-only jobs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-candidate-${{ github.event.pull_request.head.sha || github.sha }}
           path: .release-candidate
