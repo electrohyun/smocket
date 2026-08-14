@@ -94,11 +94,12 @@ Narrowing a broadcast further, and whether the order of the narrowings matters.
 Fetching existing local server Sockets through canonical room, exclusion, sender, and
 namespace selection.
 
-- [io.fetchSockets returns the existing local sockets in connection order](../src/broadcast-management-lookup.test.ts#L6)
-- [fetchSockets applies room union, deduplication, and exclusions](../src/broadcast-management-lookup.test.ts#L24)
-- [a socket management operator excludes its sender and named rooms](../src/broadcast-management-lookup.test.ts#L43)
-- [fetchSockets stays inside its namespace even when room names match](../src/broadcast-management-lookup.test.ts#L56)
-- [lookup ignores timeout, volatile, and compression delivery modifiers](../src/broadcast-management-lookup.test.ts#L69)
+- [io.fetchSockets returns the existing local sockets in connection order](../src/broadcast-management-lookup.test.ts#L7)
+- [fetchSockets applies room union, deduplication, and exclusions](../src/broadcast-management-lookup.test.ts#L25)
+- [a socket management operator excludes its sender and named rooms](../src/broadcast-management-lookup.test.ts#L44)
+- [fetchSockets stays inside its namespace even when room names match](../src/broadcast-management-lookup.test.ts#L57)
+- [dynamic parents keep Socket.IO fetchSockets boundaries](../src/broadcast-management-lookup.test.ts#L72)
+- [lookup ignores timeout, volatile, and compression delivery modifiers](../src/broadcast-management-lookup.test.ts#L84)
 
 ### Aliases and compression modifiers
 
