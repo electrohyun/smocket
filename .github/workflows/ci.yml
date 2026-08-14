@@ -217,6 +217,44 @@ jobs:
       - name: Check the reviewed upstream public surface
         run: pnpm check:public-surface
 
+  published-type-version:
+    name: published type version
+    if: github.event_name == 'pull_request'
+    needs: package
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Detect synchronized package version changes
+        id: versions
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: node scripts/check-published-types.mjs detect --base "$BASE_SHA" >> "$GITHUB_OUTPUT"
+      - if: steps.versions.outputs.changed == 'true'
+        uses: pnpm/action-setup@v6
+      - if: steps.versions.outputs.changed == 'true'
+        run: pnpm install --frozen-lockfile
+      - if: steps.versions.outputs.changed == 'true'
+        name: Download the synchronized release candidate
+        uses: actions/download-artifact@v8
+        with:
+          name: release-candidate-${{ github.event.pull_request.head.sha || github.sha }}
+          path: .release-candidate
+      - if: steps.versions.outputs.changed == 'true'
+        name: Enforce the published public-type version boundary
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          pnpm check:published-types check \
+            --base "$BASE_SHA" \
+            --manifest .release-candidate/release-candidate.json
+
   coverage:
     runs-on: ubuntu-latest
     steps:
