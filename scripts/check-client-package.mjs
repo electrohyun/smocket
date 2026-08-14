@@ -1,9 +1,9 @@
 import { spawn } from 'node:child_process';
 import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { basename, dirname, join } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { readTarEntries } from './check-packed-package.mjs';
+import { readPackedPackage } from './check-packed-package.mjs';
 
 const repositoryRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const clientRoot = join(repositoryRoot, 'packages', 'smocket-client');
@@ -111,26 +111,36 @@ async function main() {
   const temporaryRoot = await mkdtemp(join(tmpdir(), 'smocket-client-policy-'));
 
   try {
-    const { stdout } = await run(
-      'npm',
-      ['pack', '.', '--json', '--ignore-scripts', '--pack-destination', temporaryRoot],
-      clientRoot,
-      { npm_config_cache: join(temporaryRoot, 'npm-cache') },
-    );
-    const packResult = JSON.parse(stdout);
-    if (!Array.isArray(packResult) || packResult.length !== 1) {
-      throw new Error('npm pack must produce exactly one client tarball');
+    const tarballIndex = process.argv.indexOf('--tarball');
+    const suppliedTarball = tarballIndex === -1 ? undefined : process.argv[tarballIndex + 1];
+    if (
+      tarballIndex !== -1 &&
+      (suppliedTarball === undefined || suppliedTarball.startsWith('--'))
+    ) {
+      throw new Error('--tarball requires a path');
     }
-    const archives = (await readdir(temporaryRoot)).filter((file) => file.endsWith('.tgz'));
-    if (archives.length !== 1 || archives[0] !== basename(packResult[0].filename)) {
-      throw new Error('npm pack must produce exactly the reported client tarball');
+
+    let archivePath;
+    if (suppliedTarball === undefined) {
+      const { stdout } = await run(
+        'npm',
+        ['pack', '.', '--json', '--ignore-scripts', '--pack-destination', temporaryRoot],
+        clientRoot,
+        { npm_config_cache: join(temporaryRoot, 'npm-cache') },
+      );
+      const packResult = JSON.parse(stdout);
+      if (!Array.isArray(packResult) || packResult.length !== 1) {
+        throw new Error('npm pack must produce exactly one client tarball');
+      }
+      const archives = (await readdir(temporaryRoot)).filter((file) => file.endsWith('.tgz'));
+      if (archives.length !== 1 || archives[0] !== basename(packResult[0].filename)) {
+        throw new Error('npm pack must produce exactly the reported client tarball');
+      }
+      archivePath = join(temporaryRoot, archives[0]);
+    } else {
+      archivePath = resolve(suppliedTarball);
     }
-    const entries = readTarEntries(await readFile(join(temporaryRoot, archives[0])));
-    const manifestEntries = entries.filter((entry) => entry.path === 'package/package.json');
-    if (manifestEntries.length !== 1) {
-      throw new Error('client tarball must contain exactly one package.json');
-    }
-    const packedManifest = JSON.parse(manifestEntries[0].content.toString('utf8'));
+    const { entries, manifest: packedManifest } = readPackedPackage(await readFile(archivePath));
     const result = inspectClientPackagePolicy({
       rootManifest,
       sourceManifest,

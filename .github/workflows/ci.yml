@@ -80,6 +80,7 @@ jobs:
 
   browser:
     name: browser (chromium)
+    needs: package
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -91,6 +92,11 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Download the verified release candidate
+        uses: actions/download-artifact@v4
+        with:
+          name: release-candidate-${{ github.event.pull_request.head.sha || github.sha }}
+          path: .release-candidate
       - name: Install Chromium for Playwright
         run: pnpm exec playwright install --with-deps chromium
       # Only the mock target has a counterpart in a page, so this asks a narrower
@@ -99,7 +105,7 @@ jobs:
       - name: Run the mock target in a browser
         run: pnpm test:browser
       - name: Run candidate packages in Chromium
-        run: pnpm consumer:client:candidate -- --browser
+        run: pnpm consumer:client:candidate -- --manifest .release-candidate/release-candidate.json --browser
 
   node-floor:
     name: declared node floor
@@ -250,16 +256,19 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # The package check inspects the source and packed manifests plus the
-      # tarball payload before publint and arethetypeswrong validate the public
-      # package surface.
-      - name: Verify the packed package
-        run: pnpm check:package
-      - name: Verify the client facade package
-        run: pnpm check:client-package
-      - name: Run the existing candidate-package consumer
-        run: pnpm consumer:chat-room:candidate
-      # The adoption fixture installs both candidate tarballs outside the checkout,
-      # so neither package can pass through a workspace resolution.
-      - name: Run every clean-adoption fixture against candidate tarballs
-        run: pnpm consumer:client:candidate
+      - name: Build one immutable two-package release candidate
+        run: pnpm release:candidate
+      - name: Reject external imports in the built root package
+        run: pnpm assert:no-imports
+      # Package policy, Publint, Are The Types Wrong, and both independent
+      # consumers receive the exact tarballs named by this digest manifest.
+      - name: Verify every package and candidate consumer against one artifact set
+        run: pnpm check:release-candidate
+      - name: Preserve the verified candidate for later read-only jobs
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-candidate-${{ github.event.pull_request.head.sha || github.sha }}
+          path: .release-candidate
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 7
