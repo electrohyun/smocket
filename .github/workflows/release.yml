@@ -1,0 +1,199 @@
+name: Publish release
+
+run-name: Publish ${{ inputs.version }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Exact synchronized package version
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: npm-publication
+  cancel-in-progress: false
+
+jobs:
+  authorize:
+    name: authorize main repository release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require the canonical repository and main branch
+        env:
+          RELEASE_REPOSITORY: ${{ github.repository }}
+          RELEASE_REF: ${{ github.ref }}
+        shell: bash
+        run: |
+          test "$RELEASE_REPOSITORY" = "electrohyun/smocket"
+          test "$RELEASE_REF" = "refs/heads/main"
+
+  preflight:
+    name: build and verify release candidate
+    needs: authorize
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm format:check
+      - name: Run both conformance targets
+        run: |
+          pnpm test:real
+          pnpm test:mock
+      - run: pnpm check:conformance
+      - run: pnpm check:public-surface
+      - name: Build one immutable two-package candidate
+        run: pnpm release:candidate
+      - name: Verify packages and candidate consumers
+        run: pnpm check:release-candidate
+      - name: Match the requested version to the candidate
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          node scripts/publish-release-candidate.mjs verify \
+            --manifest .release-candidate/release-candidate.json \
+            --version "$RELEASE_VERSION"
+      - name: Preserve the candidate for publication jobs
+        uses: actions/upload-artifact@v7
+        with:
+          name: npm-release-candidate-${{ github.run_id }}
+          path: .release-candidate
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 7
+
+  compatibility:
+    name: socket.io ${{ matrix.socketio }} compatibility
+    needs: authorize
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        socketio: ['4.7', '4.8']
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm add --workspace-root -D socket.io@${{ matrix.socketio }} socket.io-client@${{ matrix.socketio }}
+      - run: pnpm typecheck
+      - run: pnpm test:real
+
+  candidate-browser:
+    name: candidate package in Chromium
+    needs: preflight
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@v8
+        with:
+          name: npm-release-candidate-${{ github.run_id }}
+          path: .release-candidate
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: Run the candidate package in Chromium
+        run: pnpm consumer:client:candidate -- --manifest .release-candidate/release-candidate.json --browser
+
+  publish-root:
+    name: publish smocket
+    needs: [preflight, compatibility, candidate-browser]
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - run: npm install --global npm@11.6.4
+      - uses: actions/download-artifact@v8
+        with:
+          name: npm-release-candidate-${{ github.run_id }}
+          path: .release-candidate
+      - name: Reverify and publish the root tarball
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          node scripts/publish-release-candidate.mjs publish \
+            --manifest .release-candidate/release-candidate.json \
+            --version "$RELEASE_VERSION" \
+            --package smocket
+
+  publish-client:
+    name: publish smocket-client
+    needs: publish-root
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - run: npm install --global npm@11.6.4
+      - uses: actions/download-artifact@v8
+        with:
+          name: npm-release-candidate-${{ github.run_id }}
+          path: .release-candidate
+      - name: Reverify and publish the client tarball
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          node scripts/publish-release-candidate.mjs publish \
+            --manifest .release-candidate/release-candidate.json \
+            --version "$RELEASE_VERSION" \
+            --package smocket-client
+
+  verify-published:
+    name: verify exact published release
+    needs: publish-client
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - name: Install and exercise the exact published pair
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: node scripts/verify-published-release.mjs --version "$RELEASE_VERSION"
