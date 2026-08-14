@@ -15,6 +15,11 @@ it('io.socketsJoin synchronously joins every root Socket', async () => {
   expect(second.serverSocket.rooms).toEqual(
     new Set([second.serverSocket.id, 'reviewers', 'active']),
   );
+
+  const leaveResult = ctx.io.socketsLeave('active');
+  expect(leaveResult).toBeUndefined();
+  expect(first.serverSocket.rooms).toEqual(new Set([first.serverSocket.id, 'reviewers']));
+  expect(second.serverSocket.rooms).toEqual(new Set([second.serverSocket.id, 'reviewers']));
 });
 
 it('socketsJoin applies room union, deduplication, and exclusions', async () => {
