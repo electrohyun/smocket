@@ -1,13 +1,13 @@
 # 0035. Inherited emitter behavior follows each receiver
 
-**Status:** Accepted, 2026-08-13, #274
+**Status:** Accepted, 2026-08-13, #274, #309
 **Governed by:** [0000](./0000-do-not-invent-what-has-no-source.md),
 [0017](./0017-off-follows-the-emitter.md),
 [0019](./0019-what-counts-as-a-breaking-change.md)
 
-> **Summary** Server, Namespace, ParentNamespace, and server Socket expose Node
-> EventEmitter behavior. Client Socket keeps component-emitter aliases. Server
-> preserves Socket.IO's declared Server return and its runtime root Namespace return.
+> **TL;DR** Server receivers expose Node EventEmitter behavior; Client Socket keeps
+> component-emitter aliases. Server retains its declared and runtime return difference.
+> Final `removeListener` cleanup follows the host patch; browsers return normally.
 
 ## Decision
 
@@ -43,10 +43,12 @@ supported Socket.IO versions on Namespace, ParentNamespace, and server Socket. S
 inherits the Namespace result through delegation. Smocket preserves that error boundary
 instead of making the meta-events usable where Socket.IO does not.
 
-Bulk removal of the final `removeListener` observer is not fixed by this decision.
-Socket.IO follows a host Node difference where Node 22 throws the reserved-event error
-after removal and Node 24 returns normally. Issue #309 tracks the receiver and version
-matrix before Smocket chooses behavior for that edge.
+Bulk removal of the final `removeListener` observer follows the host Node capability,
+not its major version. Node 20.0.0 through 20.20.2 returned normally; early Node 22 and
+24 snapshots returned, while 22.23.2 and 24.19.0 emitted the final meta-event. Both
+Socket.IO versions matched. When emitted, Namespace, delegated Server, and server Socket
+remove the observer then throw; ParentNamespace returns normally. Smocket probes the
+native emitter when available, while browsers have no Node meta-event and return normally.
 
 Max-listener state defaults to 10 and is local to each Node receiver. Exceeding it emits
 `MaxListenersExceededWarning` when the host provides `process.emitWarning`. Browser use
