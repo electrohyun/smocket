@@ -25,5 +25,7 @@ and reverify both digests immediately before publishing `smocket` and then
 `smocket-client`, following [ADR 0023](./decisions/0023-client-package-is-a-thin-facade.md).
 
 This does not define the npm actor, token or OIDC choice, environment or tag
-protection, registry verification retries, or post-publish remediation. Those
-boundaries require maintainer-owned policy before any registry write is enabled.
+protection, or registry verification retries. The maintainer-owned response after a
+failed publication is defined in the [release remediation runbook](./release-remediation.md),
+but publication authority still requires a separate decision before any registry write
+is enabled.
