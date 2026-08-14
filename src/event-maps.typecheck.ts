@@ -361,6 +361,8 @@ export function assertTypedEventMapsCompile(): void {
   const roomOperator = io.to('room');
   const timedRoomOperator = roomOperator.timeout(100);
   const fetchedSockets = io.to('room').except('muted').fetchSockets();
+  const joinedSockets = io.to('room').except('muted').socketsJoin(['one', 'two']);
+  const leftSockets = io.of('/admin').socketsLeave('waiting');
   void fetchedSockets.then((sockets) => {
     const fetched = sockets[0];
     if (!fetched) return;
@@ -377,6 +379,8 @@ export function assertTypedEventMapsCompile(): void {
     void id;
     void userId;
   });
+  void joinedSockets;
+  void leftSockets;
   const serverBroadcastAnswers: Promise<number[]> = io
     .timeout(100)
     .emitWithAck('question', 'value?');

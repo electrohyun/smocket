@@ -236,6 +236,10 @@ export interface BroadcastContract<
   readonly volatile: BroadcastContract<EmitEvents, SocketData>;
   /** Return the matching local server Sockets; no remote or cluster shape is produced. */
   fetchSockets(): Promise<FetchedSocketContract<EmitEvents, SocketData>[]>;
+  /** Synchronously join every matching local Socket to one or more rooms. */
+  socketsJoin(room: string | string[]): void;
+  /** Synchronously remove every matching local Socket from one or more rooms. */
+  socketsLeave(room: string | string[]): void;
 }
 
 /**
@@ -308,6 +312,10 @@ export interface TimeoutBroadcastContract<
   readonly volatile: TimeoutBroadcastContract<EmitEvents, SocketData>;
   /** Management lookup ignores the timeout flag and returns the matching local Sockets. */
   fetchSockets(): Promise<FetchedSocketContract<EmitEvents, SocketData>[]>;
+  /** Management mutation ignores the timeout flag. */
+  socketsJoin(room: string | string[]): void;
+  /** Management mutation ignores the timeout flag. */
+  socketsLeave(room: string | string[]): void;
 }
 
 /**
@@ -589,6 +597,10 @@ export interface NamespaceContract<
   >;
   /** Return this namespace's matching local server Sockets. */
   fetchSockets(): Promise<FetchedSocketContract<EmitEvents, SocketData>[]>;
+  /** Synchronously join this namespace's matching local Sockets to rooms. */
+  socketsJoin(room: string | string[]): void;
+  /** Synchronously remove this namespace's matching local Sockets from rooms. */
+  socketsLeave(room: string | string[]): void;
 }
 
 /**
@@ -789,6 +801,10 @@ export interface ServerContract<
   >;
   /** Return matching local server Sockets from the default namespace. */
   fetchSockets(): Promise<FetchedSocketContract<EmitEvents, SocketData>[]>;
+  /** Synchronously join matching local Sockets in the default namespace to rooms. */
+  socketsJoin(room: string | string[]): void;
+  /** Synchronously remove matching local Sockets in the default namespace from rooms. */
+  socketsLeave(room: string | string[]): void;
   /** Register or read a static namespace, or register a dynamic parent. */
   of(
     matcher: string | RegExp | ParentNspNameMatchFn,

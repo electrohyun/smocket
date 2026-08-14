@@ -744,6 +744,18 @@ class BroadcastOperator implements BroadcastContract, TimeoutBroadcastContract {
     return Promise.resolve(this.managementSockets());
   }
 
+  socketsJoin(room: string | string[]): void {
+    const rooms = asRooms(room);
+    for (const socket of this.managementSockets()) socket.join(rooms);
+  }
+
+  socketsLeave(room: string | string[]): void {
+    const rooms = asRooms(room);
+    for (const socket of this.managementSockets()) {
+      for (const name of rooms) socket.leave(name);
+    }
+  }
+
   /** Record the one final routing snapshot before acknowledgement or delivery work begins. */
   private trace(event: string, recipients: readonly ServerSocket[], excluded: Set<string>): void {
     if (!this.adapter.traceBroadcast) return;
@@ -1266,6 +1278,12 @@ class Namespace extends NodeEmitter implements NamespaceContract {
   fetchSockets(): Promise<ServerSocket[]> {
     return new BroadcastOperator(this.adapter, this.sockets, [], []).fetchSockets();
   }
+  socketsJoin(room: string | string[]): void {
+    new BroadcastOperator(this.adapter, this.sockets, [], []).socketsJoin(room);
+  }
+  socketsLeave(room: string | string[]): void {
+    new BroadcastOperator(this.adapter, this.sockets, [], []).socketsLeave(room);
+  }
 }
 
 /** Broadcast view over the concrete children currently owned by one dynamic parent. */
@@ -1357,6 +1375,8 @@ class ParentBroadcastOperator implements BroadcastContract, TimeoutBroadcastCont
   fetchSockets(): Promise<ServerSocket[]> {
     return Promise.resolve([]);
   }
+  socketsJoin(_room: string | string[]): void {}
+  socketsLeave(_room: string | string[]): void {}
 }
 
 /** A hidden dynamic parent whose public operations fan out over concrete children. */
@@ -1428,6 +1448,12 @@ class ParentNamespace extends NodeEmitter implements NamespaceContract {
   }
   fetchSockets(): Promise<ServerSocket[]> {
     throw new Error('fetchSockets() is not supported on parent namespaces');
+  }
+  socketsJoin(room: string | string[]): void {
+    new ParentBroadcastOperator(this.children).socketsJoin(room);
+  }
+  socketsLeave(room: string | string[]): void {
+    new ParentBroadcastOperator(this.children).socketsLeave(room);
   }
 }
 
@@ -1935,6 +1961,12 @@ export class Server<
     return this.getNamespace('/').fetchSockets() as Promise<
       FetchedSocketContract<EmitEvents, SocketData>[]
     >;
+  }
+  socketsJoin(room: string | string[]): void {
+    this.getNamespace('/').socketsJoin(room);
+  }
+  socketsLeave(room: string | string[]): void {
+    this.getNamespace('/').socketsLeave(room);
   }
 
   /**
