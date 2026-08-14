@@ -10,6 +10,7 @@
     "test": "node --test"
   },
   "dependencies": {
-    "smocket": "0.4.2"
+    "smocket": "0.5.0",
+    "smocket-client": "0.5.0"
   }
 }
