@@ -79,6 +79,11 @@ than discovered in a failing suite.
   reserved events, and encoding failures are not. It can wrap another Smocket adapter so
   tracing does not replace custom routing, scheduling, or cleanup. See
   [0032](./decisions/0032-trace-final-broadcast-routing.md).
+- **`DroppingAdapter` removes selected sids from broadcast delivery.** The deterministic
+  filter runs after normal routing and volatile selection and excludes dropped recipients
+  from new acknowledgement collection. Direct Socket traffic and membership are unchanged.
+  Real socket.io has no corresponding built-in adapter. See
+  [0036](./decisions/0036-drop-final-broadcast-recipients-by-sid.md).
 
 ## C. Known gaps, not deliberate, recorded until corrected
 
