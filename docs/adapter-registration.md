@@ -72,6 +72,18 @@ final recipient sids, and the volatile flag. It retains no payload. Pass another
 to its constructor to keep that adapter's routing, scheduling, and removal behavior while
 adding traces, including `new TracingAdapter(new DelayingAdapter())`.
 
+## Deterministic broadcast dropping
+
+`DroppingAdapter` removes a known sid from the final broadcast recipients until it is
+restored or disconnected. Call `setDropped(sid)` after connection and
+`setDropped(sid, false)` to restore it. Unknown and disconnected ids are ignored.
+
+The filter runs after ordinary room, exclusion, sender, and volatile selection but before
+tracing, acknowledgement counting, outgoing catch-all listeners, and delivery. It affects
+broadcast events only: direct server-Socket emits, client-to-server events, rooms, and
+lifecycle are unchanged. Wrap another adapter to combine behaviors, for example
+`new TracingAdapter(new DroppingAdapter(new DelayingAdapter()))`.
+
 ## Why now, and why smocket-only
 
 The seam lands before v1.0.0 on purpose. That release freezes the public surface,
@@ -86,3 +98,5 @@ delivery matches real socket.io; it does not promise your extension code is
 portable. That boundary is listed in [differences.md](./differences.md) §B and
 [0031](./decisions/0031-adapter-registration-and-removal-lifecycle.md). Final routing
 observation is recorded in [0032](./decisions/0032-trace-final-broadcast-routing.md).
+Deterministic final-recipient dropping is recorded in
+[0036](./decisions/0036-drop-final-broadcast-recipients-by-sid.md).

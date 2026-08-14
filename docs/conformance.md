@@ -576,6 +576,20 @@ Recording immutable final broadcast routing decisions without payloads.
 - [observes recipients after a wrapped custom adapter changes routing](../src/tracing-adapter.test.ts#L237)
 - [composes with DelayingAdapter scheduling and removal](../src/tracing-adapter.test.ts#L266)
 
+### Deterministic broadcast dropping
+
+A Smocket-only final-recipient filter by sid, including acknowledgements, cleanup,
+namespace isolation, and adapter composition.
+
+- [drops io.emit by sid and restores delivery without changing membership](../src/dropping-adapter.test.ts#L28)
+- [preserves room union, exclusions, sender exclusion, and unaffected direct traffic](../src/dropping-adapter.test.ts#L57)
+- [removes dropped recipients from callback and Promise acknowledgement collection](../src/dropping-adapter.test.ts#L106)
+- [does not cancel a broadcast acknowledgement already selected before the drop](../src/dropping-adapter.test.ts#L123)
+- [skips outgoing observation for dropped delivery and preserves remaining FIFO](../src/dropping-adapter.test.ts#L146)
+- [cleans state on disconnect, gives reconnect a fresh sid, and isolates namespaces](../src/dropping-adapter.test.ts#L173)
+- [composes dropping before tracing with wrapped delayed FIFO delivery](../src/dropping-adapter.test.ts#L204)
+- [receives the ordered final ids after volatile filtering and cannot add or reorder](../src/dropping-adapter.test.ts#L233)
+
 ### DelayingAdapter
 
 Holding a socket's client-inbound stream so a race can be interleaved on purpose.
@@ -611,11 +625,12 @@ The encoder behind the id shape the dual run pins.
 
 What the package exports, including the `io` name the substitution path needs.
 
-- [connecting pairs the client and server socket with the same id](../src/index.test.ts#L29)
-- [exports `io` as socket.io-client's name for connect, so a module swap works](../src/index.test.ts#L39)
-- [exports the contract types, so the swap keeps an app annotations to use](../src/index.test.ts#L51)
-- [exports a server type that keeps the smocket-only members](../src/index.test.ts#L101)
-- [exports the tracing adapter and trace type](../src/index.test.ts#L126)
+- [connecting pairs the client and server socket with the same id](../src/index.test.ts#L30)
+- [exports `io` as socket.io-client's name for connect, so a module swap works](../src/index.test.ts#L40)
+- [exports the contract types, so the swap keeps an app annotations to use](../src/index.test.ts#L52)
+- [exports a server type that keeps the smocket-only members](../src/index.test.ts#L102)
+- [exports the tracing adapter and trace type](../src/index.test.ts#L127)
+- [exports the deterministic dropping adapter](../src/index.test.ts#L143)
 
 ### Public direct connection API
 
