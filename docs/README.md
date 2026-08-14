@@ -31,6 +31,8 @@
   [package-policy.md](./package-policy.md)
 - **How one immutable two-package release candidate is verified:**
   [release-candidates.md](./release-candidates.md)
+- **How verified candidates are published to npm:**
+  [npm-publication.md](./npm-publication.md)
 - **What happens when an exact published version fails verification:**
   [release-remediation.md](./release-remediation.md)
 - **How scheduled consumers follow one reviewed published version:**

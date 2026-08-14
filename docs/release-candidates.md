@@ -20,15 +20,15 @@ the manifest's exact files. CI uploads that verified set under the commit SHA;
 the browser job downloads the same set rather than packing again.
 
 The candidate is disposable and may be rebuilt before publication authority is
-enabled. A future publication workflow must accept the manifest's exact paths
-and reverify both digests immediately before publishing `smocket` and then
-`smocket-client`, following [ADR 0023](./decisions/0023-client-package-is-a-thin-facade.md).
+enabled. The [npm publication workflow](./npm-publication.md) accepts the manifest's
+exact paths and reverifies both digests immediately before publishing `smocket` and
+then `smocket-client`, following
+[ADR 0023](./decisions/0023-client-package-is-a-thin-facade.md).
 
-This does not define the npm actor, token or OIDC choice, environment or tag
-protection, or registry verification retries. The maintainer-owned response after a
-failed publication is defined in the [release remediation runbook](./release-remediation.md),
-but publication authority still requires a separate decision before any registry write
-is enabled.
+The authorized trigger, OIDC relationship, and environment boundary are defined in the
+[npm publication workflow](./npm-publication.md). Live npm ownership and package settings
+remain outside the repository. The maintainer-owned response after a failed publication
+is defined in the [release remediation runbook](./release-remediation.md).
 
 After an authorized workflow publishes both packages, it passes their exact synchronized
 version to `pnpm verify:published-release -- --version <version>`. The verifier waits for
