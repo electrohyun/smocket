@@ -234,6 +234,30 @@ export interface BroadcastContract<
   compress(compress: boolean): BroadcastContract<EmitEvents, SocketData>;
   /** Mark the narrowed broadcast volatile while preserving its rooms and exclusions. */
   readonly volatile: BroadcastContract<EmitEvents, SocketData>;
+  /** Return the matching local server Sockets; no remote or cluster shape is produced. */
+  fetchSockets(): Promise<FetchedSocketContract<EmitEvents, SocketData>[]>;
+}
+
+/**
+ * The Socket.IO-compatible subset returned by {@link BroadcastContract.fetchSockets}.
+ * Smocket returns its existing local server Socket object, while this type promises only
+ * the members Socket.IO exposes for values that could otherwise be remote.
+ */
+export interface FetchedSocketContract<
+  EmitEvents extends EventsMap = DefaultEventsMap,
+  SocketData = DefaultSocketData,
+> {
+  readonly id: string;
+  readonly handshake: Handshake;
+  readonly rooms: Set<string>;
+  data: SocketData;
+  emit<Event extends EventName<EmitEvents>>(
+    event: Event,
+    ...args: EventParams<EmitEvents, Event>
+  ): boolean;
+  join(room: string | string[]): Promise<void> | void;
+  leave(room: string): Promise<void> | void;
+  disconnect(close?: boolean): this;
 }
 
 /** The acknowledgement-decorated emitter slice retained for backwards-compatible imports. */
@@ -282,6 +306,8 @@ export interface TimeoutBroadcastContract<
   compress(compress: boolean): TimeoutBroadcastContract<EmitEvents, SocketData>;
   /** Mark the narrowed broadcast volatile while preserving its timeout and event map. */
   readonly volatile: TimeoutBroadcastContract<EmitEvents, SocketData>;
+  /** Management lookup ignores the timeout flag and returns the matching local Sockets. */
+  fetchSockets(): Promise<FetchedSocketContract<EmitEvents, SocketData>[]>;
 }
 
 /**
@@ -561,6 +587,8 @@ export interface NamespaceContract<
     DecorateAcknowledgementsWithMultipleResponses<EmitEvents>,
     SocketData
   >;
+  /** Return this namespace's matching local server Sockets. */
+  fetchSockets(): Promise<FetchedSocketContract<EmitEvents, SocketData>[]>;
 }
 
 /**
@@ -759,6 +787,8 @@ export interface ServerContract<
     DecorateAcknowledgementsWithMultipleResponses<EmitEvents>,
     SocketData
   >;
+  /** Return matching local server Sockets from the default namespace. */
+  fetchSockets(): Promise<FetchedSocketContract<EmitEvents, SocketData>[]>;
   /** Register or read a static namespace, or register a dynamic parent. */
   of(
     matcher: string | RegExp | ParentNspNameMatchFn,

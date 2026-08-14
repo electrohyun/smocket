@@ -61,6 +61,12 @@ const AREAS = [
     blurb: 'Narrowing a broadcast further, and whether the order of the narrowings matters.',
   },
   {
+    file: 'src/broadcast-management-lookup.test.ts',
+    title: 'Local broadcast socket lookup',
+    blurb:
+      'Fetching existing local server Sockets through canonical room, exclusion, sender, and namespace selection.',
+  },
+  {
     file: 'src/aliases-compression.test.ts',
     title: 'Aliases and compression modifiers',
     blurb:
@@ -202,6 +208,12 @@ const AREAS = [
     title: 'Deterministic broadcast dropping',
     blurb:
       'A Smocket-only final-recipient filter by sid, including acknowledgements, cleanup, namespace isolation, and adapter composition.',
+  },
+  {
+    file: 'src/broadcast-management-adapter.test.ts',
+    title: 'Broadcast management adapter boundary',
+    blurb:
+      'Keeping local management selection on canonical Socket state instead of custom event routing and delivery filtering.',
   },
   {
     file: 'src/delay-adapter.test.ts',

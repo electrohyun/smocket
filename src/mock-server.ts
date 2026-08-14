@@ -14,6 +14,7 @@ import type {
   EventNameWithoutAck,
   EventParams,
   EventsMap,
+  FetchedSocketContract,
   Handshake,
   MessageEventParams,
   MiddlewareError,
@@ -716,6 +717,33 @@ class BroadcastOperator implements BroadcastContract, TimeoutBroadcastContract {
     return { recipients: out.filter((socket) => retained.has(socket.id)), excluded };
   }
 
+  /** Select management targets from canonical Socket state, independent of delivery adapters. */
+  private managementSockets(): ServerSocket[] {
+    const candidates: ServerSocket[] = [];
+    if (this.targetRooms.size === 0) {
+      candidates.push(...this.sockets.values());
+    } else {
+      const seen = new Set<string>();
+      for (const room of this.targetRooms) {
+        for (const socket of this.sockets.values()) {
+          if (seen.has(socket.id) || !socket.rooms.has(room)) continue;
+          seen.add(socket.id);
+          candidates.push(socket);
+        }
+      }
+    }
+    const out: ServerSocket[] = [];
+    for (const socket of candidates) {
+      if ([...this.exceptRooms].some((room) => socket.rooms.has(room))) continue;
+      out.push(socket);
+    }
+    return out;
+  }
+
+  fetchSockets(): Promise<ServerSocket[]> {
+    return Promise.resolve(this.managementSockets());
+  }
+
   /** Record the one final routing snapshot before acknowledgement or delivery work begins. */
   private trace(event: string, recipients: readonly ServerSocket[], excluded: Set<string>): void {
     if (!this.adapter.traceBroadcast) return;
@@ -1235,6 +1263,9 @@ class Namespace extends NodeEmitter implements NamespaceContract {
   compress(_compress: boolean): BroadcastContract {
     return new BroadcastOperator(this.adapter, this.sockets, [], []);
   }
+  fetchSockets(): Promise<ServerSocket[]> {
+    return new BroadcastOperator(this.adapter, this.sockets, [], []).fetchSockets();
+  }
 }
 
 /** Broadcast view over the concrete children currently owned by one dynamic parent. */
@@ -1321,6 +1352,11 @@ class ParentBroadcastOperator implements BroadcastContract, TimeoutBroadcastCont
       resolve([]);
     });
   }
+
+  /** Socket.IO's narrowed parent operator sees the parent's empty local roster. */
+  fetchSockets(): Promise<ServerSocket[]> {
+    return Promise.resolve([]);
+  }
 }
 
 /** A hidden dynamic parent whose public operations fan out over concrete children. */
@@ -1389,6 +1425,9 @@ class ParentNamespace extends NodeEmitter implements NamespaceContract {
   }
   get volatile(): BroadcastContract {
     return new ParentBroadcastOperator(this.children).volatile;
+  }
+  fetchSockets(): Promise<ServerSocket[]> {
+    throw new Error('fetchSockets() is not supported on parent namespaces');
   }
 }
 
@@ -1890,6 +1929,11 @@ export class Server<
     return this.getNamespace('/').volatile as BroadcastContract<
       DecorateAcknowledgementsWithMultipleResponses<EmitEvents>,
       SocketData
+    >;
+  }
+  fetchSockets(): Promise<FetchedSocketContract<EmitEvents, SocketData>[]> {
+    return this.getNamespace('/').fetchSockets() as Promise<
+      FetchedSocketContract<EmitEvents, SocketData>[]
     >;
   }
 
