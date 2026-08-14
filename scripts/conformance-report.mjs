@@ -73,6 +73,12 @@ const AREAS = [
       'Joining and leaving rooms synchronously through canonical room, exclusion, sender, and namespace selection.',
   },
   {
+    file: 'src/broadcast-management-disconnect.test.ts',
+    title: 'Local bulk broadcast disconnect',
+    blurb:
+      'Disconnecting selected namespace Sockets or their shared Manager groups through canonical management selection.',
+  },
+  {
     file: 'src/aliases-compression.test.ts',
     title: 'Aliases and compression modifiers',
     blurb:

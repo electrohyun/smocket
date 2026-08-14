@@ -756,6 +756,10 @@ class BroadcastOperator implements BroadcastContract, TimeoutBroadcastContract {
     }
   }
 
+  disconnectSockets(close = false): void {
+    for (const socket of this.managementSockets()) socket.disconnect(close);
+  }
+
   /** Record the one final routing snapshot before acknowledgement or delivery work begins. */
   private trace(event: string, recipients: readonly ServerSocket[], excluded: Set<string>): void {
     if (!this.adapter.traceBroadcast) return;
@@ -1284,6 +1288,9 @@ class Namespace extends NodeEmitter implements NamespaceContract {
   socketsLeave(room: string | string[]): void {
     new BroadcastOperator(this.adapter, this.sockets, [], []).socketsLeave(room);
   }
+  disconnectSockets(close = false): void {
+    new BroadcastOperator(this.adapter, this.sockets, [], []).disconnectSockets(close);
+  }
 }
 
 /** Broadcast view over the concrete children currently owned by one dynamic parent. */
@@ -1377,6 +1384,7 @@ class ParentBroadcastOperator implements BroadcastContract, TimeoutBroadcastCont
   }
   socketsJoin(_room: string | string[]): void {}
   socketsLeave(_room: string | string[]): void {}
+  disconnectSockets(_close = false): void {}
 }
 
 /** A hidden dynamic parent whose public operations fan out over concrete children. */
@@ -1454,6 +1462,9 @@ class ParentNamespace extends NodeEmitter implements NamespaceContract {
   }
   socketsLeave(room: string | string[]): void {
     new ParentBroadcastOperator(this.children).socketsLeave(room);
+  }
+  disconnectSockets(close = false): void {
+    new ParentBroadcastOperator(this.children).disconnectSockets(close);
   }
 }
 
@@ -1967,6 +1978,9 @@ export class Server<
   }
   socketsLeave(room: string | string[]): void {
     this.getNamespace('/').socketsLeave(room);
+  }
+  disconnectSockets(close = false): void {
+    this.getNamespace('/').disconnectSockets(close);
   }
 
   /**
