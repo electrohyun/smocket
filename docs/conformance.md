@@ -528,9 +528,10 @@ max-listener state.
 - [Node eventNames uses property-key order for integers, strings, and symbols](../src/inherited-emitter.test.ts#L333)
 - [Namespace meta-events collide with Socket.IO reserved outgoing names](../src/inherited-emitter.test.ts#L350)
 - [Server delegates the newListener collision to the root Namespace](../src/inherited-emitter.test.ts#L367)
-- [server Socket meta-events collide before add and after once removal](../src/inherited-emitter.test.ts#L375)
-- [client source and declaration aliases share component-emitter identity](../src/inherited-emitter.test.ts#L395)
-- [client removeAllListeners with no event clears every ordinary listener](../src/inherited-emitter.test.ts#L424)
+- [bulk removal of the final removeListener observer follows the host and receiver](../src/inherited-emitter.test.ts#L420)
+- [server Socket meta-events collide before add and after once removal](../src/inherited-emitter.test.ts#L433)
+- [client source and declaration aliases share component-emitter identity](../src/inherited-emitter.test.ts#L453)
+- [client removeAllListeners with no event clears every ordinary listener](../src/inherited-emitter.test.ts#L482)
 
 ## smocket only
 

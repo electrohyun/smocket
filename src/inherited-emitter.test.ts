@@ -372,6 +372,64 @@ it('Server delegates the newListener collision to the root Namespace', () => {
   expect(root.listenerCount('tracked')).toBe(0);
 });
 
+interface BulkRemovalEmitter {
+  listenerCount(event: string): number;
+  on(event: string, listener: () => void): unknown;
+  removeAllListeners(event?: string): unknown;
+}
+
+function hostEmitsFinalRemoveListenerMetaEvent(): boolean {
+  interface NativeProbe extends BulkRemovalEmitter {
+    emit(event: string | symbol, ...args: unknown[]): boolean;
+  }
+  interface HostProcess {
+    getBuiltinModule?(id: string): { EventEmitter?: new () => NativeProbe } | undefined;
+  }
+
+  const hostProcess = (globalThis as typeof globalThis & { process?: HostProcess }).process;
+  const EventEmitter = hostProcess?.getBuiltinModule?.('events')?.EventEmitter;
+  if (!EventEmitter) return false;
+  const probe = new EventEmitter();
+  const nativeEmit = probe.emit;
+  let emitted = false;
+  probe.emit = (event, ...args) => {
+    if (event === 'removeListener') emitted = true;
+    return nativeEmit.call(probe, event, ...args);
+  };
+  probe.on('removeListener', () => {});
+  probe.removeAllListeners();
+  return emitted;
+}
+
+function expectFinalObserverRemoval(
+  receiver: BulkRemovalEmitter,
+  returnedReceiver: unknown,
+  throws: boolean,
+): void {
+  for (const event of [undefined, 'removeListener'] as const) {
+    receiver.removeAllListeners();
+    receiver.on('removeListener', () => {});
+    const remove = () =>
+      event === undefined ? receiver.removeAllListeners() : receiver.removeAllListeners(event);
+    if (throws) expect(remove).toThrow('"removeListener" is a reserved event name');
+    else expect(remove()).toBe(returnedReceiver);
+    expect(receiver.listenerCount('removeListener')).toBe(0);
+  }
+}
+
+it('bulk removal of the final removeListener observer follows the host and receiver', async () => {
+  const namespace = ctx.io.of('/bulk-remove-listener');
+  const parent = ctx.io.of(/^\/bulk-remove-listener-/);
+  const root = ctx.io.of('/');
+  const { serverSocket } = await ctx.connectClient();
+  const hostThrows = hostEmitsFinalRemoveListenerMetaEvent();
+
+  expectFinalObserverRemoval(namespace, namespace, hostThrows);
+  expectFinalObserverRemoval(parent, parent, false);
+  expectFinalObserverRemoval(ctx.io, root, hostThrows);
+  expectFinalObserverRemoval(serverSocket, serverSocket, hostThrows);
+});
+
 it('server Socket meta-events collide before add and after once removal', async () => {
   const { serverSocket } = await ctx.connectClient();
   const once = vi.fn();
