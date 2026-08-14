@@ -1,6 +1,7 @@
 import { defineConfig } from 'vitest/config';
 
-const vitestFiles = ['src/**/*.test.ts', 'scripts/**/*.test.ts'];
+const targetFiles = ['src/**/*.test.ts'];
+const toolingFiles = ['scripts/**/*.test.ts'];
 
 export default defineConfig({
   test: {
@@ -19,14 +20,16 @@ export default defineConfig({
       {
         test: {
           name: 'real',
-          include: vitestFiles,
+          include: targetFiles,
           env: { SMOCKET_TARGET: 'real' },
         },
       },
       {
         test: {
           name: 'mock',
-          include: vitestFiles,
+          // Tooling tests do not read SMOCKET_TARGET. Run them once instead of
+          // starting the same npm subprocess fixtures in both projects.
+          include: [...targetFiles, ...toolingFiles],
           env: { SMOCKET_TARGET: 'mock' },
         },
       },

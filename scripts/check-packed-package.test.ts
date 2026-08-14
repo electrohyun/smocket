@@ -246,23 +246,17 @@ it('rejects the lock-consistent unused runtime dependency fixture after packing 
 
   try {
     await cp(fixtureRoot, packageRoot, { recursive: true });
-    const npmArguments = ['ci', '--offline', '--ignore-scripts', '--no-audit', '--no-fund'];
-    const useWindowsCommandShell = process.platform === 'win32';
-    const executable = useWindowsCommandShell ? (process.env.ComSpec ?? 'cmd.exe') : 'npm';
-    const executableArguments = useWindowsCommandShell
-      ? ['/d', '/s', '/c', 'npm', ...npmArguments]
-      : npmArguments;
-    const install = spawnSync(executable, executableArguments, {
-      cwd: packageRoot,
-      env: {
-        ...process.env,
-        npm_config_cache: join(temporaryRoot, 'npm-cache'),
-        npm_config_update_notifier: 'false',
-      },
-      encoding: 'utf8',
+    const installedDependencyRoot = join(packageRoot, 'node_modules', 'unused-runtime-dependency');
+    // npm installation is fixture setup, not the behavior under test. Materialize
+    // the exact locked file dependency so only the two npm pack inspections spawn.
+    await mkdir(dirname(installedDependencyRoot), { recursive: true });
+    await cp(join(packageRoot, 'dependency'), installedDependencyRoot, { recursive: true });
+    expect(
+      JSON.parse(await readFile(join(installedDependencyRoot, 'package.json'), 'utf8')),
+    ).toEqual({
+      name: lockfile.packages['dependency'].name,
+      version: lockfile.packages['dependency'].version,
     });
-    expect(install.error).toBeUndefined();
-    expect(install.status, install.stderr).toBe(0);
 
     const result = await checkPackedPackage(packageRoot);
 
