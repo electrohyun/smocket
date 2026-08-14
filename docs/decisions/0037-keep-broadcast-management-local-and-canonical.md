@@ -23,6 +23,10 @@ Smocket accepts `fetchSockets`, `socketsJoin`, `socketsLeave`, and both forms of
 `disconnectSockets`. It defers `allSockets` instead of adding a deprecated API whose
 compatibility requires preserving an exclusion quirk.
 
+The accepted surface lands in separate changes: #322 implements `fetchSockets`, while
+#323 and #324 track bulk membership and disconnect. An accepted method is not available
+until its implementation issue merges.
+
 Accepted methods use the namespace roster and each Socket's actual rooms. Target rooms
 form an ordered, deduplicated union; exclusion rooms and the sender's id-room are then
 removed. A custom `SmocketAdapter.socketsIn` result may change event routing, and a
