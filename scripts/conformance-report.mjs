@@ -198,6 +198,12 @@ const AREAS = [
     blurb: 'Recording immutable final broadcast routing decisions without payloads.',
   },
   {
+    file: 'src/dropping-adapter.test.ts',
+    title: 'Deterministic broadcast dropping',
+    blurb:
+      'A Smocket-only final-recipient filter by sid, including acknowledgements, cleanup, namespace isolation, and adapter composition.',
+  },
+  {
     file: 'src/delay-adapter.test.ts',
     title: 'DelayingAdapter',
     blurb: "Holding a socket's client-inbound stream so a race can be interleaved on purpose.",

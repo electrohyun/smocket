@@ -8,6 +8,7 @@ export {
   connect,
   connect as io,
   DelayingAdapter,
+  DroppingAdapter,
   Server,
   TracingAdapter,
 } from './mock-server';

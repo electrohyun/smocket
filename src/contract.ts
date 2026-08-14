@@ -602,6 +602,12 @@ export interface SmocketAdapter {
   /** The routing decision: the deduped union of the given rooms' member sids. */
   socketsIn(rooms: Iterable<string>): Set<string>;
   /**
+   * Optional final-recipient narrowing hook. The core supplies the already ordered result
+   * after room union, exclusions, roster lookup, and volatile filtering. Returned ids may
+   * only remove recipients: additions, duplicates, and reordering are ignored by the core.
+   */
+  filterBroadcastRecipients?(sids: readonly string[]): ReadonlySet<string>;
+  /**
    * Optional final-routing observer. The core calls it once after payload encoding and
    * recipient selection succeed, but before acknowledgement counting, outgoing catch-all
    * listeners, or delivery. Direct socket emits never call it.

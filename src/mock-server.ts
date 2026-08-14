@@ -464,6 +464,68 @@ export class DelayingAdapter extends Adapter {
 }
 
 /**
+ * A deterministic, Smocket-only final-recipient filter. It wraps another adapter so
+ * membership, custom routing, scheduling, tracing, and cleanup keep their existing
+ * behavior while selected sids are removed from broadcast delivery only.
+ */
+export class DroppingAdapter implements SmocketAdapter {
+  readonly rooms: Map<string, Set<string>>;
+  readonly sids: Map<string, Set<string>>;
+  private readonly dropped = new Set<string>();
+
+  constructor(private readonly adapter: SmocketAdapter = new Adapter()) {
+    this.rooms = adapter.rooms;
+    this.sids = adapter.sids;
+  }
+
+  add(sid: string, room: string): void {
+    this.adapter.add(sid, room);
+  }
+
+  del(sid: string, room: string): void {
+    this.adapter.del(sid, room);
+  }
+
+  socketsIn(rooms: Iterable<string>): Set<string> {
+    return this.adapter.socketsIn(rooms);
+  }
+
+  /** Drop or restore one currently known sid without changing its room membership. */
+  setDropped(sid: string, dropped = true): void {
+    if (!this.sids.has(sid)) return;
+    if (dropped) this.dropped.add(sid);
+    else this.dropped.delete(sid);
+  }
+
+  isDropped(sid: string): boolean {
+    return this.sids.has(sid) && this.dropped.has(sid);
+  }
+
+  filterBroadcastRecipients(sids: readonly string[]): ReadonlySet<string> {
+    const delegated = this.adapter.filterBroadcastRecipients?.(sids) ?? new Set(sids);
+    const retained = new Set<string>();
+    for (const sid of sids) {
+      if (delegated.has(sid) && !this.dropped.has(sid)) retained.add(sid);
+    }
+    return retained;
+  }
+
+  traceBroadcast(trace: BroadcastTrace): void {
+    this.adapter.traceBroadcast?.(trace);
+  }
+
+  scheduleDelivery(sid: string, deliver: () => void): void {
+    if (this.adapter.scheduleDelivery) this.adapter.scheduleDelivery(sid, deliver);
+    else defer(deliver);
+  }
+
+  removeSocket(sid: string): void {
+    this.dropped.delete(sid);
+    this.adapter.removeSocket?.(sid);
+  }
+}
+
+/**
  * A payload-free recorder for final broadcast routing decisions. It wraps any
  * `SmocketAdapter`, forwarding membership, routing, scheduling, and removal while
  * retaining immutable trace snapshots until `clear` is called.
@@ -488,6 +550,10 @@ export class TracingAdapter implements SmocketAdapter {
 
   socketsIn(rooms: Iterable<string>): Set<string> {
     return this.adapter.socketsIn(rooms);
+  }
+
+  filterBroadcastRecipients(sids: readonly string[]): ReadonlySet<string> {
+    return this.adapter.filterBroadcastRecipients?.(sids) ?? new Set(sids);
   }
 
   removeSocket(sid: string): void {
@@ -644,7 +710,10 @@ class BroadcastOperator implements BroadcastContract, TimeoutBroadcastContract {
       if (this.isVolatile && !socket.isClientReady()) continue;
       out.push(socket);
     }
-    return { recipients: out, excluded };
+    if (!this.adapter.filterBroadcastRecipients) return { recipients: out, excluded };
+    const orderedSids = Object.freeze(out.map((socket) => socket.id));
+    const retained = this.adapter.filterBroadcastRecipients(orderedSids);
+    return { recipients: out.filter((socket) => retained.has(socket.id)), excluded };
   }
 
   /** Record the one final routing snapshot before acknowledgement or delivery work begins. */

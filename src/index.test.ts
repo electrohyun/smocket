@@ -2,6 +2,7 @@ import { expect, it } from 'vitest';
 import {
   Adapter,
   connect,
+  DroppingAdapter,
   io,
   Server,
   TracingAdapter,
@@ -137,4 +138,10 @@ it('exports the tracing adapter and trace type', () => {
 
   expect(tracer).toBeInstanceOf(TracingAdapter);
   expect(tracer.getTraces()).toEqual([trace]);
+});
+
+it('exports the deterministic dropping adapter', () => {
+  const dropper = new DroppingAdapter();
+  expect(dropper).toBeInstanceOf(DroppingAdapter);
+  expect(dropper.isDropped('unknown')).toBe(false);
 });
