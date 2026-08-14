@@ -107,12 +107,12 @@ Joining and leaving rooms synchronously through canonical room, exclusion, sende
 namespace selection.
 
 - [io.socketsJoin synchronously joins every root Socket](../src/broadcast-management-membership.test.ts#L7)
-- [socketsJoin applies room union, deduplication, and exclusions](../src/broadcast-management-membership.test.ts#L20)
-- [socketsLeave snapshots the selected set before mutating its target room](../src/broadcast-management-membership.test.ts#L38)
-- [a Socket management operator excludes its sender from bulk membership](../src/broadcast-management-membership.test.ts#L54)
-- [bulk membership stays inside its namespace](../src/broadcast-management-membership.test.ts#L66)
-- [bulk membership ignores delivery modifiers](../src/broadcast-management-membership.test.ts#L78)
-- [dynamic parent bulk membership follows Socket.IO and does not reach children](../src/broadcast-management-membership.test.ts#L88)
+- [socketsJoin applies room union, deduplication, and exclusions](../src/broadcast-management-membership.test.ts#L25)
+- [socketsLeave snapshots the selected set before mutating its target room](../src/broadcast-management-membership.test.ts#L43)
+- [a Socket management operator excludes its sender from bulk membership](../src/broadcast-management-membership.test.ts#L59)
+- [bulk membership stays inside its namespace](../src/broadcast-management-membership.test.ts#L71)
+- [bulk membership ignores delivery modifiers](../src/broadcast-management-membership.test.ts#L83)
+- [dynamic parent bulk membership follows Socket.IO and does not reach children](../src/broadcast-management-membership.test.ts#L93)
 
 ### Aliases and compression modifiers
 
