@@ -29,3 +29,9 @@ protection, or registry verification retries. The maintainer-owned response afte
 failed publication is defined in the [release remediation runbook](./release-remediation.md),
 but publication authority still requires a separate decision before any registry write
 is enabled.
+
+After an authorized workflow publishes both packages, it passes their exact synchronized
+version to `pnpm verify:published-release -- --version <version>`. The verifier waits for
+both registry identities with a finite attempt count, then installs and exercises the exact
+pair outside the checkout. Exhaustion keeps the invoking workflow unsuccessful and hands
+control to the [release remediation runbook](./release-remediation.md).
