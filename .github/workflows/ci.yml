@@ -93,7 +93,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Download the verified release candidate
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: release-candidate-${{ github.event.pull_request.head.sha || github.sha }}
           path: .release-candidate
