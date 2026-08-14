@@ -11,9 +11,10 @@ maintainer explicitly takes over. Only a maintainer who already holds the requir
 npm role may publish or deprecate; pull-request code and untrusted workflows receive
 no such authority.
 
-The successful conclusion of exact-version verification in the authoritative release
-workflow is the certification signal. Until then, do not announce the version as
-verified, create a success marker, or treat a GitHub tag or Release as proof.
+The successful conclusion of exact-version verification in the authoritative
+[npm publication workflow](./npm-publication.md) is the certification signal. Until
+then, do not announce the version as verified, create a success marker, or treat a
+GitHub tag or Release as proof.
 
 ## On failure
 
@@ -48,6 +49,6 @@ If only `smocket` was published before `smocket-client` failed, the pair is inco
 The incident owner either completes the facade publication after resolving a pure
 propagation problem or deprecates the root version and fixes forward both packages.
 
-This runbook defines the response, not npm authority. The authorized trigger, actor,
-credential mechanism, and repository protections must be decided separately before
-registry writes are enabled.
+This runbook defines the response, not npm authority. The authorized trigger, OIDC
+identity, and repository protections are defined by the
+[npm publication workflow](./npm-publication.md).
