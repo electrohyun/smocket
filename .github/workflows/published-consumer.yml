@@ -12,6 +12,9 @@ on:
       - consumers/test-adoption/**
       - scripts/run-chat-room-consumer.mjs
       - scripts/run-clean-adoption.mjs
+      - scripts/published-consumer-version.mjs
+      - scripts/published-consumer-version.test.ts
+      - docs/published-consumer-policy.md
   pull_request:
     paths:
       - .github/workflows/published-consumer.yml
@@ -22,6 +25,9 @@ on:
       - consumers/test-adoption/**
       - scripts/run-chat-room-consumer.mjs
       - scripts/run-clean-adoption.mjs
+      - scripts/published-consumer-version.mjs
+      - scripts/published-consumer-version.test.ts
+      - docs/published-consumer-policy.md
   schedule:
     - cron: '17 3 * * 1'
   workflow_dispatch:
@@ -40,10 +46,20 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 20
+      - name: Resolve the reviewed supported-release pin
+        id: supported-release
+        shell: bash
+        run: node scripts/published-consumer-version.mjs >> "$GITHUB_OUTPUT"
       - name: Install and run the published-package consumer
-        run: node scripts/run-chat-room-consumer.mjs published
+        shell: bash
+        run: |
+          node scripts/run-chat-room-consumer.mjs published \
+            --version "${{ steps.supported-release.outputs.version }}"
       - name: Run representative clean-adoption fixtures
         shell: bash
         run: |
-          version=$(node -e 'console.log(require("./package.json").version)')
-          node scripts/run-clean-adoption.mjs published --version "$version"
+          args=(published --version "${{ steps.supported-release.outputs.version }}")
+          if [[ "${{ steps.supported-release.outputs.includes_client }}" == "true" ]]; then
+            args+=(--client-version "${{ steps.supported-release.outputs.version }}")
+          fi
+          node scripts/run-clean-adoption.mjs "${args[@]}"

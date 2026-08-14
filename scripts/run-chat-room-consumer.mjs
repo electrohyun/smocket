@@ -18,14 +18,25 @@ const modes = new Set(['candidate', 'published']);
 const mode = process.argv[2];
 const tarballIndex = process.argv.indexOf('--tarball');
 const suppliedTarball = tarballIndex === -1 ? undefined : process.argv[tarballIndex + 1];
+const versionIndex = process.argv.indexOf('--version');
+const suppliedVersion = versionIndex === -1 ? undefined : process.argv[versionIndex + 1];
 
 if (!modes.has(mode)) {
   throw new Error(
-    'Usage: node scripts/run-chat-room-consumer.mjs <candidate|published> [--tarball <absolute-path>]',
+    'Usage: node scripts/run-chat-room-consumer.mjs <candidate|published> [--tarball <absolute-path>] [--version <exact-version>]',
   );
 }
 if (tarballIndex !== -1 && (suppliedTarball === undefined || suppliedTarball.startsWith('--'))) {
   throw new Error('--tarball requires a path');
+}
+if (versionIndex !== -1 && (suppliedVersion === undefined || suppliedVersion.startsWith('--'))) {
+  throw new Error('--version requires an exact version');
+}
+if (mode === 'candidate' && suppliedVersion !== undefined) {
+  throw new Error('candidate mode accepts --tarball instead of --version');
+}
+if (mode === 'published' && suppliedTarball !== undefined) {
+  throw new Error('published mode accepts --version instead of --tarball');
 }
 
 const repositoryRoot = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -107,6 +118,13 @@ async function installPublished(projectRoot) {
     /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/,
     'the published consumer must pin an exact Smocket version',
   );
+  if (suppliedVersion !== undefined) {
+    assert.equal(
+      expectedVersion,
+      suppliedVersion,
+      'the published consumer pin must match the supplied supported version',
+    );
+  }
 
   await run('npm', ['ci', '--ignore-scripts', '--no-audit', '--no-fund'], projectRoot);
 
