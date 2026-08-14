@@ -31,6 +31,8 @@
   [package-policy.md](./package-policy.md)
 - **How one immutable two-package release candidate is verified:**
   [release-candidates.md](./release-candidates.md)
+- **What happens when an exact published version fails verification:**
+  [release-remediation.md](./release-remediation.md)
 - **What a version number promises when you upgrade:** [decisions/0019](./decisions/0019-what-counts-as-a-breaking-change.md)
 - **How to register a custom adapter, and why:** [adapter-registration.md](./adapter-registration.md)
 - **What the issue and pull request labels mean:** [labels.md](./labels.md)
