@@ -116,53 +116,41 @@ requirements and progress.
 [ADR 0019](./decisions/0019-what-counts-as-a-breaking-change.md) classifies every change.
 The roadmap applies its pre-v1 shift without duplicating the decision table.
 
-### v0.4.3
+### v0.5.0
 
-Changes that ADR 0019 places in a pre-v1 patch may ship together when they can be reviewed
-and verified as one release. This can include measured conformance corrections, newly
-covered Socket.IO surface, compatible public-type or smocket-only API improvements,
-documentation, refactoring, and maintenance.
+The accumulated changes since the published v0.4.2 declarations include public type
+changes that make existing call sites stop compiling. ADR 0019 classifies that as major
+and shifts it to a minor before 1.0.0, so the next synchronized release is v0.5.0 rather
+than v0.4.3.
+
+The work previously planned for v0.4.3 ships in that required minor. The project freezes
+the release as one synchronized `smocket` and `smocket-client` candidate instead of
+publishing part of the accumulated work under a patch number.
 
 A conformance correction may change an observed result without withdrawing a project
 promise. Its release notes still state the before and after, the governing ADR 0019 row,
-and the test that proves the corrected behaviour. A change classified as a pre-v1 minor
-does not ride in v0.4.3.
-
-### Conditional v0.5.0
-
-If required pre-v1 work falls into an ADR 0019 major-class row, it ships as the pre-v1
-minor v0.5.0. Examples include changing a documented intentional divergence, making an
-existing public type call stop compiling, raising the supported Node.js floor, or making
-an incompatible change to a smocket-only API.
-
-The project will group necessary changes where practical and then freeze that breaking
-change set before the v1 candidate. If no such change is required, v1.0.0 need not pass
-through v0.5.0.
+and the test that proves the corrected behaviour.
 
 ### Stabilization
 
-After the last pre-v1 minor, conformance corrections, documentation fixes, and compatible
-small improvements use that line's patch releases. If v0.5.0 exists, these may be v0.5.1
-or v0.5.2; another required pre-v1 minor would prompt consideration of v0.6.0. The roadmap
-does not lock intermediate version numbers or release count in advance.
+After v0.5.0, conformance corrections, documentation fixes, and compatible small
+improvements use that line's patch releases. Another required pre-v1 minor would prompt
+consideration of v0.6.0. The roadmap does not lock intermediate version numbers or release
+count in advance.
 
 ```mermaid
 flowchart TD
     A["v0.4.2"] --> B["Fidelity and extensibility review"]
     B --> C{"Classify findings"}
 
-    C -->|"v1 required · pre-v1 patch"| D["v0.4.3 work"]
-    C -->|"v1 required · pre-v1 minor"| E["Freeze breaking-change set"]
+    C -->|"v1 required · pre-v1 patch"| D["Include in v0.5.0 set"]
+    C -->|"v1 required · pre-v1 minor"| E["Freeze v0.5.0 set"]
     C -->|"optional or deferred"| F["Post-v1"]
     C -->|"outside scope"| G["Explicit non-goal"]
 
-    D --> H["v0.4.3 release"]
-    H --> I{"Pre-v1 minor change required?"}
-    E --> I
-
-    I -->|"yes"| J["Conditional v0.5.0"]
-    I -->|"no"| K["Stabilization"]
-    J --> K
+    D --> H["v0.5.0 release"]
+    E --> H
+    H --> K["Stabilization"]
     K --> L["v1.0.0"]
 ```
 
