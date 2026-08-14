@@ -240,6 +240,8 @@ export interface BroadcastContract<
   socketsJoin(room: string | string[]): void;
   /** Synchronously remove every matching local Socket from one or more rooms. */
   socketsLeave(room: string | string[]): void;
+  /** Disconnect every matching local Socket, optionally closing its shared Manager group. */
+  disconnectSockets(close?: boolean): void;
 }
 
 /**
@@ -316,6 +318,8 @@ export interface TimeoutBroadcastContract<
   socketsJoin(room: string | string[]): void;
   /** Management mutation ignores the timeout flag. */
   socketsLeave(room: string | string[]): void;
+  /** Management lifecycle ignores the timeout flag. */
+  disconnectSockets(close?: boolean): void;
 }
 
 /**
@@ -601,6 +605,8 @@ export interface NamespaceContract<
   socketsJoin(room: string | string[]): void;
   /** Synchronously remove this namespace's matching local Sockets from rooms. */
   socketsLeave(room: string | string[]): void;
+  /** Disconnect this namespace's matching local Sockets. */
+  disconnectSockets(close?: boolean): void;
 }
 
 /**
@@ -805,6 +811,8 @@ export interface ServerContract<
   socketsJoin(room: string | string[]): void;
   /** Synchronously remove matching local Sockets in the default namespace from rooms. */
   socketsLeave(room: string | string[]): void;
+  /** Disconnect matching local Sockets from the default namespace. */
+  disconnectSockets(close?: boolean): void;
   /** Register or read a static namespace, or register a dynamic parent. */
   of(
     matcher: string | RegExp | ParentNspNameMatchFn,

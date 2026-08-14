@@ -114,6 +114,19 @@ namespace selection.
 - [bulk membership ignores delivery modifiers](../src/broadcast-management-membership.test.ts#L83)
 - [dynamic parent bulk membership follows Socket.IO and does not reach children](../src/broadcast-management-membership.test.ts#L93)
 
+### Local bulk broadcast disconnect
+
+Disconnecting selected namespace Sockets or their shared Manager groups through
+canonical management selection.
+
+- [io.disconnectSockets(false) synchronously closes every root Socket only](../src/broadcast-management-disconnect.test.ts#L13)
+- [disconnectSockets applies room union, exclusions, and snapshot selection](../src/broadcast-management-disconnect.test.ts#L35)
+- [a Socket management operator excludes its sender from bulk disconnect](../src/broadcast-management-disconnect.test.ts#L62)
+- [disconnectSockets(true) closes each selected Manager group exactly once](../src/broadcast-management-disconnect.test.ts#L78)
+- [disconnectSockets(true) cancels pending admission on a selected Manager](../src/broadcast-management-disconnect.test.ts#L107)
+- [bulk disconnect ignores delivery modifiers and stays namespace-local](../src/broadcast-management-disconnect.test.ts#L137)
+- [dynamic parent bulk disconnect follows Socket.IO and does not reach children](../src/broadcast-management-disconnect.test.ts#L149)
+
 ### Aliases and compression modifiers
 
 `send`, `write`, `open`, `close`, socket `in`, and compression chaining. Compression
@@ -622,6 +635,7 @@ routing and delivery filtering.
 
 - [management lookup ignores custom routing and delivery dropping](../src/broadcast-management-adapter.test.ts#L10)
 - [bulk membership ignores custom routing and delivery dropping](../src/broadcast-management-adapter.test.ts#L28)
+- [bulk disconnect ignores custom routing and delivery dropping](../src/broadcast-management-adapter.test.ts#L49)
 
 ### DelayingAdapter
 
@@ -684,19 +698,6 @@ and close settlement.
 - [close preserves a ready socket claimed before teardown](../src/connection-api.test.ts#L193)
 
 <!-- conformance:generated end -->
-
-## Not covered yet
-
-Socket.IO surface in smocket's lane that no case above compares. Absence here means it
-has not been measured, not that it is missing from socket.io.
-
-- **Remaining broadcast management method.** `disconnectSockets` acts on the canonical
-  set a broadcast operator selects. Deprecated
-  `allSockets` is deliberately deferred by
-  [0037](./decisions/0037-keep-broadcast-management-local-and-canonical.md).
-  What is deliberately absent instead of merely uncovered is in
-  [scope.md](./scope.md), and where smocket and socket.io disagree on purpose is in
-  [differences.md](./differences.md).
 
 ## How to add a case
 

@@ -45,3 +45,30 @@ it('bulk membership ignores custom routing and delivery dropping', async () => {
   expect(second.rooms.has('managed')).toBe(false);
   await io.close();
 });
+
+it('bulk disconnect ignores custom routing and delivery dropping', async () => {
+  const io = new Server('http://localhost');
+  const dropping = new DroppingAdapter(new EmptyRoutingAdapter());
+  io.adapter(() => dropping);
+  const firstClient = io.connect();
+  const first = await io.nextConnection();
+  const secondClient = io.connect();
+  const second = await io.nextConnection();
+  first.join('room');
+  second.join('room');
+  dropping.setDropped(second.id);
+  const firstDisconnected = new Promise<unknown>((resolve) =>
+    firstClient.once('disconnect', resolve),
+  );
+  const secondDisconnected = new Promise<unknown>((resolve) =>
+    secondClient.once('disconnect', resolve),
+  );
+
+  io.to('room').disconnectSockets();
+
+  await expect(Promise.all([firstDisconnected, secondDisconnected])).resolves.toEqual([
+    'io server disconnect',
+    'io server disconnect',
+  ]);
+  await io.close();
+});
