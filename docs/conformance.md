@@ -89,6 +89,17 @@ Narrowing a broadcast further, and whether the order of the narrowings matters.
 - [in() on the operator is an alias for to()](../src/broadcast-chaining.test.ts#L150)
 - [io.of(nsp).to(room).except(id) narrows within that namespace](../src/broadcast-chaining.test.ts#L171)
 
+### Local broadcast socket lookup
+
+Fetching existing local server Sockets through canonical room, exclusion, sender, and
+namespace selection.
+
+- [io.fetchSockets returns the existing local sockets in connection order](../src/broadcast-management-lookup.test.ts#L6)
+- [fetchSockets applies room union, deduplication, and exclusions](../src/broadcast-management-lookup.test.ts#L24)
+- [a socket management operator excludes its sender and named rooms](../src/broadcast-management-lookup.test.ts#L43)
+- [fetchSockets stays inside its namespace even when room names match](../src/broadcast-management-lookup.test.ts#L56)
+- [lookup ignores timeout, volatile, and compression delivery modifiers](../src/broadcast-management-lookup.test.ts#L69)
+
 ### Aliases and compression modifiers
 
 `send`, `write`, `open`, `close`, socket `in`, and compression chaining. Compression
@@ -590,6 +601,13 @@ namespace isolation, and adapter composition.
 - [composes dropping before tracing with wrapped delayed FIFO delivery](../src/dropping-adapter.test.ts#L204)
 - [receives the ordered final ids after volatile filtering and cannot add or reorder](../src/dropping-adapter.test.ts#L233)
 
+### Broadcast management adapter boundary
+
+Keeping local management selection on canonical Socket state instead of custom event
+routing and delivery filtering.
+
+- [management lookup ignores custom routing and delivery dropping](../src/broadcast-management-adapter.test.ts#L10)
+
 ### DelayingAdapter
 
 Holding a socket's client-inbound stream so a race can be interleaved on purpose.
@@ -625,12 +643,12 @@ The encoder behind the id shape the dual run pins.
 
 What the package exports, including the `io` name the substitution path needs.
 
-- [connecting pairs the client and server socket with the same id](../src/index.test.ts#L30)
-- [exports `io` as socket.io-client's name for connect, so a module swap works](../src/index.test.ts#L40)
-- [exports the contract types, so the swap keeps an app annotations to use](../src/index.test.ts#L52)
-- [exports a server type that keeps the smocket-only members](../src/index.test.ts#L102)
-- [exports the tracing adapter and trace type](../src/index.test.ts#L127)
-- [exports the deterministic dropping adapter](../src/index.test.ts#L143)
+- [connecting pairs the client and server socket with the same id](../src/index.test.ts#L31)
+- [exports `io` as socket.io-client's name for connect, so a module swap works](../src/index.test.ts#L41)
+- [exports the contract types, so the swap keeps an app annotations to use](../src/index.test.ts#L53)
+- [exports a server type that keeps the smocket-only members](../src/index.test.ts#L105)
+- [exports the tracing adapter and trace type](../src/index.test.ts#L130)
+- [exports the deterministic dropping adapter](../src/index.test.ts#L146)
 
 ### Public direct connection API
 
@@ -657,9 +675,10 @@ and close settlement.
 Socket.IO surface in smocket's lane that no case above compares. Absence here means it
 has not been measured, not that it is missing from socket.io.
 
-- **Adapter utility methods on a broadcast operator.** `allSockets`, `fetchSockets`,
-  `socketsJoin`, `socketsLeave`, and `disconnectSockets` act on the set a broadcast
-  would target, which is the routing decision smocket already reproduces.
+- **Remaining broadcast management methods.** `socketsJoin`, `socketsLeave`, and
+  `disconnectSockets` act on the canonical set a broadcast operator selects. Deprecated
+  `allSockets` is deliberately deferred by
+  [0037](./decisions/0037-keep-broadcast-management-local-and-canonical.md).
   What is deliberately absent instead of merely uncovered is in
   [scope.md](./scope.md), and where smocket and socket.io disagree on purpose is in
   [differences.md](./differences.md).

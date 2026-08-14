@@ -12,6 +12,7 @@ import {
   type ClientSocketContract,
   type ConnectionMiddleware,
   type Event,
+  type FetchedSocketContract,
   type Handshake,
   type MiddlewareError,
   type NamespaceContract,
@@ -68,6 +69,7 @@ it('exports the contract types, so the swap keeps an app annotations to use', as
   // present in the emitted declarations.
   const room: BroadcastContract = asContract.to(serverSocket.id);
   const timedRoom: TimeoutBroadcastContract = room.timeout(50);
+  const fetched: Promise<FetchedSocketContract[]> = room.fetchSockets();
   const socketTimeout: SocketTimeoutContract = serverSocket.timeout(50);
   const clientTimeout: TimeoutEmitterContract = client.timeout(50);
   const volatileServer: VolatileServerSocket = serverSocket.volatile;
@@ -96,6 +98,7 @@ it('exports the contract types, so the swap keeps an app annotations to use', as
     clientTimeout,
     volatileServer,
     volatileClient,
+    fetched,
   ]).not.toContain(undefined);
 });
 

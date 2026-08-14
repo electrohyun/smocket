@@ -40,6 +40,7 @@ export type {
   DeliveryTimer,
   DefaultEventsMap,
   Event,
+  FetchedSocketContract,
   Handshake,
   MiddlewareError,
   NamespaceContract,

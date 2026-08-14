@@ -360,6 +360,23 @@ export function assertTypedEventMapsCompile(): void {
   });
   const roomOperator = io.to('room');
   const timedRoomOperator = roomOperator.timeout(100);
+  const fetchedSockets = io.to('room').except('muted').fetchSockets();
+  void fetchedSockets.then((sockets) => {
+    const fetched = sockets[0];
+    if (!fetched) return;
+    const id: string = fetched.id;
+    const userId: string = fetched.data.userId;
+    fetched.emit('chat', 'from fetched socket');
+    fetched.join(['one', 'two']);
+    fetched.leave('one');
+    fetched.disconnect(false);
+    // @ts-expect-error fetched Socket data keeps the configured shape
+    fetched.data.userId = 42;
+    // @ts-expect-error fetched Socket emits keep the configured event map
+    fetched.emit('chat', 42);
+    void id;
+    void userId;
+  });
   const serverBroadcastAnswers: Promise<number[]> = io
     .timeout(100)
     .emitWithAck('question', 'value?');
