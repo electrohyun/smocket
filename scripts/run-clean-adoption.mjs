@@ -32,9 +32,9 @@ for (let index = 0; index < arguments_.length; index += 2) {
     continue;
   }
 
-  if (!flag?.startsWith('--') || value === undefined) {
+  if (!flag?.startsWith('--') || value === undefined || value.startsWith('--')) {
     throw new Error(
-      'Usage: node scripts/run-clean-adoption.mjs <candidate|published> --version <exact-version> [--tarball <absolute-path>] [--client-tarball <absolute-path>] [--browser]',
+      'Usage: node scripts/run-clean-adoption.mjs <candidate|published> --version <exact-version> [--tarball <absolute-path>] [--client-tarball <absolute-path>] [--client-version <exact-version>] [--browser]',
     );
   }
 
@@ -48,12 +48,17 @@ if (!new Set(['candidate', 'published']).has(mode)) {
 const version = options.get('--version');
 const archivePath = options.get('--tarball');
 const clientArchivePath = options.get('--client-tarball');
+const clientVersion = options.get('--client-version');
 const packageInput =
   mode === 'candidate'
     ? `file:${archivePath ?? '<missing tarball>'}`
     : (version ?? '<missing version>');
 const clientPackageInput =
-  clientArchivePath === undefined ? undefined : `file:${clientArchivePath}`;
+  mode === 'candidate'
+    ? clientArchivePath === undefined
+      ? undefined
+      : `file:${clientArchivePath}`
+    : clientVersion;
 const clientSubstitutionTarget = clientPackageInput === undefined ? 'smocket' : 'smocket-client';
 
 await withContext(
@@ -71,6 +76,11 @@ await withContext(
     );
 
     if (mode === 'candidate') {
+      assert.equal(
+        clientVersion,
+        undefined,
+        'candidate mode accepts --client-tarball instead of --client-version',
+      );
       assert.equal(typeof archivePath, 'string', 'candidate mode requires --tarball');
       assert.equal(isAbsolute(archivePath), true, 'candidate --tarball must be an absolute path');
       await access(archivePath);
@@ -88,6 +98,18 @@ await withContext(
         undefined,
         'published mode installs from the exact registry version',
       );
+      assert.equal(
+        clientArchivePath,
+        undefined,
+        'published mode accepts --client-version instead of --client-tarball',
+      );
+      if (clientVersion !== undefined) {
+        assert.equal(
+          clientVersion,
+          version,
+          'published smocket-client version must equal the root version',
+        );
+      }
     }
   },
 );
@@ -481,6 +503,7 @@ try {
     if (options.get('--browser') === true) await runBrowserFixture(projectRoot, packageInput);
   } else {
     await runPublishedFixtures(projectRoot, packageInput);
+    if (clientPackageInput !== undefined) await runClientPackageFixtures(projectRoot);
   }
 
   console.log(`${mode} clean adoption fixtures passed`);
