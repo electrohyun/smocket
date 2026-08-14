@@ -119,12 +119,11 @@ decision table.
 
 ### v0.5.0
 
-The accumulated changes since the published v0.4.2 declarations include public type
-changes that make existing call sites stop compiling. ADR 0019 classifies that as major
-and shifts it to a minor before 1.0.0, so the next synchronized release is v0.5.0 rather
-than v0.4.3.
+The accumulated changes after v0.4.2 included public type changes that made existing call
+sites stop compiling. ADR 0019 classified that as major and shifted it to a minor before
+1.0.0, so the synchronized pair was released as v0.5.0 rather than v0.4.3.
 
-The work previously planned for v0.4.3 ships in that required minor. The project freezes
+The work previously planned for v0.4.3 shipped in that required minor. The project froze
 the release as one synchronized `smocket` and `smocket-client` candidate instead of
 publishing part of the accumulated work under a patch number.
 
