@@ -101,6 +101,19 @@ namespace selection.
 - [dynamic parents keep Socket.IO fetchSockets boundaries](../src/broadcast-management-lookup.test.ts#L72)
 - [lookup ignores timeout, volatile, and compression delivery modifiers](../src/broadcast-management-lookup.test.ts#L84)
 
+### Local bulk broadcast membership
+
+Joining and leaving rooms synchronously through canonical room, exclusion, sender, and
+namespace selection.
+
+- [io.socketsJoin synchronously joins every root Socket](../src/broadcast-management-membership.test.ts#L7)
+- [socketsJoin applies room union, deduplication, and exclusions](../src/broadcast-management-membership.test.ts#L20)
+- [socketsLeave snapshots the selected set before mutating its target room](../src/broadcast-management-membership.test.ts#L38)
+- [a Socket management operator excludes its sender from bulk membership](../src/broadcast-management-membership.test.ts#L54)
+- [bulk membership stays inside its namespace](../src/broadcast-management-membership.test.ts#L66)
+- [bulk membership ignores delivery modifiers](../src/broadcast-management-membership.test.ts#L78)
+- [dynamic parent bulk membership follows Socket.IO and does not reach children](../src/broadcast-management-membership.test.ts#L88)
+
 ### Aliases and compression modifiers
 
 `send`, `write`, `open`, `close`, socket `in`, and compression chaining. Compression
@@ -608,6 +621,7 @@ Keeping local management selection on canonical Socket state instead of custom e
 routing and delivery filtering.
 
 - [management lookup ignores custom routing and delivery dropping](../src/broadcast-management-adapter.test.ts#L10)
+- [bulk membership ignores custom routing and delivery dropping](../src/broadcast-management-adapter.test.ts#L28)
 
 ### DelayingAdapter
 
@@ -676,8 +690,8 @@ and close settlement.
 Socket.IO surface in smocket's lane that no case above compares. Absence here means it
 has not been measured, not that it is missing from socket.io.
 
-- **Remaining broadcast management methods.** `socketsJoin`, `socketsLeave`, and
-  `disconnectSockets` act on the canonical set a broadcast operator selects. Deprecated
+- **Remaining broadcast management method.** `disconnectSockets` acts on the canonical
+  set a broadcast operator selects. Deprecated
   `allSockets` is deliberately deferred by
   [0037](./decisions/0037-keep-broadcast-management-local-and-canonical.md).
   What is deliberately absent instead of merely uncovered is in

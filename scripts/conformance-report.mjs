@@ -67,6 +67,12 @@ const AREAS = [
       'Fetching existing local server Sockets through canonical room, exclusion, sender, and namespace selection.',
   },
   {
+    file: 'src/broadcast-management-membership.test.ts',
+    title: 'Local bulk broadcast membership',
+    blurb:
+      'Joining and leaving rooms synchronously through canonical room, exclusion, sender, and namespace selection.',
+  },
+  {
     file: 'src/aliases-compression.test.ts',
     title: 'Aliases and compression modifiers',
     blurb:
