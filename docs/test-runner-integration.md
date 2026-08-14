@@ -8,18 +8,21 @@ If setup fails before the first application event, start with the
 [troubleshooting guide](./troubleshooting.md). It separates URL, namespace, lifecycle,
 runner alias, package-format, and event-map failures by their actual signals.
 
-## What gets swapped
+## Choose the client import path
 
-Install both packages at the same exact version. `smocket-client` is a thin facade whose
-default, `io`, and `connect` exports are one function. Its CommonJS root is callable and
-has `.io` and `.connect` properties referring to itself. It delegates every lookup to its
-exact-version `smocket` peer, so the client and a `Server` imported from `smocket` share
-one in-process origin registry when both imports use ESM or both use CommonJS. A test setup
-must not mix the two module formats because that can load separate root package instances.
+Install `smocket` and `smocket-client` at the same exact version. An application can keep
+importing `socket.io-client` and let its test runner map that name to `smocket-client`.
+A test that owns its client connections can import from `smocket-client` directly.
 
-The root package still exports named `io` and `connect` for existing test aliases. New
-package-name substitutions should point to `smocket-client` because it also preserves
-default imports and the client-side `Socket` type name.
+`smocket-client` is a thin facade: its default, `io`, and `connect` exports are one
+function, and its CommonJS root is callable with matching `.io` and `.connect` properties.
+It delegates every lookup to its exact-version `smocket` peer. Use ESM for both imports or
+CommonJS for both so the facade and a `Server` imported from `smocket` share one in-process
+origin registry. Mixing formats can load separate root package instances.
+
+The root package still exports named `io` and `connect` for existing aliases. New
+package-name substitutions should use `smocket-client`, which also preserves default
+imports and the client-side `Socket` type name.
 
 ```ts
 // src/chat.ts, application code, unchanged by every setup below
@@ -135,11 +138,12 @@ That part is not smocket-specific.
 [`consumers/test-adoption/`](../consumers/test-adoption/) keeps the application
 imports above unchanged and is assembled outside the checkout. Candidate validation
 installs explicit `smocket` and `smocket-client` tarballs at one version. Published
-validation installs the exact root registry version until the facade has its first
-release. The fixture reports both installed module paths before running the existing
-Vitest and Jest adoption cases, facade ESM and callable CommonJS cases, Node16 and
-bundler type checks, and static namespace coverage. Chromium runs the mapped
-application and facade registry-sharing case against those installed tarballs.
+validation installs the exact versions selected by the
+[published-consumer policy](./published-consumer-policy.md). The fixture reports both
+installed module paths before running the Vitest and Jest adoption cases, facade ESM and
+callable CommonJS cases, Node16 and bundler type checks, and static namespace coverage.
+Chromium runs the mapped application and facade registry-sharing case against those
+installed packages.
 
 The runner deliberately requires explicit tarball paths and an exact version for
 candidate mode. Release automation can therefore pass the same two archives through

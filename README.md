@@ -40,7 +40,7 @@
   <a href="README.ko.md">🇰🇷 한국어</a>
 </p>
 
-> **Status: pre-1.0.** The delivery core is complete and checked against real
+> **Status: working toward 1.0.0.** The delivery core is complete and checked against real
 > socket.io by a dual-run conformance suite. The public API can still change before
 > 1.0.0. See the [roadmap to v1.0.0](docs/roadmap.md) and
 > [what a version number promises](docs/conformance.md#what-a-version-number-promises).
@@ -90,6 +90,9 @@ io.on('connection', (socket) => {
 ```bash
 npm install -D smocket smocket-client
 ```
+
+Install both packages at the same version. When a test owns its client
+connections, it can import the client facade directly:
 
 ```ts
 // chat.test.ts
@@ -143,21 +146,36 @@ next test starts without this server or its room state.
 
 That run is green. The file above is a Vitest test because the suite here uses
 Vitest. Smocket has no runtime dependency on a test runner: runner packages appear
-only in the [development dependencies](package.json). This repository executes
-Smocket with Vitest and `node:test`, plus the documented Vitest and Jest paths
-from clean consumers. Candidate validation installs synchronized root and client
-tarballs outside the checkout, while published validation installs an exact root
-version. Neither path counts a workspace resolution as package validation.
+only in the [development dependencies](package.json). Package validation installs
+release artifacts outside the checkout, so a workspace resolution cannot hide a
+packaging problem. The details live in the
+[release-candidate guide](docs/release-candidates.md).
 
 `connect(url)` and `io.on('connection')` are socket.io-client's and socket.io's own
 entry points, so the code above keeps the same split between client and server APIs
-while changing only their package names. An application that keeps its original
-client import can map `socket.io-client` to `smocket-client` instead.
+while changing only their package names.
 
 Bob receives what Alice sent, and Alice does not, because `socket.to` excludes the
 sender. The test above asserts only the first half, since proving a socket did not
 receive something takes the marker pattern rather than a wait, and that is a
 [conformance case](docs/conformance.md#broadcast) rather than a first example.
+
+### Keep an existing application import
+
+An existing application does not have to be rewritten. Keep its
+`socket.io-client` import and map that package name to `smocket-client` in the
+environment that runs it:
+
+```ts
+// application code, unchanged
+import { io } from 'socket.io-client';
+```
+
+`smocket-client` preserves the supported default, named, ESM, and CommonJS client
+imports. Load it and `smocket` through the same module format so both packages use
+one in-process registry. The
+[test-runner integration guide](docs/test-runner-integration.md) contains the
+complete Vitest and Jest setups.
 
 ### Where to start from here
 
@@ -170,15 +188,6 @@ receive something takes the marker pattern rather than a wait, and that is a
 | A hand-written socket mock                   | [the problem](#the-problem)                                                           |
 | Wanting to read a program rather than a test | [examples/chat-room](examples/chat-room/)                                             |
 | Wanting the exact guarantees                 | [the conformance report](docs/conformance.md)                                         |
-
-An existing application does not have to be rewritten to run against smocket.
-`smocket-client` preserves socket.io-client's ESM default, named `io`, named
-`connect`, callable CommonJS root, and client `Socket` type for the supported
-surface. A test runner pointed at that package resolves the app's own import and
-the app's code runs unchanged. Load `smocket` and `smocket-client` through the same
-module format so both use the same in-process registry.
-[Test-runner integration](docs/test-runner-integration.md) has the executable Vitest
-and Jest setups.
 
 ## Examples
 
