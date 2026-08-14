@@ -1,11 +1,12 @@
 # smocket docs
 
-> **TL;DR** Where to look: how to run smocket inside a test runner, which
-> behaviours are verified against real socket.io, the road to the first stable
-> release, the conventions for writing docs, a glossary of socket.io terms, the
-> scope boundary, the design decisions, and the list of differences from real
-> socket.io.
+> **TL;DR** Where to look: how to use the mock directly or through a test runner,
+> which behaviours are verified against real socket.io, the road to the first
+> stable release, the documentation conventions, the scope boundary, the design
+> decisions, and the list of differences from real socket.io.
 
+- **How the server mock and client facade work together:**
+  [README quick start](../README.md#quick-start)
 - **How to run smocket inside a test runner:**
   [test-runner-integration.md](./test-runner-integration.md)
 - **Why a test setup failed and how to correct it:**

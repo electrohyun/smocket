@@ -91,8 +91,13 @@ io.on('connection', (socket) => {
 npm install -D smocket smocket-client
 ```
 
-Install both packages at the same version. When a test owns its client
-connections, it can import the client facade directly:
+Install both packages at the same version. `smocket` provides the in-process server
+and `smocket-client` provides the client-facing connection API. Neither package
+provides assertions, test discovery, or runner lifecycle hooks.
+
+When your code owns its client connections, import the client facade directly. The
+example uses Vitest for its hooks and assertions, but the mock itself is the `Server`
+and the clients created by `connect`:
 
 ```ts
 // chat.test.ts
@@ -227,11 +232,6 @@ rather than reaching down into it. See
 [decision 0009](docs/decisions/0009-no-raw-websocket-mocking.md).
 
 ## Conformance
-
-Every behaviour smocket claims was measured against a real socket.io server first
-and against smocket second, from the same test file, and is published only when
-both passed. The CI badge above covers both runs, so it goes red if either target
-does.
 
 The [conformance report](docs/conformance.md) is generated from that run. It lists
 every verified case linked to the test that pins it, the surface not yet measured,
