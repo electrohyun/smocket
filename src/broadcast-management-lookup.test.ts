@@ -1,5 +1,6 @@
 import { expect, it } from 'vitest';
 import { setupServer } from './setup-server';
+import { receive } from './test-events';
 
 const ctx = setupServer();
 
@@ -60,10 +61,24 @@ it('fetchSockets stays inside its namespace even when room names match', async (
   await game.serverSocket.join('shared');
 
   const rootSockets = await ctx.io.to('shared').fetchSockets();
+  const directGameSockets = await ctx.io.of('/game').fetchSockets();
   const gameSockets = await ctx.io.of('/game').to('shared').fetchSockets();
 
   expect(rootSockets.map((socket) => socket.id)).toEqual([root.serverSocket.id]);
+  expect(directGameSockets.map((socket) => socket.id)).toEqual([game.serverSocket.id]);
   expect(gameSockets.map((socket) => socket.id)).toEqual([game.serverSocket.id]);
+});
+
+it('dynamic parents keep Socket.IO fetchSockets boundaries', async () => {
+  const parent = ctx.io.of(/^\/tenant-/);
+  const connection = new Promise<void>((resolve) => parent.once('connection', () => resolve()));
+  const client = ctx.openClient({ namespace: '/tenant-a' });
+  await Promise.all([connection, receive(client, 'connect')]);
+
+  expect(() => parent.fetchSockets()).toThrow(
+    'fetchSockets() is not supported on parent namespaces',
+  );
+  await expect(parent.to('room').fetchSockets()).resolves.toEqual([]);
 });
 
 it('lookup ignores timeout, volatile, and compression delivery modifiers', async () => {
