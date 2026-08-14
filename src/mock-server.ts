@@ -31,6 +31,7 @@ import type {
   SupportedServerListenerEvents,
   TimeoutBroadcastContract,
 } from './contract';
+import { hostEmitsFinalRemoveListenerMetaEvent } from './host-emitter';
 
 /**
  * An event listener, matching the `Listener` shape the contract's sockets use:
@@ -50,38 +51,6 @@ type EmitNodeMeta = (
   observedEvent: OrdinaryEventName,
   listener: Listener,
 ) => boolean;
-
-interface NativeEventEmitterProbe {
-  emit(event: string | symbol, ...args: unknown[]): boolean;
-  on(event: 'removeListener', listener: Listener): unknown;
-  removeAllListeners(): unknown;
-}
-
-interface NodeProcessHost {
-  getBuiltinModule?(id: string): { EventEmitter?: new () => NativeEventEmitterProbe } | undefined;
-}
-
-function nativeEmitterEmitsFinalRemoveListenerMetaEvent(
-  EventEmitter: new () => NativeEventEmitterProbe,
-): boolean {
-  const probe = new EventEmitter();
-  const nativeEmit = probe.emit;
-  let emitted = false;
-  probe.emit = (event, ...args) => {
-    if (event === 'removeListener') emitted = true;
-    return nativeEmit.call(probe, event, ...args);
-  };
-  probe.on('removeListener', () => {});
-  probe.removeAllListeners();
-  return emitted;
-}
-
-/** Detect the host's patch-level EventEmitter behavior without importing Node into browsers. */
-function hostEmitsFinalRemoveListenerMetaEvent(): boolean {
-  const hostProcess = (globalThis as typeof globalThis & { process?: NodeProcessHost }).process;
-  const EventEmitter = hostProcess?.getBuiltinModule?.('events')?.EventEmitter;
-  return EventEmitter ? nativeEmitterEmitsFinalRemoveListenerMetaEvent(EventEmitter) : false;
-}
 
 const HOST_EMITS_FINAL_REMOVE_LISTENER_META_EVENT = hostEmitsFinalRemoveListenerMetaEvent();
 
