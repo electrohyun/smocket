@@ -21,6 +21,8 @@
     "typescript"
   ],
   "files": [
+    "LICENSE",
+    "README.md",
     "dist"
   ],
   "main": "./dist/index.cjs",

@@ -3,7 +3,7 @@ import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { readPackedPackage } from './check-packed-package.mjs';
+import { normalizeTarEntryPath, readPackedPackage } from './check-packed-package.mjs';
 
 const repositoryRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const clientRoot = join(repositoryRoot, 'packages', 'smocket-client');
@@ -100,6 +100,13 @@ export function inspectClientPackagePolicy({
   );
   for (const entry of bundledEntries) {
     violations.push(`packed tarball must not contain ${entry}`);
+  }
+
+  const packedEntries = new Set(tarEntries.map(normalizeTarEntryPath));
+  for (const requiredEntry of ['package/LICENSE', 'package/README.md']) {
+    if (!packedEntries.has(requiredEntry)) {
+      violations.push(`packed tarball must contain ${requiredEntry}`);
+    }
   }
 
   return { passed: violations.length === 0, violations };

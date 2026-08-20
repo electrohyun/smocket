@@ -180,11 +180,17 @@ describe('client facade package policy', () => {
     version: '1.2.3',
     peerDependencies: { smocket: '1.2.3' },
   };
+  const clientTarEntries = [
+    'package/package.json',
+    'package/LICENSE',
+    'package/README.md',
+    'package/dist/index.mjs',
+  ];
 
   function inspectClient(
     sourceManifest: Record<string, unknown> = clientManifest,
     packedManifest: Record<string, unknown> = clientManifest,
-    tarEntries = ['package/package.json', 'package/dist/index.mjs'],
+    tarEntries = clientTarEntries,
   ) {
     return inspectClientPackagePolicy({
       rootManifest,
@@ -223,7 +229,7 @@ describe('client facade package policy', () => {
 
   it('rejects a bundled dependency entry', () => {
     const result = inspectClient(clientManifest, clientManifest, [
-      'package/package.json',
+      ...clientTarEntries,
       'package/node_modules/smocket/dist/index.js',
     ]);
 
@@ -231,6 +237,17 @@ describe('client facade package policy', () => {
       'packed tarball must not contain package/node_modules/smocket/dist/index.js',
     );
   });
+
+  it.each(['package/LICENSE', 'package/README.md'])(
+    'rejects a client tarball without %s',
+    (missingEntry) => {
+      const tarEntries = clientTarEntries.filter((entry) => entry !== missingEntry);
+
+      expect(inspectClient(clientManifest, clientManifest, tarEntries).violations).toContain(
+        `packed tarball must contain ${missingEntry}`,
+      );
+    },
+  );
 });
 
 describe('chat-room candidate package identity', () => {
