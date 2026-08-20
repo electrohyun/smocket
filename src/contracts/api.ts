@@ -693,7 +693,7 @@ export interface SmocketServer<
 > extends ServerContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData> {
   /**
    * Register one fresh routing adapter per namespace before the first connection attempt. See
-   * [adapter-registration.md](../docs/adapter-registration.md) and {@link AdapterFactory}.
+   * [adapter-registration.md](../../docs/adapter-registration.md) and {@link AdapterFactory}.
    */
   adapter(factory: AdapterFactory<ListenEvents, EmitEvents, ServerSideEvents, SocketData>): void;
   /**
@@ -716,7 +716,7 @@ export interface SmocketServer<
 }
 
 /**
- * The connection [handshake](../docs/glossary.md#handshake), read as
+ * The connection [handshake](../../docs/glossary.md#handshake), read as
  * `socket.handshake`. Only the fields a mock has a source for are declared (0006):
  * `auth` and `query` are caller-supplied, `url` is the normalized origin the client
  * connected to, and `time` / `issued` are the pairing timestamp. The network-layer
