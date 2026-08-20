@@ -196,12 +196,15 @@ under [0029](./decisions/0029-narrowed-parent-broadcasts-stay-unverified.md).
 
 The trailing callback and `emitWithAck`, in both directions.
 
-- [multi-argument ack resolves with the first value](../src/ack.test.ts#L10)
-- [the trailing callback receives the sender-side ack](../src/ack.test.ts#L16)
-- [calling ack twice runs the sender callback only once](../src/ack.test.ts#L25)
-- [emitWithAck stays pending when the peer never acks](../src/ack.test.ts#L41)
-- [server-to-client emitWithAck works without a timeout](../src/ack.test.ts#L60)
-- [emitWithAck buffers while disconnected and settles after reconnect](../src/ack.test.ts#L66)
+- [multi-argument ack resolves with the first value](../src/ack.test.ts#L45)
+- [the trailing callback receives the sender-side ack](../src/ack.test.ts#L51)
+- [calling ack twice runs the sender callback only once](../src/ack.test.ts#L60)
+- [discards retained acks in both directions after the client disconnects](../src/ack.test.ts#L76)
+- [discards retained acks in both directions after the server Socket disconnects](../src/ack.test.ts#L102)
+- [discards retained acks in both directions during server close](../src/ack.test.ts#L128)
+- [emitWithAck stays pending when the peer never acks](../src/ack.test.ts#L145)
+- [server-to-client emitWithAck works without a timeout](../src/ack.test.ts#L164)
+- [emitWithAck buffers while disconnected and settles after reconnect](../src/ack.test.ts#L170)
 
 ### Payload serialization
 
@@ -261,15 +264,16 @@ Awaiting every selected recipient, including timeout errors, snapshots, and wrap
 composition.
 
 - [broadcast emitWithAck resolves responses in acknowledgement arrival order](../src/broadcast-promise-ack.test.ts#L9)
-- [untimed broadcast acknowledgement collection keeps the timer race and resolves [] for nobody](../src/broadcast-promise-ack.test.ts#L25)
-- [untimed broadcast acknowledgement collection times out when a recipient never acknowledges](../src/broadcast-promise-ack.test.ts#L51)
-- [timeout rejection exposes partial responses and late acknowledgements mutate that array once](../src/broadcast-promise-ack.test.ts#L68)
-- [server, namespace, room, exclusion, and socket broadcast share Promise collection](../src/broadcast-promise-ack.test.ts#L101)
-- [timeout-first and narrowing-first Promise broadcasts select the same responders](../src/broadcast-promise-ack.test.ts#L131)
-- [Promise broadcast hides its collector ack and observes each selected socket once](../src/broadcast-promise-ack.test.ts#L147)
-- [reserved Promise broadcasts reject without outgoing observation](../src/broadcast-promise-ack.test.ts#L157)
-- [dynamic parent Promise acknowledgements resolve [] without reaching concrete children](../src/broadcast-promise-ack.test.ts#L168)
-- [Promise broadcast snapshots one request and each acknowledgement response independently](../src/broadcast-promise-ack.test.ts#L187)
+- [a disconnected recipient cannot finish a broadcast acknowledgement collection](../src/broadcast-promise-ack.test.ts#L25)
+- [untimed broadcast acknowledgement collection keeps the timer race and resolves [] for nobody](../src/broadcast-promise-ack.test.ts#L76)
+- [untimed broadcast acknowledgement collection times out when a recipient never acknowledges](../src/broadcast-promise-ack.test.ts#L102)
+- [timeout rejection exposes partial responses and late acknowledgements mutate that array once](../src/broadcast-promise-ack.test.ts#L119)
+- [server, namespace, room, exclusion, and socket broadcast share Promise collection](../src/broadcast-promise-ack.test.ts#L152)
+- [timeout-first and narrowing-first Promise broadcasts select the same responders](../src/broadcast-promise-ack.test.ts#L182)
+- [Promise broadcast hides its collector ack and observes each selected socket once](../src/broadcast-promise-ack.test.ts#L198)
+- [reserved Promise broadcasts reject without outgoing observation](../src/broadcast-promise-ack.test.ts#L208)
+- [dynamic parent Promise acknowledgements resolve [] without reaching concrete children](../src/broadcast-promise-ack.test.ts#L219)
+- [Promise broadcast snapshots one request and each acknowledgement response independently](../src/broadcast-promise-ack.test.ts#L238)
 
 ### Connection middleware
 
