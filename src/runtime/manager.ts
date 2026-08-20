@@ -10,10 +10,8 @@ export interface ManagedClient {
 }
 
 /**
- * One host-neutral socket.io-client Manager identity (0028). It remembers the
- * namespace sockets created through it, including admission still in progress, and
- * the order in which they connect, but models no Engine.IO transport, retry,
- * heartbeat, or fallback behavior.
+ * Host-neutral socket.io-client Manager identity across connected and pending
+ * namespaces. It models no Engine.IO transport, retry, heartbeat, or fallback (0028).
  */
 export class Manager {
   private readonly namespaces = new Set<string>();
@@ -49,18 +47,13 @@ export class Manager {
     this.connectedClients.delete(client);
   }
 
-  /** Close connected namespaces in order and cancel admission still pending on this Manager. */
   disconnect(initiator: ManagerServerSocket): void {
     for (const client of [...this.connectedClients]) client.disconnectFromServer();
     for (const client of [...this.pendingClients]) {
-      // The server `connection` handler runs while its client attempt is technically
-      // pending. Preserve that initiating socket's synchronous server lifecycle below;
-      // every other pending namespace must be cancelled with the shared Manager.
+      // The initiating socket may still be pending inside its server `connection` handler.
       if (!client.ownsConnection(initiator)) client.cancelConnectionAttemptFromManager();
     }
-    // A server `connection` handler runs before the initiating client reaches its
-    // `connect` event and Manager roster. Include that socket explicitly; on the
-    // ordinary connected path its teardown guard makes this duplicate a no-op.
+    // Include that initiator explicitly; the connected path's teardown guard deduplicates it.
     initiator.disconnectNamespaceFromServer();
   }
 }

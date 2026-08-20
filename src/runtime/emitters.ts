@@ -2,10 +2,6 @@ import type { ClientSocketContract } from '../contract';
 import { hostEmitsFinalRemoveListenerMetaEvent } from '../host-emitter';
 import { defer, RESERVED_EVENTS } from './delivery';
 
-/**
- * An event listener, matching the `Listener` shape the contract's sockets use:
- * `never[]` parameters so callbacks of any argument shape are accepted.
- */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Listener = (...args: any[]) => void;
 export type OrdinaryEventName = string | symbol;
@@ -19,7 +15,6 @@ type EmitNodeMeta = (
   listener: Listener,
 ) => boolean;
 const HOST_EMITS_FINAL_REMOVE_LISTENER_META_EVENT = hostEmitsFinalRemoveListenerMetaEvent();
-/** Socket.IO's permissive callback shape for the live catch-all lookup arrays. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AnyListener = (...args: any[]) => void;
 
@@ -156,18 +151,10 @@ export abstract class NodeEmitter {
   }
 }
 
-/**
- * A minimal event target shared by both socket sides: a listener registry, the
- * `on`/`once` the tests register through, and `dispatch`, which fires this
- * side's own listeners. Delivery from the peer goes through `send`, which calls
- * the target's `dispatch` a tick later.
- */
+/** Socket-side emitter with separate ordinary, incoming catch-all, and outgoing registries. */
 export class Emitter {
-  /** Ordinary named listeners. Catch-all registries intentionally stay separate. */
   protected readonly eventListeners = new Map<OrdinaryEventName, Listener[]>();
-  /** Catch-all listeners, fired for every non-reserved event before the specific ones. */
   private anyListeners: AnyListener[] | undefined;
-  /** Outgoing catch-all listeners, fired for every event this socket sends (#111). */
   private anyOutgoingListeners: AnyListener[] | undefined;
 
   on(event: string, listener: Listener): this {
@@ -180,8 +167,7 @@ export class Emitter {
       removeOrdinaryListener(this.eventListeners, event, wrapper);
       listener.apply(this, args);
     } as Listener;
-    // component-emitter exposes this wrapper through `listeners()` and carries the
-    // original on `.fn`. The server overrides `once` with Node's `.listener` shape.
+    // component-emitter uses `.fn`; the server's Node wrapper uses `.listener`.
     (wrapper as { fn?: Listener }).fn = listener;
     addListener(this.eventListeners, event, wrapper);
     return this;
@@ -202,9 +188,7 @@ export class Emitter {
   }
 
   offAny(listener?: AnyListener): this {
-    // Remove the first matching registration, the way `off` removes one specific
-    // listener; with no argument, replace the backing array so earlier lookups detach.
-    // socket.io's `offAny` splices the first occurrence out of `_anyListeners` (#125).
+    // No argument replaces the backing array so earlier live lookups detach (#125).
     if (listener) removeFirst(this.anyListeners, listener);
     else if (this.anyListeners) this.anyListeners = [];
     return this;
@@ -225,20 +209,14 @@ export class Emitter {
   }
 
   offAnyOutgoing(listener?: AnyListener): this {
-    // The outgoing catch-all's removal mirrors `offAny` (#111): drop the first match,
-    // or replace the backing array with no argument.
     if (listener) removeFirst(this.anyOutgoingListeners, listener);
     else if (this.anyOutgoingListeners) this.anyOutgoingListeners = [];
     return this;
   }
 
   /**
-   * Fire the outgoing catch-all for an event this socket sends (#111), the sending
-   * counterpart of the `dispatch` catch-all. It runs at the send site (`emit` /
-   * `emitWithAck`), before the peer receives anything, and the listeners get the event
-   * name then the args. A trailing ack function is stripped first, so the catch-all sees
-   * the same args whether the emit carried an ack or not (measured on 4.8.3), and reserved
-   * lifecycle events are skipped, exactly as the incoming catch-all skips them.
+   * Outgoing catch-alls run at the send site (#111). They skip reserved events and the
+   * trailing ack, matching the measured 4.8.3 arguments.
    */
   protected emitOutgoing(event: string, args: unknown[]): void {
     if (!this.anyOutgoingListeners?.length || RESERVED_EVENTS.has(event)) return;
@@ -250,45 +228,25 @@ export class Emitter {
   }
 
   /**
-   * Remove one registration for `event`, matching the original listener even when it
-   * was registered through a `once` wrapper (socket.io keeps the original on the
-   * wrapper and compares against it). A listener that was never registered, or an
-   * event with none, is a no-op.
-   *
-   * Which occurrence goes differs by side, and it is observable once the same
-   * function is registered twice (#125): the client is component-emitter, which
-   * splices the *first* match; the server is Node's emitter, which scans from the
-   * end and removes the *last* (measured on 4.8.3). This is the client's
-   * first-match half; `ServerSocket` removes through `removeLast` instead (0017).
+   * Match direct or original `once` identity. The client removes the first duplicate;
+   * the server's Node path removes the last (0017, #125), as measured on 4.8.3.
    */
   protected removeOne(event: string, listener: Listener): void {
     removeOrdinaryListener(this.eventListeners, event, listener);
   }
 
-  /** Clear every listener for `event`, or every listener on the socket with no argument. */
   removeAllListeners(event?: string): this {
     if (event === undefined) this.eventListeners.clear();
     else this.eventListeners.delete(event);
     return this;
   }
 
-  /**
-   * Schedule one inbound delivery to this socket. The default is the shared next-tick
-   * `defer`, which the server socket keeps (a client-to-server emit is never delayed).
-   * `ClientSocket` overrides it to consult its namespace adapter's optional
-   * delivery-scheduling hook (#78), so a delay applies to the client-inbound stream while
-   * its order is preserved. Called by `send`.
-   */
+  /** Server inbound uses the shared tick; ClientSocket overrides this for adapter delay (#78). */
   scheduleReceive(deliver: () => void): void {
     defer(deliver);
   }
 
-  /**
-   * Fire this side's listeners for `event`. Internal; the peer's `send` calls it.
-   * A catch-all runs first and receives the event name ahead of the args, for
-   * every event except the reserved lifecycle ones, which are dispatched locally
-   * rather than received from the peer.
-   */
+  /** Incoming catch-alls run before named listeners and skip locally dispatched lifecycle events. */
   dispatch(event: string, args: unknown[]): void {
     this.dispatchCatchAll(event, args);
     this.dispatchNamed(event, args);
@@ -312,11 +270,8 @@ export class Emitter {
 }
 
 /**
- * The client-side emitter. Its `off` follows component-emitter, where the
- * no-listener forms clear rather than throw: `off()` clears every listener,
- * `off(event)` clears that event, and `off(event, listener)` removes one. This is
- * the half that differs from the server's Node emitter (0017), and it is shared by
- * both the connected client and the failed-connection client.
+ * Client-side component-emitter removal semantics, shared by connected and failed
+ * clients; the server side follows Node instead (0017).
  */
 export class ClientEmitter extends Emitter {
   readonly addEventListener = this.on;
@@ -345,9 +300,7 @@ export class ClientEmitter extends Emitter {
   readonly removeEventListener = this.off;
 }
 
-// Store listeners in arrays, not Sets, so a callback registered twice is kept
-// twice and fired once per registration, the way real socket.io's emitters do
-// (#125). A Set would de-duplicate, calling a doubly-registered callback once.
+// Arrays retain duplicate registrations, matching Socket.IO (#125).
 function addListener(
   map: Map<OrdinaryEventName, Listener[]>,
   event: OrdinaryEventName,
@@ -487,7 +440,6 @@ export function nodeEventNames(
   return Reflect.ownKeys(Object.fromEntries([...map.keys()].map((event) => [event, true])));
 }
 
-/** Emit Node's listener warning when that host channel exists. */
 function emitMaxListenersWarning(emitter: object, event: OrdinaryEventName, count: number): void {
   const processHost = (
     globalThis as typeof globalThis & {
@@ -504,17 +456,13 @@ function emitMaxListenersWarning(emitter: object, event: OrdinaryEventName, coun
   processHost.emitWarning(warning);
 }
 
-/** Remove the first occurrence of `listener` from `list` in place, if present. */
 function removeFirst<Entry>(list: Entry[] | undefined, listener: Entry): void {
   if (!list) return;
   const i = list.indexOf(listener);
   if (i !== -1) list.splice(i, 1);
 }
 
-/**
- * Remove one ordinary named registration and delete an emptied registry key.
- * Catch-all backing arrays do not use this helper because their detach rules differ.
- */
+/** Catch-all arrays use separate removal because their live-array detach rules differ. */
 function removeOrdinaryListener(
   map: Map<OrdinaryEventName, Listener[]>,
   event: OrdinaryEventName,
