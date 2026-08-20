@@ -646,7 +646,8 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
     trackTimedCallback = false,
   ): ((reason: Error) => void) | undefined {
     assertNotReservedEvent(event);
-    const flags = this.consumeFlags();
+    // Keep the live flag object armed until outgoing observation and packet creation finish (0026).
+    const flags = this.flags;
     let bufferedPacket: BufferedPacket | undefined;
     const timed = withAckTimeout(args, flags.timeout, (cancel) => {
       if (trackTimedCallback) this.pendingAcks.delete(cancel);
@@ -658,17 +659,22 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
       timed.cancel && timed.isSettled
         ? { cancel: timed.cancel, isSettled: timed.isSettled }
         : undefined;
-    if (flags.volatile && !this.connected) return timed.cancel;
+    if (flags.volatile && !this.connected) {
+      this.consumeFlags();
+      return timed.cancel;
+    }
     // Before the connection completes, emits are buffered rather than lost, and
     // outgoing observation and encoding both wait for `completeConnection` (0026).
     if (!this.connected) {
       bufferedPacket = [event, timed.args, timedCallback];
       this.sendBuffer.push(bufferedPacket);
+      this.consumeFlags();
       return timed.cancel;
     }
     if (timedCallback) this.trackTimedCallback(timedCallback);
     this.emitOutgoing(event, args);
     send(this.serverSocket, event, timed.args);
+    this.consumeFlags();
     return timed.cancel;
   }
 
