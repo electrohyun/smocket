@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
 import { setupServer } from './setup-server';
-import { observeDisconnect } from './test-events';
+import { observeDisconnect, receive, track } from './test-events';
 
 const ctx = setupServer();
 
@@ -44,6 +44,49 @@ it('handshake.auth accepts a function form, resolved via its callback', async ()
   // client. A lazily fetched token reaches the server the same as an object auth.
   const { serverSocket } = await ctx.connectClient({ auth: (cb) => cb({ token: 'fn' }) });
   expect(serverSocket.handshake.auth).toEqual({ token: 'fn' });
+});
+
+it('disconnect cancels a static connection while callback auth is unresolved', async () => {
+  let authCalls = 0;
+  let releaseAuth!: () => void;
+  let markAuthRequested!: () => void;
+  const authRequested = new Promise<void>((resolve) => {
+    markAuthRequested = resolve;
+  });
+  const client = ctx.openClient({
+    auth: (callback) => {
+      authCalls += 1;
+      if (authCalls > 1) {
+        callback({ token: 'marker' });
+        return;
+      }
+      releaseAuth = () => callback({ token: 'cancelled' });
+      markAuthRequested();
+    },
+    forceNew: true,
+  });
+  let connects = 0;
+  client.on('connect', () => {
+    connects += 1;
+  });
+  const connectErrors = track(client, 'connect_error');
+  const disconnects = track(client, 'disconnect');
+  await authRequested;
+
+  client.disconnect();
+  releaseAuth();
+
+  // A successful fresh attempt on this same client is the causal marker: once its
+  // `connect` arrives, any lifecycle event from the cancelled attempt would already
+  // have crossed the affected Manager stream.
+  const marker = receive(client, 'connect');
+  client.connect();
+  await marker;
+
+  expect(connects).toBe(1);
+  expect(connectErrors.received).toBe(false);
+  expect(disconnects.received).toBe(false);
+  expect(client.connected).toBe(true);
 });
 
 it('a reconnect replays the client-supplied auth on the fresh socket', async () => {

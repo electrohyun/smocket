@@ -38,6 +38,37 @@ class DropAdapter extends Adapter {
   }
 }
 
+class StaleSidAdapter extends Adapter {
+  override socketsIn(rooms: Iterable<string>): Set<string> {
+    const names = [...rooms];
+    const result = super.socketsIn(names);
+    if (names.length > 0) result.add('stale-sid');
+    return result;
+  }
+}
+
+it('Adapter ignores deletion for membership it does not hold', () => {
+  const adapter = new Adapter();
+
+  expect(() => adapter.del('missing-sid', 'missing-room')).not.toThrow();
+  expect(adapter.rooms.size).toBe(0);
+  expect(adapter.sids.size).toBe(0);
+});
+
+it('broadcast routing ignores stale sids returned by a custom adapter', async () => {
+  const server = new Server('http://localhost');
+  server.adapter(() => new StaleSidAdapter());
+
+  const client = server.connect();
+  const socket = await server.nextConnection();
+  await socket.join('room');
+
+  const received = receive(client, 'msg');
+  expect(() => server.to('room').emit('msg', 'hello')).not.toThrow();
+  await expect(received).resolves.toBe('hello');
+  await server.close();
+});
+
 it('io.adapter registers a custom adapter that observes the routing decision', async () => {
   const server = new Server('http://localhost');
   const spy = new SpyAdapter();
