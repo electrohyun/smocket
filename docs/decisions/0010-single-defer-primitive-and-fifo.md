@@ -25,7 +25,7 @@ It is also the premise the adapter registration API (0008) builds on. A delay,
 drop, or reorder [adapter](../glossary.md#adapter) changes exactly this scheduling
 point, so "may an extension break per-socket FIFO, and where" must be answered
 here before that API can be designed. The source is the `defer` function in
-`mock-server.ts` and the FIFO-invariant comment in that file's header.
+[`delivery.ts`](../../src/runtime/delivery.ts) and the FIFO-invariant comment beside it.
 
 ## Alternatives rejected
 

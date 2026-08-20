@@ -9,7 +9,8 @@
 ## Decision
 
 Each socket's id ([sid](../glossary.md#sid)) is a 20-character url-safe base64
-string, produced by `newId` in `mock-server.ts` from 15 random bytes. The goal is
+string, produced by `newId` in
+[`delivery.ts`](../../src/runtime/delivery.ts) from 15 random bytes. The goal is
 to match the shape of a real socket.io id, not to reproduce socket.io's own
 id-generation internals, which are not observable and have no bearing on delivery.
 

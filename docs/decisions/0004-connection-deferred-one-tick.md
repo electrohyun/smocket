@@ -20,7 +20,7 @@ line. If connection completed synchronously inside `connect()`, the `connect`
 event would have fired before that handler existed, so the handler would never
 run and the first events would be lost. Deferring completion one tick leaves room
 for the handler to register first, which is why the `defer` comment in
-`mock-server.ts` records connect resolving a tick later "so a
+[`delivery.ts`](../../src/runtime/delivery.ts) records connect resolving a tick later "so a
 `socket.on('connect', ...)` handler is registered in time."
 
 This has a source in real socket.io, where a connection is asynchronous and the
