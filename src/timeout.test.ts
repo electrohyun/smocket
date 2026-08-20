@@ -14,10 +14,19 @@ const ctx = setupServer();
 it('the timeout callback receives (null, response) when the ack wins', async () => {
   const { client, serverSocket } = await ctx.connectClient();
   serverSocket.on('echo', (n: number, ack: (r: number) => void) => ack(n * 2));
+  let calls = 0;
   const received = await new Promise<unknown[]>((resolve) => {
-    client.timeout(1000).emit('echo', 21, (...args: unknown[]) => resolve(args));
+    client.timeout(1000).emit('echo', 21, (...args: unknown[]) => {
+      calls += 1;
+      resolve(args);
+    });
   });
   expect(received).toEqual([null, 42]);
+
+  const { disconnected } = observeDisconnect(serverSocket);
+  client.disconnect();
+  await disconnected;
+  expect(calls).toBe(1);
 });
 
 it('works server-to-client with the same success shape', async () => {
@@ -149,6 +158,64 @@ it('timeout().emitWithAck rejects with the timeout Error on expiry', async () =>
     /* never acks */
   });
   await expect(client.timeout(20).emitWithAck('silent')).rejects.toThrow('operation has timed out');
+});
+
+it('keeps a timed callback buffered until reconnect and settles it normally', async () => {
+  vi.useFakeTimers();
+  try {
+    const { client, serverSocket } = await ctx.connectClient();
+    const { disconnected } = observeDisconnect(serverSocket);
+    client.disconnect();
+    await disconnected;
+
+    let calls = 0;
+    const response = new Promise<unknown[]>((resolve) => {
+      client.timeout(60_000).emit('buffered', (...args: unknown[]) => {
+        calls += 1;
+        resolve(args);
+      });
+    });
+
+    const nextServerSocket = ctx.nextConnection();
+    client.connect();
+    const socket = await nextServerSocket;
+    socket.on('buffered', (ack: (value: string) => void) => ack('answer'));
+
+    await expect(response).resolves.toEqual([null, 'answer']);
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(calls).toBe(1);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+it('does not revive a timed callback that expired while buffered', async () => {
+  vi.useFakeTimers();
+  try {
+    const { client, serverSocket } = await ctx.connectClient();
+    const { disconnected } = observeDisconnect(serverSocket);
+    client.disconnect();
+    await disconnected;
+
+    const calls: unknown[][] = [];
+    client.timeout(20).emit('expired-buffer', (...args: unknown[]) => calls.push(args));
+    await vi.advanceTimersByTimeAsync(20);
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.[0]).toMatchObject({ message: 'operation has timed out' });
+
+    const connected = receive(client, 'connect');
+    const nextServerSocket = ctx.nextConnection();
+    client.connect();
+    const socket = await nextServerSocket;
+    socket.on('expired-buffer', (ack: (value: string) => void) => ack('too late'));
+    socket.on('ack-marker', (ack: () => void) => ack());
+    await connected;
+    await client.emitWithAck('ack-marker');
+
+    expect(calls).toHaveLength(1);
+  } finally {
+    vi.useRealTimers();
+  }
 });
 
 it('server timeout().emitWithAck resolves and rejects with the same one-shot decoration', async () => {

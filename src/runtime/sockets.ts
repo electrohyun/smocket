@@ -46,6 +46,10 @@ interface SocketFlags {
   volatile?: boolean;
   timeout?: number;
 }
+interface TimedCallbackCancellation {
+  cancel(reason: Error): void;
+  isSettled(): boolean;
+}
 /** One pairing retained while connection middleware may complete repeatedly. */
 export interface ConnectionAttempt {
   state: 'pending' | 'cancelled' | 'rejected' | 'connected';
@@ -466,10 +470,10 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
   /** The only pairing still allowed to reach `connection` for this client. */
   private connectionAttempt: ConnectionAttempt | undefined;
   /** Pre-connect emits, flushed in order like socket.io-client's sendBuffer. */
-  private sendBuffer: Array<[string, unknown[]]> = [];
+  private sendBuffer: Array<[string, unknown[], TimedCallbackCancellation?]> = [];
   /**
-   * Only client `emitWithAck` rejects on disconnect; measured callback and reverse
-   * direction acks remain pending.
+   * Client Promise acks and sent timed callbacks settle on disconnect. Untimed
+   * callbacks and acknowledgements sent by the server remain pending (0012).
    */
   private readonly pendingAcks = new Set<(reason: Error) => void>();
   private flags: SocketFlags = {};
@@ -518,8 +522,9 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
     this.io.connected(this);
     const buffered = this.sendBuffer;
     this.sendBuffer = [];
-    for (const [event, args] of buffered) {
+    for (const [event, args, timedCallback] of buffered) {
       // Buffered packets are observed and encoded only when the connection flushes (0026).
+      if (timedCallback) this.trackTimedCallback(timedCallback);
       this.emitOutgoing(event, args);
       send(this.serverSocket, event, args);
     }
@@ -618,27 +623,44 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
   }
 
   emit(event: string, ...args: unknown[]): this {
-    this.sendEvent(event, args);
+    this.sendEvent(event, args, true);
     return this;
   }
   send(...args: unknown[]): this {
     return this.emit('message', ...args);
   }
 
-  private sendEvent(event: string, args: unknown[]): ((reason: Error) => void) | undefined {
+  private sendEvent(
+    event: string,
+    args: unknown[],
+    trackTimedCallback = false,
+  ): ((reason: Error) => void) | undefined {
     assertNotReservedEvent(event);
     const flags = this.consumeFlags();
-    const timed = withAckTimeout(args, flags.timeout);
+    const timed = withAckTimeout(
+      args,
+      flags.timeout,
+      trackTimedCallback ? (cancel) => this.pendingAcks.delete(cancel) : undefined,
+    );
+    const timedCallback =
+      trackTimedCallback && timed.cancel && timed.isSettled
+        ? { cancel: timed.cancel, isSettled: timed.isSettled }
+        : undefined;
     if (flags.volatile && !this.connected) return timed.cancel;
     // Before the connection completes, emits are buffered rather than lost, and
     // outgoing observation and encoding both wait for `completeConnection` (0026).
     if (!this.connected) {
-      this.sendBuffer.push([event, timed.args]);
+      this.sendBuffer.push([event, timed.args, timedCallback]);
       return timed.cancel;
     }
+    if (timedCallback) this.trackTimedCallback(timedCallback);
     this.emitOutgoing(event, args);
     send(this.serverSocket, event, timed.args);
     return timed.cancel;
+  }
+
+  private trackTimedCallback(timed: TimedCallbackCancellation): void {
+    if (!timed.isSettled()) this.pendingAcks.add(timed.cancel);
   }
   emitWithAck(event: string, ...args: unknown[]): Promise<unknown> {
     // Register promise-form acks so disconnect can reject them.
