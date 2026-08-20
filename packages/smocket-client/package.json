@@ -43,7 +43,7 @@
   "engines": {
     "node": ">=20"
   },
-  "packageManager": "pnpm@11.21.0",
+  "packageManager": "pnpm@11.22.0",
   "scripts": {
     "build": "node scripts/clean-dist.mjs && tsc -p tsconfig.esm.json && tsc -p tsconfig.cjs.json",
     "prepublishOnly": "pnpm run build && node ../../scripts/check-client-package.mjs && node ../../scripts/check-client-release-order.mjs",
