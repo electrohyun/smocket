@@ -568,6 +568,13 @@ These have no oracle to compare against: they cover the API smocket adds
 internals behind it, so they run the same under both targets. They are listed apart
 because nothing about socket.io follows from them.
 
+### Native acknowledgement teardown race
+
+Discarding a retained acknowledgement when a Smocket outgoing observer tears down its
+connection mid-send.
+
+- [discards an ack retained after an outgoing observer disconnects the client](../src/ack-native.test.ts#L5)
+
 ### connect(url) and the origin registry
 
 Resolving a url to a server, and what the url contributes to the handshake.
