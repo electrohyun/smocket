@@ -35,8 +35,13 @@ cannot invoke the callback again. An untimed callback and a server-to-client
 outstanding until the collector timeout, if any, settles the operation.
 
 A client packet buffered before connection has not been sent and keeps its existing
-reconnect behavior. Its timed callback becomes teardown-owned only when that buffered
-packet is flushed into a connection.
+reconnect behavior while its timed callback is still pending. If that timer expires first,
+the callback settles and its packet is removed from the buffer instead of being delivered
+by a later reconnect. The reconnect flush also skips a packet already settled by a teardown
+race. An unsettled timed callback becomes teardown-owned only when its buffered packet is
+flushed into a connection. If an outgoing observer tears down that connection during the
+flush, smocket stops before encoding another packet and restores every still-unsettled
+packet that was not sent. A later reconnect resumes those packets in their original order.
 
 ## Alternatives rejected
 

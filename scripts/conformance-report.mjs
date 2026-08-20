@@ -104,7 +104,7 @@ const AREAS = [
     file: 'src/ack-native.test.ts',
     title: 'Native acknowledgement teardown race',
     blurb:
-      'Discarding a retained acknowledgement when a Smocket outgoing observer tears down its connection mid-send.',
+      'Discarding or retaining acknowledgements as appropriate when a Smocket outgoing observer tears down a connection mid-send.',
   },
   {
     file: 'src/payload-serialization.test.ts',
