@@ -127,6 +127,19 @@ it('uses admission order but the latest duplicate RegExp parent for manual attac
   expect(inherited).toEqual(['first:/duplicate-dynamic', 'latest:/duplicate-manual']);
 });
 
+it('does not attach a manually created namespace to a function parent', async () => {
+  const inherited: string[] = [];
+  ctx.io
+    .of((_name, _auth, next) => next(null, true))
+    .on('connection', (socket) => inherited.push(socket.nsp.name));
+
+  ctx.io.of('/manual-function-parent');
+  const client = ctx.openClient({ namespace: '/manual-function-parent' });
+  await receive(client, 'connect');
+
+  expect(inherited).toEqual([]);
+});
+
 it('reuses one child for concurrent admission and supports the of listener overload', async () => {
   const seenNamespaces: string[] = [];
   const connected: string[] = [];

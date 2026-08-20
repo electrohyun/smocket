@@ -104,6 +104,20 @@ it('off and removeAllListeners are no-ops for unknown listeners or events', asyn
   }).not.toThrow();
 });
 
+it('catch-all removal is a no-op for an unknown listener', async () => {
+  const { client } = await ctx.connectClient();
+  const kept = () => {};
+  const unknown = () => {};
+
+  client.onAny(kept);
+  client.onAnyOutgoing(kept);
+
+  expect(client.offAny(unknown)).toBe(client);
+  expect(client.offAnyOutgoing(unknown)).toBe(client);
+  expect(client.listenersAny()).toEqual([kept]);
+  expect(client.listenersAnyOutgoing()).toEqual([kept]);
+});
+
 it('a listener removed during its own dispatch still runs for that dispatch', async () => {
   const { client, serverSocket } = await ctx.connectClient();
   const hits: string[] = [];

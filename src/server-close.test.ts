@@ -29,6 +29,82 @@ it('close rejects a connection started immediately before it', async () => {
   expect(client.connected).toBe(false);
 });
 
+it('close rejects a connection whose callback auth resolves after shutdown', async () => {
+  let releaseAuth!: () => void;
+  let markAuthRequested!: () => void;
+  const authRequested = new Promise<void>((resolve) => {
+    markAuthRequested = resolve;
+  });
+  const client = ctx.openClient({
+    auth: (callback) => {
+      releaseAuth = () => callback({ token: 'late' });
+      markAuthRequested();
+    },
+  });
+  const outcome = new Promise<'connect' | 'connect_error'>((resolve) => {
+    client.once('connect', () => resolve('connect'));
+    client.once('connect_error', () => resolve('connect_error'));
+  });
+
+  await authRequested;
+  const closing = ctx.io.close();
+  releaseAuth();
+  await closing;
+
+  await expect(outcome).resolves.toBe('connect_error');
+  expect(client.connected).toBe(false);
+});
+
+it('close rejects a connection whose namespace middleware resolves after shutdown', async () => {
+  let releaseMiddleware!: () => void;
+  let markMiddlewareEntered!: () => void;
+  const middlewareEntered = new Promise<void>((resolve) => {
+    markMiddlewareEntered = resolve;
+  });
+  ctx.io.use((_socket, next) => {
+    releaseMiddleware = next;
+    markMiddlewareEntered();
+  });
+  const client = ctx.openClient();
+  const outcome = new Promise<'connect' | 'connect_error'>((resolve) => {
+    client.once('connect', () => resolve('connect'));
+    client.once('connect_error', () => resolve('connect_error'));
+  });
+
+  await middlewareEntered;
+  const closing = ctx.io.close();
+  releaseMiddleware();
+  await closing;
+
+  await expect(outcome).resolves.toBe('connect_error');
+  expect(client.connected).toBe(false);
+});
+
+it('close rejects dynamic admission allowed after shutdown', async () => {
+  let allowNamespace!: () => void;
+  let markMatcherEntered!: () => void;
+  const matcherEntered = new Promise<void>((resolve) => {
+    markMatcherEntered = resolve;
+  });
+  ctx.io.of((_name, _auth, next) => {
+    allowNamespace = () => next(null, true);
+    markMatcherEntered();
+  });
+  const client = ctx.openClient({ namespace: '/late-dynamic-close' });
+  const outcome = new Promise<'connect' | 'connect_error'>((resolve) => {
+    client.once('connect', () => resolve('connect'));
+    client.once('connect_error', () => resolve('connect_error'));
+  });
+
+  await matcherEntered;
+  const closing = ctx.io.close();
+  allowNamespace();
+  await closing;
+
+  await expect(outcome).resolves.toBe('connect_error');
+  expect(client.connected).toBe(false);
+});
+
 it('close disconnects every namespace with the shutdown reasons', async () => {
   const first = await ctx.connectClient();
   const second = await ctx.connectClient({ namespace: '/game' });

@@ -60,6 +60,15 @@ it('two spellings of one origin resolve to the same server', async () => {
   expect(serverSocket.id).toBe(client.id);
 });
 
+it('a bare https origin resolves to the same server as its default port', async () => {
+  const server = new Server('https://localhost');
+  const client = connect('https://localhost:443');
+  const serverSocket = await server.nextConnection();
+
+  expect(serverSocket.id).toBe(client.id);
+  expect(serverSocket.handshake.url).toBe('https://localhost:443');
+});
+
 it('connect(url) caches one Manager per normalized origin unless opted out', async () => {
   const server = new Server('http://localhost');
   server.of('/game');

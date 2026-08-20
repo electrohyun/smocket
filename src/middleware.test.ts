@@ -145,6 +145,30 @@ it('a cancelled connection attempt cannot be admitted by a late middleware callb
   expect(disconnects.received).toBe(false);
 });
 
+it('ignores duplicate connect calls while static namespace middleware is pending', async () => {
+  let runs = 0;
+  let release!: () => void;
+  let markEntered!: () => void;
+  const entered = new Promise<void>((resolve) => {
+    markEntered = resolve;
+  });
+  ctx.io.use((_socket, next) => {
+    runs += 1;
+    release = next;
+    markEntered();
+  });
+
+  const client = ctx.openClient();
+  const connected = receive(client, 'connect');
+  await entered;
+  expect(client.connect()).toBe(client);
+  release();
+  await connected;
+
+  expect(runs).toBe(1);
+  expect(client.connected).toBe(true);
+});
+
 it('io.of(nsp).use() runs only for connections on that namespace', async () => {
   let runs = 0;
   ctx.io.of('/admin').use((_socket, next) => {
