@@ -1,68 +1,80 @@
-# Chat room package consumer
+# Dual-target chat-room consumer
 
-> **TL;DR** This fixture installs a released `smocket` package outside the pnpm
-> workspace, then runs the application test and transcript from
-> [`examples/chat-room`](../../examples/chat-room/). CI can replace the released
-> package with a tarball without creating another application source.
+> **TL;DR** This fixture installs released packages outside the pnpm workspace and
+> runs one chat-room scenario against real Socket.IO and Smocket. `npm test` checks
+> that both targets produce the same observation.
 
-The pinned `0.4.2` release predates `smocket-client`, so this canonical consumer keeps
-the root `connect` path required by ADR
-[0024](../../docs/decisions/0024-assemble-consumer-from-canonical-example.md). Issue
-[#284](https://github.com/electrohyun/smocket/issues/284) owns its atomic transition to
-the synchronized two-package release after both packages are published.
+The walkthrough reuses the application and scenario in
+[`examples/chat-room`](../../examples/chat-room/). The consumer runner copies those
+files and this fixture into a temporary project outside the checkout, then installs
+the exact npm dependencies from this directory.
 
-[Open the published-package consumer in StackBlitz](https://stackblitz.com/github/electrohyun/smocket)
+## Install the four package roles
 
-## What is committed here
+A standalone project can create the same boundary with:
 
-This directory is the independent package boundary: npm resolves its dependency instead
-of the repository workspace doing so. It contains only:
+```bash
+npm install -D smocket@0.5.0 smocket-client@0.5.0
+npm install -D socket.io@4.8.3 socket.io-client@4.8.3
+```
 
-- `package.json`, with an exact released `smocket` version;
-- `package-lock.json`, which records the registry tarball CI actually exercises; and
-- this explanation of the two package inputs.
+Keep `smocket` and `smocket-client` at the same exact version. The real target uses
+the two Socket.IO packages; the in-memory target uses the two Smocket packages.
 
-The application stays in [`examples/chat-room`](../../examples/chat-room/). The runner
-copies its six JavaScript files and this package configuration into a temporary directory
-outside the checkout. Nothing imports Smocket's local source or root `node_modules`.
+## Share the application handlers
 
-## Run the published package
+[`app.js`](../../examples/chat-room/app.js) exports the one `registerHandlers(io)`
+function used by both servers. Its handlers join rooms, exclude the sender from a
+room broadcast, return acknowledgements, and send disconnect notifications. Runtime
+setup stays in [`targets.js`](../../examples/chat-room/targets.js): Socket.IO owns an
+HTTP server and client activation, while Smocket owns an in-process URL and needs no
+transport setup.
 
-Node.js 20 or later and npm are the only prerequisites. From the repository root:
+Both target adapters pass their server through the same application boundary:
+
+```js
+return createChatApplication({ io, url, close: () => io.close() });
+```
+
+`createChatApplication` calls `registerHandlers(io)` and adds only the shared close
+lifecycle needed by the scenario.
+
+## Run the same scenario twice
+
+[`dual-target.test.js`](../../examples/chat-room/dual-target.test.js) passes each target
+to the unchanged [`scenario.js`](../../examples/chat-room/scenario.js), validates its
+expected result, and then compares the complete Socket.IO and Smocket observations.
+
+The scenario waits directly for expected events and acknowledgements. To prove that
+the sender and out-of-room client did not receive an earlier broadcast, it sends a
+later private marker through the same client delivery stream and waits for that marker.
+Per-socket FIFO ordering makes the empty observation meaningful without a timeout.
+
+From the repository root, run the released packages with one command:
 
 ```bash
 npm run consumer:chat-room:published
 ```
 
-The runner performs `npm ci`, verifies the exact installed version and registry
-resolution, runs `node --test`, prints the application transcript, and removes the
-temporary project even when a step fails.
+The runner performs `npm ci`, verifies that both Smocket packages came from the npm
+registry at the pinned version, and runs the dual-target test. It also prints the
+Smocket transcript after the comparison passes.
 
-To update the released version, change the exact version in `package.json` and regenerate
-the lockfile with npm. The update belongs in a normal pull request, where the published
-workflow exercises the new lock before merge.
+## Run packages built from this checkout
 
-## Run the candidate package
-
-After installing the repository dependencies:
+After installing dependencies, create and verify both package artifacts with:
 
 ```bash
-pnpm check:package
-pnpm consumer:chat-room:candidate
+pnpm release:candidate
+pnpm check:release-candidate
 ```
 
-This mode packs the built source under review, changes only the temporary manifest to use
-that tarball, performs a clean install, verifies the installed artifact, and runs the same
-test and transcript. The committed manifest and lockfile remain unchanged.
+The second command supplies the root and client tarballs from the same immutable
+candidate to this consumer. The committed manifest and lockfile remain unchanged.
 
-## How CI uses it
+## What this proves
 
-- The existing `package` job runs candidate mode for every pull request and `main` push.
-- The `Published consumer` workflow runs published mode when this fixture, the application,
-  or its runner changes, and also runs weekly or on manual dispatch.
-- The StackBlitz entry point runs published mode from repository content and disables the
-  workspace dependency install.
-
-These checks cover packaging, clean installation, and application integration. Socket.IO
-compatibility remains defined by the
-[dual-run conformance report](../../docs/conformance.md), not by this consumer.
+This walkthrough proves parity only for the exercised chat-room scenario: room joins,
+sender exclusion, acknowledgements, a multi-room broadcast, and disconnect delivery.
+The generated [dual-run conformance report](../../docs/conformance.md) remains the
+source of truth for Smocket's declared Socket.IO compatibility.
