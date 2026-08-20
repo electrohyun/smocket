@@ -222,11 +222,16 @@ it('signals cleanup once for rejected and cancelled admission without lifecycle 
     const adapters = registerRemovalAdapters(io);
     let provisional: ServerSocketContract | undefined;
     const lifecycle: string[] = [];
+    let markMiddlewareEntered!: () => void;
+    const middlewareEntered = new Promise<void>((resolve) => {
+      markMiddlewareEntered = resolve;
+    });
     io.use((socket, next) => {
       provisional = socket;
       socket.on('disconnecting', () => lifecycle.push('disconnecting'));
       socket.on('disconnect', () => lifecycle.push('disconnect'));
       socket.join('temporary');
+      markMiddlewareEntered();
       if (mode === 'rejected') next(new Error('denied'));
     });
 
@@ -234,6 +239,7 @@ it('signals cleanup once for rejected and cancelled admission without lifecycle 
     if (mode === 'rejected') {
       await expect(receive(client, 'connect_error')).resolves.toMatchObject({ message: 'denied' });
     } else {
+      await middlewareEntered;
       client.disconnect();
     }
 

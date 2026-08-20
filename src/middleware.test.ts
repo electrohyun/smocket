@@ -5,6 +5,41 @@ import { receive, track } from './test-events';
 
 const ctx = setupServer();
 
+it('invokes namespace middleware after the client factory returns', async () => {
+  const order: string[] = [];
+  ctx.io.use((_socket, next) => {
+    order.push('middleware');
+    next();
+  });
+
+  const client = ctx.openClient();
+  order.push('connect returned');
+  await receive(client, 'connect');
+
+  expect(order).toEqual(['connect returned', 'middleware']);
+});
+
+it('does not invoke namespace middleware for a connection cancelled after return', async () => {
+  let runs = 0;
+  ctx.io.use((_socket, next) => {
+    runs += 1;
+    next();
+  });
+
+  const cancelled = ctx.openClient({ forceNew: true });
+  const connects = track(cancelled, 'connect');
+  const connectErrors = track(cancelled, 'connect_error');
+  const disconnects = track(cancelled, 'disconnect');
+  cancelled.disconnect();
+
+  await ctx.connectClient({ forceNew: true });
+
+  expect(runs).toBe(1);
+  expect(connects.received).toBe(false);
+  expect(connectErrors.received).toBe(false);
+  expect(disconnects.received).toBe(false);
+});
+
 it('a pass-through middleware admits the connection and fires connection', async () => {
   ctx.io.use((_socket, next) => next());
 

@@ -81,6 +81,8 @@ it('close rejects a connection whose namespace middleware resolves after shutdow
 });
 
 it('close rejects dynamic admission allowed after shutdown', async () => {
+  const created: string[] = [];
+  ctx.io.on('new_namespace', (namespace) => created.push(namespace.name));
   let allowNamespace!: () => void;
   let markMatcherEntered!: () => void;
   const matcherEntered = new Promise<void>((resolve) => {
@@ -103,6 +105,7 @@ it('close rejects dynamic admission allowed after shutdown', async () => {
 
   await expect(outcome).resolves.toBe('connect_error');
   expect(client.connected).toBe(false);
+  expect(created).toEqual(['/late-dynamic-close']);
 });
 
 it('close disconnects every namespace with the shutdown reasons', async () => {

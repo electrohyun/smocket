@@ -46,6 +46,20 @@ it('handshake.auth accepts a function form, resolved via its callback', async ()
   expect(serverSocket.handshake.auth).toEqual({ token: 'fn' });
 });
 
+it('invokes callback-form auth after the client factory returns', async () => {
+  const order: string[] = [];
+  const client = ctx.openClient({
+    auth: (callback) => {
+      order.push('auth');
+      callback({});
+    },
+  });
+  order.push('connect returned');
+  await receive(client, 'connect');
+
+  expect(order).toEqual(['connect returned', 'auth']);
+});
+
 it('disconnect cancels a static connection while callback auth is unresolved', async () => {
   let authCalls = 0;
   let releaseAuth!: () => void;
