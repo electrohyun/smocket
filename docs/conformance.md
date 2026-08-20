@@ -275,18 +275,23 @@ composition.
 
 `io.use`: admitting a connection, rejecting one, and the order two run in.
 
-- [invokes namespace middleware after the client factory returns](../src/middleware.test.ts#L8)
-- [does not invoke namespace middleware for a connection cancelled after return](../src/middleware.test.ts#L22)
-- [a pass-through middleware admits the connection and fires connection](../src/middleware.test.ts#L43)
-- [the middleware reads the connecting socket handshake](../src/middleware.test.ts#L56)
-- [next(err) makes the client observe connect_error with the error message](../src/middleware.test.ts#L69)
-- [the rejecting error's data passes through to the client](../src/middleware.test.ts#L80)
-- [a rejected connection cleans temporary membership and stays out of the roster](../src/middleware.test.ts#L94)
-- [a cancelled connection attempt cannot be admitted by a late middleware callback](../src/middleware.test.ts#L132)
-- [ignores duplicate connect calls while static namespace middleware is pending](../src/middleware.test.ts#L183)
-- [io.of(nsp).use() runs only for connections on that namespace](../src/middleware.test.ts#L207)
-- [two middlewares run in registration order](../src/middleware.test.ts#L225)
-- [an error in the first middleware short-circuits the second](../src/middleware.test.ts#L240)
+- [invokes namespace middleware after the client factory returns](../src/middleware.test.ts#L14)
+- [does not invoke namespace middleware for a connection cancelled after return](../src/middleware.test.ts#L28)
+- [a pass-through middleware admits the connection and fires connection](../src/middleware.test.ts#L49)
+- [the middleware reads the connecting socket handshake](../src/middleware.test.ts#L62)
+- [next(err) makes the client observe connect_error with the error message](../src/middleware.test.ts#L75)
+- [the rejecting error's data passes through to the client](../src/middleware.test.ts#L86)
+- [a rejected connection cleans temporary membership and stays out of the roster](../src/middleware.test.ts#L100)
+- [a cancelled connection attempt cannot be admitted by a late middleware callback](../src/middleware.test.ts#L138)
+- [ignores duplicate connect calls while static namespace middleware is pending](../src/middleware.test.ts#L189)
+- [io.of(nsp).use() runs only for connections on that namespace](../src/middleware.test.ts#L213)
+- [two middlewares run in registration order](../src/middleware.test.ts#L231)
+- [an error in the first middleware short-circuits the second](../src/middleware.test.ts#L246)
+- [completes once per synchronous next call with one server Socket](../src/middleware.test.ts#L264)
+- [completes again when a retained next runs after the first connection](../src/middleware.test.ts#L296)
+- [ignores a retained next released while the server closes](../src/middleware.test.ts#L321)
+- [ignores a retained middleware error after the client disconnects](../src/middleware.test.ts#L346)
+- [reports a later middleware error after connection and removes the server Socket](../src/middleware.test.ts#L374)
 
 ### Server Socket packet middleware
 
@@ -709,9 +714,11 @@ and close settlement.
 - [keeps direct connections in the established Manager groups](../src/connection-api.test.ts#L103)
 - [skips rejected admission and resolves the waiter with the next accepted socket](../src/connection-api.test.ts#L120)
 - [skips cancelled admission and resolves the waiter with the next accepted socket](../src/connection-api.test.ts#L138)
-- [close rejects pending static and dynamic namespace observers](../src/connection-api.test.ts#L164)
-- [close discards unclaimed sockets and rejects later observers](../src/connection-api.test.ts#L183)
-- [close preserves a ready socket claimed before teardown](../src/connection-api.test.ts#L193)
+- [offers a repeatedly completed Socket to the direct API only once](../src/connection-api.test.ts#L164)
+- [does not leave a claimed Socket queued after a repeated middleware error](../src/connection-api.test.ts#L185)
+- [close rejects pending static and dynamic namespace observers](../src/connection-api.test.ts#L212)
+- [close discards unclaimed sockets and rejects later observers](../src/connection-api.test.ts#L231)
+- [close preserves a ready socket claimed before teardown](../src/connection-api.test.ts#L241)
 
 <!-- conformance:generated end -->
 

@@ -103,20 +103,35 @@ export class Namespace extends NodeEmitter implements NamespaceContract {
       // Middleware sees the final handshake and gates registration, id-room admission,
       // and lifecycle events; rejection remains an unregistered `connect_error`.
       this.runMiddleware(serverSocket, (err) => {
-        if (err) {
-          client.rejectConnectionAttempt(attempt, err);
-          return;
-        }
-        if (!client.isConnectionAttemptPending(attempt)) {
-          if (attempt.state !== 'connected') serverSocket.cleanupConnectionAttempt();
-          return;
-        }
-        if (this.rejectIfClosed(client, attempt)) return;
+        // Socket.IO queues every completion independently, so an earlier acceptance
+        // reaches the client before a later rejection from the same `next` callback.
         defer(() => {
+          if (err) {
+            if (client.isConnectionAttemptPending(attempt)) {
+              client.rejectConnectionAttempt(attempt, err);
+            } else if (client.isConnectionAttemptConnected(attempt, serverSocket)) {
+              this.discardReady(serverSocket);
+              serverSocket.cleanupConnectionAttempt();
+              client.reportRepeatedConnectionError(err);
+              serverSocket.closeAfterRepeatedConnectionError();
+            }
+            return;
+          }
+
+          if (client.isConnectionAttemptConnected(attempt, serverSocket)) {
+            if (this.closed) {
+              serverSocket.cleanupConnectionAttempt();
+              return;
+            }
+            this.sockets.set(serverSocket.id, serverSocket);
+            serverSocket.join(serverSocket.id);
+            serverSocket.markConnected();
+            this.emitConnection(serverSocket);
+            client.repeatConnectionCompletion();
+            return;
+          }
+
           if (!client.isConnectionAttemptPending(attempt)) {
-            // A middleware can invoke `next` more than once. Once this attempt has
-            // connected, a later completion is only a duplicate and must not clean the
-            // live socket; cancelled and rejected attempts do need idempotent cleanup.
             if (attempt.state !== 'connected') serverSocket.cleanupConnectionAttempt();
             return;
           }
@@ -193,6 +208,11 @@ export class Namespace extends NodeEmitter implements NamespaceContract {
     } else {
       this.ready.push(serverSocket);
     }
+  }
+
+  private discardReady(serverSocket: ServerSocket): void {
+    const index = this.ready.indexOf(serverSocket);
+    if (index !== -1) this.ready.splice(index, 1);
   }
 
   async close(): Promise<void> {

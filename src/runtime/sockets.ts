@@ -46,7 +46,7 @@ interface SocketFlags {
   volatile?: boolean;
   timeout?: number;
 }
-/** One client-to-namespace pairing from auth resolution through admission. */
+/** One pairing retained while connection middleware may complete repeatedly. */
 export interface ConnectionAttempt {
   state: 'pending' | 'cancelled' | 'rejected' | 'connected';
   serverSocket?: ServerSocket;
@@ -257,6 +257,11 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
   cleanupConnectionAttempt(): void {
     this.active = false;
     this.cleanupMembership();
+  }
+
+  /** A middleware error after admission closes only the orphaned server Socket. */
+  closeAfterRepeatedConnectionError(): void {
+    void this.teardown('transport close');
   }
 
   /** Whole-socket membership cleanup shared by abandoned attempts and disconnect. */
@@ -492,7 +497,6 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
       return;
     }
     attempt.state = 'connected';
-    this.connectionAttempt = undefined;
     this.serverSocket = serverSocket;
     this.connected = true;
     this.recovered = false;
@@ -507,6 +511,23 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
     }
     // Flush while connected but before the public `connect` listener.
     this.dispatch('connect', []);
+  }
+
+  isConnectionAttemptConnected(attempt: ConnectionAttempt, serverSocket: ServerSocket): boolean {
+    return (
+      this.connectionAttempt === attempt &&
+      attempt.state === 'connected' &&
+      this.connected &&
+      this.serverSocket === serverSocket
+    );
+  }
+
+  repeatConnectionCompletion(): void {
+    this.dispatch('connect', []);
+  }
+
+  reportRepeatedConnectionError(err: MiddlewareError): void {
+    defer(() => this.dispatch('connect_error', [err]));
   }
 
   /**
@@ -698,6 +719,11 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
 
   /** Clear connection identity, reject tracked promise acks, and emit the measured reason. */
   markDisconnected(reason: string): void {
+    // `markDisconnected` is reached only for a connected client, whose admitted
+    // attempt remains retained until this teardown invalidates late completions.
+    const attempt = this.connectionAttempt as ConnectionAttempt;
+    attempt.state = 'cancelled';
+    this.connectionAttempt = undefined;
     this.connected = false;
     this.id = undefined;
     this.io.disconnected(this);

@@ -1,7 +1,13 @@
 import { expect, it } from 'vitest';
 import type { MiddlewareError, ServerSocketContract } from './contract';
 import { setupServer } from './setup-server';
-import { receive, track } from './test-events';
+import {
+  count,
+  expectNoResidualMembership,
+  observeDisconnect,
+  receive,
+  track,
+} from './test-events';
 
 const ctx = setupServer();
 
@@ -253,4 +259,179 @@ it('an error in the first middleware short-circuits the second', async () => {
 
   expect(error.message).toBe('nope');
   expect(ran).toEqual(['first']);
+});
+
+it('completes once per synchronous next call with one server Socket', async () => {
+  ctx.io.use((socket, next) => {
+    if (socket.handshake.auth.repeated) {
+      next();
+      next();
+      next();
+      return;
+    }
+    next();
+  });
+  const serverSockets: ServerSocketContract[] = [];
+  ctx.io.on('connection', (socket) => {
+    serverSockets.push(socket);
+    if (serverSockets.length === 3) socket.emit('completion-marker');
+  });
+
+  const client = ctx.openClient({ auth: { repeated: true }, forceNew: true });
+  const connects = count(client, 'connect');
+  await receive(client, 'completion-marker');
+
+  const firstSocket = serverSockets[0];
+  expect(firstSocket).toBeDefined();
+  if (!firstSocket) throw new Error('repeated middleware never admitted a server Socket');
+  expect(connects.count).toBe(3);
+  expect(serverSockets).toHaveLength(3);
+  expect(serverSockets.every((socket) => socket === firstSocket)).toBe(true);
+  expect(serverSockets.every((socket) => socket.id === firstSocket.id)).toBe(true);
+  expect(firstSocket.rooms).toEqual(new Set([firstSocket.id]));
+  await expect(ctx.io.of('/').fetchSockets()).resolves.toHaveLength(1);
+  expect(client.id).toBe(firstSocket.id);
+});
+
+it('completes again when a retained next runs after the first connection', async () => {
+  let completeAgain!: () => void;
+  ctx.io.use((_socket, next) => {
+    completeAgain = next;
+    next();
+  });
+  const serverSockets: ServerSocketContract[] = [];
+  ctx.io.on('connection', (socket) => {
+    serverSockets.push(socket);
+    if (serverSockets.length === 2) socket.emit('completion-marker');
+  });
+
+  const client = ctx.openClient({ forceNew: true });
+  const connects = count(client, 'connect');
+  await receive(client, 'connect');
+  const marker = receive(client, 'completion-marker');
+  completeAgain();
+  await marker;
+
+  expect(connects.count).toBe(2);
+  expect(serverSockets).toHaveLength(2);
+  expect(serverSockets[1]).toBe(serverSockets[0]);
+  await expect(ctx.io.of('/').fetchSockets()).resolves.toHaveLength(1);
+});
+
+it('ignores a retained next released while the server closes', async () => {
+  let completeAgain!: () => void;
+  ctx.io.use((_socket, next) => {
+    completeAgain = next;
+    next();
+  });
+  let serverConnections = 0;
+  ctx.io.on('connection', () => {
+    serverConnections += 1;
+  });
+
+  const client = ctx.openClient({ forceNew: true });
+  const connects = count(client, 'connect');
+  await receive(client, 'connect');
+  const disconnected = receive(client, 'disconnect');
+
+  const closing = ctx.io.close();
+  completeAgain();
+  await Promise.all([closing, disconnected]);
+
+  expect(serverConnections).toBe(1);
+  expect(connects.count).toBe(1);
+  expect(client.connected).toBe(false);
+});
+
+it('ignores a retained middleware error after the client disconnects', async () => {
+  let rejectLater!: () => void;
+  ctx.io.use((socket, next) => {
+    if (socket.handshake.auth.lateRelease) {
+      rejectLater = () => next(new Error('too late'));
+    }
+    next();
+  });
+  const admitted = ctx.nextConnection();
+
+  const client = ctx.openClient({ auth: { lateRelease: true }, forceNew: true });
+  const connectErrors = count(client, 'connect_error');
+  const serverSocket = await admitted;
+  const { disconnected } = observeDisconnect(serverSocket);
+  client.disconnect();
+  await disconnected;
+
+  const marker = await ctx.connectClient({ auth: { marker: true }, forceNew: true });
+  const settled = receive(marker.client, 'settled');
+  rejectLater();
+  marker.serverSocket.emit('settled');
+  await settled;
+
+  expect(connectErrors.count).toBe(0);
+  expect(client.connected).toBe(false);
+  await expect(ctx.io.of('/').fetchSockets()).resolves.toEqual([marker.serverSocket]);
+});
+
+it('reports a later middleware error after connection and removes the server Socket', async () => {
+  ctx.io.use((socket, next) => {
+    next();
+    if (socket.handshake.auth.lateDenial) next(new Error('late denial'));
+  });
+  let deniedSocket: ServerSocketContract | undefined;
+  const serverLifecycle: string[] = [];
+  let disconnectingRooms = new Set<string>();
+  let disconnectedRooms = new Set<string>();
+  let markServerDisconnected!: () => void;
+  const serverDisconnected = new Promise<void>((resolve) => {
+    markServerDisconnected = resolve;
+  });
+  ctx.io.on('connection', (socket) => {
+    if (socket.handshake.auth.lateDenial) {
+      deniedSocket = socket;
+      socket.once('disconnecting', (reason: string) => {
+        disconnectingRooms = new Set(socket.rooms);
+        serverLifecycle.push(`disconnecting:${reason}`);
+      });
+      socket.once('disconnect', (reason: string) => {
+        disconnectedRooms = new Set(socket.rooms);
+        serverLifecycle.push(`disconnect:${reason}`);
+        markServerDisconnected();
+      });
+    }
+  });
+
+  const client = ctx.openClient({ auth: { lateDenial: true }, forceNew: true });
+  const clientLifecycle: string[] = [];
+  let connectedId: string | undefined;
+  client.on('connect', () => {
+    clientLifecycle.push('connect');
+    connectedId = client.id;
+  });
+  client.on('connect_error', () => clientLifecycle.push('connect_error'));
+  const connects = count(client, 'connect');
+  const connectErrors = count(client, 'connect_error');
+  const connected = receive(client, 'connect');
+  const denied = receive(client, 'connect_error');
+  const [error] = await Promise.all([denied, connected]);
+  await serverDisconnected;
+  expect(disconnectingRooms).toEqual(new Set());
+  expect(disconnectedRooms).toEqual(new Set());
+  expectNoResidualMembership(ctx.io.of('/'));
+
+  const marker = await ctx.connectClient({ auth: { marker: true }, forceNew: true });
+  const settled = receive(marker.client, 'settled');
+  marker.serverSocket.emit('settled');
+  await settled;
+
+  expect(error).toBeInstanceOf(Error);
+  expect((error as Error).message).toBe('late denial');
+  expect(clientLifecycle).toEqual(['connect', 'connect_error']);
+  expect(connects.count).toBe(1);
+  expect(connectErrors.count).toBe(1);
+  expect(client.connected).toBe(true);
+  expect(connectedId).toBeDefined();
+  expect(client.id).toBe(connectedId);
+  expect(deniedSocket?.connected).toBe(false);
+  expect(deniedSocket?.rooms).toEqual(new Set());
+  expect(serverLifecycle).toEqual(['disconnecting:transport close', 'disconnect:transport close']);
+  await expect(ctx.io.of('/').fetchSockets()).resolves.toEqual([marker.serverSocket]);
 });
