@@ -35,6 +35,11 @@ on:
 permissions:
   contents: read
 
+# The fixture intentionally performs a lockfile-free install, so its npm runner
+# is pinned independently of the CLI bundled with the selected Node release.
+env:
+  CLEAN_ADOPTION_NPM_VERSION: 11.6.4
+
 jobs:
   published-consumer:
     name: published package consumer
@@ -55,6 +60,8 @@ jobs:
         run: |
           node scripts/run-chat-room-consumer.mjs published \
             --version "${{ steps.supported-release.outputs.version }}"
+      - name: Install the clean-adoption npm runner
+        run: npm install --global "npm@$CLEAN_ADOPTION_NPM_VERSION"
       - name: Run representative clean-adoption fixtures
         shell: bash
         run: |

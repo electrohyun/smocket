@@ -12,6 +12,11 @@ on:
 permissions:
   contents: read
 
+# Clean adoption resolves a fresh dependency graph outside the checkout. Keep
+# its installer independent of whichever npm release ships with the Node runner.
+env:
+  CLEAN_ADOPTION_NPM_VERSION: 11.6.4
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -92,6 +97,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Install the clean-adoption npm runner
+        run: npm install --global "npm@$CLEAN_ADOPTION_NPM_VERSION"
       - name: Download the verified release candidate
         uses: actions/download-artifact@v8
         with:
@@ -294,6 +301,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Install the clean-adoption npm runner
+        run: npm install --global "npm@$CLEAN_ADOPTION_NPM_VERSION"
       - name: Build one immutable two-package release candidate
         run: pnpm release:candidate
       - name: Reject external imports in the built root package
