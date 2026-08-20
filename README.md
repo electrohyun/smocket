@@ -192,6 +192,7 @@ complete Vitest and Jest setups.
 | A setup that fails before the first event    | [troubleshooting by actual signal](docs/troubleshooting.md)                           |
 | A hand-written socket mock                   | [the problem](#the-problem)                                                           |
 | Wanting to read a program rather than a test | [examples/chat-room](examples/chat-room/)                                             |
+| Wanting to compare real and mock runs        | [the dual-target consumer walkthrough](consumers/chat-room/)                          |
 | Wanting the exact guarantees                 | [the conformance report](docs/conformance.md)                                         |
 
 ## Examples
@@ -202,9 +203,9 @@ moderated announcement, and a disconnect. From a clean checkout, `pnpm install`
 then `pnpm example:chat-room`. CI runs it on every push, so it fails rather than
 rots.
 
-The [chat room package consumer](consumers/chat-room/) runs the same application
-after npm installs either the released package or a tarball built from a pull
-request. It is also available as a
+The [dual-target chat room consumer](consumers/chat-room/) runs the same handlers and
+scenario against real Socket.IO and Smocket after npm installs the released packages
+or tarballs built from a pull request. It is also available as a
 [repository-backed StackBlitz project](https://stackblitz.com/github/electrohyun/smocket).
 
 ## How it compares

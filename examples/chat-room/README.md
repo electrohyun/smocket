@@ -5,13 +5,10 @@ This example is a small scripted chat application with two
 disconnect notification. It uses the workspace copy of Smocket, so CI exercises
 the source under review rather than an installed public release.
 
-This canonical example deliberately uses the retained root `connect` export. ADR
-[0024](../../docs/decisions/0024-assemble-consumer-from-canonical-example.md) also uses
-this source for the exact published `0.4.2` consumer, which predates `smocket-client`.
-The package-name substitution path uses `smocket-client` in the
-[test-runner integration guide](../../docs/test-runner-integration.md). Issue
-[#284](https://github.com/electrohyun/smocket/issues/284) owns the synchronized
-two-package published-consumer transition.
+The workspace bootstrap deliberately uses the retained root `connect` export. The
+[dual-target package consumer](../../consumers/chat-room/) reuses this application's
+handlers and scenario with the published `smocket-client` facade and with real
+Socket.IO.
 
 ## Participants and channels
 
@@ -95,10 +92,12 @@ and verifies that a repeated run does not depend on state left by the previous r
 
 ## File responsibilities
 
-- `app.js` configures the server and owns join, message, welcome, authorization,
-  announcement, and departure behavior.
+- `app.js` exports the shared `registerHandlers` function and owns join, message,
+  welcome, authorization, announcement, and departure behavior.
 - `bootstrap.js` creates the workspace-backed Smocket server and clients, then
   supplies them to the shared scenario.
+- `targets.js` supplies real Socket.IO and Smocket runtime setup to the dual-target
+  test.
 - `scenario.js` creates the three clients, registers observers before actions,
   executes the workflow, returns structured results, formats the transcript, and
   cleans up every client and the server in `finally`.
@@ -107,6 +106,8 @@ and verifies that a repeated run does not depend on state left by the previous r
 - `index.js` prints the transcript returned by the shared scenario.
 - `scenario.test.js` asserts the structured result with `node:test` and
   `node:assert`.
+- `dual-target.test.js` runs the same scenario against both runtimes and compares
+  their complete observations.
 
 ## Smocket APIs in the application
 
