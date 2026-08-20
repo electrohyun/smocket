@@ -1,7 +1,7 @@
 import { expect, it, vi } from 'vitest';
 import type { ServerSocketContract } from './contract';
 import { setupServer } from './setup-server';
-import { observeDisconnect, receive, track } from './test-events';
+import { count, observeDisconnect, receive, track } from './test-events';
 
 // `socket.timeout(ms)` semantics pinned against real socket.io first, then satisfied
 // by smocket. The exact shapes here (error-first `(null, response)` on success, a lone
@@ -197,22 +197,57 @@ it('does not revive a timed callback that expired while buffered', async () => {
     client.disconnect();
     await disconnected;
 
-    const calls: unknown[][] = [];
-    client.timeout(20).emit('expired-buffer', (...args: unknown[]) => calls.push(args));
+    let timeoutError: unknown;
+    client.timeout(20).emit('expired-buffer', (error: unknown) => {
+      timeoutError = error;
+      client.emit('timeout-callback');
+    });
     await vi.advanceTimersByTimeAsync(20);
-    expect(calls).toHaveLength(1);
-    expect(calls[0]?.[0]).toMatchObject({ message: 'operation has timed out' });
+    expect(timeoutError).toMatchObject({ message: 'operation has timed out' });
 
     const connected = receive(client, 'connect');
     const nextServerSocket = ctx.nextConnection();
     client.connect();
     const socket = await nextServerSocket;
-    socket.on('expired-buffer', (ack: (value: string) => void) => ack('too late'));
+    const expiredPacket = track(socket, 'expired-buffer');
+    const callbackCalls = count(socket, 'timeout-callback');
     socket.on('ack-marker', (ack: () => void) => ack());
     await connected;
     await client.emitWithAck('ack-marker');
 
-    expect(calls).toHaveLength(1);
+    expect(callbackCalls.count).toBe(1);
+    expect(expiredPacket.received).toBe(false);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+it('does not deliver emitWithAck after its buffered timeout expires', async () => {
+  vi.useFakeTimers();
+  try {
+    const { client, serverSocket } = await ctx.connectClient();
+    const { disconnected } = observeDisconnect(serverSocket);
+    client.disconnect();
+    await disconnected;
+
+    const pending = client.timeout(20).emitWithAck('expired-promise-buffer');
+    const outcome = pending.then(
+      () => undefined,
+      (error: unknown) => error,
+    );
+    await vi.advanceTimersByTimeAsync(20);
+    await expect(outcome).resolves.toMatchObject({ message: 'operation has timed out' });
+
+    const connected = receive(client, 'connect');
+    const nextServerSocket = ctx.nextConnection();
+    client.connect();
+    const socket = await nextServerSocket;
+    const expiredPacket = track(socket, 'expired-promise-buffer');
+    socket.on('ack-marker', (ack: () => void) => ack());
+    await connected;
+    await client.emitWithAck('ack-marker');
+
+    expect(expiredPacket.received).toBe(false);
   } finally {
     vi.useRealTimers();
   }
