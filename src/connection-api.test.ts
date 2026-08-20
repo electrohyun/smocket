@@ -161,6 +161,54 @@ it('skips cancelled admission and resolves the waiter with the next accepted soc
   expect(serverSocket.id).toBe(acceptedClient.id);
 });
 
+it('offers a repeatedly completed Socket to the direct API only once', async () => {
+  const server = createServer();
+  server.use((socket, next) => {
+    next();
+    if (socket.handshake.auth.repeated) {
+      next();
+      next();
+    }
+  });
+  const firstConnection = server.nextConnection();
+  const secondConnection = server.nextConnection();
+
+  const repeatedClient = server.connect('/', { auth: { repeated: true } });
+  const markerClient = server.connect('/', { forceNew: true });
+  const [repeatedSocket, markerSocket] = await Promise.all([firstConnection, secondConnection]);
+
+  expect(repeatedSocket.id).toBe(repeatedClient.id);
+  expect(markerSocket.id).toBe(markerClient.id);
+  expect(markerSocket).not.toBe(repeatedSocket);
+});
+
+it('does not leave a claimed Socket queued after a repeated middleware error', async () => {
+  const server = createServer();
+  server.use((socket, next) => {
+    next();
+    if (socket.handshake.auth.lateDenial) next(new Error('late denial'));
+  });
+  let markClosed!: () => void;
+  const closed = new Promise<void>((resolve) => {
+    markClosed = resolve;
+  });
+  server.on('connection', (socket) => {
+    if (socket.handshake.auth.lateDenial) socket.once('disconnect', markClosed);
+  });
+
+  const firstConnection = server.nextConnection();
+  const deniedClient = server.connect('/', { auth: { lateDenial: true } });
+  const [deniedSocket] = await Promise.all([firstConnection, closed]);
+
+  const nextConnection = server.nextConnection();
+  const markerClient = server.connect('/', { forceNew: true });
+  const markerSocket = await nextConnection;
+
+  expect(deniedSocket.id).toBe(deniedClient.id);
+  expect(markerSocket.id).toBe(markerClient.id);
+  expect(markerSocket).not.toBe(deniedSocket);
+});
+
 it('close rejects pending static and dynamic namespace observers', async () => {
   const server = createServer();
   server.of('/game');
