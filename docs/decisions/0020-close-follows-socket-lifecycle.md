@@ -5,7 +5,7 @@
 
 > **TL;DR** Socket.io 4.7 and 4.8 share the close callback and lifecycle but differ in
 > return value; smocket accepts the callback and returns the 4.8 promise. It leaves an armed
-> [ack](../glossary.md#ack) timeout running and removes this server from the
+> server-side [ack](../glossary.md#ack) timeout running and removes this server from the
 > [origin registry](../glossary.md#origin-registry) only while it owns the entry.
 
 ## Decision
@@ -13,7 +13,8 @@
 Real socket.io 4.7 and 4.8 close every [namespace](../glossary.md#namespace) socket before its
 listener. The server socket fires `disconnecting` and then `disconnect`, both with
 `server shutting down`; the client observes `transport close`. A pending client `emitWithAck`
-rejects with `socket has been disconnected`, while a pending server `emitWithAck` stays pending.
+rejects with `socket has been disconnected`, and a sent timed client callback receives the same
+error once. A pending server `emitWithAck` stays pending.
 A connection started immediately before close never reaches `connection`; its client observes
 `connect_error` instead, so close cannot resolve and then admit a socket that escaped teardown.
 Both versions invoke an optional callback when close completes. A later callback receives
