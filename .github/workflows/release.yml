@@ -17,6 +17,11 @@ concurrency:
   group: npm-publication
   cancel-in-progress: false
 
+# Candidate and published-package adoption resolve fresh dependency graphs.
+# Keep their installer aligned with the npm CLI used for trusted publication.
+env:
+  RELEASE_NPM_VERSION: 11.6.4
+
 jobs:
   authorize:
     name: authorize main repository release
@@ -45,6 +50,8 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Install the release npm runner
+        run: npm install --global "npm@$RELEASE_NPM_VERSION"
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm format:check
@@ -110,6 +117,8 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Install the release npm runner
+        run: npm install --global "npm@$RELEASE_NPM_VERSION"
       - uses: actions/download-artifact@v8
         with:
           name: npm-release-candidate-${{ github.run_id }}
@@ -135,7 +144,7 @@ jobs:
           node-version: 24
           registry-url: https://registry.npmjs.org
           package-manager-cache: false
-      - run: npm install --global npm@11.6.4
+      - run: npm install --global "npm@$RELEASE_NPM_VERSION"
       - uses: actions/download-artifact@v8
         with:
           name: npm-release-candidate-${{ github.run_id }}
@@ -166,7 +175,7 @@ jobs:
           node-version: 24
           registry-url: https://registry.npmjs.org
           package-manager-cache: false
-      - run: npm install --global npm@11.6.4
+      - run: npm install --global "npm@$RELEASE_NPM_VERSION"
       - uses: actions/download-artifact@v8
         with:
           name: npm-release-candidate-${{ github.run_id }}
@@ -193,6 +202,8 @@ jobs:
           node-version: 24
           registry-url: https://registry.npmjs.org
           package-manager-cache: false
+      - name: Install the release npm runner
+        run: npm install --global "npm@$RELEASE_NPM_VERSION"
       - name: Install and exercise the exact published pair
         env:
           RELEASE_VERSION: ${{ inputs.version }}
