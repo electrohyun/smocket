@@ -14,6 +14,7 @@ import {
   normalizeTarEntryPath,
 } from './check-packed-package.mjs';
 import { inspectClientPackagePolicy } from './check-client-package.mjs';
+import { assertCandidatePackageIdentities } from './chat-room-consumer-validation.mjs';
 import { detectExternalImports } from './detect-external-imports.js';
 import { loadReleaseCandidate } from './release-candidate.mjs';
 
@@ -229,6 +230,51 @@ describe('client facade package policy', () => {
     expect(result.violations).toContain(
       'packed tarball must not contain package/node_modules/smocket/dist/index.js',
     );
+  });
+});
+
+describe('chat-room candidate package identity', () => {
+  const version = '0.5.0';
+  const rootPackage = { name: 'smocket', version };
+  const clientPackage = { name: 'smocket-client', version };
+
+  it('accepts the synchronized root and client packages', () => {
+    expect(() =>
+      assertCandidatePackageIdentities(rootPackage, clientPackage, version),
+    ).not.toThrow();
+  });
+
+  it('rejects the root package supplied to both candidate slots', () => {
+    expect(() => assertCandidatePackageIdentities(rootPackage, rootPackage, version)).toThrow(
+      'client candidate must install smocket-client',
+    );
+  });
+
+  it('rejects an invalid root package name', () => {
+    const invalidRootPackage = { ...rootPackage, name: 'not-smocket' };
+
+    expect(() =>
+      assertCandidatePackageIdentities(invalidRootPackage, clientPackage, version),
+    ).toThrow('root candidate must install smocket');
+  });
+
+  it('rejects root and client versions that do not match the candidate', () => {
+    const wrongVersion = '0.5.1';
+
+    expect(() =>
+      assertCandidatePackageIdentities(
+        { ...rootPackage, version: wrongVersion },
+        clientPackage,
+        version,
+      ),
+    ).toThrow(`root candidate version must match ${version}`);
+    expect(() =>
+      assertCandidatePackageIdentities(
+        rootPackage,
+        { ...clientPackage, version: wrongVersion },
+        version,
+      ),
+    ).toThrow(`client candidate version must match ${version}`);
   });
 });
 

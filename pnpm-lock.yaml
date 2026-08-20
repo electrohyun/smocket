@@ -276,6 +276,15 @@ importers:
       smocket:
         specifier: workspace:*
         version: link:../..
+      smocket-client:
+        specifier: workspace:*
+        version: link:../../packages/smocket-client
+      socket.io:
+        specifier: 4.8.3
+        version: 4.8.3(supports-color@7.2.0)
+      socket.io-client:
+        specifier: 4.8.3
+        version: 4.8.3(supports-color@7.2.0)
 
   packages/smocket-client:
     devDependencies:
