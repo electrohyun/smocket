@@ -229,17 +229,19 @@ JSON results, snapshot timing, invalid data, and reference isolation.
 `timeout(ms)` on a single emit, and what a late ack does.
 
 - [the timeout callback receives (null, response) when the ack wins](../src/timeout.test.ts#L14)
-- [works server-to-client with the same success shape](../src/timeout.test.ts#L23)
-- [returns the same socket and consumes a direct timeout once, on both sides](../src/timeout.test.ts#L32)
-- [keeps a recipient timeout pending across plain and ack-collecting broadcasts](../src/timeout.test.ts#L61)
-- [the callback gets a single timeout Error when the peer never acks](../src/timeout.test.ts#L85)
-- [times out the same way server-to-client](../src/timeout.test.ts#L98)
-- [drops a late ack that arrives after the timeout already fired](../src/timeout.test.ts#L111)
-- [timeout().emitWithAck resolves with the response when the ack wins](../src/timeout.test.ts#L140)
-- [timeout().emitWithAck rejects with the timeout Error on expiry](../src/timeout.test.ts#L146)
-- [server timeout().emitWithAck resolves and rejects with the same one-shot decoration](../src/timeout.test.ts#L154)
-- [times out volatile server emits in either modifier order without delivering them](../src/timeout.test.ts#L167)
-- [a callback-less timeout emit still delivers and arms no timer](../src/timeout.test.ts#L209)
+- [works server-to-client with the same success shape](../src/timeout.test.ts#L32)
+- [returns the same socket and consumes a direct timeout once, on both sides](../src/timeout.test.ts#L41)
+- [keeps a recipient timeout pending across plain and ack-collecting broadcasts](../src/timeout.test.ts#L70)
+- [the callback gets a single timeout Error when the peer never acks](../src/timeout.test.ts#L94)
+- [times out the same way server-to-client](../src/timeout.test.ts#L107)
+- [drops a late ack that arrives after the timeout already fired](../src/timeout.test.ts#L120)
+- [timeout().emitWithAck resolves with the response when the ack wins](../src/timeout.test.ts#L149)
+- [timeout().emitWithAck rejects with the timeout Error on expiry](../src/timeout.test.ts#L155)
+- [keeps a timed callback buffered until reconnect and settles it normally](../src/timeout.test.ts#L163)
+- [does not revive a timed callback that expired while buffered](../src/timeout.test.ts#L192)
+- [server timeout().emitWithAck resolves and rejects with the same one-shot decoration](../src/timeout.test.ts#L221)
+- [times out volatile server emits in either modifier order without delivering them](../src/timeout.test.ts#L234)
+- [a callback-less timeout emit still delivers and arms no timer](../src/timeout.test.ts#L276)
 
 ### Broadcast acknowledgements
 
@@ -472,11 +474,14 @@ Room cleanup, the reason each side reports, and what happens to a pending ack.
 - [a pending client.emitWithAck rejects when the connection drops](../src/disconnect.test.ts#L153)
 - [disconnect clears a pending client timeout before rejecting emitWithAck](../src/disconnect.test.ts#L165)
 - [a disconnect from an outgoing observer clears the current emitWithAck timeout](../src/disconnect.test.ts#L191)
-- [a trailing-callback ack is silently discarded when the connection drops](../src/disconnect.test.ts#L218)
-- [a pending server.emitWithAck stays pending when the client disconnects](../src/disconnect.test.ts#L237)
-- [client.disconnect() reports io client disconnect to the client and client namespace disconnect to the server](../src/disconnect.test.ts#L263)
-- [serverSocket.disconnect() reports io server disconnect to the client and server namespace disconnect to the server](../src/disconnect.test.ts#L279)
-- [disconnecting carries the same reason and fires before disconnect](../src/disconnect.test.ts#L295)
+- [client disconnect settles a sent timed callback once and clears its timer](../src/disconnect.test.ts#L218)
+- [server Socket disconnect settles a sent client timed callback once](../src/disconnect.test.ts#L244)
+- [an outgoing observer disconnect settles the timed callback being sent](../src/disconnect.test.ts#L271)
+- [a trailing-callback ack is silently discarded when the connection drops](../src/disconnect.test.ts#L296)
+- [a pending server.emitWithAck stays pending when the client disconnects](../src/disconnect.test.ts#L315)
+- [client.disconnect() reports io client disconnect to the client and client namespace disconnect to the server](../src/disconnect.test.ts#L341)
+- [serverSocket.disconnect() reports io server disconnect to the client and server namespace disconnect to the server](../src/disconnect.test.ts#L357)
+- [disconnecting carries the same reason and fires before disconnect](../src/disconnect.test.ts#L373)
 
 ### Shared Manager disconnect
 
@@ -504,8 +509,9 @@ Server-wide teardown, its reasons, and what happens to pending acknowledgements.
 - [close rejects dynamic admission allowed after shutdown](../src/server-close.test.ts#L83)
 - [close disconnects every namespace with the shutdown reasons](../src/server-close.test.ts#L111)
 - [close rejects a pending client emitWithAck](../src/server-close.test.ts#L145)
-- [close leaves a pending server emitWithAck pending](../src/server-close.test.ts#L157)
-- [close does not cancel an armed server acknowledgement timeout](../src/server-close.test.ts#L181)
+- [close settles a sent client timed callback once and clears its timer](../src/server-close.test.ts#L157)
+- [close leaves a pending server emitWithAck pending](../src/server-close.test.ts#L184)
+- [close does not cancel an armed server acknowledgement timeout](../src/server-close.test.ts#L208)
 
 ### Return values
 

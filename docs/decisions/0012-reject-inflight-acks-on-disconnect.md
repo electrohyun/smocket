@@ -3,9 +3,9 @@
 **Status:** Accepted · 2026-07-28 · #67
 
 > **TL;DR** When a client disconnects with an [ack](../glossary.md#ack) still
-> pending, its `emitWithAck` promise is rejected rather than left hanging. Other
-> pending ack forms stay pending, and an ack retained by the receiver cannot settle
-> them after that connection ends.
+> pending, its `emitWithAck` promise is rejected rather than left hanging. A sent
+> timed callback receives the same disconnect error once, while untimed callbacks
+> and server-originated acknowledgements stay pending.
 
 ## Decision
 
@@ -24,9 +24,19 @@ Every acknowledgement callback belongs to the connection generation that deliver
 it. A receiver may retain that function, but invoking it after a client disconnect,
 a server Socket disconnect, or server close is discarded. Reconnecting the same
 client does not revive the old callback. This applies in both direct directions and
-to each response in a broadcast collector. The callback and server-to-client
-`emitWithAck` forms therefore remain pending after disconnect unless their own timeout
-settles them; a disconnected broadcast recipient likewise remains outstanding.
+to each response in a broadcast collector.
+
+The sender-side callback form then splits according to whether the client decorated it
+with `timeout(ms)`. A sent timed callback receives one
+`Error("socket has been disconnected")` when the client disconnects, the server Socket
+disconnects it, or the server closes. That settlement clears the armed timer, so expiry
+cannot invoke the callback again. An untimed callback and a server-to-client
+`emitWithAck` remain pending. A disconnected broadcast recipient likewise remains
+outstanding until the collector timeout, if any, settles the operation.
+
+A client packet buffered before connection has not been sent and keeps its existing
+reconnect behavior. Its timed callback becomes teardown-owned only when that buffered
+packet is flushed into a connection.
 
 ## Alternatives rejected
 
