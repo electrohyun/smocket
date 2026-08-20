@@ -83,10 +83,11 @@ export class Namespace extends NodeEmitter implements NamespaceContract {
   pair(client: ClientSocket, source?: ConnectOptions): void {
     const attempt = client.beginConnectionAttempt();
     if (!attempt) return;
-    this.continuePair(client, attempt, source);
+    defer(() => this.continuePair(client, attempt, source));
   }
 
   continuePair(client: ClientSocket, attempt: ConnectionAttempt, source?: ConnectOptions): void {
+    if (!client.isConnectionAttemptPending(attempt)) return;
     if (this.rejectIfClosed(client, attempt)) return;
     resolveAuth(source?.auth, (auth) => {
       if (!client.isConnectionAttemptPending(attempt)) return;

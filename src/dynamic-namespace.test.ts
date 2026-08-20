@@ -188,6 +188,42 @@ it('tries function matchers in order with normalized names and auth until one al
   ]);
 });
 
+it('invokes a dynamic namespace matcher after the client factory returns', async () => {
+  const order: string[] = [];
+  ctx.io.of((_name, _auth, next) => {
+    order.push('matcher');
+    next(null, true);
+  });
+
+  const client = ctx.openClient({ namespace: '/return-boundary' });
+  order.push('connect returned');
+  await receive(client, 'connect');
+
+  expect(order).toEqual(['connect returned', 'matcher']);
+});
+
+it('does not invoke a dynamic matcher for a connection cancelled after return', async () => {
+  let matcherRuns = 0;
+  ctx.io.of((_name, _auth, next) => {
+    matcherRuns += 1;
+    next(null, true);
+  });
+
+  const cancelled = ctx.openClient({ namespace: '/cancelled-return', forceNew: true });
+  const connects = track(cancelled, 'connect');
+  const connectErrors = track(cancelled, 'connect_error');
+  const disconnects = track(cancelled, 'disconnect');
+  cancelled.disconnect();
+
+  const marker = ctx.openClient({ namespace: '/marker-return', forceNew: true });
+  await receive(marker, 'connect');
+
+  expect(matcherRuns).toBe(1);
+  expect(connects.received).toBe(false);
+  expect(connectErrors.received).toBe(false);
+  expect(disconnects.received).toBe(false);
+});
+
 it('rejects an unmatched dynamic namespace as Invalid namespace', async () => {
   ctx.io.of(/^\/tenant-\d+$/);
   ctx.io.of((_name, _auth, next) => next(null, false));

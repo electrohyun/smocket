@@ -25,7 +25,7 @@ import type {
   TimeoutBroadcastContract,
   ConnectionMiddleware,
 } from '../contract';
-import { resolveAuth, serverClosedError } from './delivery';
+import { defer, resolveAuth, serverClosedError } from './delivery';
 import { NodeEmitter, type Listener, type OrdinaryEventName } from './emitters';
 import { Manager } from './manager';
 import { Namespace, ParentNamespace, type Waiter } from './namespaces';
@@ -325,35 +325,38 @@ export class Server<
     const attempt = client.beginConnectionAttempt();
     if (!attempt) return;
     const source = client.connectionSource();
-    resolveAuth(source?.auth, (auth) => {
+    defer(() => {
       if (!client.isConnectionAttemptPending(attempt)) return;
-      const tryParent = (index: number): void => {
-        const parent = this.parents[index];
-        if (!parent) {
-          client.rejectConnectionAttempt(attempt, new Error('Invalid namespace'));
-          return;
-        }
-        parent.matches(name, auth, (allowed) => {
-          if (!allowed) {
-            tryParent(index + 1);
+      resolveAuth(source?.auth, (auth) => {
+        if (!client.isConnectionAttemptPending(attempt)) return;
+        const tryParent = (index: number): void => {
+          const parent = this.parents[index];
+          if (!parent) {
+            client.rejectConnectionAttempt(attempt, new Error('Invalid namespace'));
             return;
           }
-          let child: Namespace;
-          try {
-            child = this.getNamespace(name, parent);
-          } catch (error) {
-            client.rejectConnectionAttempt(
-              attempt,
-              error instanceof Error ? error : new Error(String(error)),
-            );
-            return;
-          }
-          if (!client.isConnectionAttemptPending(attempt)) return;
-          client.attachNamespace(child);
-          child.continuePair(client, attempt, { ...source, auth });
-        });
-      };
-      tryParent(0);
+          parent.matches(name, auth, (allowed) => {
+            if (!allowed) {
+              tryParent(index + 1);
+              return;
+            }
+            let child: Namespace;
+            try {
+              child = this.getNamespace(name, parent);
+            } catch (error) {
+              client.rejectConnectionAttempt(
+                attempt,
+                error instanceof Error ? error : new Error(String(error)),
+              );
+              return;
+            }
+            if (!client.isConnectionAttemptPending(attempt)) return;
+            client.attachNamespace(child);
+            child.continuePair(client, attempt, { ...source, auth });
+          });
+        };
+        tryParent(0);
+      });
     });
   }
 
