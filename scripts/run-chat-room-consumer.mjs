@@ -14,41 +14,60 @@ import { tmpdir } from 'node:os';
 import { dirname, isAbsolute, join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { assertCandidatePackageIdentities } from './chat-room-consumer-validation.mjs';
+
 const modes = new Set(['candidate', 'published']);
 const mode = process.argv[2];
 const tarballIndex = process.argv.indexOf('--tarball');
 const suppliedTarball = tarballIndex === -1 ? undefined : process.argv[tarballIndex + 1];
+const clientTarballIndex = process.argv.indexOf('--client-tarball');
+const suppliedClientTarball =
+  clientTarballIndex === -1 ? undefined : process.argv[clientTarballIndex + 1];
 const versionIndex = process.argv.indexOf('--version');
 const suppliedVersion = versionIndex === -1 ? undefined : process.argv[versionIndex + 1];
 
 if (!modes.has(mode)) {
   throw new Error(
-    'Usage: node scripts/run-chat-room-consumer.mjs <candidate|published> [--tarball <absolute-path>] [--version <exact-version>]',
+    'Usage: node scripts/run-chat-room-consumer.mjs <candidate|published> [--tarball <absolute-path> --client-tarball <absolute-path>] [--version <exact-version>]',
   );
 }
 if (tarballIndex !== -1 && (suppliedTarball === undefined || suppliedTarball.startsWith('--'))) {
   throw new Error('--tarball requires a path');
 }
+if (
+  clientTarballIndex !== -1 &&
+  (suppliedClientTarball === undefined || suppliedClientTarball.startsWith('--'))
+) {
+  throw new Error('--client-tarball requires a path');
+}
 if (versionIndex !== -1 && (suppliedVersion === undefined || suppliedVersion.startsWith('--'))) {
   throw new Error('--version requires an exact version');
 }
 if (mode === 'candidate' && suppliedVersion !== undefined) {
-  throw new Error('candidate mode accepts --tarball instead of --version');
+  throw new Error('candidate mode accepts tarballs instead of --version');
 }
-if (mode === 'published' && suppliedTarball !== undefined) {
-  throw new Error('published mode accepts --version instead of --tarball');
+if (
+  mode === 'published' &&
+  (suppliedTarball !== undefined || suppliedClientTarball !== undefined)
+) {
+  throw new Error('published mode accepts --version instead of tarballs');
+}
+if ((suppliedTarball === undefined) !== (suppliedClientTarball === undefined)) {
+  throw new Error('--tarball and --client-tarball must be supplied together');
 }
 
 const repositoryRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const consumerRoot = join(repositoryRoot, 'consumers', 'chat-room');
 const exampleRoot = join(repositoryRoot, 'examples', 'chat-room');
+const clientPackageRoot = join(repositoryRoot, 'packages', 'smocket-client');
 const applicationFiles = [
   'app.js',
   'assertions.js',
   'bootstrap.js',
+  'dual-target.test.js',
   'index.js',
   'scenario.js',
-  'scenario.test.js',
+  'targets.js',
 ];
 
 function run(command, args, cwd) {
@@ -112,11 +131,17 @@ async function assembleProject(projectRoot, includeLockfile) {
 async function installPublished(projectRoot) {
   const manifest = await readJson(join(projectRoot, 'package.json'));
   const expectedVersion = manifest.dependencies.smocket;
+  const expectedClientVersion = manifest.dependencies['smocket-client'];
 
   assert.match(
     expectedVersion,
     /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/,
     'the published consumer must pin an exact Smocket version',
+  );
+  assert.equal(
+    expectedClientVersion,
+    expectedVersion,
+    'the published consumer must pin both Smocket packages at one version',
   );
   if (suppliedVersion !== undefined) {
     assert.equal(
@@ -130,53 +155,86 @@ async function installPublished(projectRoot) {
 
   const lockfile = await readJson(join(projectRoot, 'package-lock.json'));
   const lockedPackage = lockfile.packages['node_modules/smocket'];
+  const lockedClientPackage = lockfile.packages['node_modules/smocket-client'];
   const installedPackage = await readJson(
     join(projectRoot, 'node_modules', 'smocket', 'package.json'),
   );
+  const installedClientPackage = await readJson(
+    join(projectRoot, 'node_modules', 'smocket-client', 'package.json'),
+  );
 
   assert.equal(lockfile.packages[''].dependencies.smocket, expectedVersion);
+  assert.equal(lockfile.packages[''].dependencies['smocket-client'], expectedClientVersion);
   assert.equal(lockedPackage.version, expectedVersion);
+  assert.equal(lockedClientPackage.version, expectedClientVersion);
   assert.match(lockedPackage.resolved, /^https:\/\/registry\.npmjs\.org\/smocket\//);
+  assert.match(lockedClientPackage.resolved, /^https:\/\/registry\.npmjs\.org\/smocket-client\//);
   assert.equal(installedPackage.version, expectedVersion);
+  assert.equal(installedClientPackage.version, expectedClientVersion);
+}
+
+async function packCandidate(packageRoot, archiveRoot) {
+  await mkdir(archiveRoot, { recursive: true });
+  const existingArchives = new Set(await readdir(archiveRoot));
+  await run(
+    'npm',
+    ['pack', '.', '--ignore-scripts', '--pack-destination', archiveRoot],
+    packageRoot,
+  );
+  const archives = (await readdir(archiveRoot)).filter(
+    (file) => file.endsWith('.tgz') && !existingArchives.has(file),
+  );
+  assert.equal(archives.length, 1, `npm pack must produce one tarball for ${packageRoot}`);
+  return join(archiveRoot, archives[0]);
 }
 
 async function installCandidate(projectRoot, temporaryRoot) {
   const rootManifest = await readJson(join(repositoryRoot, 'package.json'));
   let archivePath;
+  let clientArchivePath;
   if (suppliedTarball === undefined) {
     const archiveRoot = join(temporaryRoot, 'package');
     await access(join(repositoryRoot, 'dist', 'index.js'));
-    await mkdir(archiveRoot);
-    await run(
-      'npm',
-      ['pack', '.', '--ignore-scripts', '--pack-destination', archiveRoot],
-      repositoryRoot,
-    );
-    const archives = (await readdir(archiveRoot)).filter((file) => file.endsWith('.tgz'));
-    assert.equal(archives.length, 1, 'npm pack must produce exactly one tarball');
-    archivePath = join(archiveRoot, archives[0]);
+    await access(join(clientPackageRoot, 'dist', 'index.mjs'));
+    archivePath = await packCandidate(repositoryRoot, archiveRoot);
+    clientArchivePath = await packCandidate(clientPackageRoot, archiveRoot);
   } else {
     assert.equal(isAbsolute(suppliedTarball), true, 'candidate --tarball must be an absolute path');
+    assert.equal(
+      isAbsolute(suppliedClientTarball),
+      true,
+      'candidate --client-tarball must be an absolute path',
+    );
     await access(suppliedTarball);
+    await access(suppliedClientTarball);
     archivePath = suppliedTarball;
+    clientArchivePath = suppliedClientTarball;
   }
   const manifestPath = join(projectRoot, 'package.json');
   const manifest = await readJson(manifestPath);
   const packageInput = asFileDependency(relative(projectRoot, archivePath));
+  const clientPackageInput = asFileDependency(relative(projectRoot, clientArchivePath));
 
   manifest.dependencies.smocket = packageInput;
+  manifest.dependencies['smocket-client'] = clientPackageInput;
   await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
   await run('npm', ['install', '--ignore-scripts', '--no-audit', '--no-fund'], projectRoot);
 
   const lockfile = await readJson(join(projectRoot, 'package-lock.json'));
   const lockedPackage = lockfile.packages['node_modules/smocket'];
+  const lockedClientPackage = lockfile.packages['node_modules/smocket-client'];
   const installedPackage = await readJson(
     join(projectRoot, 'node_modules', 'smocket', 'package.json'),
   );
+  const installedClientPackage = await readJson(
+    join(projectRoot, 'node_modules', 'smocket-client', 'package.json'),
+  );
 
   assert.equal(lockfile.packages[''].dependencies.smocket, packageInput);
+  assert.equal(lockfile.packages[''].dependencies['smocket-client'], clientPackageInput);
   assert.equal(lockedPackage.resolved, packageInput);
-  assert.equal(installedPackage.version, rootManifest.version);
+  assert.equal(lockedClientPackage.resolved, clientPackageInput);
+  assertCandidatePackageIdentities(installedPackage, installedClientPackage, rootManifest.version);
 }
 
 const nodeMajor = Number.parseInt(process.versions.node.split('.')[0], 10);

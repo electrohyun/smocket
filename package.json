@@ -67,7 +67,7 @@
     "verify:published-release": "node scripts/verify-published-release.mjs",
     "check:package": "pnpm build && pnpm assert:no-imports && pnpm assert:packed-package && pnpm publint && pnpm attw",
     "check:client-package": "pnpm --filter smocket-client build && pnpm --filter smocket-client test && node scripts/check-client-package.mjs && pnpm --filter smocket-client publint && pnpm --filter smocket-client attw",
-    "example:chat-room": "pnpm build && pnpm --filter chat-room-example test && pnpm --filter chat-room-example start",
+    "example:chat-room": "pnpm build && pnpm --filter smocket-client build && pnpm --filter chat-room-example test && pnpm --filter chat-room-example start",
     "consumer:chat-room:published": "node scripts/run-chat-room-consumer.mjs published",
     "consumer:chat-room:candidate": "node scripts/run-chat-room-consumer.mjs candidate",
     "consumer:client:candidate": "node scripts/run-client-package-consumer.mjs",

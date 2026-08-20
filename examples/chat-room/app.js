@@ -9,10 +9,7 @@ const participantNames = new Map([
 // consulted when deciding whether an announcement is allowed.
 const moderators = new Set(['alice']);
 
-export function createChatApplication({ io, url, close }) {
-  let closing = false;
-  let closePromise;
-
+export function registerHandlers(io, { isClosing = () => false } = {}) {
   io.on('connection', (socket) => {
     const participantId = socket.handshake.auth.participantId;
     const participantName = participantNames.get(participantId) ?? participantId;
@@ -61,7 +58,7 @@ export function createChatApplication({ io, url, close }) {
     });
 
     socket.on('disconnecting', () => {
-      if (closing) return;
+      if (isClosing()) return;
 
       for (const channel of socket.rooms) {
         if (!channels.has(channel)) continue;
@@ -73,6 +70,13 @@ export function createChatApplication({ io, url, close }) {
       }
     });
   });
+}
+
+export function createChatApplication({ io, url, close }) {
+  let closing = false;
+  let closePromise;
+
+  registerHandlers(io, { isClosing: () => closing });
 
   return {
     io,

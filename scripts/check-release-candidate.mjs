@@ -83,6 +83,8 @@ await run(process.execPath, [
   'candidate',
   '--tarball',
   candidate.rootTarball,
+  '--client-tarball',
+  candidate.clientTarball,
 ]);
 
 candidate = await verifiedCandidate(manifestPath);
