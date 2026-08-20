@@ -144,6 +144,23 @@ it('rejected client emits reach neither the peer nor outgoing catch-alls', async
   expect(outgoing).toEqual(['client-marker']);
 });
 
+it('a rejected client event retains its timeout for the next completed emit', async () => {
+  const { client, serverSocket } = await ctx.connectClient();
+  serverSocket.on('echo', (ack: (value: string) => void) => ack('answer'));
+
+  client.timeout(1000);
+  expect(() => client.emit('disconnect')).toThrowError(reservedError('disconnect'));
+  const first = await new Promise<unknown[]>((resolve) => {
+    client.emit('echo', (...args: unknown[]) => resolve(args));
+  });
+  const second = await new Promise<unknown[]>((resolve) => {
+    client.emit('echo', (...args: unknown[]) => resolve(args));
+  });
+
+  expect(first).toEqual([null, 'answer']);
+  expect(second).toEqual(['answer']);
+});
+
 it('emitWithAck rejects reserved names without firing outgoing catch-alls', async () => {
   const { client, serverSocket } = await ctx.connectClient();
   const serverOutgoing: string[] = [];

@@ -292,6 +292,31 @@ it('circular and BigInt payloads fail before delivery in both directions', async
   expect(clientBad.received).toBe(false);
 });
 
+it('only a client timeout survives a payload encoding failure', async () => {
+  const { client, serverSocket } = await ctx.connectClient();
+  serverSocket.on('client-echo', (ack: (value: string) => void) => ack('answer'));
+  client.on('server-echo', (ack: (value: string) => void) => ack('answer'));
+
+  client.timeout(1000);
+  expect(() => client.emit('client-bad', 1n)).toThrow();
+  const clientFirst = await new Promise<unknown[]>((resolve) => {
+    client.emit('client-echo', (...args: unknown[]) => resolve(args));
+  });
+  const clientSecond = await new Promise<unknown[]>((resolve) => {
+    client.emit('client-echo', (...args: unknown[]) => resolve(args));
+  });
+
+  serverSocket.timeout(1000);
+  expect(() => serverSocket.emit('server-bad', 1n)).toThrow();
+  const serverNext = await new Promise<unknown[]>((resolve) => {
+    serverSocket.emit('server-echo', (...args: unknown[]) => resolve(args));
+  });
+
+  expect(clientFirst).toEqual([null, 'answer']);
+  expect(clientSecond).toEqual(['answer']);
+  expect(serverNext).toEqual(['answer']);
+});
+
 it('timeout and connected volatile wrappers use the same payload boundary', async () => {
   const { client, serverSocket } = await ctx.connectClient();
   let requestSeen: unknown;

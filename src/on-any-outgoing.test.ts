@@ -25,6 +25,27 @@ it('a client-side outgoing catch-all fires for a client emit', async () => {
   expect(seen).toEqual([['hello', ['x']]]);
 });
 
+it('a client timeout survives an outgoing catch-all throw and is then consumed once', async () => {
+  const { client, serverSocket } = await ctx.connectClient();
+  const observerError = new Error('outgoing observer failed');
+  client.onAnyOutgoing((event) => {
+    if (event === 'bad') throw observerError;
+  });
+  serverSocket.on('echo', (ack: (value: string) => void) => ack('answer'));
+
+  client.timeout(1000);
+  expect(() => client.emit('bad')).toThrow(observerError);
+  const first = await new Promise<unknown[]>((resolve) => {
+    client.emit('echo', (...args: unknown[]) => resolve(args));
+  });
+  const second = await new Promise<unknown[]>((resolve) => {
+    client.emit('echo', (...args: unknown[]) => resolve(args));
+  });
+
+  expect(first).toEqual([null, 'answer']);
+  expect(second).toEqual(['answer']);
+});
+
 it('a connected volatile emit fires the outgoing catch-all, on both sides', async () => {
   const { client, serverSocket } = await ctx.connectClient();
   const seenServer: Array<[unknown, unknown[]]> = [];
