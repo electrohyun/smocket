@@ -222,7 +222,8 @@ JSON results, snapshot timing, invalid data, and reference isolation.
 - [a plain toJSON result keeps an original binary property out of the packet](../src/payload-serialization.test.ts#L253)
 - [a broadcast encodes even when its room has no recipients](../src/payload-serialization.test.ts#L267)
 - [circular and BigInt payloads fail before delivery in both directions](../src/payload-serialization.test.ts#L273)
-- [timeout and connected volatile wrappers use the same payload boundary](../src/payload-serialization.test.ts#L295)
+- [only a client timeout survives a payload encoding failure](../src/payload-serialization.test.ts#L295)
+- [timeout and connected volatile wrappers use the same payload boundary](../src/payload-serialization.test.ts#L320)
 
 ### Acknowledgement timeouts
 
@@ -392,24 +393,25 @@ What `volatile` delivers in steady state, and the one window where it drops.
 
 - [a server-side outgoing catch-all fires for a direct emit with the event name and args](../src/on-any-outgoing.test.ts#L12)
 - [a client-side outgoing catch-all fires for a client emit](../src/on-any-outgoing.test.ts#L20)
-- [a connected volatile emit fires the outgoing catch-all, on both sides](../src/on-any-outgoing.test.ts#L28)
-- [the outgoing catch-all runs before the peer receives the event](../src/on-any-outgoing.test.ts#L40)
-- [io.emit fires the outgoing catch-all on every recipient socket](../src/on-any-outgoing.test.ts#L55)
-- [a broadcast fires the outgoing catch-all on the reached socket, but not the sender](../src/on-any-outgoing.test.ts#L67)
-- [the outgoing catch-all does not fire for the disconnect lifecycle](../src/on-any-outgoing.test.ts#L79)
-- [the ack callback is stripped from the outgoing catch-all args, for emit and emitWithAck](../src/on-any-outgoing.test.ts#L90)
-- [offAnyOutgoing(listener) removes one, offAnyOutgoing() removes all](../src/on-any-outgoing.test.ts#L106)
-- [the client side carries offAnyOutgoing too](../src/on-any-outgoing.test.ts#L123)
-- [server prependAnyOutgoing listeners run newest-first before onAnyOutgoing listeners](../src/on-any-outgoing.test.ts#L134)
-- [client prependAnyOutgoing listeners run newest-first before onAnyOutgoing listeners](../src/on-any-outgoing.test.ts#L146)
-- [server listenersAnyOutgoing is live and removes the first matching duplicate](../src/on-any-outgoing.test.ts#L158)
-- [client listenersAnyOutgoing is live and removes the first matching duplicate](../src/on-any-outgoing.test.ts#L176)
-- [offAnyOutgoing replaces both sides backing arrays and detaches earlier lookups](../src/on-any-outgoing.test.ts#L194)
-- [outgoing catch-all dispatch snapshots listener mutations on both sides](../src/on-any-outgoing.test.ts#L217)
-- [the client outgoing catch-all omits ack callbacks for emit and emitWithAck](../src/on-any-outgoing.test.ts#L249)
-- [empty listenersAnyOutgoing lookups are fresh and cannot install listeners on either side](../src/on-any-outgoing.test.ts#L271)
-- [offAnyOutgoing on untouched sockets keeps empty lookups fresh and inert](../src/on-any-outgoing.test.ts#L292)
-- [offAnyOutgoing detaches the old arrays and installs stable empty replacements](../src/on-any-outgoing.test.ts#L314)
+- [a client timeout survives an outgoing catch-all throw and is then consumed once](../src/on-any-outgoing.test.ts#L28)
+- [a connected volatile emit fires the outgoing catch-all, on both sides](../src/on-any-outgoing.test.ts#L49)
+- [the outgoing catch-all runs before the peer receives the event](../src/on-any-outgoing.test.ts#L61)
+- [io.emit fires the outgoing catch-all on every recipient socket](../src/on-any-outgoing.test.ts#L76)
+- [a broadcast fires the outgoing catch-all on the reached socket, but not the sender](../src/on-any-outgoing.test.ts#L88)
+- [the outgoing catch-all does not fire for the disconnect lifecycle](../src/on-any-outgoing.test.ts#L100)
+- [the ack callback is stripped from the outgoing catch-all args, for emit and emitWithAck](../src/on-any-outgoing.test.ts#L111)
+- [offAnyOutgoing(listener) removes one, offAnyOutgoing() removes all](../src/on-any-outgoing.test.ts#L127)
+- [the client side carries offAnyOutgoing too](../src/on-any-outgoing.test.ts#L144)
+- [server prependAnyOutgoing listeners run newest-first before onAnyOutgoing listeners](../src/on-any-outgoing.test.ts#L155)
+- [client prependAnyOutgoing listeners run newest-first before onAnyOutgoing listeners](../src/on-any-outgoing.test.ts#L167)
+- [server listenersAnyOutgoing is live and removes the first matching duplicate](../src/on-any-outgoing.test.ts#L179)
+- [client listenersAnyOutgoing is live and removes the first matching duplicate](../src/on-any-outgoing.test.ts#L197)
+- [offAnyOutgoing replaces both sides backing arrays and detaches earlier lookups](../src/on-any-outgoing.test.ts#L215)
+- [outgoing catch-all dispatch snapshots listener mutations on both sides](../src/on-any-outgoing.test.ts#L238)
+- [the client outgoing catch-all omits ack callbacks for emit and emitWithAck](../src/on-any-outgoing.test.ts#L270)
+- [empty listenersAnyOutgoing lookups are fresh and cannot install listeners on either side](../src/on-any-outgoing.test.ts#L292)
+- [offAnyOutgoing on untouched sockets keeps empty lookups fresh and inert](../src/on-any-outgoing.test.ts#L313)
+- [offAnyOutgoing detaches the old arrays and installs stable empty replacements](../src/on-any-outgoing.test.ts#L335)
 
 ### Reserved event names
 
@@ -420,8 +422,9 @@ Which public emit names throw before delivery or outgoing observation.
 - [client wrappers reject reserved names while the connection is still pending](../src/reserved-events.test.ts#L60)
 - [rejected server emits reach neither the peer nor outgoing catch-alls](../src/reserved-events.test.ts#L90)
 - [rejected client emits reach neither the peer nor outgoing catch-alls](../src/reserved-events.test.ts#L119)
-- [emitWithAck rejects reserved names without firing outgoing catch-alls](../src/reserved-events.test.ts#L147)
-- [connection and new_namespace remain ordinary public payload event names](../src/reserved-events.test.ts#L169)
+- [a rejected client event retains its timeout for the next completed emit](../src/reserved-events.test.ts#L147)
+- [emitWithAck rejects reserved names without firing outgoing catch-alls](../src/reserved-events.test.ts#L164)
+- [connection and new_namespace remain ordinary public payload event names](../src/reserved-events.test.ts#L186)
 
 ### Listener removal
 

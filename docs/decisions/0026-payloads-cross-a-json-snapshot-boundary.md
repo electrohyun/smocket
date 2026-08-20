@@ -33,6 +33,12 @@ direct emit's snapshot; a buffered client notifies and snapshots only at flush. 
 mutation therefore changes what is encoded. A broadcast snapshots first; each reached
 server socket's listener sees the shared source but cannot change the encoded value.
 
+Client delivery modifiers are consumed only after outgoing observation and packet
+encoding complete. A reserved-event rejection, an outgoing listener that throws, or a
+supported payload encoding failure therefore leaves the modifier armed for the next
+completed emit, which consumes it once. Server Socket modifiers keep their existing
+earlier consumption boundary, including when their payload encoding fails.
+
 The compatibility contract is the successful decoded value, reference isolation, and
 snapshot or failure timing. It does not promise Socket.IO's internal traversal algorithm,
 the number of getter or `toJSON` calls, or a native exception's exact class and message.
