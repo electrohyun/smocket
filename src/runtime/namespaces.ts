@@ -15,57 +15,28 @@ import { NodeEmitter, type Listener, type OrdinaryEventName } from './emitters';
 import { Manager } from './manager';
 import { ClientSocket, type ConnectionAttempt, ServerSocket } from './sockets';
 
-/**
- * A pending connection waiting to be handed to `nextConnection`, or a
- * `nextConnection` call waiting for the next connection. `connect` and
- * `nextConnection` meet through two queues so either can arrive first: the
- * `connectClient` path connects before it awaits `nextConnection`, while a
- * reconnect awaits `nextConnection` before it calls `connect`.
- */
+/** One side of the queue pairing between `connect` and `nextConnection`. */
 export interface Waiter {
   resolve(socket: ServerSocket): void;
   reject(error: Error): void;
 }
 
 /**
- * One namespace: the `adapter` + `sockets` pair the delivery formula reads, plus
- * the connection queues that pair a `connect` with its `nextConnection`. Making
- * these per-namespace is the whole of isolation (#44) — a `BroadcastOperator`
- * built here can only ever see this namespace's sockets and rooms, so a room name
- * collides harmlessly across namespaces and no broadcast crosses a namespace
- * boundary. The delivery formula itself is untouched; only the two data
- * structures it reads are now one set per namespace.
- *
- * Its broadcast surface (`emit`/`to`/`in`/`except`) is the same code that used to
- * live on `Server`, moved here so the server can delegate to `of('/')`.
+ * Owns the adapter, sockets, connection queues, and broadcast surface for one
+ * namespace. Keeping these together prevents room and waiter leakage across
+ * namespaces (#44).
  */
 export class Namespace extends NodeEmitter implements NamespaceContract {
-  /**
-   * sid -> connected server socket, the adapter's partner: the adapter routes a
-   * broadcast to a set of sids and this turns each sid back into a socket to
-   * deliver to.
-   */
+  /** Resolves the sids selected by this namespace's adapter to live sockets. */
   readonly sockets = new Map<string, ServerSocket>();
-  /**
-   * This namespace's routing seam: the built-in `Adapter`, or the custom instance
-   * installed during server setup through `Server.adapter`.
-   */
+  /** This namespace's built-in or custom routing seam. */
   adapter: SmocketAdapter;
   /** Server sockets connected here but not yet claimed by a `nextConnection`. */
   private readonly ready: ServerSocket[] = [];
-  /**
-   * Connection middleware registered through `use`, in registration order. Each runs
-   * for every incoming connection here, before the socket is considered connected;
-   * the first to reject stops the chain (see `runMiddleware`).
-   */
+  /** Connection middleware, in registration order. */
   private readonly middleware: ConnectionMiddleware[] = [];
-  /**
-   * `nextConnection` calls on this namespace still waiting for a socket. Keeping
-   * the queue per-namespace is the subtle half of isolation: a global queue could
-   * hand a `nextConnection('/game')` a socket that connected on `/`.
-   */
+  /** Pending `nextConnection` calls, scoped here to preserve namespace isolation. */
   private readonly waiters: Waiter[] = [];
-  /** Once closed, no pending or later pairing may enter this namespace. */
   private closed: boolean;
 
   constructor(
@@ -82,7 +53,6 @@ export class Namespace extends NodeEmitter implements NamespaceContract {
   override listeners = ((event: OrdinaryEventName) =>
     super.listeners(event)) as NamespaceContract['listeners'];
 
-  /** Install the adapter instance prepared for this namespace during server setup. */
   useAdapter(adapter: SmocketAdapter): void {
     this.adapter = adapter;
   }
@@ -98,12 +68,7 @@ export class Namespace extends NodeEmitter implements NamespaceContract {
     }
   }
 
-  /**
-   * Attach a new client to this namespace in memory and return the client side.
-   * The `Server` lookup has already selected the client's Manager identity. The
-   * actual pairing is `pair`, shared with reconnect. `source` carries the caller's
-   * `auth` / `query` onto the handshake; a reconnect replays the client's own copy.
-   */
+  /** Attach through the Manager already selected by `Server`; reconnect shares `pair`. */
   connect(manager: Manager, source?: ConnectOptions): ClientSocket {
     const client = new ClientSocket(manager, this, source);
     this.pair(client, source);
@@ -111,15 +76,9 @@ export class Namespace extends NodeEmitter implements NamespaceContract {
   }
 
   /**
-   * Pair `client` to a fresh server socket on this namespace. Shared by the first
-   * `connect` and by a reconnect (`ClientSocket.connect`): both are the same
-   * operation, "give this client a new server socket here", so a reconnect is one
-   * call to this rather than a second copy of the connect path. The client comes
-   * back not-yet-connected (`connected === false`, `id` undefined); a tick later
-   * (decision 3-4b) the new socket is registered, auto-joins its id-room, is
-   * offered to `nextConnection`, and the client's `connect` fires, the server
-   * side observable before the client side, the order real socket.io uses. `source`
-   * is the caller's `auth` / `query`, folded into this socket's handshake (0006).
+   * Pair an initial connection or reconnect with a fresh server socket. Completion
+   * is deferred, with server admission observable before the client's `connect`
+   * (0004, 0014); each attempt gets fresh handshake and id-room state (0006, 0013).
    */
   pair(client: ClientSocket, source?: ConnectOptions): void {
     const attempt = client.beginConnectionAttempt();
@@ -127,12 +86,8 @@ export class Namespace extends NodeEmitter implements NamespaceContract {
     this.continuePair(client, attempt, source);
   }
 
-  /** Continue an attempt whose dynamic parent already resolved admission auth. */
   continuePair(client: ClientSocket, attempt: ConnectionAttempt, source?: ConnectOptions): void {
     if (this.rejectIfClosed(client, attempt)) return;
-    // Resolve the auth first, then pair. For an object auth this runs synchronously, so
-    // the timing is unchanged; a function auth may call back later, and the connection
-    // is held until it does (real socket.io holds the connect until the callback fires).
     resolveAuth(source?.auth, (auth) => {
       if (!client.isConnectionAttemptPending(attempt)) return;
       if (this.rejectIfClosed(client, attempt)) return;
@@ -144,12 +99,8 @@ export class Namespace extends NodeEmitter implements NamespaceContract {
         return;
       }
 
-      // Connection middleware runs here, after the handshake is built (so a middleware
-      // reads the same fields a `connection` handler will) and before the socket is
-      // considered connected. Its verdict gates the deferred completion below: on
-      // rejection the socket is dropped before it is registered, joins its id-room, or
-      // reaches `connection`, and the client learns of the failure through
-      // `connect_error`; a reconnect re-runs `pair`, so the chain runs again for free.
+      // Middleware sees the final handshake and gates registration, id-room admission,
+      // and lifecycle events; rejection remains an unregistered `connect_error`.
       this.runMiddleware(serverSocket, (err) => {
         if (err) {
           client.rejectConnectionAttempt(attempt, err);
@@ -169,22 +120,13 @@ export class Namespace extends NodeEmitter implements NamespaceContract {
             return;
           }
           if (this.rejectIfClosed(client, attempt)) return;
-          // Register the socket before offering it, so a broadcast triggered from a
-          // `connection` handler can already resolve this sid to its socket.
+          // Registration precedes `connection`, so its handlers may broadcast immediately.
           this.sockets.set(serverSocket.id, serverSocket);
-          // Auto-join the room named after the socket's own id, exactly as real
-          // socket.io does on connect. Reusing `join` carries the adapter update in
-          // both directions and the `socket.rooms` mirror. This id-room is what makes
-          // `io.to(socketId)` address a single socket and what sender exclusion
-          // subtracts (see `BroadcastOperator`). A reconnect gets a fresh id-room and
-          // none of the socket's previous rooms, which is the reconnect test's point.
+          // The fresh id-room enables direct addressing and sender exclusion (0013).
           serverSocket.join(serverSocket.id);
           serverSocket.markConnected();
           this.offer(serverSocket);
-          // Fire `connection` before the client's own `connect` (in
-          // `completeConnection`), so the server side is observable first, the order
-          // real socket.io uses. A handler here can already broadcast to the new
-          // socket: it is registered in `sockets` and its id-room above.
+          // Server `connection` is observable before the client's `connect` (0014).
           this.emitConnection(serverSocket);
           client.completeConnectionAttempt(attempt, serverSocket);
         });
@@ -192,30 +134,20 @@ export class Namespace extends NodeEmitter implements NamespaceContract {
     });
   }
 
-  /** Reject a connection at whichever async boundary observes that close has started. */
   private rejectIfClosed(client: ClientSocket, attempt: ConnectionAttempt): boolean {
     if (!this.closed) return false;
     client.rejectConnectionAttempt(attempt, new Error('server is closed'));
     return true;
   }
 
-  /**
-   * Register a connection middleware, matching real socket.io's `namespace.use`.
-   * Middleware are kept in registration order and run by `runMiddleware` on every
-   * connection here.
-   */
   use(middleware: ConnectionMiddleware): this {
     this.middleware.push(middleware);
     return this;
   }
 
   /**
-   * Run the middleware chain for `socket`, then call `done` once with the verdict:
-   * `undefined` to admit the connection, or the rejecting error. Each middleware calls
-   * `next` to advance, or `next(err)` to reject and short-circuit the rest. A chain with
-   * no middleware admits immediately. This is a plain re-drive with no guard against a
-   * middleware calling `next` more than once: like real socket.io, a second `next` just
-   * re-drives the chain rather than throwing.
+   * Snapshot and re-drive the middleware chain without a duplicate-`next` guard;
+   * each completion reports admission or the rejecting error.
    */
   private runMiddleware(socket: ServerSocket, done: (err?: MiddlewareError) => void): void {
     const chain = [...this.middleware];
@@ -236,30 +168,23 @@ export class Namespace extends NodeEmitter implements NamespaceContract {
     next();
   }
 
-  /**
-   * Fire the connection handlers with the freshly paired server socket. Both synonyms
-   * are raised, `connection` then `connect`, each from its own registry, so a handler
-   * on either runs once and the reference order matches real socket.io.
-   */
+  /** Emit both synonyms from separate registries, in `connection` then `connect` order. */
   private emitConnection(socket: ServerSocket): void {
     for (const event of ['connection', 'connect']) {
       this.emitLocal(event, [socket]);
     }
   }
 
-  /** Raise one namespace-reserved event without entering the broadcast path. */
   emitReserved(event: OrdinaryEventName, ...args: unknown[]): void {
     this.emitLocal(event, args);
   }
 
-  /** Resolve with the server socket of the next client to connect here. */
   nextConnection(): Promise<ServerSocket> {
     const socket = this.ready.shift();
     if (socket) return Promise.resolve(socket);
     return new Promise<ServerSocket>((resolve, reject) => this.waiters.push({ resolve, reject }));
   }
 
-  /** Hand a freshly connected server socket to a waiter, or park it as ready. */
   private offer(serverSocket: ServerSocket): void {
     const waiter = this.waiters.shift();
     if (waiter) {
@@ -269,7 +194,6 @@ export class Namespace extends NodeEmitter implements NamespaceContract {
     }
   }
 
-  /** Close every socket, reject observers, and discard unclaimed connections. */
   async close(): Promise<void> {
     this.closed = true;
     this.ready.length = 0;
@@ -278,7 +202,6 @@ export class Namespace extends NodeEmitter implements NamespaceContract {
   }
 
   emit(event: string, ...args: unknown[]): boolean {
-    // No target rooms (everyone) and no exclusion: reaches every socket here.
     return new BroadcastOperator(this.adapter, this.sockets, [], []).emit(event, ...args);
   }
   send(...args: unknown[]): this {
@@ -292,22 +215,15 @@ export class Namespace extends NodeEmitter implements NamespaceContract {
     return new BroadcastOperator(this.adapter, this.sockets, asRooms(room), []);
   }
   in(room: string | string[]): BroadcastContract {
-    // `in` is a pure alias of `to` in socket.io; delegate so they cannot drift.
     return this.to(room);
   }
   except(room: string | string[]): BroadcastContract {
-    // No target rooms (everyone) minus the members of `room`. No sender to exclude:
-    // this is the namespace, not a socket.
     return new BroadcastOperator(this.adapter, this.sockets, [], asRooms(room));
   }
   get volatile(): BroadcastContract {
-    // Everyone here, flagged volatile: a per-recipient pre-connect drop, a plain
-    // broadcast otherwise (0016). `to`/`except` chain off it and keep the flag.
     return new BroadcastOperator(this.adapter, this.sockets, [], [], true);
   }
   timeout(ms: number): TimeoutBroadcastContract {
-    // Everyone here, carrying an ack timeout: `io.of(ns).timeout(ms).to(room).emit(cb)`
-    // collects each recipient's ack (#112). `to` chains off it and keeps the timeout.
     return new BroadcastOperator(this.adapter, this.sockets, [], [], false, ms);
   }
   compress(_compress: boolean): BroadcastContract {

@@ -33,41 +33,15 @@ export interface BroadcastNamespace<Socket extends BroadcastSocket> {
 }
 
 /**
- * The object returned by every broadcast form: `io.emit`, `io.to`/`in`/`except`,
- * `socket.broadcast`, `socket.to`, `socket.except`. All eleven are the same one
- * formula over two sets, so they are all this one operator built with different
- * initial sets (see the `Server` / `ServerSocket` construction sites):
+ * One immutable operator backs every broadcast form (#137):
  *
  *   targets  = targetRooms empty ? all connected sids : union(targetRooms)
  *   excluded = union(each exceptRoom's member sids)
  *   deliver to (targets - excluded), once per socket
  *
- * Sender exclusion is not a flag: it is the sender's own id-room dropped into
- * `exceptRooms`. Because every socket auto-joins a room named after its id on
- * connect, `except {ownId}` subtracts exactly the sender. This is why
- * `socket.to(room)` excludes a sender that is itself in `room` for free: the
- * room's union includes the sender (its id-room member is itself), and the
- * `{ownId}` except then removes it.
- *
- * Every way of narrowing a broadcast — `to` / `in` / `except` / `timeout` — is on the
- * operator as well as on the entry points, so the order they are chained in does not
- * change the recipients (#137): `io.to(a).except(b)` and `io.except(b).to(a)` build the
- * same two sets. Each returns a *new* operator over the merged sets rather than narrowing
- * this one, measured against real socket.io: an operator held in a variable is a fixed
- * target, and a later chained call on it produces another operator instead of widening the
- * one already held. `to` unions in more rooms, so `io.to(a).to(b)` targets the union of
- * both, and `except` unions likewise.
- *
- * `emit` resolves both sets to sids through the adapter, then hands each surviving
- * member to that member's own `ServerSocket.emit`. It deliberately reuses the
- * per-socket send path rather than delivering itself: every event, direct or
- * broadcast, then flows through the one `defer` primitive, so the per-socket FIFO
- * order the "did NOT receive" marker proofs rely on holds for broadcast too.
- *
- * When `volatile` is set (the `.volatile` broadcast forms, 0016) the routing is
- * unchanged; the only difference is a per-recipient drop: a target whose client has
- * not yet completed its connection is skipped rather than delivered to, matching real
- * socket.io deciding volatile per recipient. Connected recipients receive it as normal.
+ * A sender is excluded through its auto-joined id-room. The adapter resolves routing,
+ * while each surviving socket keeps the shared FIFO delivery path (0010). Volatile
+ * delivery drops recipients whose client peer is not connected (0016).
  */
 export class BroadcastOperator<Socket extends BroadcastSocket = BroadcastSocket>
   implements BroadcastContract, TimeoutBroadcastContract
@@ -81,18 +55,13 @@ export class BroadcastOperator<Socket extends BroadcastSocket = BroadcastSocket>
     rooms: Iterable<string>,
     except: Iterable<string>,
     private readonly isVolatile = false,
-    /** When set, `emit` with a trailing callback collects each recipient's ack (#112). */
     private readonly timeoutMs: number | undefined = undefined,
   ) {
     this.targetRooms = new Set(rooms);
     this.exceptRooms = new Set(except);
   }
 
-  /**
-   * One more narrowing of this broadcast, as a new operator (#137). The adapter, the
-   * socket map, and the volatile flag are carried over untouched; only the two sets and
-   * the timeout ever differ, which is why every chaining method below is one call to this.
-   */
+  /** Return a new operator so narrowing never mutates a previously held target (#137). */
   private narrow(
     rooms: Iterable<string>,
     except: Iterable<string>,
@@ -113,7 +82,6 @@ export class BroadcastOperator<Socket extends BroadcastSocket = BroadcastSocket>
   }
 
   in(room: string | string[]): BroadcastOperator<Socket> {
-    // `in` is a pure alias of `to` here too; delegate so the two cannot drift.
     return this.to(room);
   }
 
@@ -121,20 +89,14 @@ export class BroadcastOperator<Socket extends BroadcastSocket = BroadcastSocket>
     return this.narrow(this.targetRooms, [...this.exceptRooms, ...asRooms(room)]);
   }
 
-  /** Add an explicit deadline to the acknowledgement collector used by callback and Promise forms. */
   timeout(ms: number): BroadcastOperator<Socket> {
     return this.narrow(this.targetRooms, this.exceptRooms, ms);
   }
 
-  /** Compression is transport-only here; retain immutability and every routing modifier. */
   compress(_compress: boolean): BroadcastOperator<Socket> {
     return this.narrow(this.targetRooms, this.exceptRooms);
   }
 
-  /**
-   * Return a new operator with the volatile delivery flag. The getter never mutates
-   * the narrowed operator it was read from, and it carries any timeout already set.
-   */
   get volatile(): BroadcastOperator<Socket> {
     return new BroadcastOperator(
       this.adapter,
@@ -146,12 +108,6 @@ export class BroadcastOperator<Socket extends BroadcastSocket = BroadcastSocket>
     );
   }
 
-  /**
-   * Resolve this broadcast's recipients: empty target rooms means "everyone" (`io.emit` /
-   * `socket.broadcast`), otherwise the deduped union of the target rooms' members, minus the
-   * except rooms (the sender's id-room for the `socket.*` forms). A volatile broadcast also
-   * skips a recipient still in its pre-connect window (0016).
-   */
   private recipients(): { recipients: Socket[]; excluded: Set<string> } {
     const targets =
       this.targetRooms.size === 0
@@ -271,13 +227,9 @@ export class BroadcastOperator<Socket extends BroadcastSocket = BroadcastSocket>
   }
 
   /**
-   * Fan `event` out to `recipients` and gather their acks (#112). The callback fires once:
-   * `(null, responses)` when every recipient answers before `ms`, or `(Error('operation has
-   * timed out'), responses)` when the timer wins, where `responses` holds the acks that
-   * arrived, in arrival order (measured on 4.7.5 and 4.8.3, not join order). A `settled`
-   * flag keeps the callback single-shot. A late ack may still append to the already exposed
-   * response array, matching Socket.IO's collector. No recipient resolves at once as
-   * `(null, [])`.
+   * Collect acknowledgements once (#112), in measured arrival order on 4.7.5 and 4.8.3.
+   * Timeout exposes partial responses; late answers may append to that exposed array, and
+   * an empty recipient set resolves immediately.
    */
   private collect(
     event: string,

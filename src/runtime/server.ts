@@ -31,35 +31,24 @@ import { Manager } from './manager';
 import { Namespace, ParentNamespace, type Waiter } from './namespaces';
 import { ClientSocket, FailedClientSocket, ServerSocket } from './sockets';
 
-/**
- * The origin registry: normalized origin -> the `Server` listening there. Every
- * `new Server(url)` registers itself here and every `connect(url)` resolves through
- * it, so the required url and this map are the one decision (0003). A module-level
- * singleton, cleared between tests through `resetRegistry`.
- */
+/** Module-wide normalized-origin registry shared by `Server` and `connect` (0003). */
 const servers = new Map<string, Server>();
 
-/** Socket.IO's static namespace key: root for empty, otherwise add a leading slash if absent. */
 function normalizeNamespace(name: string): string {
   if (name === '' || name === '/') return '/';
   return name.startsWith('/') ? name : `/${name}`;
 }
 
 /**
- * Split a url into its origin (the registry key), namespace path, and query string,
- * normalizing the way socket.io's `url.js` does so two spellings of one origin
- * collapse to a single key (0003): a relative url resolves against `location.origin`,
- * and a missing port is filled from the scheme (http -> 80, https -> 443). The query
- * is one of the two sources for `handshake.query`, the other being the options argument;
- * `connect` resolves which one wins (the url does, when it carries a query).
+ * Normalize registry origins like socket.io-client: resolve relative URLs against
+ * `location.origin` and supply the scheme's default port (0003).
  */
 function parseUrl(url: string): {
   origin: string;
   namespace: string;
   query: Record<string, string>;
 } {
-  // `location` exists in a browser/jsdom run and is absent under plain node; read
-  // it off `globalThis` so the reference type-checks either way.
+  // `location` is a browser-only host boundary.
   const base = (globalThis as { location?: { origin: string } }).location?.origin;
   const parsed = new URL(url, base);
   const port = parsed.port || (parsed.protocol === 'https:' ? '443' : '80');
@@ -70,18 +59,10 @@ function parseUrl(url: string): {
 }
 
 /**
- * Attach a client to the server registered for `url`'s origin: smocket's
- * app-facing entry point, socket.io-client's `io(url, opts)`. The origin is resolved
- * through the registry (0003) and the url's path selects the namespace. `opts` carries
- * `auth` and `query` onto the handshake (0006). When no server is registered for that
- * origin, the returned client fires `connect_error` and does not retry (0005), rather
- * than throwing.
- *
- * `query` has two sources, the url's own query string and `opts.query`, and the url
- * wins: when the url carries a query, `opts.query` is ignored wholesale, and it is
- * consulted only when the url has none. This is not the intuitive "explicit option
- * wins" rule but is what socket.io-client 4.x does, measured against the real client,
- * so a dogfooding app sees the same handshake on either engine.
+ * Resolve the origin registry and namespace path (0003), returning an asynchronous
+ * `connect_error` when no server exists (0005). URL query parameters replace, rather
+ * than merge with, `options.query`, matching measured socket.io-client 4.x behavior
+ * (0006).
  */
 export function connect(url: string, options?: ConnectOptions): ClientSocketContract {
   const { origin, namespace, query: urlQuery } = parseUrl(url);
@@ -96,12 +77,7 @@ export function connect(url: string, options?: ConnectOptions): ClientSocketCont
   });
 }
 
-/**
- * Clear the origin registry. Test-only, and deliberately not re-exported from the
- * package index: the registry is a module-level singleton that would otherwise
- * carry servers across a file's tests, so a suite registering servers resets
- * between cases to keep `connect(url)` lookups isolated.
- */
+/** Test-only reset for the internal module-wide registry. */
 export function resetRegistry(): void {
   servers.clear();
 }
@@ -114,18 +90,9 @@ export class Server<
   ServerSideEvents extends EventsMap = DefaultEventsMap,
   SocketData = DefaultSocketData,
 > implements SmocketServer<ListenEvents, EmitEvents, ServerSideEvents, SocketData> {
-  /**
-   * This server's normalized origin, its key in the module `servers` registry.
-   * Private: it is internal bookkeeping with no counterpart on real socket.io, so
-   * it stays off the public surface rather than becoming an undocumented addition.
-   */
+  /** Internal registry key with no socket.io public counterpart. */
   private readonly origin: string;
-  /**
-   * The namespace registry. Every connection, room and broadcast lives on a
-   * `Namespace`; the server is the front door that routes to one. `of` is
-   * get-or-create and returns the *same* normalized `Namespace` on repeat calls.
-   * Admission only reads this registry, so a client cannot create a namespace.
-   */
+  /** Stable normalized namespace identities; dynamic admission adds matched children. */
   private readonly namespaces = new Map<string, Namespace>();
   /** Dynamic parents are tried in registration order for unregistered names. */
   private readonly parents: ParentNamespace[] = [];
@@ -136,11 +103,7 @@ export class Server<
   /** The origin's reusable Manager; duplicate namespaces and opt-outs bypass it (0028). */
   private cachedManager: Manager | undefined;
 
-  /**
-   * The custom adapter factory registered through `adapter`, applied to every
-   * namespace this server creates. Undefined until a caller registers one, in
-   * which case each namespace uses the built-in `Adapter`.
-   */
+  /** Custom factory applied to every namespace created after registration. */
   private adapterFactory: AdapterFactory | undefined;
   /** Custom instances already assigned to namespaces, used to enforce isolation. */
   private readonly adapterInstances = new Set<SmocketAdapter>();
@@ -151,29 +114,18 @@ export class Server<
   /** The first close owns teardown; repeated calls return the same completed work. */
   private closePromise: Promise<void> | undefined;
 
-  /**
-   * The url is required, with no argument-less form: socket.io always takes a
-   * connection target, so smocket does too rather than invent a rule for what an
-   * unlabelled server means (0003). The url is normalized to an origin and the
-   * server registers itself under it, so a later `connect(url)` naming the same
-   * origin resolves back to this instance.
-   */
+  /** Register this required URL under its normalized origin (0003). */
   constructor(url: string) {
     this.origin = parseUrl(url).origin;
-    // Socket.IO constructs the root namespace with the server. It is the one static
-    // namespace a client may enter without an earlier public `of()` registration.
+    // Root is the only static namespace admitted without prior `of()` registration.
     this.getNamespace('/', undefined, false);
     servers.set(this.origin, this as Server);
   }
 
   /**
-   * Register a custom [adapter](../docs/glossary.md#adapter) factory: smocket's
-   * public routing seam. During setup the factory builds one fresh adapter per namespace,
-   * replacing the built-in routing (which sids a broadcast targets) while delivery stays in
-   * the core, so a custom adapter cannot break per-socket order (0010). This is a
-   * smocket-only API with no socket.io-compatible counterpart (see
-   * `docs/differences.md` §B). Registration closes at the first connection attempt.
-   * Existing adapters change only after every replacement is built successfully.
+   * Register smocket's custom routing seam. Factories must return one adapter per
+   * namespace; delivery remains in the ordered core (0010). Registration closes at
+   * first admission and replacement is atomic (`docs/differences.md` §B).
    */
   adapter(factory: AdapterFactory<ListenEvents, EmitEvents, ServerSideEvents, SocketData>): void {
     if (this.admissionStarted) {
@@ -196,7 +148,6 @@ export class Server<
     for (const adapter of replacements.values()) this.adapterInstances.add(adapter);
   }
 
-  /** Get the runtime namespace by name, creating it on first use. */
   private getNamespace(name: string, parent?: ParentNamespace, emitLifecycle = true): Namespace {
     const normalized = normalizeNamespace(name);
     const existing = this.namespaces.get(normalized);
@@ -233,7 +184,6 @@ export class Server<
     this.getNamespace('/').emitReserved('new_namespace', namespace);
   }
 
-  /** Register or read a normalized static namespace (socket.io's lazy `of`). */
   of(
     name: string | RegExp | ParentNspNameMatchFn,
     listener?: (
@@ -255,11 +205,6 @@ export class Server<
     >;
   }
 
-  /**
-   * The server's `on` is the default namespace's: `io.on('connection')` is exactly
-   * `io.of('/').on('connection')`, socket.io's primary server entry point, so it
-   * wires handlers for connections on `/` and never sees another namespace's.
-   */
   on<
     Event extends ReservedOrUserEventName<
       ServerReservedEvents<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
@@ -344,12 +289,6 @@ export class Server<
     return this.getNamespace('/').getMaxListeners();
   }
 
-  /**
-   * The server's `use` is the default namespace's: `io.use(fn)` registers a connection
-   * middleware for connections on `/`, exactly `io.of('/').use(fn)`, socket.io's primary
-   * place to authenticate a connection. Middleware on another namespace is registered
-   * through `io.of(name).use(fn)`.
-   */
   use(
     middleware: ConnectionMiddleware<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
   ): this {
@@ -357,12 +296,7 @@ export class Server<
     return this;
   }
 
-  /**
-   * Attach a client to an already registered `namespace` (`/` by default); see
-   * `Namespace.connect`. `source` carries the caller's `auth` / `query` onto the
-   * connection's handshake. An unregistered name reports `Invalid namespace`
-   * without creating registry or adapter state.
-   */
+  /** Admit only registered namespaces; an invalid name creates no namespace or adapter state. */
   connect(
     namespace = '/',
     source?: ConnectOptions,
@@ -435,7 +369,6 @@ export class Server<
     return this.cachedManager;
   }
 
-  /** Resolve with the server socket of the next client to connect on `namespace`. */
   nextConnection(
     namespace = '/',
   ): Promise<ServerSocketContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>> {
@@ -460,9 +393,6 @@ export class Server<
     >;
   }
 
-  // The server's own broadcast surface is the default namespace's: `io.emit()` is
-  // exactly `io.of('/').emit()`, so "everyone" means everyone on `/` and never
-  // reaches another namespace. Each form delegates rather than reimplements.
   emit<Event extends EventNameWithoutAck<EmitEvents>>(
     event: Event,
     ...args: EventParams<EmitEvents, Event>
@@ -507,7 +437,6 @@ export class Server<
     DecorateAcknowledgements<DecorateAcknowledgementsWithMultipleResponses<EmitEvents>>,
     SocketData
   > {
-    // `io.timeout(ms)` is the default namespace's: `io.timeout(ms).to(room)` reaches only `/`.
     return this.getNamespace('/').timeout(ms) as TimeoutBroadcastContract<
       DecorateAcknowledgements<DecorateAcknowledgementsWithMultipleResponses<EmitEvents>>,
       SocketData
@@ -525,7 +454,6 @@ export class Server<
     DecorateAcknowledgementsWithMultipleResponses<EmitEvents>,
     SocketData
   > {
-    // `io.volatile` is the default namespace's: `io.volatile.to(room)` reaches only `/`.
     return this.getNamespace('/').volatile as BroadcastContract<
       DecorateAcknowledgementsWithMultipleResponses<EmitEvents>,
       SocketData
@@ -547,11 +475,8 @@ export class Server<
   }
 
   /**
-   * Shut down this server, matching socket.io's observable socket lifecycle. The
-   * registry deletion is conditional: constructing a newer server for the same
-   * origin replaces this one, and closing the old object must not unregister the
-   * replacement. Timers already armed by an acknowledgement are deliberately left
-   * alone, as real socket.io does (#193, 0020).
+   * Preserve a newer same-origin registry entry during teardown. Already-armed
+   * acknowledgement timers remain active, matching socket.io (#193, 0020).
    */
   close(fn?: (err?: Error) => void): Promise<void> {
     const alreadyClosing = this.closed;

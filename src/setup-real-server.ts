@@ -11,14 +11,7 @@ import type {
 } from './contract';
 import { makeConnectClients } from './connect-clients';
 
-/**
- * Boots a real socket.io server around each test and hands back a
- * `connectClient()` factory. Room / broadcast rules only show up with more than
- * one client (a member vs a non-member), so clients are connected on demand
- * rather than fixed at one. Every connected client is disconnected in
- * `afterEach`. Returns the shared `ServerContext`, so `SMOCKET_TARGET` can swap
- * this for the smocket target without the test files noticing.
- */
+/** Build the `real` half of the shared dual-run `ServerContext`. */
 export function setupRealServer(): ServerContext {
   const ctx = {} as ServerContext;
   let httpServer: HttpServer;
@@ -81,8 +74,7 @@ export function setupRealServer(): ServerContext {
       multiplex,
     });
 
-    // Connects are awaited one at a time, so the pending `connection` event
-    // belongs to exactly this client, with no id matching needed.
+    // Sequential connections pair this pending event with this exact client.
     const [serverSocket] = await Promise.all([
       serverConnection,
       new Promise<void>((resolve) => client.once('connect', () => resolve())),
@@ -92,9 +84,7 @@ export function setupRealServer(): ServerContext {
     return { client: asClientContract(client), serverSocket };
   };
 
-  // Open a connection without awaiting `connect`, for a connection a test expects to
-  // fail: a middleware rejection fires `connect_error` and never `connect`, so awaiting
-  // the connect here would hang. The client is tracked for teardown like any other.
+  // A rejected middleware connection emits `connect_error`, never `connect`.
   ctx.openClient = ({ namespace = '/', auth, query, forceNew, multiplex }: ConnectOptions = {}) => {
     const client = io(`http://localhost:${port}${namespacePath(namespace)}`, {
       transports: ['websocket'],

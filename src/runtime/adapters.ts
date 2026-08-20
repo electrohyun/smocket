@@ -2,21 +2,8 @@ import type { BroadcastTrace, DeliveryTimer, SmocketAdapter } from '../contract'
 import { defer } from './delivery';
 
 /**
- * The room bookkeeping for one namespace, reproducing socket.io's per-namespace
- * `socket.io-adapter`. It owns the two mirrored maps and nothing else: it mutates
- * membership and answers "which sids are in these rooms", but never delivers an
- * event. Delivery is the caller's job (see `BroadcastOperator`), which keeps the
- * adapter reusable for observation (`io.of('/').adapter`, #44) without pulling
- * the delivery path into it.
- *
- * The two maps are the same membership read from both directions, kept in step
- * by every mutator:
- * - `rooms`: room name -> the sids currently in it.
- * - `sids`:  sid -> the rooms it currently belongs to.
- *
- * It is the built-in `SmocketAdapter`, and the base a custom one extends: a
- * registered adapter typically overrides `socketsIn` to observe or narrow the
- * routing decision while reusing this membership bookkeeping (see `Server.adapter`).
+ * Per-namespace membership in mirrored room and sid maps. Routing is observable through
+ * this adapter (#44), while delivery remains the caller's responsibility.
  */
 export class Adapter implements SmocketAdapter {
   /** room -> member sids. A room key exists only while it has at least one member. */
@@ -24,7 +11,6 @@ export class Adapter implements SmocketAdapter {
   /** sid -> the rooms it is in. The reverse index, so leaving is not a full scan. */
   readonly sids = new Map<string, Set<string>>();
 
-  /** Record that `sid` is now in `room`, updating both directions. */
   add(sid: string, room: string): void {
     const members = this.rooms.get(room) ?? new Set<string>();
     members.add(sid);
@@ -35,11 +21,7 @@ export class Adapter implements SmocketAdapter {
     this.sids.set(sid, joined);
   }
 
-  /**
-   * Record that `sid` has left `room`. When the room loses its last member the
-   * key is dropped, so `rooms` never keeps empty rooms around, matching
-   * socket.io-adapter.
-   */
+  /** Drop empty room keys, matching socket.io-adapter. */
   del(sid: string, room: string): void {
     const members = this.rooms.get(room);
     if (members) {
@@ -49,11 +31,7 @@ export class Adapter implements SmocketAdapter {
     this.sids.get(sid)?.delete(room);
   }
 
-  /**
-   * Resolve target rooms to the deduped union of their member sids. A socket in
-   * several of the target rooms appears once, which is what stops `io.to(a).to(b)`
-   * from delivering twice to a socket in both.
-   */
+  /** Return a deduplicated room union so overlapping targets deliver once. */
   socketsIn(rooms: Iterable<string>): Set<string> {
     const sids = new Set<string>();
     for (const room of rooms) {
@@ -65,7 +43,6 @@ export class Adapter implements SmocketAdapter {
   }
 }
 
-/** The default `DeliveryTimer`: real `setTimeout` / `Date.now`, which fake timers can drive. */
 const realTimer: DeliveryTimer = {
   schedule: (fn, ms) => {
     setTimeout(fn, ms);
@@ -74,50 +51,20 @@ const realTimer: DeliveryTimer = {
 };
 
 /**
- * A `SmocketAdapter` that delays what a socket's client receives by a per-sid amount (#78),
- * the mock-only affordance for interleaving events across sockets deterministically in a
- * race-condition test. It slows the client-inbound stream (server -> client) only; a socket's
- * server side still receives its client's emits on the next tick, so a delay never couples
- * the two directions. It extends the built-in `Adapter`, so routing is unchanged; it adds
- * only the delivery-scheduling hook. Register it through `io.adapter` and set delays by sid:
- *
- *   let delaying!: DelayingAdapter;
- *   io.adapter(() => (delaying = new DelayingAdapter(timer)));
- *   // ...connect sockets...
- *   delaying.setDelay(slowSid, 20);
- *
- * Note the factory runs once per namespace, so the captured `delaying` is whichever namespace
- * was created last; a test that uses more than one namespace should key its own map of them
- * rather than a single variable.
- *
- * Order within the stream is preserved (0010): deliveries drain through a per-sid FIFO queue
- * one at a time, so a just-lowered delay never lets a new event overtake one already waiting,
- * and order never rides on the timer's equal-deadline callback ordering. The scheduling goes
- * through an injected `DeliveryTimer` (default real, fake-timer-drivable), so a test never
- * waits on the wall clock. A delay applies to event
- * delivery only: an acknowledgement answer and the connect / disconnect lifecycle return on
- * the normal tick. Whole-socket removal drains pending deliveries before teardown completes.
+ * Delay the server-to-client stream per sid without changing routing (#78). Per-sid FIFO
+ * queues preserve 0010 regardless of delay changes or timer ordering; acknowledgements and
+ * lifecycle events keep their normal timing. The injected timer supports deterministic tests.
  */
 export class DelayingAdapter extends Adapter {
   private readonly delays = new Map<string, number>();
-  /**
-   * A per-sid FIFO queue of pending deliveries, each with the time it may fire. Only the
-   * head is ever scheduled; the next is scheduled after the head runs, so order is a
-   * structural property of the queue, not of the timer's callback ordering (#78).
-   */
+  /** Only each queue head is scheduled, making order independent of timer callback ordering. */
   private readonly queues = new Map<string, Array<{ deliver: () => void; fireAt: number }>>();
 
   constructor(private readonly timer: DeliveryTimer = realTimer) {
     super();
   }
 
-  /**
-   * Set the delivery delay for `sid` in ms; `0` (or any non-positive value) clears it,
-   * dropping the entry so the sid is back on the default next-tick delivery. A non-finite
-   * value (`NaN` / `Infinity`) is ignored, since it has no meaning as a delay. It applies to
-   * deliveries scheduled after this call; anything already queued keeps the delay it was
-   * scheduled with.
-   */
+  /** Non-positive values clear the delay; queued deliveries retain their scheduled time. */
   setDelay(sid: string, ms: number): void {
     if (!Number.isFinite(ms)) return;
     if (ms <= 0) this.delays.delete(sid);
@@ -127,7 +74,6 @@ export class DelayingAdapter extends Adapter {
   scheduleDelivery(sid: string, deliver: () => void): void {
     const fireAt = this.timer.now() + (this.delays.get(sid) ?? 0);
     const queue = this.queues.get(sid);
-    // A drain is already running for this sid: append and let it pick this up in order.
     if (queue) {
       queue.push({ deliver, fireAt });
       return;
@@ -136,14 +82,7 @@ export class DelayingAdapter extends Adapter {
     this.pump(sid);
   }
 
-  /**
-   * Fire the head of `sid`'s queue when its time is due, then drain the next. Because only
-   * the head is scheduled at a time and the next is scheduled from inside the head's run,
-   * a later delivery can never dispatch before an earlier one, whatever the delays or the
-   * timer's equal-deadline ordering. A head already due (delay 0, or a later delivery whose
-   * fire time has passed while it waited behind another) keeps the plain next-tick `defer`,
-   * so a socket the test never delayed behaves exactly as it would with the built-in adapter.
-   */
+  /** Schedule one queue head at a time; already-due work still uses the shared next tick. */
   private pump(sid: string): void {
     const queue = this.queues.get(sid);
     if (!queue) return;
