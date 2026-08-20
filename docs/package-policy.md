@@ -19,8 +19,9 @@ Publint, Are The Types Wrong, and the independent candidate consumers.
 The separate `smocket-client` package follows [ADR 0023](./decisions/0023-client-package-is-a-thin-facade.md).
 `pnpm check:client-package` requires its version to equal the root version, its only peer
 to be that exact `smocket` version, and its tarball to contain no bundled dependency. The
-release candidate check applies the same policy plus Publint and Are The Types Wrong to
-the manifest's exact facade tarball.
+tarball must also carry the package README and MIT license. The release candidate check
+applies the same policy plus Publint and Are The Types Wrong to the manifest's exact
+facade tarball.
 
 A release bumps both manifests to one version. Publish `smocket` first, then publish
 `smocket-client`. The facade's `prepublishOnly` check reads the registry and rejects the
