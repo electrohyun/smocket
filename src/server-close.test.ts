@@ -1,4 +1,4 @@
-import { expect, it } from 'vitest';
+import { expect, it, vi } from 'vitest';
 import { setupServer } from './setup-server';
 
 const ctx = setupServer();
@@ -152,6 +152,33 @@ it('close rejects a pending client emitWithAck', async () => {
   await ctx.io.close();
 
   await expect(pending).rejects.toThrow('socket has been disconnected');
+});
+
+it('close settles a sent client timed callback once and clears its timer', async () => {
+  vi.useFakeTimers();
+  try {
+    const { client, serverSocket } = await ctx.connectClient();
+    serverSocket.on('slow', () => {
+      /* retains no acknowledgement */
+    });
+    const timersBeforeEmit = vi.getTimerCount();
+    const calls: unknown[][] = [];
+    client.timeout(60_000).emit('slow', (...args: unknown[]) => calls.push(args));
+    expect(vi.getTimerCount()).toBe(timersBeforeEmit + 1);
+
+    const clientDisconnected = new Promise<void>((resolve) =>
+      client.once('disconnect', () => resolve()),
+    );
+    await Promise.all([ctx.io.close(), clientDisconnected]);
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toHaveLength(1);
+    expect(calls[0]?.[0]).toMatchObject({ message: 'socket has been disconnected' });
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(calls).toHaveLength(1);
+  } finally {
+    vi.useRealTimers();
+  }
 });
 
 it('close leaves a pending server emitWithAck pending', async () => {

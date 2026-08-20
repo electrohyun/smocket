@@ -134,14 +134,26 @@ export function assertNotReservedEvent(event: string): void {
 export function withAckTimeout(
   args: unknown[],
   ms: number | undefined,
-): { args: unknown[]; cancel?: (reason: Error) => void } {
+  onSettled?: (cancel: (reason: Error) => void) => void,
+): {
+  args: unknown[];
+  cancel?: (reason: Error) => void;
+  isSettled?: () => boolean;
+} {
   const last = args.at(-1);
   if (ms === undefined || typeof last !== 'function') return { args };
 
   const callback = last as (...received: unknown[]) => void;
   let settled = false;
+  const cancel = (reason: Error) => {
+    settled = true;
+    clearTimeout(timer);
+    onSettled?.(cancel);
+    callback(reason);
+  };
   const timer = setTimeout(() => {
     settled = true;
+    onSettled?.(cancel);
     callback(new Error('operation has timed out'));
   }, ms);
   return {
@@ -151,14 +163,12 @@ export function withAckTimeout(
         if (settled) return;
         settled = true;
         clearTimeout(timer);
+        onSettled?.(cancel);
         callback(null, answer[0]);
       },
     ],
-    cancel: (reason) => {
-      settled = true;
-      clearTimeout(timer);
-      callback(reason);
-    },
+    cancel,
+    isSettled: () => settled,
   };
 }
 

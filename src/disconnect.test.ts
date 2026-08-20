@@ -215,6 +215,84 @@ it('a disconnect from an outgoing observer clears the current emitWithAck timeou
   }
 });
 
+it('client disconnect settles a sent timed callback once and clears its timer', async () => {
+  vi.useFakeTimers();
+  try {
+    const { client, serverSocket } = await ctx.connectClient();
+    serverSocket.on('slow', () => {
+      /* retains no acknowledgement */
+    });
+    const timersBeforeEmit = vi.getTimerCount();
+    const calls: unknown[][] = [];
+    client.timeout(60_000).emit('slow', (...args: unknown[]) => calls.push(args));
+    expect(vi.getTimerCount()).toBe(timersBeforeEmit + 1);
+
+    const { disconnected } = observeDisconnect(serverSocket);
+    client.disconnect();
+    await disconnected;
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toHaveLength(1);
+    expect(calls[0]?.[0]).toMatchObject({ message: 'socket has been disconnected' });
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(calls).toHaveLength(1);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+it('server Socket disconnect settles a sent client timed callback once', async () => {
+  vi.useFakeTimers();
+  try {
+    const { client, serverSocket } = await ctx.connectClient();
+    serverSocket.on('slow', () => {
+      /* retains no acknowledgement */
+    });
+    const timersBeforeEmit = vi.getTimerCount();
+    const calls: unknown[][] = [];
+    client.timeout(60_000).emit('slow', (...args: unknown[]) => calls.push(args));
+    expect(vi.getTimerCount()).toBe(timersBeforeEmit + 1);
+
+    const clientDisconnected = receive(client, 'disconnect');
+    serverSocket.disconnect();
+    await clientDisconnected;
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toHaveLength(1);
+    expect(calls[0]?.[0]).toMatchObject({ message: 'socket has been disconnected' });
+    expect(vi.getTimerCount()).toBe(timersBeforeEmit);
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(calls).toHaveLength(1);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+it('an outgoing observer disconnect settles the timed callback being sent', async () => {
+  vi.useFakeTimers();
+  try {
+    const { client, serverSocket } = await ctx.connectClient();
+    serverSocket.on('slow', () => {
+      /* retains no acknowledgement */
+    });
+    client.onAnyOutgoing(() => client.disconnect());
+    const timersBeforeEmit = vi.getTimerCount();
+    const calls: unknown[][] = [];
+    const { disconnected } = observeDisconnect(serverSocket);
+
+    client.timeout(60_000).emit('slow', (...args: unknown[]) => calls.push(args));
+    expect(vi.getTimerCount()).toBe(timersBeforeEmit);
+    await disconnected;
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.[0]).toMatchObject({ message: 'socket has been disconnected' });
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(calls).toHaveLength(1);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
 it('a trailing-callback ack is silently discarded when the connection drops', async () => {
   const { client, serverSocket } = await ctx.connectClient();
   serverSocket.on('slow', () => {
