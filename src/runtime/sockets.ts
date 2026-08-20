@@ -70,6 +70,8 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
   readonly handshake: Handshake;
   /** The first teardown owns the lifecycle; later disconnect paths await the same work. */
   private teardownPromise: Promise<void> | undefined;
+  /** One connection-owned acknowledgement generation, invalidated by every teardown path. */
+  private readonly acknowledgementState = { active: true };
   private active = true;
   /** Cleared by whole-socket cleanup so a disconnected socket cannot recreate membership. */
   private acceptsRoomJoins = true;
@@ -242,6 +244,7 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
     if (this.teardownPromise) return this.teardownPromise;
     this.teardownPromise = new Promise((resolve) => {
       defer(() => {
+        this.invalidateAcknowledgements();
         this.active = false;
         this.dispatch('disconnecting', [reason]);
         this.connected = false;
@@ -255,8 +258,13 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
 
   /** Idempotently discard a pre-admission socket without lifecycle events. */
   cleanupConnectionAttempt(): void {
+    this.invalidateAcknowledgements();
     this.active = false;
     this.cleanupMembership();
+  }
+
+  invalidateAcknowledgements(): void {
+    this.acknowledgementState.active = false;
   }
 
   /** A middleware error after admission closes only the orphaned server Socket. */
@@ -310,6 +318,7 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
 
   private teardownSynchronously(reason: string): boolean {
     if (this.teardownPromise) return false;
+    this.invalidateAcknowledgements();
     this.teardownPromise = Promise.resolve();
     this.active = false;
     this.dispatch('disconnecting', [reason]);
@@ -325,6 +334,11 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
 
   isActive(): boolean {
     return this.active;
+  }
+
+  acknowledgementGuard(): () => boolean {
+    const state = this.acknowledgementState;
+    return () => state.active;
   }
 
   emit(event: string, ...args: unknown[]): boolean {
@@ -540,6 +554,11 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
     else defer(deliver);
   }
 
+  acknowledgementGuard(): () => boolean {
+    const serverSocket = this.connectionAttempt?.serverSocket ?? this.serverSocket;
+    return serverSocket.acknowledgementGuard();
+  }
+
   /**
    * Defer middleware `connect_error` with its error/data while leaving the client
    * unpaired. App rejection is not logged like a missing-server failure (0005).
@@ -724,6 +743,7 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
     const attempt = this.connectionAttempt as ConnectionAttempt;
     attempt.state = 'cancelled';
     this.connectionAttempt = undefined;
+    this.serverSocket.invalidateAcknowledgements();
     this.connected = false;
     this.id = undefined;
     this.io.disconnected(this);

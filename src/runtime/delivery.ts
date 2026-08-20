@@ -3,6 +3,7 @@ import type { ConnectOptions, Handshake, SmocketAdapter } from '../contract';
 export interface DeliveryTarget {
   scheduleReceive(deliver: () => void): void;
   dispatch(event: string, args: unknown[]): void;
+  acknowledgementGuard(): () => boolean;
 }
 
 /** The shared microtask primitive keeps connection and delivery asynchronous and FIFO (0004, 0010). */
@@ -180,21 +181,34 @@ export function sendEncoded(
   ack?: (...answer: unknown[]) => void,
 ): void {
   let acked = false;
+  let dispatching = false;
   const data = decodePayload(payload);
-  const finalArgs = ack
-    ? [
-        ...data,
-        (...answer: unknown[]) => {
-          if (acked) return;
-          // Ack responses cross the same boundary when the receiver invokes the
-          // callback, not when the request was sent (0026).
-          const response = encodePayload(answer);
-          acked = true;
-          defer(() => ack(...decodePayload(response)));
-        },
-      ]
-    : data;
-  target.scheduleReceive(() => target.dispatch(event, finalArgs));
+  let finalArgs = data;
+  if (ack) {
+    const acknowledgementActive = target.acknowledgementGuard();
+    finalArgs = [
+      ...data,
+      (...answer: unknown[]) => {
+        // Teardown may drain an already-queued delivery (0018); its listener may
+        // still answer synchronously, but a callback retained beyond dispatch
+        // belongs to the connection generation that has now ended (0012).
+        if (acked || (!dispatching && !acknowledgementActive())) return;
+        // Ack responses cross the same boundary when the receiver invokes the
+        // callback, not when the request was sent (0026).
+        const response = encodePayload(answer);
+        acked = true;
+        defer(() => ack(...decodePayload(response)));
+      },
+    ];
+  }
+  target.scheduleReceive(() => {
+    dispatching = true;
+    try {
+      target.dispatch(event, finalArgs);
+    } finally {
+      dispatching = false;
+    }
+  });
 }
 
 /** Use the adapter's scheduling hook (#78), falling back to the shared next tick. */

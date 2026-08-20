@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
 import { setupServer } from './setup-server';
-import { receive, track } from './test-events';
+import { observeDisconnect, receive, track } from './test-events';
 
 const ctx = setupServer();
 
@@ -20,6 +20,57 @@ it('broadcast emitWithAck resolves responses in acknowledgement arrival order', 
     'early',
     'late',
   ]);
+});
+
+it('a disconnected recipient cannot finish a broadcast acknowledgement collection', async () => {
+  const answered = await ctx.connectClient();
+  const held = await ctx.connectClient();
+  await answered.serverSocket.join('all');
+  await held.serverSocket.join('all');
+  answered.client.on('question', (ack: (response: string) => void) => ack('answered'));
+  let answerHeld!: (response: string) => void;
+  const retained = new Promise<void>((resolve) => {
+    held.client.on('question', (ack: (response: string) => void) => {
+      answerHeld = ack;
+      resolve();
+    });
+  });
+
+  let outcome: 'pending' | 'resolved' | 'rejected' = 'pending';
+  const collection = ctx.io
+    .to('all')
+    .timeout(500)
+    .emitWithAck('question')
+    .then(
+      (responses) => {
+        outcome = 'resolved';
+        return responses;
+      },
+      (error: unknown) => {
+        outcome = 'rejected';
+        throw error;
+      },
+    );
+  await retained;
+
+  const { disconnected } = observeDisconnect(held.serverSocket);
+  held.client.disconnect();
+  await disconnected;
+  answerHeld('late');
+
+  const connected = receive(held.client, 'connect');
+  const nextServerSocket = ctx.nextConnection();
+  held.client.connect();
+  const socket = await nextServerSocket;
+  socket.on('ack-marker', (ack: () => void) => ack());
+  await connected;
+  await held.client.emitWithAck('ack-marker');
+
+  expect(outcome).toBe('pending');
+  const error = (await collection.catch((reason: unknown) => reason)) as TimeoutError;
+  expect(error).toBeInstanceOf(Error);
+  expect(error.message).toBe('operation has timed out');
+  expect(error.responses).toEqual(['answered']);
 });
 
 it('untimed broadcast acknowledgement collection keeps the timer race and resolves [] for nobody', async () => {
