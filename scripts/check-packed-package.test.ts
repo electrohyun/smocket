@@ -248,6 +248,24 @@ describe('client facade package policy', () => {
       );
     },
   );
+
+  it.each([
+    ['leading dot prefixes', './package/LICENSE', './package/README.md'],
+    ['backslash separators', 'package\\LICENSE', 'package\\README.md'],
+    ['empty and dot segments', 'package//LICENSE', 'package/./README.md'],
+  ])('accepts required files with %s', (_variant, licenseEntry, readmeEntry) => {
+    const tarEntries = [
+      'package/package.json',
+      licenseEntry,
+      readmeEntry,
+      'package/dist/index.mjs',
+    ];
+
+    expect(inspectClient(clientManifest, clientManifest, tarEntries)).toEqual({
+      passed: true,
+      violations: [],
+    });
+  });
 });
 
 describe('chat-room candidate package identity', () => {
