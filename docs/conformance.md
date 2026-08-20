@@ -239,9 +239,10 @@ JSON results, snapshot timing, invalid data, and reference isolation.
 - [timeout().emitWithAck rejects with the timeout Error on expiry](../src/timeout.test.ts#L155)
 - [keeps a timed callback buffered until reconnect and settles it normally](../src/timeout.test.ts#L163)
 - [does not revive a timed callback that expired while buffered](../src/timeout.test.ts#L192)
-- [server timeout().emitWithAck resolves and rejects with the same one-shot decoration](../src/timeout.test.ts#L221)
-- [times out volatile server emits in either modifier order without delivering them](../src/timeout.test.ts#L234)
-- [a callback-less timeout emit still delivers and arms no timer](../src/timeout.test.ts#L276)
+- [does not deliver emitWithAck after its buffered timeout expires](../src/timeout.test.ts#L225)
+- [server timeout().emitWithAck resolves and rejects with the same one-shot decoration](../src/timeout.test.ts#L256)
+- [times out volatile server emits in either modifier order without delivering them](../src/timeout.test.ts#L269)
+- [a callback-less timeout emit still delivers and arms no timer](../src/timeout.test.ts#L311)
 
 ### Broadcast acknowledgements
 
@@ -574,6 +575,7 @@ Discarding a retained acknowledgement when a Smocket outgoing observer tears dow
 connection mid-send.
 
 - [discards an ack retained after an outgoing observer disconnects the client](../src/ack-native.test.ts#L5)
+- [skips a buffered timed promise settled during reconnect flush](../src/ack-native.test.ts#L37)
 
 ### connect(url) and the origin registry
 

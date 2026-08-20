@@ -25,9 +25,12 @@ export function receive(client: ClientSocketContract, event: string): Promise<un
  * order, so once the marker lands, any message that was coming would already
  * have arrived.
  */
-export function track(client: ClientSocketContract, event: string): { received: boolean } {
+export function track(
+  socket: ClientSocketContract | ServerSocketContract,
+  event: string,
+): { received: boolean } {
   const state = { received: false };
-  client.on(event, () => {
+  socket.on(event, () => {
     state.received = true;
   });
   return state;
@@ -58,10 +61,13 @@ export function observeDisconnect(socket: ServerSocketContract): {
   };
 }
 
-/** Count how many times `event` arrives at the client (for dedup checks). */
-export function count(client: ClientSocketContract, event: string): { count: number } {
+/** Count how many times `event` arrives at a socket (for dedup checks). */
+export function count(
+  socket: ClientSocketContract | ServerSocketContract,
+  event: string,
+): { count: number } {
   const state = { count: 0 };
-  client.on(event, () => {
+  socket.on(event, () => {
     state.count += 1;
   });
   return state;
