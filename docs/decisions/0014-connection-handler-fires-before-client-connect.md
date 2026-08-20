@@ -1,19 +1,20 @@
 # 0014. io.on('connection') fires the server side before the client connect
 
-**Status:** Accepted · 2026-07-31 · #88
+**Status:** Accepted · 2026-07-31 · #88, #350
 
-> **TL;DR** `io.on('connection')` is smocket's server-side app entry point: it
-> fires once per new server socket, before that connection's client `connect`,
-> through the same one `defer` as the connect itself. It arrives with `connect(url)`
-> and the missing-server path as one bundle, because the three are a single
-> timeline, not three separate features.
+> **TL;DR** `io.on('connection')` is smocket's server-side app entry point. Each
+> accepted middleware completion fires it before the corresponding client `connect`,
+> through the same one `defer`; repeated completion reuses the same Socket. It arrives
+> with `connect(url)` and the missing-server path as one timeline.
 
 ## Decision
 
-`io.on('connection', cb)` runs `cb` with each new server-side socket, socket.io's
-primary way to wire per-socket handlers, and the on-based counterpart to the
-`nextConnection` path. `io.on(...)` targets the default namespace, exactly
-`io.of('/').on(...)`, so it never sees a connection on another namespace.
+`io.on('connection', cb)` runs `cb` for each accepted middleware completion,
+socket.io's primary way to wire per-socket handlers, and the on-based counterpart to
+the `nextConnection` path. A middleware normally completes once. If it invokes the
+same `next` repeatedly, Socket.IO reuses one server Socket while firing `connection`
+and client `connect` for every accepted completion. `io.on(...)` targets the default
+namespace, exactly `io.of('/').on(...)`, so it never sees a connection on another namespace.
 
 The handler fires **before** that connection's client `connect`. Within the one
 deferred step that completes a pairing ([0004](./0004-connection-deferred-one-tick.md)),
@@ -22,8 +23,10 @@ the server socket is registered and joins its id-room, is offered to any
 `connect` fire. This is the order real socket.io uses: the server side is
 observable first, so a `connection` handler can already broadcast to the new
 socket, which is why the socket is in the roster and its id-room before the handler
-runs. Both `nextConnection` and `on('connection')` see the same socket; they are
-two ways to reach one connection, not two connections.
+runs. Both `nextConnection` and `on('connection')` see the same socket. Repeated
+middleware completion repeats the lifecycle events but does not enqueue that Socket
+again in the direct connection API
+([0030](./0030-public-connection-api-settles-on-close.md)).
 
 The `connection` event rides the **same `defer`** as the connect and the first
 emits ([0010](./0010-single-defer-primitive-and-fifo.md)), not a second clock. One

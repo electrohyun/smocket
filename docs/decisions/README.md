@@ -25,7 +25,7 @@ these are written.
 | [0011](./0011-socket-id-format.md)                                      | Socket ids match socket.io's shape, not its source                                      | Accepted | #67           |
 | [0012](./0012-reject-inflight-acks-on-disconnect.md)                    | A pending `emitWithAck` is rejected on disconnect                                       | Accepted | #45, #67      |
 | [0013](./0013-reconnect-fresh-socket.md)                                | Reconnecting yields a fresh socket and id, with no old rooms                            | Accepted | #45, #67      |
-| [0014](./0014-connection-handler-fires-before-client-connect.md)        | `io.on('connection')` fires the server side before the client connect                   | Accepted | #88           |
+| [0014](./0014-connection-handler-fires-before-client-connect.md)        | `io.on('connection')` fires the server side before the client connect                   | Accepted | #88, #350     |
 | [0015](./0015-review-bot-reads-intent-ci-keeps-the-gate.md)             | A review bot reads a diff against intent; CI keeps the mechanical checks                | Accepted | #101          |
 | [0016](./0016-volatile-drops-only-pre-connect.md)                       | volatile is accepted and drops only in the pre-connect window                           | Accepted | #110          |
 | [0017](./0017-off-follows-the-emitter.md)                               | off follows the underlying emitter: Node on the server, component-emitter on the client | Accepted | #103          |
@@ -41,7 +41,7 @@ these are written.
 | [0027](./0027-one-workflow-drives-three-case-study-targets.md)          | One workflow drives three isolated application case-study targets                       | Accepted | #218          |
 | [0028](./0028-disconnect-true-closes-the-shared-manager-group.md)       | `disconnect(true)` closes the shared client Manager group                               | Accepted | #236, #254    |
 | [0029](./0029-narrowed-parent-broadcasts-stay-unverified.md)            | Parent broadcast conformance stops before narrowing                                     | Accepted | #269          |
-| [0030](./0030-public-connection-api-settles-on-close.md)                | The public direct connection API rejects observers when its server closes               | Accepted | #277          |
+| [0030](./0030-public-connection-api-settles-on-close.md)                | The public direct connection API rejects observers when its server closes               | Accepted | #277, #350    |
 | [0031](./0031-adapter-registration-and-removal-lifecycle.md)            | Adapters register before admission and may observe whole-socket removal                 | Accepted | #278          |
 | [0032](./0032-trace-final-broadcast-routing.md)                         | Trace final broadcast routing without retaining payloads                                | Accepted | #262          |
 | [0033](./0033-socket-state-follows-lifecycle-not-delivery-readiness.md) | Socket state follows lifecycle while volatile delivery uses private client readiness    | Accepted | #275          |

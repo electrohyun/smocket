@@ -1,6 +1,6 @@
 # 0030. The public direct connection API settles on close
 
-**Status:** Accepted · 2026-08-13 · #277
+**Status:** Accepted · 2026-08-13 · #277, #350
 **Governed by:** [0014](./0014-connection-handler-fires-before-client-connect.md),
 [0020](./0020-close-follows-socket-lifecycle.md),
 [0028](./0028-disconnect-true-closes-the-shared-manager-group.md)
@@ -30,6 +30,8 @@ register a rejected client destination. Multiple calls pair in connection order,
 normalization never merges distinct namespaces. `nextConnection()` and a `connection` listener
 observe the same server Socket under the ordering fixed by
 [0014](./0014-connection-handler-fires-before-client-connect.md).
+If middleware completes repeatedly, lifecycle listeners observe each completion while the
+direct API queues that admitted Socket once; repeated completion does not create another Socket.
 
 A rejected or cancelled admission never consumes an observer. The observer remains queued for
 the next admitted socket. This is proved with that later admission as the completion marker,
