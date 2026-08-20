@@ -571,11 +571,12 @@ because nothing about socket.io follows from them.
 
 ### Native acknowledgement teardown race
 
-Discarding a retained acknowledgement when a Smocket outgoing observer tears down its
-connection mid-send.
+Discarding or retaining acknowledgements as appropriate when a Smocket outgoing observer
+tears down a connection mid-send.
 
 - [discards an ack retained after an outgoing observer disconnects the client](../src/ack-native.test.ts#L5)
 - [skips a buffered timed promise settled during reconnect flush](../src/ack-native.test.ts#L37)
+- [stops reconnect flushing when an outgoing observer disconnects](../src/ack-native.test.ts#L70)
 
 ### connect(url) and the origin registry
 
