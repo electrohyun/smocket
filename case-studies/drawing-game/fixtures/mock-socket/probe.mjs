@@ -65,13 +65,14 @@ async function runOnce(runId) {
   clients.A.emit('join', ROOM, (value) => {
     joinAcknowledgement = value;
   });
+  const originatingSocketArgument = joinArguments.some((value) =>
+    LABELS.some((label) => value === clients[label]),
+  );
   const joinProbe = {
     acknowledgement: joinAcknowledgement,
     listenerRunsOnSharedServer: joinListenerThis === server,
     listenerArgumentTypes: joinArguments.map((value) => typeof value),
-    originatingSocketArgument: joinArguments.some((value) =>
-      LABELS.some((label) => value === clients[label]),
-    ),
+    originatingSocketArgument,
   };
   // [case-snippet:end 2-room-join]
 
@@ -100,7 +101,7 @@ async function runOnce(runId) {
   });
   const wrongGuessProbe = {
     acknowledgement: guessAcknowledgement,
-    originatingSocketAvailableToHandler: false,
+    originatingSocketAvailableToHandler: originatingSocketArgument,
   };
   // [case-snippet:end 4-wrong-guess]
 

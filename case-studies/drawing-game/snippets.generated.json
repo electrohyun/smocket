@@ -153,8 +153,8 @@
       "sourceFile": "case-studies/drawing-game/fixtures/mock-socket/probe.mjs",
       "language": "javascript",
       "purpose": "Join room-1 and return the acknowledgement.",
-      "code": "  server.on('join', function (...args) {\n    joinListenerThis = this;\n    joinArguments = args;\n    const [room, acknowledge] = args;\n    acknowledge({ accepted: true, room });\n  });\n  clients.A.emit('join', ROOM, (value) => {\n    joinAcknowledgement = value;\n  });\n  const joinProbe = {\n    acknowledgement: joinAcknowledgement,\n    listenerRunsOnSharedServer: joinListenerThis === server,\n    listenerArgumentTypes: joinArguments.map((value) => typeof value),\n    originatingSocketArgument: joinArguments.some((value) =>\n      LABELS.some((label) => value === clients[label]),\n    ),\n  };",
-      "sourceSha256": "5bd0f6de1e140df5b6d17f870ff207ae546a843dcbc9ac04722f9223a3c172a0",
+      "code": "  server.on('join', function (...args) {\n    joinListenerThis = this;\n    joinArguments = args;\n    const [room, acknowledge] = args;\n    acknowledge({ accepted: true, room });\n  });\n  clients.A.emit('join', ROOM, (value) => {\n    joinAcknowledgement = value;\n  });\n  const originatingSocketArgument = joinArguments.some((value) =>\n    LABELS.some((label) => value === clients[label]),\n  );\n  const joinProbe = {\n    acknowledgement: joinAcknowledgement,\n    listenerRunsOnSharedServer: joinListenerThis === server,\n    listenerArgumentTypes: joinArguments.map((value) => typeof value),\n    originatingSocketArgument,\n  };",
+      "sourceSha256": "6d7be15d1ba0a51394efe540b19245eaadcadbdc3c73431ed0145e28135e31ba",
       "status": "UNSUPPORTED"
     },
     {
@@ -176,8 +176,8 @@
       "sourceFile": "case-studies/drawing-game/fixtures/mock-socket/probe.mjs",
       "language": "javascript",
       "purpose": "Return false and deliver B wrong guess as room chat.",
-      "code": "  server.on('guess', (text, acknowledge) => acknowledge(text === 'giraffe'));\n  clients.B.emit('guess', 'zebra', (value) => {\n    guessAcknowledgement = value;\n  });\n  const wrongGuessProbe = {\n    acknowledgement: guessAcknowledgement,\n    originatingSocketAvailableToHandler: false,\n  };",
-      "sourceSha256": "7f4b5ef6c3682c119f9ca5d2cb2a5daec765b1382924d14d016e29667d6feb11",
+      "code": "  server.on('guess', (text, acknowledge) => acknowledge(text === 'giraffe'));\n  clients.B.emit('guess', 'zebra', (value) => {\n    guessAcknowledgement = value;\n  });\n  const wrongGuessProbe = {\n    acknowledgement: guessAcknowledgement,\n    originatingSocketAvailableToHandler: originatingSocketArgument,\n  };",
+      "sourceSha256": "0ae092c74f0570fcd1e543744db224e73f221c08d8be97d67f42b224e6c6544c",
       "status": "BLOCKED",
       "blockedByStepId": "2-room-join"
     },
@@ -212,8 +212,8 @@
       "sourceFile": "case-studies/drawing-game/fixtures/msw-binding/probe.mjs",
       "language": "javascript",
       "purpose": "Create A, B, and C as independent clients.",
-      "code": "  const socketLink = ws.link(origin);\n  const handler = socketLink.addEventListener('connection', (connection) => {\n    interceptedConnections += 1;\n    toSocketIo(connection);\n  });\n  const server = setupServer(handler);\n  server.listen({ onUnhandledRequest: 'bypass' });\n  const clients = Object.fromEntries(\n    LABELS.map((label) => [\n      label,\n      io(origin, { forceNew: true, reconnection: false, timeout: 200, transports: ['websocket'] }),\n    ]),\n  );\n  const connectionResults = await Promise.all(\n    LABELS.map((label) => settleConnection(clients[label], label)),\n  );\n  const connected = connectionResults.filter(({ state }) => state === 'connected');\n  const connectActual = {\n    connections: connected.map(({ label, socketId }) => ({ label, socketId })),\n    distinctSocketIds:\n      connected.length === LABELS.length &&\n      new Set(connected.map(({ socketId }) => socketId)).size === LABELS.length,\n  };",
-      "sourceSha256": "c39d8147187bf3d1b321150ca1064803571392519902a3e24c3b0d990ec92bc0",
+      "code": "  const socketLink = ws.link(origin);\n  const handler = socketLink.addEventListener('connection', (connection) => {\n    interceptedConnections += 1;\n    boundConnection = toSocketIo(connection);\n  });\n  const server = setupServer(handler);\n  server.listen({ onUnhandledRequest: 'bypass' });\n  const clients = Object.fromEntries(\n    LABELS.map((label) => [\n      label,\n      io(origin, { forceNew: true, reconnection: false, timeout: 200, transports: ['websocket'] }),\n    ]),\n  );\n  const connectionResults = await Promise.all(\n    LABELS.map((label) => settleConnection(clients[label], label)),\n  );\n  const connected = connectionResults.filter(({ state }) => state === 'connected');\n  const connectActual = {\n    connections: connected.map(({ label, socketId }) => ({ label, socketId })),\n    distinctSocketIds:\n      connected.length === LABELS.length &&\n      new Set(connected.map(({ socketId }) => socketId)).size === LABELS.length,\n  };",
+      "sourceSha256": "e94289856f7030cade0158c93585cd62eeefeeebf68e8202c947fa2152aaadef",
       "status": "DIFFERENT"
     },
     {
@@ -223,8 +223,8 @@
       "sourceFile": "case-studies/drawing-game/fixtures/msw-binding/probe.mjs",
       "language": "javascript",
       "purpose": "Join room-1 and return the acknowledgement.",
-      "code": "  const joinProbe = {\n    interceptedConnections,\n    connectionResults,\n    bindingMethods: ['on', 'send', 'emit'],\n    roomApi: false,\n    acknowledgementPacketApi: false,\n  };",
-      "sourceSha256": "8e5ca7406ea1fff859fbd45e1ad3c7dcf87347031db6737f7edf77bc5c7d34f8",
+      "code": "  const bindingCreated = boundConnection !== undefined;\n  const methods = (names) =>\n    bindingCreated ? names.filter((name) => typeof boundConnection[name] === 'function') : null;\n  const joinProbe = {\n    interceptedConnections,\n    connectionResults,\n    bindingCreated,\n    bindingMethods: methods(['on', 'send', 'emit']),\n    roomMethods: methods(['join', 'leave']),\n    acknowledgementMethods: methods(['ack', 'acknowledge']),\n  };",
+      "sourceSha256": "958cc18e6622ac3ca0a625cc4a777fd762fae6d0f3b420b97236cba2d6e30d5c",
       "status": "BLOCKED",
       "blockedByStepId": "1-connect"
     },
@@ -235,8 +235,8 @@
       "sourceFile": "case-studies/drawing-game/fixtures/msw-binding/probe.mjs",
       "language": "javascript",
       "purpose": "Send A stroke to B and C while excluding A.",
-      "code": "  const strokeProbe = { roomApi: false, broadcastApi: false, senderExclusionApi: false };",
-      "sourceSha256": "851ac89c1cf832b505920808e2d37cc52f52a5f2d2e4f29bebbbaf3d79ad66e1",
+      "code": "  const strokeProbe = {\n    roomMethods: methods(['join', 'leave']),\n    broadcastMethods: methods(['broadcast', 'to', 'in']),\n    senderExclusionMethods: methods(['except']),\n  };",
+      "sourceSha256": "762c8387073bd0476b3c7d380581d7dfb11235e19d4496e9543e40f49346a9dc",
       "status": "BLOCKED",
       "blockedByStepId": "1-connect"
     },
@@ -247,8 +247,8 @@
       "sourceFile": "case-studies/drawing-game/fixtures/msw-binding/probe.mjs",
       "language": "javascript",
       "purpose": "Return false and deliver B wrong guess as room chat.",
-      "code": "  const wrongGuessProbe = { acknowledgementPacketApi: false, roomBroadcastApi: false };",
-      "sourceSha256": "5e75d583dce430d0dfba2cd82f63d1f6ff8b8a8c75bbbfdd0525cf80e91412ba",
+      "code": "  const wrongGuessProbe = {\n    acknowledgementMethods: methods(['ack', 'acknowledge']),\n    roomBroadcastMethods: methods(['broadcast', 'to', 'in']),\n  };",
+      "sourceSha256": "9b4bf5d8638393e0e76f66236e18b25ee1bc8b55ff4810a7cd5cd5593b6d1fe0",
       "status": "BLOCKED",
       "blockedByStepId": "1-connect"
     },
@@ -259,8 +259,8 @@
       "sourceFile": "case-studies/drawing-game/fixtures/msw-binding/probe.mjs",
       "language": "javascript",
       "purpose": "Return true, target C, and announce to the room.",
-      "code": "  const correctGuessProbe = { socketIdTargetingApi: false, roomBroadcastApi: false };",
-      "sourceSha256": "ad8af56f5edec6e4e24d63c50dc90907432e48372a679570ef1212757ea850c6",
+      "code": "  const correctGuessProbe = {\n    targetingMethods: methods(['to', 'in']),\n    roomBroadcastMethods: methods(['broadcast', 'to', 'in']),\n  };",
+      "sourceSha256": "ab25fb067413045698c29dfc0565f8774f148334e86af1c2d2455c26c68106f0",
       "status": "BLOCKED",
       "blockedByStepId": "1-connect"
     },
@@ -271,8 +271,8 @@
       "sourceFile": "case-studies/drawing-game/fixtures/msw-binding/probe.mjs",
       "language": "javascript",
       "purpose": "Disconnect C and route the next A stroke only to B.",
-      "code": "  for (const client of Object.values(clients)) client.disconnect();\n  server.close();\n  const disconnectProbe = { clientCloseAvailable: true, roomCleanupObservable: false };",
-      "sourceSha256": "7b5576511152b9655b6415a5dcf98fb69e2228517b0eaa12ef6dd868270bc490",
+      "code": "  for (const client of Object.values(clients)) client.disconnect();\n  server.close();\n  const disconnectProbe = {\n    clientCloseAvailable: Object.values(clients).every(\n      (client) => typeof client.disconnect === 'function',\n    ),\n    roomCleanupMethods: methods(['leave', 'disconnectSockets']),\n  };",
+      "sourceSha256": "6e91a2eb1b29336ea51af9644fb8ccfdc6cc93f87f4294c3e0f3c0db91f8c86b",
       "status": "BLOCKED",
       "blockedByStepId": "1-connect"
     },
@@ -305,8 +305,8 @@
       "sourceFile": "case-studies/drawing-game/fixtures/socket.io-mock/probe.mjs",
       "language": "javascript",
       "purpose": "Send A stroke to B and C while excluding A.",
-      "code": "  for (const label of LABELS) {\n    sockets[label].socketClient.on('stroke', () => {\n      firstReceived[label] = true;\n    });\n  }\n  sockets.A.broadcast.to(ROOM).emit('stroke', firstStroke);\n  routeMarker(sockets.A, 'after-first-stroke');",
-      "sourceSha256": "0b1717b34c49bd596069e741b486ea6959af671f29079df04c9926960edece6f",
+      "code": "  for (const label of LABELS) {\n    sockets[label].socketClient.on('stroke', (segment) => {\n      if (segment.id === firstStroke.id) firstReceived[label] = true;\n    });\n  }\n  sockets.A.broadcast.to(ROOM).emit('stroke', firstStroke);\n  routeMarker(sockets.A, 'after-first-stroke');",
+      "sourceSha256": "004fcef4a150e1a7e63040662ae20e28b6d7f65bf7ff05be84b03ebe42b99ce5",
       "status": "DIFFERENT"
     },
     {

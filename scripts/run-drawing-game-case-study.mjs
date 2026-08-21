@@ -72,8 +72,11 @@ function run(command, commandArgs, cwd, capture = false) {
       child.stdout.setEncoding('utf8').on('data', (chunk) => (output += chunk));
       child.stderr.setEncoding('utf8').on('data', (chunk) => (errorOutput += chunk));
     }
-    child.on('error', reject);
-    child.on('exit', (code, signal) => {
+    child.on('error', (error) => {
+      clearTimeout(timer);
+      reject(error);
+    });
+    child.on('close', (code, signal) => {
       clearTimeout(timer);
       if (code === 0) resolve(output.trim());
       else {
@@ -210,7 +213,7 @@ try {
         true,
       ),
       sourceState:
-        'smocketSourceCommit identifies the committed golden workflow; per-file SHA-256 values identify the measured case-study sources without a self-referential generated commit id.',
+        'smocketSourceCommit identifies the committed golden workflow; per-file SHA-256 values identify the measurement inputs without a self-referential generated commit id.',
     },
     workflow: {
       source: 'examples/drawing-game',
@@ -233,14 +236,43 @@ try {
     },
     sources: {
       golden: await Promise.all(
-        ['application.ts', 'client.ts', 'scenario.ts', 'assertions.ts', 'target.ts'].map((file) =>
-          describeFile(`examples/drawing-game/${file}`),
-        ),
+        [
+          'application.ts',
+          'client.ts',
+          'scenario.ts',
+          'assertions.ts',
+          'target.ts',
+          'real.ts',
+          'smocket.ts',
+          'smocket-loader.mjs',
+          'smocket-substitution.mjs',
+          'package.json',
+        ].map((file) => describeFile(`examples/drawing-game/${file}`)),
+      ),
+      measurement: await Promise.all(
+        [
+          'case-studies/drawing-game/schema.mjs',
+          'case-studies/drawing-game/evaluate.mjs',
+          'scripts/run-drawing-game-case-study.mjs',
+          'package.json',
+          'pnpm-lock.yaml',
+          'packages/smocket-client/package.json',
+        ].map(describeFile),
       ),
       fixtures: await Promise.all(
-        targetDefinitions.map(({ id }) =>
-          describeFile(`case-studies/drawing-game/fixtures/${id}/probe.mjs`),
-        ),
+        [
+          'real/probe.mjs',
+          'smocket/probe.mjs',
+          'mock-socket/probe.mjs',
+          'mock-socket/package.json',
+          'mock-socket/package-lock.json',
+          'msw-binding/probe.mjs',
+          'msw-binding/package.json',
+          'msw-binding/package-lock.json',
+          'socket.io-mock/probe.mjs',
+          'socket.io-mock/package.json',
+          'socket.io-mock/package-lock.json',
+        ].map((file) => describeFile(`case-studies/drawing-game/fixtures/${file}`)),
       ),
     },
     packageSources: {
