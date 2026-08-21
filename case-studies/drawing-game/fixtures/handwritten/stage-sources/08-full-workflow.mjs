@@ -61,11 +61,13 @@ function createBroadcast(state, target, senderId) {
 }
 
 function disconnectPair(state, pair, reason) {
-  if (!pair.client.connected) return;
+  if (!state.pairs.has(pair.id)) return;
+  const wasConnected = pair.client.connected || pair.serverSocket.connected;
   pair.client.connected = false;
   pair.serverSocket.connected = false;
   state.pairs.delete(pair.id);
   for (const members of state.rooms.values()) members.delete(pair.id);
+  if (!wasConnected) return;
   dispatch(pair.serverListeners, 'disconnect', [reason]);
   dispatch(pair.clientListeners, 'disconnect', [reason]);
 }
@@ -79,7 +81,7 @@ function createPair(state, auth) {
   const client = attachListenerApi(
     {
       id,
-      connected: true,
+      connected: false,
       emit(event, ...args) {
         dispatch(serverListeners, event, args);
         return client;
@@ -94,7 +96,7 @@ function createPair(state, auth) {
   const serverSocket = attachListenerApi(
     {
       id,
-      connected: true,
+      connected: false,
       handshake: { auth: { ...auth } },
       emit(event, ...args) {
         dispatch(clientListeners, event, args);
@@ -118,8 +120,14 @@ function createPair(state, auth) {
 
   Object.assign(pair, { client, serverSocket });
   state.pairs.set(id, pair);
-  dispatch(state.serverListeners, 'connection', [serverSocket]);
-  if (client.connected) dispatch(clientListeners, 'connect', []);
+  queueMicrotask(() => {
+    if (!state.pairs.has(id)) return;
+    serverSocket.connected = true;
+    dispatch(state.serverListeners, 'connection', [serverSocket]);
+    if (!state.pairs.has(id)) return;
+    client.connected = true;
+    dispatch(clientListeners, 'connect', []);
+  });
   return client;
 }
 

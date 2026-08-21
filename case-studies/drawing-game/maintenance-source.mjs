@@ -234,6 +234,17 @@ function createDiffBlock(role, previousBlock, currentBlock) {
 }
 
 function createStageDiff(previousBlocks, currentBlocks) {
+  for (const [label, blocks] of [
+    ['previous', previousBlocks],
+    ['current', currentBlocks],
+  ]) {
+    const roles = blocks.map(({ role }) => role);
+    assert.equal(
+      new Set(roles).size,
+      roles.length,
+      `${label} stage source roles must be unique: ${roles.join(', ')}`,
+    );
+  }
   const previousByRole = new Map(previousBlocks.map((block) => [block.role, block]));
   const currentByRole = new Map(currentBlocks.map((block) => [block.role, block]));
   const roles = [...new Set([...previousByRole.keys(), ...currentByRole.keys()])];

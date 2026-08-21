@@ -257,6 +257,25 @@ const sourceInputs = await Promise.all(
     ]),
   ].map(describeFile),
 );
+
+function reconcileBlockLoc(blocks, category) {
+  const countedByFile = new Map();
+  for (const block of blocks) {
+    const counted = countedByFile.get(block.sourceFile) ?? new Set();
+    for (const line of block.countedLineNumbers) counted.add(line);
+    countedByFile.set(block.sourceFile, counted);
+  }
+  const summedLoc = blocks.reduce((sum, block) => sum + block.loc, 0);
+  const uniqueLoc = [...countedByFile.values()].reduce((sum, lines) => sum + lines.size, 0);
+  assert.equal(summedLoc, uniqueLoc, `${category} source blocks contain overlapping counted lines`);
+  return summedLoc;
+}
+
+const sharedApplicationLoc = reconcileBlockLoc(sourceModel.sharedApplication, 'shared application');
+const smocketIntegrationLoc = reconcileBlockLoc(
+  sourceModel.smocketIntegration,
+  'Smocket integration',
+);
 const base = stages[0];
 const full = stages.at(-1);
 
@@ -284,12 +303,12 @@ const artifact = {
   },
   sharedApplication: {
     role: 'Used unchanged by both targets and excluded from the maintenance difference.',
-    loc: sourceModel.sharedApplication.reduce((sum, block) => sum + block.loc, 0),
+    loc: sharedApplicationLoc,
     sourceBlocks: sourceModel.sharedApplication,
   },
   smocketIntegration: {
     role: 'Canonical golden bootstrap and package substitution; Real Socket.IO is not scored.',
-    totalLoc: sourceModel.smocketIntegration.reduce((sum, block) => sum + block.loc, 0),
+    totalLoc: smocketIntegrationLoc,
     sourceBlocks: sourceModel.smocketIntegration,
   },
   stages,
