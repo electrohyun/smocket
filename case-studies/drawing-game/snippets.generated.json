@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "sourceRevision": "8885dcead7446ad9d268ee15a6203740b6a1e12e",
+  "sourceRevision": "6afc76aa6b9531e26454c09200627dba1b626640",
   "regenerateWith": "pnpm case-study:drawing-game:snippets",
   "snippets": [
     {

@@ -2,12 +2,12 @@
   "schemaVersion": 1,
   "caseStudy": "drawing-game-compatibility",
   "environment": {
-    "measuredAt": "2026-08-21T11:13:21.262Z",
+    "measuredAt": "2026-08-21T12:04:22.752Z",
     "platform": "win32",
     "architecture": "x64",
     "node": "v24.11.1",
     "npm": "11.6.4",
-    "smocketSourceCommit": "8885dcead7446ad9d268ee15a6203740b6a1e12e",
+    "smocketSourceCommit": "6afc76aa6b9531e26454c09200627dba1b626640",
     "sourceState": "smocketSourceCommit identifies the committed golden workflow; per-file SHA-256 values identify the measurement inputs without a self-referential generated commit id."
   },
   "workflow": {
@@ -95,7 +95,7 @@
       },
       {
         "path": "package.json",
-        "sha256": "fd0ca8e2c932f2865e8b91d6ea2cd5d1e09a4ed0f0c0eea6443e438f7efe9de7"
+        "sha256": "eae5ac5cb17ea57053aa88c8d72cafad6b62ba4a1fb6540db76390cb4335c32c"
       },
       {
         "path": "pnpm-lock.yaml",

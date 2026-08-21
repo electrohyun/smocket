@@ -4,6 +4,11 @@ import { readFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { STEP_IDS, TARGET_IDS, assertMeasurementArtifact } from './schema.mjs';
+import { assertMaintenanceArtifact, assertMaintenanceSnippets } from './maintenance-schema.mjs';
+import {
+  createMaintenanceSnippetArtifact,
+  createMaintenanceSourceModel,
+} from './maintenance-source.mjs';
 
 const moduleDirectory = dirname(fileURLToPath(import.meta.url));
 const root = resolve(moduleDirectory, '../..');
@@ -69,4 +74,52 @@ test('public golden source and generated snippets expose no bootstrap cast', asy
     snippets.snippets.some(({ code }) => code.includes('as unknown as')),
     false,
   );
+});
+
+test('the staged maintenance artifact satisfies its schema and oracle comparisons', async () => {
+  const artifact = JSON.parse(
+    await readFile(resolve(moduleDirectory, 'maintenance.generated.json'), 'utf8'),
+  );
+  assertMaintenanceArtifact(artifact);
+  assert.deepEqual(
+    artifact.finalWorkflow.observations.smocket,
+    artifact.finalWorkflow.observations.real,
+  );
+  assert.deepEqual(
+    artifact.finalWorkflow.observations.handwritten,
+    artifact.finalWorkflow.observations.real,
+  );
+});
+
+test('every handwritten feature stage ran with its prerequisite closure', async () => {
+  const artifact = JSON.parse(
+    await readFile(resolve(moduleDirectory, 'maintenance.generated.json'), 'utf8'),
+  );
+  assert.ok(artifact.stages.every(({ passed }) => passed));
+  assert.deepEqual(
+    artifact.stages.map(({ enabledFeatureIds }) => enabledFeatureIds),
+    artifact.features.map(({ validation }) => validation.enabledFeatureIds),
+  );
+});
+
+test('the maintenance line counter and snippet extraction are deterministic', async () => {
+  assert.deepEqual(await createMaintenanceSourceModel(), await createMaintenanceSourceModel());
+  const measurement = JSON.parse(
+    await readFile(resolve(moduleDirectory, 'maintenance.generated.json'), 'utf8'),
+  );
+  const snippets = JSON.parse(
+    await readFile(resolve(moduleDirectory, 'maintenance-snippets.generated.json'), 'utf8'),
+  );
+  assertMaintenanceSnippets(snippets);
+  assert.deepEqual(snippets, await createMaintenanceSnippetArtifact(measurement.sourceRevision));
+});
+
+test('the handwritten transport contains no drawing-game answers or named fixtures', async () => {
+  const source = await readFile(
+    resolve(moduleDirectory, 'fixtures/handwritten/handwritten-socket.mjs'),
+    'utf8',
+  );
+  for (const forbidden of ["'A'", "'B'", "'C'", 'room-1', 'giraffe', 'zebra']) {
+    assert.equal(source.includes(forbidden), false, `handwritten runtime contains ${forbidden}`);
+  }
 });
