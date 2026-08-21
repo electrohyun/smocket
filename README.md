@@ -184,17 +184,18 @@ complete Vitest and Jest setups.
 
 ### Where to start from here
 
-| Coming from                                  | Start at                                                                              |
-| -------------------------------------------- | ------------------------------------------------------------------------------------- |
-| Vitest                                       | the quick start above, which is a vitest file                                         |
-| Jest, or another CJS runner                  | [the documented, executable Jest setup](docs/test-runner-integration.md#jest)         |
-| An app that imports `socket.io-client`       | [test-runner integration](docs/test-runner-integration.md), which swaps the specifier |
-| A setup that fails before the first event    | [troubleshooting by actual signal](docs/troubleshooting.md)                           |
-| A hand-written socket mock                   | [the problem](#the-problem)                                                           |
-| Wanting to read a program rather than a test | [examples/chat-room](examples/chat-room/)                                             |
-| Wanting a typed drawing and chat workflow    | [examples/drawing-game](examples/drawing-game/)                                       |
-| Wanting to compare real and mock runs        | [the dual-target consumer walkthrough](consumers/chat-room/)                          |
-| Wanting the exact guarantees                 | [the conformance report](docs/conformance.md)                                         |
+| Coming from                                    | Start at                                                                              |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Vitest                                         | the quick start above, which is a vitest file                                         |
+| Jest, or another CJS runner                    | [the documented, executable Jest setup](docs/test-runner-integration.md#jest)         |
+| An app that imports `socket.io-client`         | [test-runner integration](docs/test-runner-integration.md), which swaps the specifier |
+| A setup that fails before the first event      | [troubleshooting by actual signal](docs/troubleshooting.md)                           |
+| A hand-written socket mock                     | [the problem](#the-problem)                                                           |
+| Wanting to read a program rather than a test   | [examples/chat-room](examples/chat-room/)                                             |
+| Wanting a typed drawing and chat workflow      | [examples/drawing-game](examples/drawing-game/)                                       |
+| Wanting an executable compatibility case study | [case-studies/drawing-game](case-studies/drawing-game/)                               |
+| Wanting to compare real and mock runs          | [the dual-target consumer walkthrough](consumers/chat-room/)                          |
+| Wanting the exact guarantees                   | [the conformance report](docs/conformance.md)                                         |
 
 ## Examples
 
