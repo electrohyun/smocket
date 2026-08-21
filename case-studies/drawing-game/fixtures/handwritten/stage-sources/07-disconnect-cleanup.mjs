@@ -31,7 +31,10 @@ export function createDisconnectFake() {
     pair.clientSocket.connected = false;
     pair.serverSocket.connected = false;
     pairs.delete(pair.id);
-    for (const members of rooms.values()) members.delete(pair.id);
+    for (const [room, members] of rooms) {
+      members.delete(pair.id);
+      if (members.size === 0) rooms.delete(room);
+    }
     dispatch(pair.serverListeners, 'disconnect', ['client namespace disconnect']);
   }
 

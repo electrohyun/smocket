@@ -66,7 +66,10 @@ function disconnectPair(state, pair, reason) {
   pair.client.connected = false;
   pair.serverSocket.connected = false;
   state.pairs.delete(pair.id);
-  for (const members of state.rooms.values()) members.delete(pair.id);
+  for (const [room, members] of state.rooms) {
+    members.delete(pair.id);
+    if (members.size === 0) state.rooms.delete(room);
+  }
   if (!wasConnected) return;
   dispatch(pair.serverListeners, 'disconnect', [reason]);
   dispatch(pair.clientListeners, 'disconnect', [reason]);
