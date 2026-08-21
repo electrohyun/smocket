@@ -85,13 +85,13 @@ Snippet code is extracted from the executable golden source or fixture marker re
 There is no separately maintained display code. Regeneration followed by the stale check
 is the handoff contract for the demo site and interactive report.
 
-## Input for a later handwritten measurement
+## Staged handwritten maintenance surface
 
-This goal does not add a handwritten mock. A later fixture can start directly from
-`workflow.stepIds` and `oracle.steps` in the observation, return the raw target shape
-validated by `assertRawTarget`, and let the existing evaluator classify it. The generated
-snippet artifact already defines the target/step/source/code contract its UI card must
-produce, so that step does not need another workflow or expected-result copy.
+The companion [maintenance-surface case study](./maintenance.md) runs a generic
+handwritten transport through a direct base and six independently extracted
+delivery blocks. It reuses the golden workflow, derives behavior from a fresh Real
+Socket.IO run, confirms workspace Smocket still agrees, and records deterministic
+LOC and source snippets without changing the public-tool cards above.
 
 These observations apply only to this six-step workflow. `mock-socket` is primarily a
 WebSocket mock with limited Socket.IO support, the MSW binding documents missing rooms and
