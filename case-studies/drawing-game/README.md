@@ -37,8 +37,9 @@ pnpm case-study:drawing-game:test
 timestamp and host environment remain descriptive, while source hashes, versions, oracle,
 cards, statuses, expected values, actual values, and the base source commit must match.
 The recorded commit is the commit that last changed the golden workflow. Per-file hashes
-identify the case-study source itself, avoiding a generated file that would need to contain
-the hash of the commit that contains that same file.
+identify the golden code, evaluator, runner, substitution loader, probes, manifests, and
+lockfiles, avoiding a generated file that would need to contain the hash of the commit that
+contains that same file.
 
 Run one target with one of these commands. A non-oracle target still runs Real Socket.IO
 first because its expected values must come from the fresh oracle, not a hand-written copy.
