@@ -138,8 +138,14 @@ test('the final handwritten client exposes its deferred connect lifecycle', asyn
   server.on('connection', () => order.push('server connection'));
   const client = io(origin);
   assert.equal(client.connected, false);
-  const connected = new Promise((resolve) => {
+  let connectionDeadline;
+  const connected = new Promise((resolve, reject) => {
+    connectionDeadline = setTimeout(
+      () => reject(new Error('handwritten client did not connect')),
+      1_000,
+    );
     client.once('connect', () => {
+      clearTimeout(connectionDeadline);
       order.push('client connect');
       resolve();
     });
@@ -150,6 +156,7 @@ test('the final handwritten client exposes its deferred connect lifecycle', asyn
     assert.equal(client.connected, true);
     assert.deepEqual(order, ['server connection', 'client connect']);
   } finally {
+    clearTimeout(connectionDeadline);
     client.disconnect();
     await server.close();
   }

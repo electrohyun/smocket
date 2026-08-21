@@ -1,7 +1,7 @@
 # Drawing-game delivery maintenance surface
 
 > **TL;DR** A 19-LOC single-client fake is small. Reaching the complete drawing-game
-> workflow requires successive rewrites and a 138-LOC four-file source closure.
+> workflow requires successive rewrites and a 140-LOC four-file source closure.
 > Workspace Smocket uses 18 LOC of target integration. Real Socket.IO supplies the
 > expected observation and is not assigned a convenience score.
 
@@ -25,8 +25,8 @@ or disconnect extension points.
 | sender exclusion      | room membership/bcast |     5 |       3 |  +2 |    55 |
 | acknowledgement       | sender exclusion      |     3 |       3 |   0 |    55 |
 | targeted delivery     | acknowledgement       |     6 |       5 |  +1 |    56 |
-| disconnect cleanup    | targeted delivery     |    15 |       2 | +13 |    69 |
-| full golden workflow  | disconnect cleanup    |   135 |      66 | +69 |   138 |
+| disconnect cleanup    | targeted delivery     |    17 |       2 | +15 |    71 |
+| full golden workflow  | disconnect cleanup    |   137 |      68 | +69 |   140 |
 
 The additions and deletions come from deterministic diffs of counted source lines;
 they are not marker positions inside one final framework. The large final transition
