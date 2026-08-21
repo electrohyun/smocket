@@ -1,14 +1,15 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFile, writeFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   STEP_IDS,
   TARGET_IDS,
   assertMeasurementArtifact,
 } from '../case-studies/drawing-game/schema.mjs';
 
-const root = resolve(import.meta.dirname, '..');
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const caseStudyRoot = resolve(root, 'case-studies/drawing-game');
 const artifactPath = resolve(caseStudyRoot, 'snippets.generated.json');
 const observationPath = resolve(caseStudyRoot, 'observations.generated.json');

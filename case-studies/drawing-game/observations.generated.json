@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "caseStudy": "drawing-game-compatibility",
   "environment": {
-    "measuredAt": "2026-08-21T11:05:36.537Z",
+    "measuredAt": "2026-08-21T11:13:21.262Z",
     "platform": "win32",
     "architecture": "x64",
     "node": "v24.11.1",
@@ -95,7 +95,7 @@
       },
       {
         "path": "package.json",
-        "sha256": "9b547a64c47e95060aa557517effbac273129f7e690bddb7c09c19ed1780b27e"
+        "sha256": "fd0ca8e2c932f2865e8b91d6ea2cd5d1e09a4ed0f0c0eea6443e438f7efe9de7"
       },
       {
         "path": "pnpm-lock.yaml",

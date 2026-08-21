@@ -1,14 +1,16 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { STEP_IDS, TARGET_IDS, assertMeasurementArtifact } from './schema.mjs';
 
-const root = resolve(import.meta.dirname, '../..');
+const moduleDirectory = dirname(fileURLToPath(import.meta.url));
+const root = resolve(moduleDirectory, '../..');
 
 async function readMeasurement() {
   return JSON.parse(
-    await readFile(resolve(import.meta.dirname, 'observations.generated.json'), 'utf8'),
+    await readFile(resolve(moduleDirectory, 'observations.generated.json'), 'utf8'),
   );
 }
 
@@ -36,7 +38,7 @@ test('the shared schema rejects blockers that do not establish causality', async
 
 test('generated snippets cover every target and workflow step', async () => {
   const artifact = JSON.parse(
-    await readFile(resolve(import.meta.dirname, 'snippets.generated.json'), 'utf8'),
+    await readFile(resolve(moduleDirectory, 'snippets.generated.json'), 'utf8'),
   );
   for (const targetId of TARGET_IDS) {
     for (const stepId of STEP_IDS) {
@@ -57,7 +59,7 @@ test('public golden source and generated snippets expose no bootstrap cast', asy
     ),
   );
   const snippets = JSON.parse(
-    await readFile(resolve(import.meta.dirname, 'snippets.generated.json'), 'utf8'),
+    await readFile(resolve(moduleDirectory, 'snippets.generated.json'), 'utf8'),
   );
   assert.equal(
     publicSource.some((source) => source.includes('as unknown as')),
