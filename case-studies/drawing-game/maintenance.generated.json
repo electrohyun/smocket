@@ -1,0 +1,1343 @@
+{
+  "schemaVersion": 1,
+  "caseStudy": "drawing-game-maintenance-surface",
+  "sourceRevision": "6afc76aa6b9531e26454c09200627dba1b626640",
+  "question": {
+    "targets": ["smocket", "handwritten"],
+    "realSocketIoRole": "behavior-oracle-only",
+    "selectedWorkflow": "examples/drawing-game"
+  },
+  "measurementRules": {
+    "headline": "Application-owned Socket.IO delivery support used by this workflow.",
+    "sharedApplicationCountedAsDifference": false,
+    "sourceFormatting": "Prettier-formatted checked-in source.",
+    "countedLine": "A nonblank source line containing code after comment-only and punctuation-only lines are removed.",
+    "excludedLineKinds": ["blank", "comment-only", "snippet-marker", "punctuation-only formatting"],
+    "excludedArtifacts": [
+      "tests",
+      "scenarios and assertions",
+      "generated JSON",
+      "lockfiles",
+      "README files"
+    ],
+    "selectionRule": "Always include base, close prerequisites through requires, then sum each selected feature delta once."
+  },
+  "sharedApplication": {
+    "role": "Used unchanged by both targets and excluded from the headline difference.",
+    "loc": 103,
+    "files": [
+      {
+        "id": "shared-application",
+        "sourceFile": "examples/drawing-game/application.ts",
+        "language": "typescript",
+        "code": "import type { Server } from 'socket.io';\n\nexport const ROOM = 'room-1';\nexport const WORD = 'giraffe';\nexport const LABELS = ['A', 'B', 'C'] as const;\n\nexport type Label = (typeof LABELS)[number];\n\nexport interface StrokeSegment {\n  id: number;\n  points: Array<[x: number, y: number]>;\n  end?: true;\n}\n\nexport interface JoinResult {\n  accepted: boolean;\n  room: string;\n}\n\nexport interface ChatMessage {\n  from: Label;\n  text: string;\n}\n\nexport interface RoundResult {\n  winner: Label;\n  word: string;\n}\n\nexport interface ClientToServerEvents {\n  join: (room: string, acknowledge: (result: JoinResult) => void) => void;\n  stroke: (segment: StrokeSegment) => void;\n  chat: (text: string) => void;\n  guess: (text: string, acknowledge: (correct: boolean) => void) => void;\n}\n\nexport interface ServerToClientEvents {\n  stroke: (segment: StrokeSegment) => void;\n  chat: (message: ChatMessage) => void;\n  correct: (result: { word: string }) => void;\n  announce: (result: RoundResult) => void;\n}\n\nexport type DrawingGameServer = Server<ClientToServerEvents, ServerToClientEvents>;\n\nfunction isLabel(value: unknown): value is Label {\n  return value === 'A' || value === 'B' || value === 'C';\n}\n\n/** The application handlers used unchanged by Real Socket.IO and Smocket. */\nexport function registerDrawingGameHandlers(io: DrawingGameServer): void {\n  io.on('connection', (socket) => {\n    const claimedLabel = socket.handshake.auth.label;\n    if (!isLabel(claimedLabel)) {\n      socket.disconnect(true);\n      return;\n    }\n\n    const label = claimedLabel;\n    // [snippet:start room-join]\n    socket.on('join', async (room, acknowledge) => {\n      if (room !== ROOM) {\n        acknowledge({ accepted: false, room });\n        return;\n      }\n      await socket.join(room);\n      acknowledge({ accepted: true, room });\n    });\n    // [snippet:end room-join]\n\n    // [snippet:start drawing-server-handler]\n    socket.on('stroke', (segment) => {\n      socket.to(ROOM).emit('stroke', segment);\n    });\n    // [snippet:end drawing-server-handler]\n\n    // [snippet:start chat-guess-server-handler]\n    socket.on('chat', (text) => {\n      io.to(ROOM).emit('chat', { from: label, text });\n    });\n\n    socket.on('guess', (text, acknowledge) => {\n      // [snippet:start acknowledgement]\n      const correct = text === WORD;\n      acknowledge(correct);\n      // [snippet:end acknowledgement]\n\n      if (!correct) {\n        io.to(ROOM).emit('chat', { from: label, text });\n        return;\n      }\n\n      // [snippet:start targeted-correct]\n      io.to(socket.id).emit('correct', { word: WORD });\n      // [snippet:end targeted-correct]\n      // [snippet:start room-announce]\n      io.to(ROOM).emit('announce', { winner: label, word: WORD });\n      // [snippet:end room-announce]\n    });\n    // [snippet:end chat-guess-server-handler]\n  });\n}",
+        "sourceSha256": "c3f13918ae1d7a38be603f651737cfd8c9b7b80e25493ca984d01bad37c1acd6",
+        "sourceRange": { "startLine": 1, "endLine": 102 },
+        "loc": 56,
+        "countedLineNumbers": [
+          1, 3, 4, 5, 7, 9, 10, 11, 12, 15, 16, 17, 20, 21, 22, 25, 26, 27, 30, 31, 32, 33, 34, 37,
+          38, 39, 40, 41, 44, 46, 47, 51, 52, 53, 54, 55, 56, 59, 61, 62, 63, 64, 66, 67, 72, 73,
+          78, 79, 82, 84, 85, 88, 89, 90, 94, 97
+        ],
+        "excludedLineNumbers": {
+          "blank": [2, 6, 8, 14, 19, 24, 29, 36, 43, 45, 49, 58, 70, 76, 81, 87, 92],
+          "snippetMarker": [60, 69, 71, 75, 77, 83, 86, 93, 95, 96, 98, 100],
+          "commentOnly": [50],
+          "formattingOnly": [13, 18, 23, 28, 35, 42, 48, 57, 65, 68, 74, 80, 91, 99, 101, 102]
+        }
+      },
+      {
+        "id": "shared-client",
+        "sourceFile": "examples/drawing-game/client.ts",
+        "language": "typescript",
+        "code": "import { io, type Socket } from 'socket.io-client';\nimport {\n  ROOM,\n  type ChatMessage,\n  type ClientToServerEvents,\n  type JoinResult,\n  type Label,\n  type RoundResult,\n  type ServerToClientEvents,\n  type StrokeSegment,\n} from './application.js';\n\nexport type DrawingGameClient = Socket<ServerToClientEvents, ClientToServerEvents>;\n\n/** This import and constructor stay unchanged when the target becomes Smocket. */\nexport function createDrawingGameClient(url: string, label: Label): DrawingGameClient {\n  return io(url, {\n    auth: { label },\n    forceNew: true,\n  });\n}\n\nexport function waitForConnection(client: DrawingGameClient): Promise<void> {\n  if (client.connected) return Promise.resolve();\n\n  return new Promise((resolve, reject) => {\n    const connected = () => {\n      client.off('connect_error', failed);\n      resolve();\n    };\n    const failed = (error: Error) => {\n      client.off('connect', connected);\n      reject(error);\n    };\n\n    client.once('connect', connected);\n    client.once('connect_error', failed);\n  });\n}\n\nexport function joinGame(client: DrawingGameClient): Promise<JoinResult> {\n  return new Promise((resolve) => client.emit('join', ROOM, resolve));\n}\n\n// [snippet:start drawing-client]\nexport function receiveStrokes(\n  client: DrawingGameClient,\n  receive: (segment: StrokeSegment) => void,\n): void {\n  client.on('stroke', receive);\n}\n\nexport function sendStroke(client: DrawingGameClient, segment: StrokeSegment): void {\n  client.emit('stroke', segment);\n}\n// [snippet:end drawing-client]\n\n// [snippet:start chat-guess-client]\nexport function receiveChat(client: DrawingGameClient, receive: (message: ChatMessage) => void) {\n  client.on('chat', receive);\n}\n\nexport function receiveCorrect(client: DrawingGameClient, receive: (word: string) => void) {\n  client.on('correct', ({ word }) => receive(word));\n}\n\nexport function receiveAnnouncement(\n  client: DrawingGameClient,\n  receive: (result: RoundResult) => void,\n) {\n  client.on('announce', receive);\n}\n\nexport function submitGuess(client: DrawingGameClient, text: string): Promise<boolean> {\n  return new Promise((resolve) => client.emit('guess', text, resolve));\n}\n// [snippet:end chat-guess-client]",
+        "sourceSha256": "ce86954195f8e3539a063f83ac3d6c2d08a1e626b272ec60b2b4613dc9810407",
+        "sourceRange": { "startLine": 1, "endLine": 77 },
+        "loc": 47,
+        "countedLineNumbers": [
+          1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 16, 17, 18, 19, 23, 24, 26, 27, 28, 29, 31, 32, 33,
+          36, 37, 41, 42, 46, 47, 48, 49, 50, 53, 54, 59, 60, 63, 64, 67, 68, 69, 70, 71, 74, 75
+        ],
+        "excludedLineNumbers": {
+          "blank": [12, 14, 22, 25, 35, 40, 44, 52, 57, 62, 66, 73],
+          "snippetMarker": [45, 56, 58, 77],
+          "commentOnly": [15],
+          "formattingOnly": [20, 21, 30, 34, 38, 39, 43, 51, 55, 61, 65, 72, 76]
+        }
+      }
+    ],
+    "countedLineNumbers": [
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 1 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 3 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 4 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 5 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 7 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 9 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 10 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 11 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 12 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 15 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 16 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 17 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 20 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 21 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 22 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 25 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 26 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 27 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 30 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 31 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 32 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 33 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 34 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 37 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 38 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 39 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 40 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 41 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 44 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 46 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 47 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 51 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 52 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 53 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 54 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 55 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 56 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 59 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 61 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 62 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 63 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 64 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 66 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 67 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 72 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 73 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 78 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 79 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 82 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 84 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 85 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 88 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 89 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 90 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 94 },
+      { "sourceFile": "examples/drawing-game/application.ts", "line": 97 },
+      { "sourceFile": "examples/drawing-game/client.ts", "line": 1 },
+      { "sourceFile": "examples/drawing-game/client.ts", "line": 2 },
+      { "sourceFile": "examples/drawing-game/client.ts", "line": 3 },
+      { "sourceFile": "examples/drawing-game/client.ts", "line": 4 },
+      { "sourceFile": "examples/drawing-game/client.ts", "line": 5 },
+      { "sourceFile": "examples/drawing-game/client.ts", "line": 6 },
+      { "sourceFile": "examples/drawing-game/client.ts", "line": 7 },
+      { "sourceFile": "examples/drawing-game/client.ts", "line": 8 },
+      { "sourceFile": "examples/drawing-game/client.ts", "line": 9 },
+      { "sourceFile": "examples/drawing-game/client.ts", "line": 10 },
+      { "sourceFile": "examples/drawing-game/client.ts", "line": 11 },
+      { "sourceFile": "examples/drawing-game/client.ts", "line": 13 },
+      { "sourceFile": "examples/drawing-game/client.ts", "line": 16 },
+      { "sourceFile": "examples/drawing-game/client.ts", "line": 17 },
+      { "sourceFile": "examples/drawing-game/client.ts", "line": 18 },
+      { "sourceFile": "examples/drawing-game/client.ts", "line": 19 },
+      { "sourceFile": "examples/drawing-game/client.ts", "line": 23 },
+      { "sourceFile": "examples/drawing-game/client.ts", "line": 24 },
+      { "sourceFile": "examples/drawing-game/client.ts", "line": 26 },
+      { "sourceFile": "examples/drawing-game/client.ts", "line": 27 },
+      { "sourceFile": "examples/drawing-game/client.ts", "line": 28 },
+      { "sourceFile": "examples/drawing-game/client.ts", "line": 29 },
+      { "sourceFile": "examples/drawing-game/client.ts", "line": 31 },
+      { "sourceFile": "examples/drawing-game/client.ts", "line": 32 },
+      { "sourceFile": "examples/drawing-game/client.ts", "line": 33 },
+      { "sourceFile": "examples/drawing-game/client.ts", "line": 36 },
+      { "sourceFile": "examples/drawing-game/client.ts", "line": 37 },
+      { "sourceFile": "examples/drawing-game/client.ts", "line": 41 },
+      { "sourceFile": "examples/drawing-game/client.ts", "line": 42 },
+      { "sourceFile": "examples/drawing-game/client.ts", "line": 46 },
+      { "sourceFile": "examples/drawing-game/client.ts", "line": 47 },
+      { "sourceFile": "examples/drawing-game/client.ts", "line": 48 },
+      { "sourceFile": "examples/drawing-game/client.ts", "line": 49 },
+      { "sourceFile": "examples/drawing-game/client.ts", "line": 50 },
+      { "sourceFile": "examples/drawing-game/client.ts", "line": 53 },
+      { "sourceFile": "examples/drawing-game/client.ts", "line": 54 },
+      { "sourceFile": "examples/drawing-game/client.ts", "line": 59 },
+      { "sourceFile": "examples/drawing-game/client.ts", "line": 60 },
+      { "sourceFile": "examples/drawing-game/client.ts", "line": 63 },
+      { "sourceFile": "examples/drawing-game/client.ts", "line": 64 },
+      { "sourceFile": "examples/drawing-game/client.ts", "line": 67 },
+      { "sourceFile": "examples/drawing-game/client.ts", "line": 68 },
+      { "sourceFile": "examples/drawing-game/client.ts", "line": 69 },
+      { "sourceFile": "examples/drawing-game/client.ts", "line": 70 },
+      { "sourceFile": "examples/drawing-game/client.ts", "line": 71 },
+      { "sourceFile": "examples/drawing-game/client.ts", "line": 74 },
+      { "sourceFile": "examples/drawing-game/client.ts", "line": 75 }
+    ]
+  },
+  "countedFiles": [
+    {
+      "sourceFile": "examples/drawing-game/application.ts",
+      "category": "shared-application",
+      "blockIds": ["shared-application"],
+      "loc": 56,
+      "countedLineNumbers": [
+        1, 3, 4, 5, 7, 9, 10, 11, 12, 15, 16, 17, 20, 21, 22, 25, 26, 27, 30, 31, 32, 33, 34, 37,
+        38, 39, 40, 41, 44, 46, 47, 51, 52, 53, 54, 55, 56, 59, 61, 62, 63, 64, 66, 67, 72, 73, 78,
+        79, 82, 84, 85, 88, 89, 90, 94, 97
+      ]
+    },
+    {
+      "sourceFile": "examples/drawing-game/client.ts",
+      "category": "shared-application",
+      "blockIds": ["shared-client"],
+      "loc": 47,
+      "countedLineNumbers": [
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 16, 17, 18, 19, 23, 24, 26, 27, 28, 29, 31, 32, 33,
+        36, 37, 41, 42, 46, 47, 48, 49, 50, 53, 54, 59, 60, 63, 64, 67, 68, 69, 70, 71, 74, 75
+      ]
+    },
+    {
+      "sourceFile": "examples/drawing-game/smocket.ts",
+      "category": "smocket-integration",
+      "blockIds": ["smocket-bootstrap"],
+      "loc": 6,
+      "countedLineNumbers": [16, 17, 18, 19, 20, 22]
+    },
+    {
+      "sourceFile": "examples/drawing-game/smocket-loader.mjs",
+      "category": "smocket-integration",
+      "blockIds": ["smocket-client-substitution"],
+      "loc": 10,
+      "countedLineNumbers": [2, 3, 4, 5, 6, 7, 10, 11, 12, 14]
+    },
+    {
+      "sourceFile": "examples/drawing-game/smocket-substitution.mjs",
+      "category": "smocket-integration",
+      "blockIds": ["smocket-loader-registration"],
+      "loc": 2,
+      "countedLineNumbers": [1, 3]
+    },
+    {
+      "sourceFile": "case-studies/drawing-game/fixtures/handwritten/handwritten-socket.mjs",
+      "category": "handwritten-support",
+      "blockIds": [
+        "base-single-client",
+        "multiple-clients",
+        "room-broadcast",
+        "sender-exclusion",
+        "acknowledgement",
+        "targeted-delivery",
+        "disconnect-cleanup"
+      ],
+      "loc": 202,
+      "countedLineNumbers": [
+        2, 3, 4, 5, 6, 7, 8, 11, 13, 14, 17, 18, 19, 20, 23, 24, 25, 26, 27, 28, 32, 33, 34, 35, 36,
+        37, 41, 42, 43, 44, 45, 47, 48, 49, 51, 52, 53, 55, 56, 57, 62, 63, 64, 65, 66, 67, 68, 69,
+        70, 71, 72, 74, 75, 77, 78, 80, 81, 83, 84, 86, 87, 89, 90, 92, 93, 95, 96, 97, 98, 100,
+        101, 103, 104, 105, 106, 107, 108, 109, 110, 113, 116, 117, 118, 119, 120, 121, 122, 125,
+        126, 127, 128, 129, 130, 131, 132, 133, 136, 138, 139, 140, 141, 142, 144, 145, 146, 149,
+        151, 153, 154, 155, 156, 157, 158, 160, 161, 163, 164, 166, 167, 168, 171, 174, 175, 176,
+        177, 178, 179, 180, 181, 184, 185, 186, 187, 188, 193, 194, 195, 196, 197, 198, 199, 202,
+        203, 204, 207, 208, 209, 212, 213, 214, 217, 218, 221, 222, 223, 225, 226, 227, 231, 232,
+        233, 234, 239, 240, 241, 242, 243, 244, 246, 247, 248, 249, 254, 255, 256, 257, 258, 259,
+        261, 262, 263, 264, 265, 266, 268, 273, 274, 275, 280, 281, 286, 287, 288, 289, 290, 296,
+        297, 298, 299, 300, 301, 302
+      ]
+    },
+    {
+      "sourceFile": "case-studies/drawing-game/fixtures/handwritten/handwritten-loader.mjs",
+      "category": "handwritten-support",
+      "blockIds": ["base-client-substitution"],
+      "loc": 5,
+      "countedLineNumbers": [2, 3, 4, 5, 7]
+    },
+    {
+      "sourceFile": "case-studies/drawing-game/fixtures/handwritten/handwritten-substitution.mjs",
+      "category": "handwritten-support",
+      "blockIds": ["base-loader-registration"],
+      "loc": 2,
+      "countedLineNumbers": [2, 4]
+    },
+    {
+      "sourceFile": "case-studies/drawing-game/fixtures/handwritten/bootstrap.mjs",
+      "category": "handwritten-support",
+      "blockIds": ["base-handwritten-bootstrap"],
+      "loc": 4,
+      "countedLineNumbers": [8, 9, 10, 11]
+    }
+  ],
+  "excludedFiles": [
+    {
+      "sourceFile": "case-studies/drawing-game/README.md",
+      "reason": "Documentation is not counted."
+    },
+    {
+      "sourceFile": "case-studies/drawing-game/case-study.test.mjs",
+      "reason": "Scenarios, assertions, and tests are not counted."
+    },
+    {
+      "sourceFile": "case-studies/drawing-game/evaluate.mjs",
+      "reason": "Measurement and generation tooling is not counted."
+    },
+    {
+      "sourceFile": "case-studies/drawing-game/fixtures/handwritten/probe.mjs",
+      "reason": "Target validation and observation code is not counted."
+    },
+    {
+      "sourceFile": "case-studies/drawing-game/fixtures/handwritten/stages.mjs",
+      "reason": "Stage scenarios and assertions are not counted."
+    },
+    {
+      "sourceFile": "case-studies/drawing-game/fixtures/mock-socket/package-lock.json",
+      "reason": "Lockfiles are not counted."
+    },
+    {
+      "sourceFile": "case-studies/drawing-game/fixtures/mock-socket/package.json",
+      "reason": "Other public-tool fixtures are outside this two-target maintenance comparison."
+    },
+    {
+      "sourceFile": "case-studies/drawing-game/fixtures/mock-socket/probe.mjs",
+      "reason": "Other public-tool fixtures are outside this two-target maintenance comparison."
+    },
+    {
+      "sourceFile": "case-studies/drawing-game/fixtures/msw-binding/package-lock.json",
+      "reason": "Lockfiles are not counted."
+    },
+    {
+      "sourceFile": "case-studies/drawing-game/fixtures/msw-binding/package.json",
+      "reason": "Other public-tool fixtures are outside this two-target maintenance comparison."
+    },
+    {
+      "sourceFile": "case-studies/drawing-game/fixtures/msw-binding/probe.mjs",
+      "reason": "Other public-tool fixtures are outside this two-target maintenance comparison."
+    },
+    {
+      "sourceFile": "case-studies/drawing-game/fixtures/real/probe.mjs",
+      "reason": "Oracle and target probes are not application-owned delivery support."
+    },
+    {
+      "sourceFile": "case-studies/drawing-game/fixtures/smocket/probe.mjs",
+      "reason": "Oracle and target probes are not application-owned delivery support."
+    },
+    {
+      "sourceFile": "case-studies/drawing-game/fixtures/socket.io-mock/package-lock.json",
+      "reason": "Lockfiles are not counted."
+    },
+    {
+      "sourceFile": "case-studies/drawing-game/fixtures/socket.io-mock/package.json",
+      "reason": "Other public-tool fixtures are outside this two-target maintenance comparison."
+    },
+    {
+      "sourceFile": "case-studies/drawing-game/fixtures/socket.io-mock/probe.mjs",
+      "reason": "Other public-tool fixtures are outside this two-target maintenance comparison."
+    },
+    {
+      "sourceFile": "case-studies/drawing-game/maintenance-schema.mjs",
+      "reason": "Measurement and generation tooling is not counted."
+    },
+    {
+      "sourceFile": "case-studies/drawing-game/maintenance-snippets.generated.json",
+      "reason": "Generated output is not counted."
+    },
+    {
+      "sourceFile": "case-studies/drawing-game/maintenance-source.mjs",
+      "reason": "Source outside the selected application-owned delivery regions is not counted."
+    },
+    {
+      "sourceFile": "case-studies/drawing-game/maintenance.generated.json",
+      "reason": "Generated output is not counted."
+    },
+    {
+      "sourceFile": "case-studies/drawing-game/maintenance.md",
+      "reason": "Source outside the selected application-owned delivery regions is not counted."
+    },
+    {
+      "sourceFile": "case-studies/drawing-game/observations.generated.json",
+      "reason": "Generated output is not counted."
+    },
+    {
+      "sourceFile": "case-studies/drawing-game/schema.mjs",
+      "reason": "Measurement and generation tooling is not counted."
+    },
+    {
+      "sourceFile": "case-studies/drawing-game/snippets.generated.json",
+      "reason": "Generated output is not counted."
+    },
+    { "sourceFile": "examples/drawing-game/README.md", "reason": "Documentation is not counted." },
+    {
+      "sourceFile": "examples/drawing-game/assertions.ts",
+      "reason": "Scenarios, assertions, and tests are not counted."
+    },
+    {
+      "sourceFile": "examples/drawing-game/dual-target.test.ts",
+      "reason": "Scenarios, assertions, and tests are not counted."
+    },
+    {
+      "sourceFile": "examples/drawing-game/observe.ts",
+      "reason": "Observation and lifecycle harness code is not counted."
+    },
+    {
+      "sourceFile": "examples/drawing-game/package.json",
+      "reason": "Build configuration or source outside the selected counted regions is not counted."
+    },
+    {
+      "sourceFile": "examples/drawing-game/real.ts",
+      "reason": "Real Socket.IO is the oracle, not a compared target."
+    },
+    {
+      "sourceFile": "examples/drawing-game/scenario.ts",
+      "reason": "Scenarios, assertions, and tests are not counted."
+    },
+    {
+      "sourceFile": "examples/drawing-game/snippets.generated.json",
+      "reason": "Generated output is not counted."
+    },
+    {
+      "sourceFile": "examples/drawing-game/target.ts",
+      "reason": "Observation and lifecycle harness code is not counted."
+    },
+    {
+      "sourceFile": "examples/drawing-game/tsconfig.base.json",
+      "reason": "Build configuration or source outside the selected counted regions is not counted."
+    },
+    {
+      "sourceFile": "examples/drawing-game/tsconfig.real.json",
+      "reason": "Build configuration or source outside the selected counted regions is not counted."
+    },
+    {
+      "sourceFile": "examples/drawing-game/tsconfig.smocket.json",
+      "reason": "Build configuration or source outside the selected counted regions is not counted."
+    },
+    {
+      "sourceFile": "examples/drawing-game/tsconfig.tools.json",
+      "reason": "Build configuration or source outside the selected counted regions is not counted."
+    },
+    {
+      "sourceFile": "package.json",
+      "reason": "Build configuration or source outside the selected counted regions is not counted."
+    },
+    {
+      "sourceFile": "packages/smocket-client/package.json",
+      "reason": "Build configuration or source outside the selected counted regions is not counted."
+    },
+    { "sourceFile": "pnpm-lock.yaml", "reason": "Lockfiles are not counted." },
+    {
+      "sourceFile": "scripts/drawing-game-case-study-snippets.mjs",
+      "reason": "Measurement and generation tooling is not counted."
+    },
+    {
+      "sourceFile": "scripts/drawing-game-maintenance-snippets.mjs",
+      "reason": "Measurement and generation tooling is not counted."
+    },
+    {
+      "sourceFile": "scripts/drawing-game-snippets.mjs",
+      "reason": "Measurement and generation tooling is not counted."
+    },
+    {
+      "sourceFile": "scripts/run-drawing-game-case-study.mjs",
+      "reason": "Measurement and generation tooling is not counted."
+    },
+    {
+      "sourceFile": "scripts/run-drawing-game-maintenance.mjs",
+      "reason": "Measurement and generation tooling is not counted."
+    }
+  ],
+  "sourceInputs": [
+    {
+      "sourceFile": "package.json",
+      "sha256": "eae5ac5cb17ea57053aa88c8d72cafad6b62ba4a1fb6540db76390cb4335c32c"
+    },
+    {
+      "sourceFile": "pnpm-lock.yaml",
+      "sha256": "d5d68c43084d7ad5b4f3ae7ec08876bde1724558aef0e0835acd5c9cea0dc3cd"
+    },
+    {
+      "sourceFile": "examples/drawing-game/application.ts",
+      "sha256": "26beea00affb7ba6e216382d595124b5169f678b1d6a42c6337c3a4718283b51"
+    },
+    {
+      "sourceFile": "examples/drawing-game/client.ts",
+      "sha256": "db7800887bf6342d1241f6b0a812bb2059355963fda235d02c710a2657fe8b04"
+    },
+    {
+      "sourceFile": "examples/drawing-game/scenario.ts",
+      "sha256": "37b3656de7d45c621ddb72a95d0bb704fdd2986cb72b8053eb532c17fab26bce"
+    },
+    {
+      "sourceFile": "examples/drawing-game/assertions.ts",
+      "sha256": "1db1a38d8bcf3c78978417a6e18b603de72191753f7875a87a57f2d5c2bda640"
+    },
+    {
+      "sourceFile": "examples/drawing-game/target.ts",
+      "sha256": "33193e62998c270aa1a52e2117273ca0325a307d20869fce7f99f10ce469cdf7"
+    },
+    {
+      "sourceFile": "examples/drawing-game/real.ts",
+      "sha256": "ab0f6e7cd1a3a31e994c28d37cdb69cf690d3e5c1cdd8b9db382b64d26034ddd"
+    },
+    {
+      "sourceFile": "examples/drawing-game/smocket.ts",
+      "sha256": "32f58974bc42ada57466f85a6c79064f4dd784bedbae69ffdd8b011a09f0e479"
+    },
+    {
+      "sourceFile": "examples/drawing-game/smocket-loader.mjs",
+      "sha256": "f8116f52242678e4dc670ffb30ee0e5d13af71fbb02bbca3407fac625b38afc0"
+    },
+    {
+      "sourceFile": "examples/drawing-game/smocket-substitution.mjs",
+      "sha256": "ec26e8b258f810728b956c92702075f86fedc414c33fe71616e58436f20da1c5"
+    },
+    {
+      "sourceFile": "case-studies/drawing-game/fixtures/real/probe.mjs",
+      "sha256": "4d2504d07f40b7ccbbb6727b29abf037d095ed45bb72552ebe4abaf7e8115dff"
+    },
+    {
+      "sourceFile": "case-studies/drawing-game/fixtures/smocket/probe.mjs",
+      "sha256": "17d163bcd0b6bd90317b2d0a826a0edad40ab1f0272ec15fff58bfea3884e4b2"
+    },
+    {
+      "sourceFile": "case-studies/drawing-game/fixtures/handwritten/handwritten-socket.mjs",
+      "sha256": "97dc21b3b9f13593f2ee7dc5b0ccb24076be3f1c3741d3608a3ba3e338b45efb"
+    },
+    {
+      "sourceFile": "case-studies/drawing-game/fixtures/handwritten/handwritten-loader.mjs",
+      "sha256": "80eaf179cd8f056631a9e24b0e9ee1c54b1c15e206eb4254a180bc910e020fcf"
+    },
+    {
+      "sourceFile": "case-studies/drawing-game/fixtures/handwritten/handwritten-substitution.mjs",
+      "sha256": "626e5b3612571d55b0b702800380e33974db9d5b70be07a7090845b04742841b"
+    },
+    {
+      "sourceFile": "case-studies/drawing-game/fixtures/handwritten/bootstrap.mjs",
+      "sha256": "e265fc51d4187834ee8afdd2a8cdcfd13a7807d469fd29167497a5f13f2ac471"
+    },
+    {
+      "sourceFile": "case-studies/drawing-game/fixtures/handwritten/stages.mjs",
+      "sha256": "503951cfd6923930ef338febf9339383a2b3bf49f8afc3d932fe42399df1bf49"
+    },
+    {
+      "sourceFile": "case-studies/drawing-game/fixtures/handwritten/probe.mjs",
+      "sha256": "6ef640c75600218a391bda2f5ce1480ef49bfa91e005cc748c035c76661a1a99"
+    },
+    {
+      "sourceFile": "case-studies/drawing-game/maintenance-schema.mjs",
+      "sha256": "c9881f38a2232da5d6b9a0449c39e151e2753cf223f4661050dfd66dbf623c5d"
+    },
+    {
+      "sourceFile": "case-studies/drawing-game/maintenance-source.mjs",
+      "sha256": "5a3cd7a1422cfa73f7089b04c1180942b0cc546da1dc47e36a6dcd525080c035"
+    },
+    {
+      "sourceFile": "scripts/run-drawing-game-maintenance.mjs",
+      "sha256": "15b100788386fd6cfb96a174683540444acbacd74a25f8a2d038848eb9074f03"
+    },
+    {
+      "sourceFile": "scripts/drawing-game-maintenance-snippets.mjs",
+      "sha256": "ecf50289a9f2464a22430839a408fd4d218055f9a020f34e1e314c967b99f5db"
+    }
+  ],
+  "features": [
+    {
+      "id": "base-single-client",
+      "label": "One drawing client sends and receives",
+      "socketIoMeaning": "One client/server socket pair registers listeners and returns one configured response.",
+      "requires": [],
+      "goldenSnippetIds": ["drawing-client"],
+      "validation": {
+        "id": "base-single-client",
+        "enabledFeatureIds": [],
+        "passed": true,
+        "assertions": ["one client connected", "listener delivered one configured response"]
+      },
+      "targets": {
+        "smocket": {
+          "provider": "Application-owned bootstrap and package substitution.",
+          "deltaLoc": 18,
+          "deltaLabel": "+18 lines",
+          "cumulativeLoc": 18,
+          "sourceBlocks": [
+            {
+              "id": "smocket-bootstrap",
+              "sourceFile": "examples/drawing-game/smocket.ts",
+              "language": "typescript",
+              "code": "export function startSmocketApplication(): ScenarioApplication {\n  nextOrigin += 1;\n  const url = `http://drawing-game-${nextOrigin}.smocket.test`;\n  const io = new SmocketServer<ClientToServerEvents, ServerToClientEvents>(url);\n  registerDrawingGameHandlers(io);\n\n  return createScenarioApplication(io, url, () => io.close());\n}",
+              "sourceSha256": "8f4dac84cd184297aac3307a206326ce0462e5298a5f4d2abdb070569be2594a",
+              "sourceRange": { "startLine": 16, "endLine": 23 },
+              "loc": 6,
+              "countedLineNumbers": [16, 17, 18, 19, 20, 22],
+              "excludedLineNumbers": {
+                "blank": [21],
+                "snippetMarker": [],
+                "commentOnly": [],
+                "formattingOnly": [23]
+              }
+            },
+            {
+              "id": "smocket-client-substitution",
+              "sourceFile": "examples/drawing-game/smocket-loader.mjs",
+              "language": "javascript",
+              "code": "export async function resolve(specifier, context, nextResolve) {\n  const fromSmocketBuild = context.parentURL?.includes('/examples/drawing-game/dist/smocket/');\n  if (specifier === 'socket.io-client' && fromSmocketBuild) {\n    return nextResolve(\n      new URL('../../packages/smocket-client/dist/index.mjs', import.meta.url).href,\n      context,\n    );\n  }\n  const fromSmocketClient = context.parentURL?.includes('/packages/smocket-client/dist/');\n  if (specifier === 'smocket' && (fromSmocketBuild || fromSmocketClient)) {\n    return nextResolve(new URL('../../dist/index.js', import.meta.url).href, context);\n  }\n  return nextResolve(specifier, context);\n}",
+              "sourceSha256": "6c7a3341d5903819ad0db677700c27bb4fe7993d32e136d17be5aad04371e6b4",
+              "sourceRange": { "startLine": 2, "endLine": 15 },
+              "loc": 10,
+              "countedLineNumbers": [2, 3, 4, 5, 6, 7, 10, 11, 12, 14],
+              "excludedLineNumbers": {
+                "blank": [],
+                "snippetMarker": [],
+                "commentOnly": [],
+                "formattingOnly": [8, 9, 13, 15]
+              }
+            },
+            {
+              "id": "smocket-loader-registration",
+              "sourceFile": "examples/drawing-game/smocket-substitution.mjs",
+              "language": "javascript",
+              "code": "import { register } from 'node:module';\n\nregister(new URL('./smocket-loader.mjs', import.meta.url), import.meta.url);",
+              "sourceSha256": "4caaa3808e06364d266a7c8b8b66335af1e88c64650e57db105be6182bd16073",
+              "sourceRange": { "startLine": 1, "endLine": 3 },
+              "loc": 2,
+              "countedLineNumbers": [1, 3],
+              "excludedLineNumbers": {
+                "blank": [2],
+                "snippetMarker": [],
+                "commentOnly": [],
+                "formattingOnly": []
+              }
+            }
+          ]
+        },
+        "handwritten": {
+          "provider": "The application owns and executes this transport support.",
+          "deltaLoc": 173,
+          "deltaLabel": "+173 lines",
+          "cumulativeLoc": 173,
+          "sourceBlocks": [
+            {
+              "id": "base-single-client",
+              "sourceFile": "case-studies/drawing-game/fixtures/handwritten/handwritten-socket.mjs",
+              "language": "javascript",
+              "code": "export const HANDWRITTEN_FEATURE_IDS = [\n  'multiple-clients',\n  'room-broadcast',\n  'sender-exclusion',\n  'acknowledgement',\n  'targeted-delivery',\n  'disconnect-cleanup',\n];\n\nconst origins = new Map();\n\nfunction createListenerStore() {\n  return { events: new Map(), any: [] };\n}\n\nfunction addListener(store, event, listener, once = false) {\n  const listeners = store.events.get(event) ?? [];\n  listeners.push({ listener, once });\n  store.events.set(event, listeners);\n}\n\nfunction removeListener(store, event, listener) {\n  const listeners = store.events.get(event);\n  if (!listeners) return;\n  store.events.set(\n    event,\n    listeners.filter((entry) => entry.listener !== listener),\n  );\n}\n\nfunction dispatch(store, event, args) {\n  for (const listener of [...store.any]) listener(event, ...args);\n  const listeners = [...(store.events.get(event) ?? [])];\n  for (const entry of listeners) {\n    if (entry.once) removeListener(store, event, entry.listener);\n    entry.listener(...args);\n  }\n}\n\nfunction attachListenerApi(target, store) {\n  return Object.assign(target, {\n    on(event, listener) {\n      addListener(store, event, listener);\n      return target;\n    },\n    once(event, listener) {\n      addListener(store, event, listener, true);\n      return target;\n    },\n    off(event, listener) {\n      removeListener(store, event, listener);\n      return target;\n    },\n    onAny(listener) {\n      store.any.push(listener);\n      return target;\n    },\n  });\n}\n\nfunction createBaseState(origin, featureIds) {\n  const state = {\n    origin,\n    featureIds,\n    nextSocketId: 0,\n    singlePair: undefined,\n    serverListeners: createListenerStore(),\n    registerPair(pair) {\n      if (state.singlePair) throw new Error('The base handwritten stage supports one client.');\n      pair.id = 'handwritten-single';\n      state.singlePair = pair;\n    },\n    listPairs() {\n      return state.singlePair ? [state.singlePair] : [];\n    },\n    findPair(socketId) {\n      return state.singlePair?.id === socketId ? state.singlePair : undefined;\n    },\n    removePair(pair) {\n      if (state.singlePair === pair) state.singlePair = undefined;\n    },\n    resetConnections() {\n      state.singlePair = undefined;\n    },\n    prepareClientArguments(args) {\n      return args.filter((argument) => typeof argument !== 'function');\n    },\n    filterRecipients(pairs) {\n      return pairs;\n    },\n    selectRecipients() {\n      throw new Error('Room or socket targeting is not enabled for this stage.');\n    },\n    route(target, senderId, event, args) {\n      const selected = state.selectRecipients(target);\n      const recipients = state.filterRecipients(selected, senderId);\n      for (const pair of recipients) dispatch(pair.clientListeners, event, args);\n    },\n    join() {\n      throw new Error('Room membership is not enabled for this stage.');\n    },\n    leaveAllRooms() {},\n    resetRooms() {},\n    disconnectPair(pair, reason) {\n      if (!pair.client.connected) return;\n      pair.client.connected = false;\n      pair.serverSocket.connected = false;\n      dispatch(pair.serverListeners, 'disconnect', [reason]);\n      dispatch(pair.clientListeners, 'disconnect', [reason]);\n    },\n  };\n  return state;\n}\n\nfunction installFeatures(state) {\n  if (state.featureIds.has('multiple-clients')) installMultipleClients(state);\n  if (state.featureIds.has('room-broadcast')) installRoomBroadcast(state);\n  if (state.featureIds.has('sender-exclusion')) installSenderExclusion(state);\n  if (state.featureIds.has('acknowledgement')) installAcknowledgement(state);\n  if (state.featureIds.has('targeted-delivery')) installTargetedDelivery(state);\n  if (state.featureIds.has('disconnect-cleanup')) installDisconnectCleanup(state);\n}\n\nfunction createPair(state, auth) {\n  const clientListeners = createListenerStore();\n  const serverListeners = createListenerStore();\n  const pair = {\n    id: '',\n    client: undefined,\n    serverSocket: undefined,\n    clientListeners,\n    serverListeners,\n  };\n\n  const client = attachListenerApi(\n    {\n      id: '',\n      connected: true,\n      emit(event, ...args) {\n        dispatch(serverListeners, event, state.prepareClientArguments(args));\n        return client;\n      },\n      disconnect() {\n        state.disconnectPair(pair, 'client namespace disconnect');\n        return client;\n      },\n    },\n    clientListeners,\n  );\n  const serverSocket = attachListenerApi(\n    {\n      id: '',\n      connected: true,\n      handshake: { auth: { ...auth } },\n      emit(event, ...args) {\n        dispatch(clientListeners, event, args);\n        return true;\n      },\n      async join(room) {\n        state.join(pair, room);\n      },\n      to(target) {\n        return createBroadcastOperator(state, target, pair.id);\n      },\n      disconnect() {\n        state.disconnectPair(pair, 'server namespace disconnect');\n        return serverSocket;\n      },\n    },\n    serverListeners,\n  );\n\n  pair.client = client;\n  pair.serverSocket = serverSocket;\n  state.registerPair(pair);\n  client.id = pair.id;\n  serverSocket.id = pair.id;\n  dispatch(state.serverListeners, 'connection', [serverSocket]);\n  dispatch(clientListeners, 'connect', []);\n  return client;\n}\n\nfunction createBroadcastOperator(state, target, senderId) {\n  return {\n    emit(event, ...args) {\n      state.route(target, senderId, event, args);\n      return true;\n    },\n  };\n}\n\nexport class Server {\n  constructor(origin, options = {}) {\n    if (origins.has(origin)) throw new Error(`A handwritten server already owns ${origin}`);\n    const featureIds = new Set(options.features ?? HANDWRITTEN_FEATURE_IDS);\n    for (const featureId of featureIds) {\n      if (!HANDWRITTEN_FEATURE_IDS.includes(featureId)) {\n        throw new Error(`Unknown handwritten feature: ${featureId}`);\n      }\n    }\n    this.state = createBaseState(origin, featureIds);\n    installFeatures(this.state);\n    origins.set(origin, this.state);\n  }\n\n  on(event, listener) {\n    addListener(this.state.serverListeners, event, listener);\n    return this;\n  }\n\n  emit(event, ...args) {\n    for (const pair of this.state.listPairs()) dispatch(pair.clientListeners, event, args);\n    return true;\n  }\n\n  to(target) {\n    return createBroadcastOperator(this.state, target, undefined);\n  }\n\n  async close() {\n    for (const pair of [...this.state.listPairs()]) {\n      this.state.disconnectPair(pair, 'server shutting down');\n    }\n    this.state.resetConnections();\n    this.state.resetRooms();\n    origins.delete(this.state.origin);\n  }\n}\n\nexport function io(origin, options = {}) {\n  const state = origins.get(origin);\n  if (!state) throw new Error(`No handwritten server is registered for ${origin}`);\n  return createPair(state, options.auth ?? {});\n}",
+              "sourceSha256": "2e20788292223ccd1575b62a2f2c64afc45515ea53195bb998dbe207887e1fd8",
+              "sourceRange": { "startLine": 2, "endLine": 235 },
+              "loc": 162,
+              "countedLineNumbers": [
+                2, 3, 4, 5, 6, 7, 8, 11, 13, 14, 17, 18, 19, 20, 23, 24, 25, 26, 27, 28, 32, 33, 34,
+                35, 36, 37, 41, 42, 43, 44, 45, 47, 48, 49, 51, 52, 53, 55, 56, 57, 62, 63, 64, 65,
+                66, 67, 68, 69, 70, 71, 72, 74, 75, 77, 78, 80, 81, 83, 84, 86, 87, 89, 90, 92, 93,
+                95, 96, 97, 98, 100, 101, 103, 104, 105, 106, 107, 108, 109, 110, 113, 116, 117,
+                118, 119, 120, 121, 122, 125, 126, 127, 128, 129, 130, 131, 132, 133, 136, 138, 139,
+                140, 141, 142, 144, 145, 146, 149, 151, 153, 154, 155, 156, 157, 158, 160, 161, 163,
+                164, 166, 167, 168, 171, 174, 175, 176, 177, 178, 179, 180, 181, 184, 185, 186, 187,
+                188, 193, 194, 195, 196, 197, 198, 199, 202, 203, 204, 207, 208, 209, 212, 213, 214,
+                217, 218, 221, 222, 223, 225, 226, 227, 231, 232, 233, 234
+              ],
+              "excludedLineNumbers": {
+                "blank": [
+                  10, 12, 16, 22, 31, 40, 61, 115, 124, 135, 173, 183, 192, 206, 211, 216, 220, 230
+                ],
+                "snippetMarker": [],
+                "commentOnly": [],
+                "formattingOnly": [
+                  9, 15, 21, 29, 30, 38, 39, 46, 50, 54, 58, 59, 60, 73, 76, 79, 82, 85, 88, 91, 94,
+                  99, 102, 111, 112, 114, 123, 134, 137, 143, 147, 148, 150, 152, 159, 162, 165,
+                  169, 170, 172, 182, 189, 190, 191, 200, 201, 205, 210, 215, 219, 224, 228, 229,
+                  235
+                ]
+              }
+            },
+            {
+              "id": "base-client-substitution",
+              "sourceFile": "case-studies/drawing-game/fixtures/handwritten/handwritten-loader.mjs",
+              "language": "javascript",
+              "code": "export async function resolve(specifier, context, nextResolve) {\n  const fromGoldenBuild = context.parentURL?.includes('/examples/drawing-game/dist/real/');\n  if (specifier === 'socket.io-client' && fromGoldenBuild) {\n    return nextResolve(new URL('./handwritten-socket.mjs', import.meta.url).href, context);\n  }\n  return nextResolve(specifier, context);\n}",
+              "sourceSha256": "91ae018dd26e691b148560a83a273385733b6b12db154ef57a963eff56cd2d98",
+              "sourceRange": { "startLine": 2, "endLine": 8 },
+              "loc": 5,
+              "countedLineNumbers": [2, 3, 4, 5, 7],
+              "excludedLineNumbers": {
+                "blank": [],
+                "snippetMarker": [],
+                "commentOnly": [],
+                "formattingOnly": [6, 8]
+              }
+            },
+            {
+              "id": "base-loader-registration",
+              "sourceFile": "case-studies/drawing-game/fixtures/handwritten/handwritten-substitution.mjs",
+              "language": "javascript",
+              "code": "import { register } from 'node:module';\n\nregister(new URL('./handwritten-loader.mjs', import.meta.url), import.meta.url);",
+              "sourceSha256": "42dcab8874a50a0ac29e9bcb00e725836ff5871d1ec5181ec92ca821ebb95ea8",
+              "sourceRange": { "startLine": 2, "endLine": 4 },
+              "loc": 2,
+              "countedLineNumbers": [2, 4],
+              "excludedLineNumbers": {
+                "blank": [3],
+                "snippetMarker": [],
+                "commentOnly": [],
+                "formattingOnly": []
+              }
+            },
+            {
+              "id": "base-handwritten-bootstrap",
+              "sourceFile": "case-studies/drawing-game/fixtures/handwritten/bootstrap.mjs",
+              "language": "javascript",
+              "code": "export function startHandwrittenApplication() {\n  const server = new Server(origin);\n  registerDrawingGameHandlers(server);\n  return createScenarioApplication(server, origin, () => server.close());\n}",
+              "sourceSha256": "c6118b85468eee5a44acb3eb4d277bd2645321477fe5eb5fce3584dca18d3100",
+              "sourceRange": { "startLine": 8, "endLine": 12 },
+              "loc": 4,
+              "countedLineNumbers": [8, 9, 10, 11],
+              "excludedLineNumbers": {
+                "blank": [],
+                "snippetMarker": [],
+                "commentOnly": [],
+                "formattingOnly": [12]
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "multiple-clients",
+      "label": "A, B, and C connect independently",
+      "socketIoMeaning": "Each connection owns a distinct socket id and listener registry.",
+      "requires": ["base-single-client"],
+      "goldenSnippetIds": ["drawing-client"],
+      "validation": {
+        "id": "multiple-clients",
+        "enabledFeatureIds": ["multiple-clients"],
+        "passed": true,
+        "assertions": [
+          "three socket ids were distinct",
+          "direct delivery kept listener state separate"
+        ]
+      },
+      "targets": {
+        "smocket": {
+          "provider": "The Smocket package supplies this delivery semantic; no feature-specific integration source is added.",
+          "deltaLoc": 0,
+          "deltaLabel": "+0 lines",
+          "cumulativeLoc": 18,
+          "sourceBlocks": []
+        },
+        "handwritten": {
+          "provider": "The application owns and executes this transport support.",
+          "deltaLoc": 10,
+          "deltaLabel": "+10 lines",
+          "cumulativeLoc": 183,
+          "sourceBlocks": [
+            {
+              "id": "multiple-clients",
+              "sourceFile": "case-studies/drawing-game/fixtures/handwritten/handwritten-socket.mjs",
+              "language": "javascript",
+              "code": "function installMultipleClients(state) {\n  const connections = new Map();\n  state.registerPair = (pair) => {\n    state.nextSocketId += 1;\n    pair.id = `handwritten-${state.nextSocketId}`;\n    connections.set(pair.id, pair);\n  };\n  state.listPairs = () => [...connections.values()];\n  state.findPair = (socketId) => connections.get(socketId);\n  state.removePair = (pair) => connections.delete(pair.id);\n  state.resetConnections = () => connections.clear();\n}",
+              "sourceSha256": "2ebe5bec9a49b6c8b73fb06c8eb9c317e40765fbf1f465d0601d39ff3074fd1e",
+              "sourceRange": { "startLine": 239, "endLine": 250 },
+              "loc": 10,
+              "countedLineNumbers": [239, 240, 241, 242, 243, 244, 246, 247, 248, 249],
+              "excludedLineNumbers": {
+                "blank": [],
+                "snippetMarker": [],
+                "commentOnly": [],
+                "formattingOnly": [245, 250]
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "room-broadcast",
+      "label": "Players join one game room",
+      "socketIoMeaning": "Server-owned room membership selects every connected room member.",
+      "requires": ["multiple-clients"],
+      "goldenSnippetIds": ["room-join", "room-announce"],
+      "validation": {
+        "id": "room-broadcast",
+        "enabledFeatureIds": ["multiple-clients", "room-broadcast"],
+        "passed": true,
+        "assertions": ["room membership routed one payload to all three members"]
+      },
+      "targets": {
+        "smocket": {
+          "provider": "The Smocket package supplies this delivery semantic; no feature-specific integration source is added.",
+          "deltaLoc": 0,
+          "deltaLabel": "+0 lines",
+          "cumulativeLoc": 18,
+          "sourceBlocks": []
+        },
+        "handwritten": {
+          "provider": "The application owns and executes this transport support.",
+          "deltaLoc": 13,
+          "deltaLabel": "+13 lines",
+          "cumulativeLoc": 196,
+          "sourceBlocks": [
+            {
+              "id": "room-broadcast",
+              "sourceFile": "case-studies/drawing-game/fixtures/handwritten/handwritten-socket.mjs",
+              "language": "javascript",
+              "code": "function installRoomBroadcast(state) {\n  const rooms = new Map();\n  state.join = (pair, room) => {\n    const members = rooms.get(room) ?? new Set();\n    members.add(pair.id);\n    rooms.set(room, members);\n  };\n  state.selectRecipients = (room) =>\n    [...(rooms.get(room) ?? [])]\n      .map((socketId) => state.findPair(socketId))\n      .filter((pair) => pair?.client.connected);\n  state.leaveAllRooms = (pair) => {\n    for (const members of rooms.values()) members.delete(pair.id);\n  };\n  state.resetRooms = () => rooms.clear();\n}",
+              "sourceSha256": "031a0c628703fbd620dd6ba4583be1a8381d245216786bffda98c22d80599323",
+              "sourceRange": { "startLine": 254, "endLine": 269 },
+              "loc": 13,
+              "countedLineNumbers": [
+                254, 255, 256, 257, 258, 259, 261, 262, 263, 264, 265, 266, 268
+              ],
+              "excludedLineNumbers": {
+                "blank": [],
+                "snippetMarker": [],
+                "commentOnly": [],
+                "formattingOnly": [260, 267, 269]
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sender-exclusion",
+      "label": "A's stroke reaches only peers",
+      "socketIoMeaning": "socket.to(room) excludes the originating socket from room delivery.",
+      "requires": ["room-broadcast"],
+      "goldenSnippetIds": ["drawing-server-handler"],
+      "validation": {
+        "id": "sender-exclusion",
+        "enabledFeatureIds": ["multiple-clients", "room-broadcast", "sender-exclusion"],
+        "passed": true,
+        "assertions": ["the room sender was absent after a causally later marker"]
+      },
+      "targets": {
+        "smocket": {
+          "provider": "The Smocket package supplies this delivery semantic; no feature-specific integration source is added.",
+          "deltaLoc": 0,
+          "deltaLabel": "+0 lines",
+          "cumulativeLoc": 18,
+          "sourceBlocks": []
+        },
+        "handwritten": {
+          "provider": "The application owns and executes this transport support.",
+          "deltaLoc": 3,
+          "deltaLabel": "+3 lines",
+          "cumulativeLoc": 199,
+          "sourceBlocks": [
+            {
+              "id": "sender-exclusion",
+              "sourceFile": "case-studies/drawing-game/fixtures/handwritten/handwritten-socket.mjs",
+              "language": "javascript",
+              "code": "function installSenderExclusion(state) {\n  state.filterRecipients = (pairs, senderId) =>\n    senderId === undefined ? pairs : pairs.filter((pair) => pair.id !== senderId);\n}",
+              "sourceSha256": "7873b977d6bd87ee98f7f03f525b3ee19208e2c73285bfcd3b09ecf4301cd376",
+              "sourceRange": { "startLine": 273, "endLine": 276 },
+              "loc": 3,
+              "countedLineNumbers": [273, 274, 275],
+              "excludedLineNumbers": {
+                "blank": [],
+                "snippetMarker": [],
+                "commentOnly": [],
+                "formattingOnly": [276]
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "acknowledgement",
+      "label": "Guesses receive a boolean result",
+      "socketIoMeaning": "A client callback crosses the event boundary and is invoked by the server handler.",
+      "requires": ["base-single-client"],
+      "goldenSnippetIds": ["acknowledgement", "chat-guess-client"],
+      "validation": {
+        "id": "acknowledgement",
+        "enabledFeatureIds": ["acknowledgement"],
+        "passed": true,
+        "assertions": ["the server returned one value through the client callback"]
+      },
+      "targets": {
+        "smocket": {
+          "provider": "The Smocket package supplies this delivery semantic; no feature-specific integration source is added.",
+          "deltaLoc": 0,
+          "deltaLabel": "+0 lines",
+          "cumulativeLoc": 18,
+          "sourceBlocks": []
+        },
+        "handwritten": {
+          "provider": "The application owns and executes this transport support.",
+          "deltaLoc": 2,
+          "deltaLabel": "+2 lines",
+          "cumulativeLoc": 201,
+          "sourceBlocks": [
+            {
+              "id": "acknowledgement",
+              "sourceFile": "case-studies/drawing-game/fixtures/handwritten/handwritten-socket.mjs",
+              "language": "javascript",
+              "code": "function installAcknowledgement(state) {\n  state.prepareClientArguments = (args) => args;\n}",
+              "sourceSha256": "29a702ff671380e01415b802bbc88d0433b93b3bd81c50141f54b24f59b150fa",
+              "sourceRange": { "startLine": 280, "endLine": 282 },
+              "loc": 2,
+              "countedLineNumbers": [280, 281],
+              "excludedLineNumbers": {
+                "blank": [],
+                "snippetMarker": [],
+                "commentOnly": [],
+                "formattingOnly": [282]
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "targeted-delivery",
+      "label": "Only the winner receives correct",
+      "socketIoMeaning": "io.to(socket.id) selects one connected socket rather than a room.",
+      "requires": ["multiple-clients"],
+      "goldenSnippetIds": ["targeted-correct"],
+      "validation": {
+        "id": "targeted-delivery",
+        "enabledFeatureIds": ["multiple-clients", "targeted-delivery"],
+        "passed": true,
+        "assertions": ["socket-id targeting reached only the requesting client"]
+      },
+      "targets": {
+        "smocket": {
+          "provider": "The Smocket package supplies this delivery semantic; no feature-specific integration source is added.",
+          "deltaLoc": 0,
+          "deltaLabel": "+0 lines",
+          "cumulativeLoc": 18,
+          "sourceBlocks": []
+        },
+        "handwritten": {
+          "provider": "The application owns and executes this transport support.",
+          "deltaLoc": 5,
+          "deltaLabel": "+5 lines",
+          "cumulativeLoc": 206,
+          "sourceBlocks": [
+            {
+              "id": "targeted-delivery",
+              "sourceFile": "case-studies/drawing-game/fixtures/handwritten/handwritten-socket.mjs",
+              "language": "javascript",
+              "code": "function installTargetedDelivery(state) {\n  const selectRoomRecipients = state.selectRecipients;\n  state.selectRecipients = (target) => {\n    const socket = state.findPair(target);\n    return socket?.client.connected ? [socket] : selectRoomRecipients(target);\n  };\n}",
+              "sourceSha256": "47335ea42a3cd7f2671bcf254e99f18baafb2a25819fe0650e4ef04838036594",
+              "sourceRange": { "startLine": 286, "endLine": 292 },
+              "loc": 5,
+              "countedLineNumbers": [286, 287, 288, 289, 290],
+              "excludedLineNumbers": {
+                "blank": [],
+                "snippetMarker": [],
+                "commentOnly": [],
+                "formattingOnly": [291, 292]
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "disconnect-cleanup",
+      "label": "C leaves before the next stroke",
+      "socketIoMeaning": "Disconnect removes socket and room state before later routing selects recipients.",
+      "requires": ["sender-exclusion"],
+      "goldenSnippetIds": ["disconnect-behavior"],
+      "validation": {
+        "id": "disconnect-cleanup",
+        "enabledFeatureIds": [
+          "multiple-clients",
+          "room-broadcast",
+          "sender-exclusion",
+          "disconnect-cleanup"
+        ],
+        "passed": true,
+        "assertions": [
+          "disconnect was observed once",
+          "post-disconnect routing reached only the remaining peer"
+        ]
+      },
+      "targets": {
+        "smocket": {
+          "provider": "The Smocket package supplies this delivery semantic; no feature-specific integration source is added.",
+          "deltaLoc": 0,
+          "deltaLabel": "+0 lines",
+          "cumulativeLoc": 18,
+          "sourceBlocks": []
+        },
+        "handwritten": {
+          "provider": "The application owns and executes this transport support.",
+          "deltaLoc": 7,
+          "deltaLabel": "+7 lines",
+          "cumulativeLoc": 213,
+          "sourceBlocks": [
+            {
+              "id": "disconnect-cleanup",
+              "sourceFile": "case-studies/drawing-game/fixtures/handwritten/handwritten-socket.mjs",
+              "language": "javascript",
+              "code": "function installDisconnectCleanup(state) {\n  const disconnectWithoutCleanup = state.disconnectPair;\n  state.disconnectPair = (pair, reason) => {\n    if (!pair.client.connected) return;\n    disconnectWithoutCleanup(pair, reason);\n    state.leaveAllRooms(pair);\n    state.removePair(pair);\n  };\n}",
+              "sourceSha256": "cdee3ee2c25b86a2320ceb4296cf0e3c84100f25db103107415425cbcc60bfc9",
+              "sourceRange": { "startLine": 296, "endLine": 304 },
+              "loc": 7,
+              "countedLineNumbers": [296, 297, 298, 299, 300, 301, 302],
+              "excludedLineNumbers": {
+                "blank": [],
+                "snippetMarker": [],
+                "commentOnly": [],
+                "formattingOnly": [303, 304]
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "stages": [
+    {
+      "id": "base-single-client",
+      "enabledFeatureIds": [],
+      "passed": true,
+      "assertions": ["one client connected", "listener delivered one configured response"]
+    },
+    {
+      "id": "multiple-clients",
+      "enabledFeatureIds": ["multiple-clients"],
+      "passed": true,
+      "assertions": [
+        "three socket ids were distinct",
+        "direct delivery kept listener state separate"
+      ]
+    },
+    {
+      "id": "room-broadcast",
+      "enabledFeatureIds": ["multiple-clients", "room-broadcast"],
+      "passed": true,
+      "assertions": ["room membership routed one payload to all three members"]
+    },
+    {
+      "id": "sender-exclusion",
+      "enabledFeatureIds": ["multiple-clients", "room-broadcast", "sender-exclusion"],
+      "passed": true,
+      "assertions": ["the room sender was absent after a causally later marker"]
+    },
+    {
+      "id": "acknowledgement",
+      "enabledFeatureIds": ["acknowledgement"],
+      "passed": true,
+      "assertions": ["the server returned one value through the client callback"]
+    },
+    {
+      "id": "targeted-delivery",
+      "enabledFeatureIds": ["multiple-clients", "targeted-delivery"],
+      "passed": true,
+      "assertions": ["socket-id targeting reached only the requesting client"]
+    },
+    {
+      "id": "disconnect-cleanup",
+      "enabledFeatureIds": [
+        "multiple-clients",
+        "room-broadcast",
+        "sender-exclusion",
+        "disconnect-cleanup"
+      ],
+      "passed": true,
+      "assertions": [
+        "disconnect was observed once",
+        "post-disconnect routing reached only the remaining peer"
+      ]
+    }
+  ],
+  "finalWorkflow": {
+    "markerRule": "Each absence check crosses a same-client client-to-server barrier before the server emits its marker.",
+    "realVsSmocketDeepEqual": true,
+    "realVsHandwrittenDeepEqual": true,
+    "repeatedRunMatches": { "real": true, "smocket": true, "handwritten": true },
+    "observations": {
+      "real": {
+        "connections": [
+          { "label": "A", "socketId": "sid_A" },
+          { "label": "B", "socketId": "sid_B" },
+          { "label": "C", "socketId": "sid_C" }
+        ],
+        "distinctSocketIds": true,
+        "joins": [
+          { "label": "A", "acknowledgement": { "accepted": true, "room": "room-1" } },
+          { "label": "B", "acknowledgement": { "accepted": true, "room": "room-1" } },
+          { "label": "C", "acknowledgement": { "accepted": true, "room": "room-1" } }
+        ],
+        "events": {
+          "A": [
+            { "event": "chat", "payload": { "from": "B", "text": "zebra" } },
+            { "event": "announce", "payload": { "winner": "C", "word": "giraffe" } }
+          ],
+          "B": [
+            {
+              "event": "stroke",
+              "payload": {
+                "id": 1,
+                "points": [
+                  [0.1, 0.2],
+                  [0.3, 0.4]
+                ]
+              }
+            },
+            { "event": "chat", "payload": { "from": "B", "text": "zebra" } },
+            { "event": "announce", "payload": { "winner": "C", "word": "giraffe" } },
+            { "event": "stroke", "payload": { "id": 2, "points": [[0.5, 0.6]], "end": true } }
+          ],
+          "C": [
+            {
+              "event": "stroke",
+              "payload": {
+                "id": 1,
+                "points": [
+                  [0.1, 0.2],
+                  [0.3, 0.4]
+                ]
+              }
+            },
+            { "event": "chat", "payload": { "from": "B", "text": "zebra" } },
+            { "event": "correct", "payload": { "word": "giraffe" } },
+            { "event": "announce", "payload": { "winner": "C", "word": "giraffe" } }
+          ]
+        },
+        "acknowledgements": [
+          { "from": "B", "value": false },
+          { "from": "C", "value": true }
+        ],
+        "deliveries": [
+          {
+            "event": "stroke",
+            "payload": {
+              "id": 1,
+              "points": [
+                [0.1, 0.2],
+                [0.3, 0.4]
+              ]
+            },
+            "recipients": ["B", "C"],
+            "senderExcluded": "A"
+          },
+          {
+            "event": "chat",
+            "payload": { "from": "B", "text": "zebra" },
+            "recipients": ["A", "B", "C"]
+          },
+          { "event": "correct", "payload": { "word": "giraffe" }, "recipients": ["C"] },
+          {
+            "event": "announce",
+            "payload": { "winner": "C", "word": "giraffe" },
+            "recipients": ["A", "B", "C"]
+          },
+          {
+            "event": "stroke",
+            "payload": { "id": 2, "points": [[0.5, 0.6]], "end": true },
+            "recipients": ["B"],
+            "senderExcluded": "A",
+            "disconnected": ["C"]
+          }
+        ],
+        "disconnect": {
+          "label": "C",
+          "serverObserved": true,
+          "connectedAfter": false,
+          "remaining": ["A", "B"]
+        }
+      },
+      "smocket": {
+        "connections": [
+          { "label": "A", "socketId": "sid_A" },
+          { "label": "B", "socketId": "sid_B" },
+          { "label": "C", "socketId": "sid_C" }
+        ],
+        "distinctSocketIds": true,
+        "joins": [
+          { "label": "A", "acknowledgement": { "accepted": true, "room": "room-1" } },
+          { "label": "B", "acknowledgement": { "accepted": true, "room": "room-1" } },
+          { "label": "C", "acknowledgement": { "accepted": true, "room": "room-1" } }
+        ],
+        "events": {
+          "A": [
+            { "event": "chat", "payload": { "from": "B", "text": "zebra" } },
+            { "event": "announce", "payload": { "winner": "C", "word": "giraffe" } }
+          ],
+          "B": [
+            {
+              "event": "stroke",
+              "payload": {
+                "id": 1,
+                "points": [
+                  [0.1, 0.2],
+                  [0.3, 0.4]
+                ]
+              }
+            },
+            { "event": "chat", "payload": { "from": "B", "text": "zebra" } },
+            { "event": "announce", "payload": { "winner": "C", "word": "giraffe" } },
+            { "event": "stroke", "payload": { "id": 2, "points": [[0.5, 0.6]], "end": true } }
+          ],
+          "C": [
+            {
+              "event": "stroke",
+              "payload": {
+                "id": 1,
+                "points": [
+                  [0.1, 0.2],
+                  [0.3, 0.4]
+                ]
+              }
+            },
+            { "event": "chat", "payload": { "from": "B", "text": "zebra" } },
+            { "event": "correct", "payload": { "word": "giraffe" } },
+            { "event": "announce", "payload": { "winner": "C", "word": "giraffe" } }
+          ]
+        },
+        "acknowledgements": [
+          { "from": "B", "value": false },
+          { "from": "C", "value": true }
+        ],
+        "deliveries": [
+          {
+            "event": "stroke",
+            "payload": {
+              "id": 1,
+              "points": [
+                [0.1, 0.2],
+                [0.3, 0.4]
+              ]
+            },
+            "recipients": ["B", "C"],
+            "senderExcluded": "A"
+          },
+          {
+            "event": "chat",
+            "payload": { "from": "B", "text": "zebra" },
+            "recipients": ["A", "B", "C"]
+          },
+          { "event": "correct", "payload": { "word": "giraffe" }, "recipients": ["C"] },
+          {
+            "event": "announce",
+            "payload": { "winner": "C", "word": "giraffe" },
+            "recipients": ["A", "B", "C"]
+          },
+          {
+            "event": "stroke",
+            "payload": { "id": 2, "points": [[0.5, 0.6]], "end": true },
+            "recipients": ["B"],
+            "senderExcluded": "A",
+            "disconnected": ["C"]
+          }
+        ],
+        "disconnect": {
+          "label": "C",
+          "serverObserved": true,
+          "connectedAfter": false,
+          "remaining": ["A", "B"]
+        }
+      },
+      "handwritten": {
+        "connections": [
+          { "label": "A", "socketId": "sid_A" },
+          { "label": "B", "socketId": "sid_B" },
+          { "label": "C", "socketId": "sid_C" }
+        ],
+        "distinctSocketIds": true,
+        "joins": [
+          { "label": "A", "acknowledgement": { "accepted": true, "room": "room-1" } },
+          { "label": "B", "acknowledgement": { "accepted": true, "room": "room-1" } },
+          { "label": "C", "acknowledgement": { "accepted": true, "room": "room-1" } }
+        ],
+        "events": {
+          "A": [
+            { "event": "chat", "payload": { "from": "B", "text": "zebra" } },
+            { "event": "announce", "payload": { "winner": "C", "word": "giraffe" } }
+          ],
+          "B": [
+            {
+              "event": "stroke",
+              "payload": {
+                "id": 1,
+                "points": [
+                  [0.1, 0.2],
+                  [0.3, 0.4]
+                ]
+              }
+            },
+            { "event": "chat", "payload": { "from": "B", "text": "zebra" } },
+            { "event": "announce", "payload": { "winner": "C", "word": "giraffe" } },
+            { "event": "stroke", "payload": { "id": 2, "points": [[0.5, 0.6]], "end": true } }
+          ],
+          "C": [
+            {
+              "event": "stroke",
+              "payload": {
+                "id": 1,
+                "points": [
+                  [0.1, 0.2],
+                  [0.3, 0.4]
+                ]
+              }
+            },
+            { "event": "chat", "payload": { "from": "B", "text": "zebra" } },
+            { "event": "correct", "payload": { "word": "giraffe" } },
+            { "event": "announce", "payload": { "winner": "C", "word": "giraffe" } }
+          ]
+        },
+        "acknowledgements": [
+          { "from": "B", "value": false },
+          { "from": "C", "value": true }
+        ],
+        "deliveries": [
+          {
+            "event": "stroke",
+            "payload": {
+              "id": 1,
+              "points": [
+                [0.1, 0.2],
+                [0.3, 0.4]
+              ]
+            },
+            "recipients": ["B", "C"],
+            "senderExcluded": "A"
+          },
+          {
+            "event": "chat",
+            "payload": { "from": "B", "text": "zebra" },
+            "recipients": ["A", "B", "C"]
+          },
+          { "event": "correct", "payload": { "word": "giraffe" }, "recipients": ["C"] },
+          {
+            "event": "announce",
+            "payload": { "winner": "C", "word": "giraffe" },
+            "recipients": ["A", "B", "C"]
+          },
+          {
+            "event": "stroke",
+            "payload": { "id": 2, "points": [[0.5, 0.6]], "end": true },
+            "recipients": ["B"],
+            "senderExcluded": "A",
+            "disconnected": ["C"]
+          }
+        ],
+        "disconnect": {
+          "label": "C",
+          "serverObserved": true,
+          "connectedAfter": false,
+          "remaining": ["A", "B"]
+        }
+      }
+    }
+  },
+  "interpretation": [
+    "For one client and one configured response, the handwritten transport is small and direct.",
+    "The added source belongs to client identity and Socket.IO delivery semantics, not drawing or chat domain logic.",
+    "LOC describes an application-owned maintenance surface; it does not measure development time, productivity, reliability, or code quality.",
+    "Smocket adds no feature-specific integration lines after bootstrap because the package owns these selected semantics; this is not a universal recommendation."
+  ],
+  "limitations": [
+    "The result applies only to this drawing-game workflow, feature order, and line-count rule.",
+    "The handwritten transport implements only the Socket.IO surface exercised here and is not a general Socket.IO replacement.",
+    "Real Socket.IO supplies expected behavior only and is not included in the convenience LOC comparison."
+  ],
+  "reproduction": {
+    "observe": "pnpm case-study:drawing-game:maintenance",
+    "record": "pnpm case-study:drawing-game:maintenance:record",
+    "check": "pnpm case-study:drawing-game:maintenance:check",
+    "handwritten": "pnpm case-study:drawing-game:maintenance:handwritten",
+    "snippets": "pnpm case-study:drawing-game:maintenance:snippets",
+    "snippetsCheck": "pnpm case-study:drawing-game:maintenance:snippets:check"
+  }
+}
