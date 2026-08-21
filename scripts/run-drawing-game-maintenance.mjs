@@ -7,7 +7,7 @@ import process from 'node:process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { format, resolveConfig } from 'prettier';
 import {
-  MAINTENANCE_FEATURES,
+  HANDWRITTEN_STAGE_DEFINITIONS,
   assertMaintenanceArtifact,
 } from '../case-studies/drawing-game/maintenance-schema.mjs';
 import {
@@ -82,35 +82,12 @@ async function runProbe(targetId) {
   return JSON.parse(await run(process.execPath, commandArgs));
 }
 
-function lineReferences(blocks) {
-  return blocks.flatMap((block) =>
-    block.countedLineNumbers.map((line) => ({ sourceFile: block.sourceFile, line })),
-  );
-}
-
 async function describeFile(sourceFile) {
   const source = await readFile(resolve(repositoryRoot, sourceFile), 'utf8');
   return {
     sourceFile,
     sha256: createHash('sha256').update(source).digest('hex'),
   };
-}
-
-function summarizeCountedFiles(category, blocks) {
-  const files = new Map();
-  for (const block of blocks) {
-    const current = files.get(block.sourceFile) ?? { blocks: [], lines: new Set() };
-    current.blocks.push(block.id);
-    for (const line of block.countedLineNumbers) current.lines.add(line);
-    files.set(block.sourceFile, current);
-  }
-  return [...files].map(([sourceFile, value]) => ({
-    sourceFile,
-    category,
-    blockIds: value.blocks,
-    loc: value.lines.size,
-    countedLineNumbers: [...value.lines].sort((left, right) => left - right),
-  }));
 }
 
 async function listSourceFiles(directory) {
@@ -134,12 +111,9 @@ function exclusionReason(sourceFile) {
   if (sourceFile.endsWith('package-lock.json') || sourceFile === 'pnpm-lock.yaml') {
     return 'Lockfiles are not counted.';
   }
-  if (sourceFile.endsWith('README.md')) return 'Documentation is not counted.';
-  if (sourceFile.includes('/fixtures/handwritten/stages.mjs')) {
-    return 'Stage scenarios and assertions are not counted.';
-  }
-  if (sourceFile.includes('/fixtures/handwritten/probe.mjs')) {
-    return 'Target validation and observation code is not counted.';
+  if (sourceFile.endsWith('.md')) return 'Documentation is not counted.';
+  if (sourceFile.endsWith('stages.mjs') || sourceFile.endsWith('probe.mjs')) {
+    return 'Stage execution and observation harnesses are not counted.';
   }
   if (sourceFile.includes('/fixtures/real/') || sourceFile.includes('/fixtures/smocket/')) {
     return 'Oracle and target probes are not application-owned delivery support.';
@@ -149,18 +123,16 @@ function exclusionReason(sourceFile) {
     sourceFile.includes('/fixtures/msw-binding/') ||
     sourceFile.includes('/fixtures/socket.io-mock/')
   ) {
-    return 'Other public-tool fixtures are outside this two-target maintenance comparison.';
+    return 'Previously recorded public-tool fixtures are outside this maintenance comparison.';
   }
   if (
     sourceFile.endsWith('scenario.ts') ||
     sourceFile.endsWith('assertions.ts') ||
+    sourceFile.endsWith('target.ts') ||
     sourceFile.endsWith('dual-target.test.ts') ||
     sourceFile.endsWith('case-study.test.mjs')
   ) {
-    return 'Scenarios, assertions, and tests are not counted.';
-  }
-  if (sourceFile.endsWith('target.ts') || sourceFile.endsWith('observe.ts')) {
-    return 'Observation and lifecycle harness code is not counted.';
+    return 'Scenarios, lifecycle harnesses, assertions, and tests are not counted.';
   }
   if (sourceFile.endsWith('real.ts')) return 'Real Socket.IO is the oracle, not a compared target.';
   if (
@@ -170,15 +142,10 @@ function exclusionReason(sourceFile) {
   ) {
     return 'Measurement and generation tooling is not counted.';
   }
-  if (
-    sourceFile.endsWith('package.json') ||
-    sourceFile.includes('tsconfig') ||
-    sourceFile.endsWith('smocket-loader.mjs') ||
-    sourceFile.endsWith('smocket-substitution.mjs')
-  ) {
-    return 'Build configuration or source outside the selected counted regions is not counted.';
+  if (sourceFile.endsWith('package.json') || sourceFile.includes('tsconfig')) {
+    return 'Build configuration is not counted.';
   }
-  return 'Source outside the selected application-owned delivery regions is not counted.';
+  return 'Source outside the selected executable closure is not counted.';
 }
 
 async function createExcludedFiles(countedFiles) {
@@ -190,8 +157,6 @@ async function createExcludedFiles(countedFiles) {
     'scripts/drawing-game-snippets.mjs',
     'scripts/run-drawing-game-maintenance.mjs',
     'scripts/drawing-game-maintenance-snippets.mjs',
-    'case-studies/drawing-game/maintenance.generated.json',
-    'case-studies/drawing-game/maintenance-snippets.generated.json',
     'package.json',
     'pnpm-lock.yaml',
     'packages/smocket-client/package.json',
@@ -220,30 +185,55 @@ const sourceRevision = await run('git', [
   'examples/drawing-game',
 ]);
 const sourceModel = await createMaintenanceSourceModel();
-const handwrittenBlocks = [...sourceModel.handwrittenByFeature.values()].flat();
+assert.deepEqual(
+  handwritten.stages.map(({ id }) => id),
+  HANDWRITTEN_STAGE_DEFINITIONS.map(({ id }) => id),
+);
+
+const stages = sourceModel.stages.map((stage, index) => ({
+  id: stage.id,
+  label: stage.label,
+  prerequisite: stage.prerequisite,
+  sourceFiles: stage.sourceFiles,
+  sourceHash: stage.sourceHash,
+  totalLoc: stage.totalLoc,
+  change: stage.change,
+  sourceBlocks: stage.sourceBlocks,
+  diffBlocks: stage.diffBlocks,
+  validation: handwritten.stages[index],
+}));
 const countedFiles = [
-  ...summarizeCountedFiles('shared-application', sourceModel.sharedApplication),
-  ...summarizeCountedFiles('smocket-integration', sourceModel.smocketIntegration),
-  ...summarizeCountedFiles('handwritten-support', handwrittenBlocks),
+  ...sourceModel.sharedApplication.map((block) => ({
+    sourceFile: block.sourceFile,
+    category: 'shared-application',
+    stageIds: [],
+    loc: block.loc,
+    countedLineNumbers: block.countedLineNumbers,
+  })),
+  ...sourceModel.smocketIntegration.map((block) => ({
+    sourceFile: block.sourceFile,
+    category: 'smocket-integration',
+    stageIds: [],
+    loc: block.loc,
+    countedLineNumbers: block.countedLineNumbers,
+  })),
+  ...sourceModel.stages.flatMap((stage) =>
+    stage.sourceBlocks.map((block) => ({
+      sourceFile: block.sourceFile,
+      category: 'handwritten-stage-source',
+      stageIds: [stage.id],
+      loc: block.loc,
+      countedLineNumbers: block.countedLineNumbers,
+    })),
+  ),
 ];
-for (const [category, blocks] of [
-  ['shared-application', sourceModel.sharedApplication],
-  ['smocket-integration', sourceModel.smocketIntegration],
-  ['handwritten-support', handwrittenBlocks],
-]) {
-  const perFileLoc = countedFiles
-    .filter((file) => file.category === category)
-    .reduce((sum, file) => sum + file.loc, 0);
-  const perBlockLoc = blocks.reduce((sum, block) => sum + block.loc, 0);
-  assert.equal(perFileLoc, perBlockLoc, `${category} source blocks overlap`);
-}
 const excludedFiles = await createExcludedFiles(countedFiles);
 const modelSourceFiles = [
-  ...sourceModel.golden.values(),
-  ...sourceModel.sharedApplication,
-  ...sourceModel.smocketIntegration,
-  ...handwrittenBlocks,
-].map(({ sourceFile }) => sourceFile);
+  ...sourceModel.goldenFiles,
+  ...sourceModel.sharedApplication.map(({ sourceFile }) => sourceFile),
+  ...sourceModel.smocketIntegration.map(({ sourceFile }) => sourceFile),
+  ...sourceModel.stages.flatMap(({ sourceFiles }) => sourceFiles),
+];
 const sourceInputs = await Promise.all(
   [
     ...new Set([
@@ -259,6 +249,7 @@ const sourceInputs = await Promise.all(
       'case-studies/drawing-game/fixtures/smocket/probe.mjs',
       'case-studies/drawing-game/fixtures/handwritten/stages.mjs',
       'case-studies/drawing-game/fixtures/handwritten/probe.mjs',
+      'case-studies/drawing-game/case-study.test.mjs',
       'case-studies/drawing-game/maintenance-schema.mjs',
       'case-studies/drawing-game/maintenance-source.mjs',
       'scripts/run-drawing-game-maintenance.mjs',
@@ -266,83 +257,45 @@ const sourceInputs = await Promise.all(
     ]),
   ].map(describeFile),
 );
-const sharedLineReferences = lineReferences(sourceModel.sharedApplication);
-let smocketCumulative = 0;
-let handwrittenCumulative = 0;
-
-const features = MAINTENANCE_FEATURES.map((definition) => {
-  const smocketBlocks =
-    definition.id === 'base-single-client' ? sourceModel.smocketIntegration : [];
-  const handwrittenFeatureBlocks = sourceModel.handwrittenByFeature.get(definition.id);
-  const smocketDelta = smocketBlocks.reduce((sum, block) => sum + block.loc, 0);
-  const handwrittenDelta = handwrittenFeatureBlocks.reduce((sum, block) => sum + block.loc, 0);
-  smocketCumulative += smocketDelta;
-  handwrittenCumulative += handwrittenDelta;
-  const stage = handwritten.stages.find(({ id }) => id === definition.id);
-  assert.ok(stage, `missing executed handwritten stage ${definition.id}`);
-
-  return {
-    ...definition,
-    validation: stage,
-    targets: {
-      smocket: {
-        provider:
-          definition.id === 'base-single-client'
-            ? 'Application-owned bootstrap and package substitution.'
-            : 'The Smocket package supplies this delivery semantic; no feature-specific integration source is added.',
-        deltaLoc: smocketDelta,
-        deltaLabel: `+${smocketDelta} lines`,
-        cumulativeLoc: smocketCumulative,
-        sourceBlocks: smocketBlocks,
-      },
-      handwritten: {
-        provider: 'The application owns and executes this transport support.',
-        deltaLoc: handwrittenDelta,
-        deltaLabel: `+${handwrittenDelta} lines`,
-        cumulativeLoc: handwrittenCumulative,
-        sourceBlocks: handwrittenFeatureBlocks,
-      },
-    },
-  };
-});
+const base = stages[0];
+const full = stages.at(-1);
 
 const artifact = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   caseStudy: 'drawing-game-maintenance-surface',
   sourceRevision,
   question: {
     targets: ['smocket', 'handwritten'],
     realSocketIoRole: 'behavior-oracle-only',
     selectedWorkflow: 'examples/drawing-game',
+    measuredChange:
+      'Executable application-owned support as a handwritten fake grows from one response to the unchanged golden workflow.',
   },
   measurementRules: {
-    headline: 'Application-owned Socket.IO delivery support used by this workflow.',
     sharedApplicationCountedAsDifference: false,
     sourceFormatting: 'Prettier-formatted checked-in source.',
     countedLine:
       'A nonblank source line containing code after comment-only and punctuation-only lines are removed.',
-    excludedLineKinds: ['blank', 'comment-only', 'snippet-marker', 'punctuation-only formatting'],
-    excludedArtifacts: [
-      'tests',
-      'scenarios and assertions',
-      'generated JSON',
-      'lockfiles',
-      'README files',
-    ],
-    selectionRule:
-      'Always include base, close prerequisites through requires, then sum each selected feature delta once.',
+    stageClosure:
+      'Only the source files imported by that independently executed stage are included in its total.',
+    transitionDiff:
+      'Additions and deletions are an LCS diff over counted code lines grouped by stable source role.',
+    invariant: 'previous total + additions - deletions = current total',
   },
   sharedApplication: {
-    role: 'Used unchanged by both targets and excluded from the headline difference.',
-    loc: sharedLineReferences.length,
-    files: sourceModel.sharedApplication,
-    countedLineReferences: sharedLineReferences,
+    role: 'Used unchanged by both targets and excluded from the maintenance difference.',
+    loc: sourceModel.sharedApplication.reduce((sum, block) => sum + block.loc, 0),
+    sourceBlocks: sourceModel.sharedApplication,
   },
+  smocketIntegration: {
+    role: 'Canonical golden bootstrap and package substitution; Real Socket.IO is not scored.',
+    totalLoc: sourceModel.smocketIntegration.reduce((sum, block) => sum + block.loc, 0),
+    sourceBlocks: sourceModel.smocketIntegration,
+  },
+  stages,
   countedFiles,
   excludedFiles,
   sourceInputs,
-  features,
-  stages: handwritten.stages,
   finalWorkflow: {
     markerRule:
       'Each absence check crosses a same-client client-to-server barrier before the server emits its marker.',
@@ -360,15 +313,17 @@ const artifact = {
     },
   },
   interpretation: [
-    'For one client and one configured response, the handwritten transport is small and direct.',
-    'The added source belongs to client identity and Socket.IO delivery semantics, not drawing or chat domain logic.',
-    'LOC describes an application-owned maintenance surface; it does not measure development time, productivity, reliability, or code quality.',
-    'Smocket adds no feature-specific integration lines after bootstrap because the package owns these selected semantics; this is not a universal recommendation.',
+    `The minimal one-pair fake is ${base.totalLoc} counted LOC and contains no source for later routing or lifecycle stages.`,
+    `Growing to the unchanged golden workflow reaches ${full.totalLoc} counted LOC after recording both additions and removals at every transition.`,
+    'A transition with deletions represents real rewriting or a structural change rather than hidden cumulative scaffolding.',
+    'The recorded numbers are generated from executable source closures; they are not adjusted to support a preferred narrative.',
+    'LOC describes an application-owned maintenance surface; it does not prove time, productivity, reliability, or code quality.',
   ],
   limitations: [
-    'The result applies only to this drawing-game workflow, feature order, and line-count rule.',
-    'The handwritten transport implements only the Socket.IO surface exercised here and is not a general Socket.IO replacement.',
+    'The result applies only to this drawing-game workflow, stage order, implementation choices, and line-count rule.',
+    'Each handwritten stage is deliberately limited to the behavior reached at that point and is not a general Socket.IO replacement.',
     'Real Socket.IO supplies expected behavior only and is not included in the convenience LOC comparison.',
+    'Source diff size describes checked-in maintenance surface, not the effort or skill required to author it.',
   ],
   reproduction: {
     observe: 'pnpm case-study:drawing-game:maintenance',

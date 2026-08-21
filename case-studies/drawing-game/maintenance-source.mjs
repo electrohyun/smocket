@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { dirname, extname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { format, resolveConfig } from 'prettier';
-import { MAINTENANCE_FEATURES, MAINTENANCE_FEATURE_IDS } from './maintenance-schema.mjs';
+import { HANDWRITTEN_STAGE_DEFINITIONS, HANDWRITTEN_STAGE_IDS } from './maintenance-schema.mjs';
 
 export const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const prettierConfig = (await resolveConfig(resolve(repositoryRoot, 'package.json'))) ?? {};
@@ -90,31 +90,29 @@ function classify(entries) {
   return { countedLineNumbers, excludedLineNumbers };
 }
 
-function trimEntries(entries) {
-  const result = [...entries];
-  while (result[0]?.text.trim() === '') result.shift();
-  while (result.at(-1)?.text.trim() === '') result.pop();
-  return result;
-}
-
-function createBlock(id, sourceFile, entries, startLine, endLine) {
-  const trimmed = trimEntries(entries);
-  const code = trimmed.map(({ text }) => text).join('\n');
+function createBlock(id, role, sourceFile, lines) {
+  const entries = lines.map((text, index) => ({ lineNumber: index + 1, text }));
+  const code = lines.join('\n');
   const { countedLineNumbers, excludedLineNumbers } = classify(entries);
   return {
     id,
+    role,
     sourceFile,
     language: extname(sourceFile) === '.ts' ? 'typescript' : 'javascript',
     code,
     sourceSha256: sha256(code),
-    sourceRange: { startLine, endLine },
+    sourceRange: { startLine: 1, endLine: lines.length },
     loc: countedLineNumbers.length,
     countedLineNumbers,
     excludedLineNumbers,
   };
 }
 
-export async function extractRegions(sourceFile, markerName) {
+async function extractWholeFile(id, role, sourceFile) {
+  return createBlock(id, role, sourceFile, await formattedLines(sourceFile));
+}
+
+async function extractRegions(sourceFile, markerName) {
   const lines = await formattedLines(sourceFile);
   const marker = new RegExp(`^\\s*// \\[${markerName}:(start|end) ([a-z0-9-]+)\\]\\s*$`);
   const open = [];
@@ -132,31 +130,29 @@ export async function extractRegions(sourceFile, markerName) {
           false,
           `re-entered marker ${id} in ${sourceFile}`,
         );
-        if (markerName === 'maintenance-snippet') {
-          assert.equal(open.length, 0, `overlapping marker ${id} in ${sourceFile}`);
-        }
         open.push({ id, startLine: lineNumber + 1, entries: [] });
       } else {
         const region = open.pop();
         assert.equal(region?.id, id, `unbalanced marker ${id} in ${sourceFile}`);
-        blocks.set(
-          id,
-          createBlock(id, sourceFile, region.entries, region.startLine, lineNumber - 1),
+        const regionLines = region.entries.map(({ text: entry }) => entry);
+        const block = createBlock(id, id, sourceFile, regionLines);
+        block.sourceRange = { startLine: region.startLine, endLine: lineNumber - 1 };
+        block.countedLineNumbers = block.countedLineNumbers.map(
+          (relativeLine) => relativeLine + region.startLine - 1,
         );
+        for (const values of Object.values(block.excludedLineNumbers)) {
+          for (let offset = 0; offset < values.length; offset += 1) {
+            values[offset] += region.startLine - 1;
+          }
+        }
+        blocks.set(id, block);
       }
       continue;
     }
     for (const region of open) region.entries.push({ lineNumber, text });
   }
-
   assert.equal(open.length, 0, `unclosed marker in ${sourceFile}`);
   return blocks;
-}
-
-export async function extractWholeFile(id, sourceFile) {
-  const lines = await formattedLines(sourceFile);
-  const entries = lines.map((text, index) => ({ lineNumber: index + 1, text }));
-  return createBlock(id, sourceFile, entries, 1, lines.length);
 }
 
 function mergeBlocks(maps) {
@@ -170,18 +166,114 @@ function mergeBlocks(maps) {
   return merged;
 }
 
-export async function createMaintenanceSourceModel() {
-  const handwrittenFiles = [
-    'case-studies/drawing-game/fixtures/handwritten/handwritten-socket.mjs',
-    'case-studies/drawing-game/fixtures/handwritten/handwritten-loader.mjs',
-    'case-studies/drawing-game/fixtures/handwritten/handwritten-substitution.mjs',
-    'case-studies/drawing-game/fixtures/handwritten/bootstrap.mjs',
-  ];
-  const handwritten = mergeBlocks(
-    await Promise.all(
-      handwrittenFiles.map((sourceFile) => extractRegions(sourceFile, 'maintenance-snippet')),
-    ),
+function countedCodeLines(block) {
+  const lines = block.code.split('\n');
+  const startLine = block.sourceRange.startLine;
+  return block.countedLineNumbers.map((lineNumber) => lines[lineNumber - startLine]);
+}
+
+function diffOperations(before, after) {
+  const table = Array.from({ length: before.length + 1 }, () => new Uint32Array(after.length + 1));
+  for (let left = before.length - 1; left >= 0; left -= 1) {
+    for (let right = after.length - 1; right >= 0; right -= 1) {
+      table[left][right] =
+        before[left] === after[right]
+          ? table[left + 1][right + 1] + 1
+          : Math.max(table[left + 1][right], table[left][right + 1]);
+    }
+  }
+
+  const operations = [];
+  let left = 0;
+  let right = 0;
+  while (left < before.length || right < after.length) {
+    if (left < before.length && right < after.length && before[left] === after[right]) {
+      operations.push({ prefix: ' ', line: before[left] });
+      left += 1;
+      right += 1;
+    } else if (
+      left < before.length &&
+      (right === after.length || table[left + 1][right] >= table[left][right + 1])
+    ) {
+      operations.push({ prefix: '-', line: before[left] });
+      left += 1;
+    } else {
+      operations.push({ prefix: '+', line: after[right] });
+      right += 1;
+    }
+  }
+  return operations;
+}
+
+function createDiffBlock(role, previousBlock, currentBlock) {
+  const previousSourceFile = previousBlock?.sourceFile ?? '/dev/null';
+  const currentSourceFile = currentBlock?.sourceFile ?? '/dev/null';
+  const operations = diffOperations(
+    previousBlock ? countedCodeLines(previousBlock) : [],
+    currentBlock ? countedCodeLines(currentBlock) : [],
   );
+  const additions = operations.filter(({ prefix }) => prefix === '+').length;
+  const deletions = operations.filter(({ prefix }) => prefix === '-').length;
+  const code = [
+    `--- ${previousSourceFile}`,
+    `+++ ${currentSourceFile}`,
+    '@@ counted LOC @@',
+    ...operations.map(({ prefix, line }) => `${prefix}${line}`),
+  ].join('\n');
+  return {
+    id: `diff-${role}`,
+    role,
+    previousSourceFile,
+    currentSourceFile,
+    language: 'diff',
+    code,
+    sourceSha256: sha256(code),
+    additions,
+    deletions,
+  };
+}
+
+function createStageDiff(previousBlocks, currentBlocks) {
+  const previousByRole = new Map(previousBlocks.map((block) => [block.role, block]));
+  const currentByRole = new Map(currentBlocks.map((block) => [block.role, block]));
+  const roles = [...new Set([...previousByRole.keys(), ...currentByRole.keys()])];
+  return roles.map((role) =>
+    createDiffBlock(role, previousByRole.get(role), currentByRole.get(role)),
+  );
+}
+
+function stageSourceHash(blocks) {
+  return sha256(
+    blocks
+      .map(({ role, sourceFile, sourceSha256 }) => `${role}\0${sourceFile}\0${sourceSha256}`)
+      .join('\n'),
+  );
+}
+
+export async function createMaintenanceSourceModel() {
+  const stages = [];
+  let previousBlocks = [];
+  for (const definition of HANDWRITTEN_STAGE_DEFINITIONS) {
+    const sourceBlocks = await Promise.all(
+      definition.sources.map(({ role, sourceFile }) =>
+        extractWholeFile(`${definition.id}-${role}`, role, sourceFile),
+      ),
+    );
+    const diffBlocks = createStageDiff(previousBlocks, sourceBlocks);
+    const additions = diffBlocks.reduce((sum, block) => sum + block.additions, 0);
+    const deletions = diffBlocks.reduce((sum, block) => sum + block.deletions, 0);
+    stages.push({
+      ...definition,
+      sourceFiles: sourceBlocks.map(({ sourceFile }) => sourceFile),
+      sourceBlocks,
+      sourceHash: stageSourceHash(sourceBlocks),
+      totalLoc: sourceBlocks.reduce((sum, block) => sum + block.loc, 0),
+      change: { additions, deletions, net: additions - deletions },
+      diffBlocks,
+    });
+    previousBlocks = sourceBlocks;
+  }
+
   const goldenFiles = [
     'examples/drawing-game/application.ts',
     'examples/drawing-game/client.ts',
@@ -192,100 +284,64 @@ export async function createMaintenanceSourceModel() {
   const golden = mergeBlocks(
     await Promise.all(goldenFiles.map((sourceFile) => extractRegions(sourceFile, 'snippet'))),
   );
-  const smocketRegistration = await extractWholeFile(
-    'smocket-loader-registration',
-    'examples/drawing-game/smocket-substitution.mjs',
-  );
-  const sharedApplication = await Promise.all([
-    extractWholeFile('shared-application', 'examples/drawing-game/application.ts'),
-    extractWholeFile('shared-client', 'examples/drawing-game/client.ts'),
-  ]);
-
-  const handwrittenByFeature = new Map([
-    [
-      'base-single-client',
-      [
-        handwritten.get('base-single-client'),
-        handwritten.get('base-client-substitution'),
-        handwritten.get('base-loader-registration'),
-        handwritten.get('base-handwritten-bootstrap'),
-      ],
-    ],
-    ...MAINTENANCE_FEATURE_IDS.slice(1).map((featureId) => [
-      featureId,
-      [handwritten.get(featureId)],
-    ]),
-  ]);
-  for (const [featureId, blocks] of handwrittenByFeature) {
-    assert.ok(blocks.every(Boolean), `missing handwritten source for ${featureId}`);
-  }
-  const consumedHandwrittenIds = new Set(
-    [...handwrittenByFeature.values()].flat().map(({ id }) => id),
-  );
-  for (const id of handwritten.keys()) {
-    assert.ok(
-      consumedHandwrittenIds.has(id),
-      `handwritten marker ${id} is not attributed to a feature`,
-    );
-  }
   const smocketIntegration = [
     golden.get('smocket-bootstrap'),
     golden.get('smocket-client-substitution'),
-    smocketRegistration,
+    await extractWholeFile(
+      'smocket-loader-registration',
+      'loader-registration',
+      'examples/drawing-game/smocket-substitution.mjs',
+    ),
   ];
   assert.ok(smocketIntegration.every(Boolean), 'missing canonical Smocket integration source');
+  const sharedApplication = await Promise.all([
+    extractWholeFile('shared-application', 'application', 'examples/drawing-game/application.ts'),
+    extractWholeFile('shared-client', 'client', 'examples/drawing-game/client.ts'),
+  ]);
 
-  return {
-    handwrittenByFeature,
-    smocketIntegration,
-    golden,
-    sharedApplication,
-  };
+  return { stages, smocketIntegration, sharedApplication, golden, goldenFiles };
 }
 
 export async function createMaintenanceSnippetArtifact(sourceRevision) {
   const model = await createMaintenanceSourceModel();
   const snippets = [];
-
-  for (const feature of MAINTENANCE_FEATURES) {
-    for (const block of model.handwrittenByFeature.get(feature.id)) {
+  for (const stage of model.stages) {
+    for (const block of stage.sourceBlocks) {
       snippets.push({
         ...block,
-        id: `handwritten.${feature.id}.${block.id}`,
-        featureId: feature.id,
-        ownership: 'handwritten-support',
-        purpose: feature.socketIoMeaning,
+        id: `handwritten.${stage.id}.source.${block.role}`,
+        owner: 'handwritten',
+        kind: 'source',
+        stageId: stage.id,
+        purpose: stage.label,
       });
     }
-    for (const snippetId of feature.goldenSnippetIds) {
-      const block = model.golden.get(snippetId);
-      assert.ok(block, `missing golden snippet ${snippetId}`);
+    for (const block of stage.diffBlocks) {
       snippets.push({
         ...block,
-        id: `shared.${feature.id}.${snippetId}`,
-        featureId: feature.id,
-        ownership: 'shared-application',
-        purpose: `Golden application code used by both targets: ${feature.label}`,
+        id: `handwritten.${stage.id}.diff.${block.role}`,
+        owner: 'handwritten',
+        kind: 'diff',
+        stageId: stage.id,
+        purpose: `Counted source change from ${stage.prerequisite ?? 'an empty implementation'}.`,
       });
     }
   }
-
   for (const block of model.smocketIntegration) {
     snippets.push({
       ...block,
-      id: `smocket.base-single-client.${block.id}`,
-      featureId: 'base-single-client',
-      ownership: 'smocket-integration',
-      purpose: 'Canonical server bootstrap and socket.io-client package substitution.',
+      id: `smocket.integration.${block.id}`,
+      owner: 'smocket',
+      kind: 'source',
+      purpose: 'Canonical Smocket bootstrap or client substitution used by the golden workflow.',
     });
   }
-
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     caseStudy: 'drawing-game-maintenance-surface',
     sourceRevision,
-    regenerateWith: 'pnpm case-study:drawing-game:maintenance:snippets',
-    featureIds: MAINTENANCE_FEATURE_IDS,
+    stageIds: HANDWRITTEN_STAGE_IDS,
+    regeneration: 'pnpm case-study:drawing-game:maintenance:snippets',
     snippets,
   };
 }

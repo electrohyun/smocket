@@ -13,13 +13,20 @@ async function observeFinalWorkflow() {
   return assertScenarioObservation(await runDrawingGameScenario(handwrittenTarget));
 }
 
-const firstStages = await runHandwrittenStages();
-const secondStages = await runHandwrittenStages();
-assert.deepEqual(secondStages, firstStages);
+async function runOnce() {
+  const stages = await runHandwrittenStages();
+  const observation = await observeFinalWorkflow();
+  stages.push({
+    id: 'full-workflow',
+    passed: true,
+    assertions: ['the unchanged golden drawing-game workflow satisfied its canonical assertions'],
+  });
+  return { stages, observation };
+}
 
-const firstObservation = await observeFinalWorkflow();
-const secondObservation = await observeFinalWorkflow();
-assert.deepEqual(secondObservation, firstObservation);
+const first = await runOnce();
+const second = await runOnce();
+assert.deepEqual(second, first);
 
 process.stdout.write(
   JSON.stringify({
@@ -28,7 +35,7 @@ process.stdout.write(
     label: 'Application-owned handwritten transport',
     fixture: 'case-studies/drawing-game/fixtures/handwritten',
     repeatedRunMatches: true,
-    stages: firstStages,
-    observation: firstObservation,
+    stages: first.stages,
+    observation: first.observation,
   }),
 );
