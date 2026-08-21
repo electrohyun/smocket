@@ -17,6 +17,8 @@
   [public-surface.md](./public-surface.md)
 - **How one chat application compares three test-support targets:**
   [application-case-study.md](./application-case-study.md)
+- **How the drawing-game workflow produces executable compatibility evidence:**
+  [drawing-game case study](../case-studies/drawing-game/README.md)
 - **What must happen before the first stable release:**
   [roadmap.md](./roadmap.md)
 - **How five lenses guide development toward v1.0.0:**
