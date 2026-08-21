@@ -2,13 +2,13 @@
   "schemaVersion": 1,
   "caseStudy": "drawing-game-compatibility",
   "environment": {
-    "measuredAt": "2026-08-21T10:51:21.349Z",
+    "measuredAt": "2026-08-21T11:05:36.537Z",
     "platform": "win32",
     "architecture": "x64",
     "node": "v24.11.1",
     "npm": "11.6.4",
     "smocketSourceCommit": "8885dcead7446ad9d268ee15a6203740b6a1e12e",
-    "sourceState": "smocketSourceCommit identifies the committed golden workflow; per-file SHA-256 values identify the measured case-study sources without a self-referential generated commit id."
+    "sourceState": "smocketSourceCommit identifies the committed golden workflow; per-file SHA-256 values identify the measurement inputs without a self-referential generated commit id."
   },
   "workflow": {
     "source": "examples/drawing-game",
@@ -58,6 +58,52 @@
       {
         "path": "examples/drawing-game/target.ts",
         "sha256": "33193e62998c270aa1a52e2117273ca0325a307d20869fce7f99f10ce469cdf7"
+      },
+      {
+        "path": "examples/drawing-game/real.ts",
+        "sha256": "ab0f6e7cd1a3a31e994c28d37cdb69cf690d3e5c1cdd8b9db382b64d26034ddd"
+      },
+      {
+        "path": "examples/drawing-game/smocket.ts",
+        "sha256": "32f58974bc42ada57466f85a6c79064f4dd784bedbae69ffdd8b011a09f0e479"
+      },
+      {
+        "path": "examples/drawing-game/smocket-loader.mjs",
+        "sha256": "f8116f52242678e4dc670ffb30ee0e5d13af71fbb02bbca3407fac625b38afc0"
+      },
+      {
+        "path": "examples/drawing-game/smocket-substitution.mjs",
+        "sha256": "ec26e8b258f810728b956c92702075f86fedc414c33fe71616e58436f20da1c5"
+      },
+      {
+        "path": "examples/drawing-game/package.json",
+        "sha256": "5861c34568881dc51be9834b11701858f05a9a7d70d503d8008b16a9431e9f9c"
+      }
+    ],
+    "measurement": [
+      {
+        "path": "case-studies/drawing-game/schema.mjs",
+        "sha256": "ac60a61e435134ccbb1e0b66e54c83e83933920362e75e9ce2f39266861ac3ad"
+      },
+      {
+        "path": "case-studies/drawing-game/evaluate.mjs",
+        "sha256": "aaedff4396db6d92083319a0a24f717a6a94a2128dbc1cac72e31df5b7c2799c"
+      },
+      {
+        "path": "scripts/run-drawing-game-case-study.mjs",
+        "sha256": "04eb37ed1644ed896c3544f94a11ad4e4351ad6932936990fa0e73dfbf1edcf6"
+      },
+      {
+        "path": "package.json",
+        "sha256": "9b547a64c47e95060aa557517effbac273129f7e690bddb7c09c19ed1780b27e"
+      },
+      {
+        "path": "pnpm-lock.yaml",
+        "sha256": "d5d68c43084d7ad5b4f3ae7ec08876bde1724558aef0e0835acd5c9cea0dc3cd"
+      },
+      {
+        "path": "packages/smocket-client/package.json",
+        "sha256": "2bc6fb49252c2c8eda195e3d86efa0002ec37bacbcb344f44b6a3dc5317b8891"
       }
     ],
     "fixtures": [
@@ -67,19 +113,43 @@
       },
       {
         "path": "case-studies/drawing-game/fixtures/smocket/probe.mjs",
-        "sha256": "a17f92a92305a9df3e08b7948c1c92c548840e602f4d912c360f72c76398b862"
+        "sha256": "17d163bcd0b6bd90317b2d0a826a0edad40ab1f0272ec15fff58bfea3884e4b2"
       },
       {
         "path": "case-studies/drawing-game/fixtures/mock-socket/probe.mjs",
-        "sha256": "7b9f74f483d7fc4aaf43ccfa0961c0386464a84f8438e5b5baac6e7d20bb919d"
+        "sha256": "6a2bd6afaab01472d9a077480c6a65716e864f81e0533156b2a454ebb19f80ff"
+      },
+      {
+        "path": "case-studies/drawing-game/fixtures/mock-socket/package.json",
+        "sha256": "0a6261a1c33f2ce9511c86223bf292f4512d36b173530d7d90fa419a33744683"
+      },
+      {
+        "path": "case-studies/drawing-game/fixtures/mock-socket/package-lock.json",
+        "sha256": "87dd48d23dd50985e3da7e5de65638cbda5295ff0edad2dc2cb2fbb34730db41"
       },
       {
         "path": "case-studies/drawing-game/fixtures/msw-binding/probe.mjs",
-        "sha256": "76ef3a715e5dede0044319364faafa525ecc65c0ece5dd5fc9dbcdf2f3fcec84"
+        "sha256": "a33b4a01c0acddd14fd8f09433a4b6d80fba4e37b9d47984928c4b8ec550f335"
+      },
+      {
+        "path": "case-studies/drawing-game/fixtures/msw-binding/package.json",
+        "sha256": "8848b09037dbe738b01cef05e586ce2c3ae1b4729befe9a1a3609bad4d73bad3"
+      },
+      {
+        "path": "case-studies/drawing-game/fixtures/msw-binding/package-lock.json",
+        "sha256": "bc74bf6a548b705ed4dec9e9123c892aac86e08c0524d82f33e1a4b336a62d74"
       },
       {
         "path": "case-studies/drawing-game/fixtures/socket.io-mock/probe.mjs",
-        "sha256": "c38116b230500a40a85fe7ae4b70374fb94da1946b23b501d31026c72c2b8f98"
+        "sha256": "8de139dded92d96f11612867dd118459abbb54855ae9f6549b3be58a3b90f2b3"
+      },
+      {
+        "path": "case-studies/drawing-game/fixtures/socket.io-mock/package.json",
+        "sha256": "6f6ccbea4fdee46a942a41176e90cb84aec599765b15e3b52f83f33f95724457"
+      },
+      {
+        "path": "case-studies/drawing-game/fixtures/socket.io-mock/package-lock.json",
+        "sha256": "9fd2ad3fee4e3854a701606c25b6b75857d18feed92c3fcc766d34f4e1aa6207"
       }
     ]
   },
@@ -437,6 +507,7 @@
           "id": "smocket-workspace-substitution",
           "kind": "source",
           "source": "examples/drawing-game/smocket-loader.mjs",
+          "sourceSha256": "f8116f52242678e4dc670ffb30ee0e5d13af71fbb02bbca3407fac625b38afc0",
           "finding": "socket.io-client resolves to the workspace smocket-client build for this target."
         }
       ]
@@ -615,7 +686,7 @@
             "distinctSocketIds": true
           },
           "actual": { "connections": [], "distinctSocketIds": false },
-          "reason": "MSW intercepts all three attempts, but the binding does not complete the Socket.IO handshake with the current compatible MSW release.",
+          "reason": "All three clients fail with connect_error before the MSW connection handler runs.",
           "evidenceIds": ["msw-binding-runtime"]
         },
         {
@@ -650,9 +721,10 @@
                 "error": "websocket error"
               }
             ],
-            "bindingMethods": ["on", "send", "emit"],
-            "roomApi": false,
-            "acknowledgementPacketApi": false
+            "bindingCreated": false,
+            "bindingMethods": null,
+            "roomMethods": null,
+            "acknowledgementMethods": null
           },
           "blockedByStepId": "1-connect",
           "reason": "No Socket.IO client connected, so join and ack cannot run.",
@@ -675,7 +747,11 @@
               "senderExcluded": "A"
             }
           },
-          "actual": { "roomApi": false, "broadcastApi": false, "senderExclusionApi": false },
+          "actual": {
+            "roomMethods": null,
+            "broadcastMethods": null,
+            "senderExclusionMethods": null
+          },
           "blockedByStepId": "1-connect",
           "reason": "No connected clients exist; the binding also declares no room or broadcast API.",
           "evidenceIds": []
@@ -691,7 +767,7 @@
               "recipients": ["A", "B", "C"]
             }
           },
-          "actual": { "acknowledgementPacketApi": false, "roomBroadcastApi": false },
+          "actual": { "acknowledgementMethods": null, "roomBroadcastMethods": null },
           "blockedByStepId": "1-connect",
           "reason": "No connected clients exist; the binding declaration has no acknowledgement packet API.",
           "evidenceIds": []
@@ -712,7 +788,7 @@
               "recipients": ["A", "B", "C"]
             }
           },
-          "actual": { "socketIdTargetingApi": false, "roomBroadcastApi": false },
+          "actual": { "targetingMethods": null, "roomBroadcastMethods": null },
           "blockedByStepId": "1-connect",
           "reason": "No connected clients or socket-id/room targeting APIs exist.",
           "evidenceIds": []
@@ -735,7 +811,7 @@
               "disconnected": ["C"]
             }
           },
-          "actual": { "clientCloseAvailable": true, "roomCleanupObservable": false },
+          "actual": { "clientCloseAvailable": true, "roomCleanupMethods": null },
           "blockedByStepId": "1-connect",
           "reason": "The workflow never connected or joined a room, so disconnect cleanup cannot be compared.",
           "evidenceIds": []
@@ -761,7 +837,7 @@
           "id": "msw-binding-runtime",
           "kind": "runtime-probe",
           "source": "fixtures/msw-binding/probe.mjs",
-          "finding": "MSW receives each connection event, but socket.io-client emits connect_error: timeout."
+          "finding": "All three clients emit connect_error, and the MSW connection handler is not invoked."
         }
       ]
     },

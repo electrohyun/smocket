@@ -65,8 +65,8 @@ function runOnce() {
   const firstReceived = Object.fromEntries(LABELS.map((label) => [label, false]));
   // [case-snippet:start 3-sender-excluded-stroke]
   for (const label of LABELS) {
-    sockets[label].socketClient.on('stroke', () => {
-      firstReceived[label] = true;
+    sockets[label].socketClient.on('stroke', (segment) => {
+      if (segment.id === firstStroke.id) firstReceived[label] = true;
     });
   }
   sockets.A.broadcast.to(ROOM).emit('stroke', firstStroke);

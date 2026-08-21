@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { observeSmocketTarget } from '../../../../examples/drawing-game/dist/smocket/smocket.js';
 
@@ -12,6 +13,13 @@ const clientManifest = JSON.parse(
   ),
 );
 assert.equal(serverManifest.version, clientManifest.version);
+const loaderSha256 = createHash('sha256')
+  .update(
+    await readFile(
+      new URL('../../../../examples/drawing-game/smocket-loader.mjs', import.meta.url),
+    ),
+  )
+  .digest('hex');
 
 const first = await observeSmocketTarget();
 const second = await observeSmocketTarget();
@@ -35,6 +43,7 @@ process.stdout.write(
         id: 'smocket-workspace-substitution',
         kind: 'source',
         source: 'examples/drawing-game/smocket-loader.mjs',
+        sourceSha256: loaderSha256,
         finding: 'socket.io-client resolves to the workspace smocket-client build for this target.',
       },
     ],

@@ -45,13 +45,29 @@ function assertObject(value, message) {
   assert.ok(value && typeof value === 'object' && !Array.isArray(value), message);
 }
 
+function assertObservation(observation, targetId) {
+  assertObject(observation, `${targetId} observation is required`);
+  assert.ok(Array.isArray(observation.connections), `${targetId} connections are required`);
+  assert.equal(typeof observation.distinctSocketIds, 'boolean');
+  assert.ok(Array.isArray(observation.joins), `${targetId} joins are required`);
+  assertObject(observation.events, `${targetId} events are required`);
+  assert.ok(Array.isArray(observation.acknowledgements));
+  assert.equal(observation.acknowledgements.length, 2);
+  assert.ok(Array.isArray(observation.deliveries));
+  assert.equal(observation.deliveries.length, 5);
+  assertObject(observation.disconnect, `${targetId} disconnect is required`);
+}
+
 export function assertRawTarget(raw) {
   assertObject(raw, 'target probe must return an object');
   assert.equal(typeof raw.targetId, 'string');
   assert.ok(TARGET_IDS.includes(raw.targetId), `unknown target id ${raw.targetId}`);
   assert.equal(raw.schemaVersion, 1);
   assert.equal(raw.repeatedRunMatches, true);
-  if (raw.observation) return raw;
+  if (raw.observation) {
+    assertObservation(raw.observation, raw.targetId);
+    return raw;
+  }
 
   assertObject(raw.steps, `${raw.targetId} must provide step observations`);
   for (const stepId of STEP_IDS) {
@@ -80,7 +96,7 @@ export function assertMeasurementArtifact(artifact) {
   assert.equal(typeof artifact.environment.sourceState, 'string');
   assertObject(artifact.oracle, 'oracle is required');
   assert.equal(artifact.oracle.targetId, 'real');
-  assertObject(artifact.oracle.observation, 'oracle observation is required');
+  assertObservation(artifact.oracle.observation, artifact.oracle.targetId);
   assert.deepEqual(Object.keys(artifact.oracle.steps), STEP_IDS);
   assert.deepEqual(
     artifact.cards.map(({ targetId }) => targetId),
@@ -96,7 +112,9 @@ export function assertMeasurementArtifact(artifact) {
       assert.ok(STATUSES.includes(step.status));
       assertObject(step.expected, `${card.targetId}/${step.stepId} expected value is required`);
       if (step.status === 'BLOCKED') {
-        assert.ok(STEP_IDS.includes(step.blockedByStepId));
+        const blockerIndex = STEP_IDS.indexOf(step.blockedByStepId);
+        assert.ok(blockerIndex >= 0 && blockerIndex < index);
+        assert.notEqual(card.steps[blockerIndex].status, 'MATCH');
       } else {
         assert.equal(step.blockedByStepId, undefined);
       }

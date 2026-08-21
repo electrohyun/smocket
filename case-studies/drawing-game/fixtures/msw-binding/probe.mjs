@@ -47,11 +47,12 @@ async function settleConnection(client, label) {
 async function runOnce(runId) {
   const origin = `ws://msw-binding-${runId}.example`;
   let interceptedConnections = 0;
+  let boundConnection;
   // [case-snippet:start 1-connect]
   const socketLink = ws.link(origin);
   const handler = socketLink.addEventListener('connection', (connection) => {
     interceptedConnections += 1;
-    toSocketIo(connection);
+    boundConnection = toSocketIo(connection);
   });
   const server = setupServer(handler);
   server.listen({ onUnhandledRequest: 'bypass' });
@@ -74,39 +75,57 @@ async function runOnce(runId) {
   // [case-snippet:end 1-connect]
 
   // [case-snippet:start 2-room-join]
+  const bindingCreated = boundConnection !== undefined;
+  const methods = (names) =>
+    bindingCreated ? names.filter((name) => typeof boundConnection[name] === 'function') : null;
   const joinProbe = {
     interceptedConnections,
     connectionResults,
-    bindingMethods: ['on', 'send', 'emit'],
-    roomApi: false,
-    acknowledgementPacketApi: false,
+    bindingCreated,
+    bindingMethods: methods(['on', 'send', 'emit']),
+    roomMethods: methods(['join', 'leave']),
+    acknowledgementMethods: methods(['ack', 'acknowledge']),
   };
   // [case-snippet:end 2-room-join]
 
   // [case-snippet:start 3-sender-excluded-stroke]
-  const strokeProbe = { roomApi: false, broadcastApi: false, senderExclusionApi: false };
+  const strokeProbe = {
+    roomMethods: methods(['join', 'leave']),
+    broadcastMethods: methods(['broadcast', 'to', 'in']),
+    senderExclusionMethods: methods(['except']),
+  };
   // [case-snippet:end 3-sender-excluded-stroke]
 
   // [case-snippet:start 4-wrong-guess]
-  const wrongGuessProbe = { acknowledgementPacketApi: false, roomBroadcastApi: false };
+  const wrongGuessProbe = {
+    acknowledgementMethods: methods(['ack', 'acknowledge']),
+    roomBroadcastMethods: methods(['broadcast', 'to', 'in']),
+  };
   // [case-snippet:end 4-wrong-guess]
 
   // [case-snippet:start 5-correct-guess]
-  const correctGuessProbe = { socketIdTargetingApi: false, roomBroadcastApi: false };
+  const correctGuessProbe = {
+    targetingMethods: methods(['to', 'in']),
+    roomBroadcastMethods: methods(['broadcast', 'to', 'in']),
+  };
   // [case-snippet:end 5-correct-guess]
 
   // [case-snippet:start 6-disconnect]
   for (const client of Object.values(clients)) client.disconnect();
   server.close();
-  const disconnectProbe = { clientCloseAvailable: true, roomCleanupObservable: false };
+  const disconnectProbe = {
+    clientCloseAvailable: Object.values(clients).every(
+      (client) => typeof client.disconnect === 'function',
+    ),
+    roomCleanupMethods: methods(['leave', 'disconnectSockets']),
+  };
   // [case-snippet:end 6-disconnect]
 
   return {
     '1-connect': {
       supported: true,
       actual: connectActual,
-      reason:
-        'MSW intercepts all three attempts, but the binding does not complete the Socket.IO handshake with the current compatible MSW release.',
+      reason: 'All three clients fail with connect_error before the MSW connection handler runs.',
       evidenceIds: ['msw-binding-runtime'],
     },
     '2-room-join': blocked(
@@ -172,7 +191,7 @@ process.stdout.write(
         kind: 'runtime-probe',
         source: 'fixtures/msw-binding/probe.mjs',
         finding:
-          'MSW receives each connection event, but socket.io-client emits connect_error: timeout.',
+          'All three clients emit connect_error, and the MSW connection handler is not invoked.',
       },
     ],
   }),
