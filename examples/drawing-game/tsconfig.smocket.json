@@ -1,0 +1,20 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "outDir": "dist/smocket",
+    "paths": {
+      "smocket": ["../../dist/index.d.ts"],
+      "socket.io": ["../../dist/index.d.ts"],
+      "socket.io-client": ["../../packages/smocket-client/dist/index.d.mts"]
+    }
+  },
+  "include": [
+    "application.ts",
+    "assertions.ts",
+    "client.ts",
+    "scenario.ts",
+    "smocket.ts",
+    "target.ts"
+  ]
+}

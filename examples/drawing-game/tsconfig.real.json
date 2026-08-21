@@ -1,0 +1,7 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist/real"
+  },
+  "include": ["application.ts", "assertions.ts", "client.ts", "real.ts", "scenario.ts", "target.ts"]
+}

@@ -1,0 +1,19 @@
+{
+  "name": "drawing-game-example",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.real.json && tsc -p tsconfig.smocket.json && tsc -p tsconfig.tools.json",
+    "typecheck": "tsc -p tsconfig.real.json --noEmit && tsc -p tsconfig.smocket.json --noEmit && tsc -p tsconfig.tools.json --noEmit",
+    "real": "pnpm build && node dist/real/real.js",
+    "smocket": "pnpm build && node --import ./smocket-substitution.mjs dist/smocket/smocket.js",
+    "test": "pnpm build && node --import ./smocket-substitution.mjs --test dist/dual-target.test.js",
+    "observe": "pnpm build && node --import ./smocket-substitution.mjs dist/observe.js"
+  },
+  "dependencies": {
+    "smocket": "workspace:*",
+    "smocket-client": "workspace:*",
+    "socket.io": "4.8.3",
+    "socket.io-client": "4.8.3"
+  }
+}
