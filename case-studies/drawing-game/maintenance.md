@@ -1,31 +1,41 @@
 # Drawing-game delivery maintenance surface
 
-> **TL;DR** The golden drawing-game workflow runs against fresh Real Socket.IO,
-> workspace Smocket, and a generic staged handwritten transport. The generated
-> files report application-owned delivery LOC without treating shared drawing or
-> chat code as a target difference.
+> **TL;DR** A 19-LOC single-client fake is small. Reaching the complete drawing-game
+> workflow requires successive rewrites and a 131-LOC four-file source closure.
+> Workspace Smocket uses 18 LOC of target integration. Real Socket.IO supplies the
+> expected observation and is not assigned a convenience score.
 
 ## Question and boundary
 
-The comparison asks how application-owned support changes when one small fake
-adds the Socket.IO delivery semantics used by this workflow. Real Socket.IO
-supplies expected behavior only; the two LOC targets are Smocket and handwritten.
+The comparison asks how much application-owned delivery source is present as a
+handwritten fake grows from one configured response to the unchanged golden
+drawing-game workflow. It does not start from a general mock framework.
 
-The handwritten baseline is deliberately direct: one client/server pair,
-listener delivery, and one configured response. The later blocks add only:
+Every row is a complete implementation in its own source file (or, for the final
+workflow, its own four-file closure). The stage runner imports that exact source,
+executes its assertions, and then discards it. Later behavior is not installed into
+the base through dormant feature ids, routing hooks, room stubs, recipient selectors,
+or disconnect extension points.
 
-| Feature id             | Prerequisite     | Golden source                      |
-| ---------------------- | ---------------- | ---------------------------------- |
-| **multiple-clients**   | base             | drawing-client                     |
-| **room-broadcast**     | multiple clients | room-join, room-announce           |
-| **sender-exclusion**   | room broadcast   | drawing-server-handler             |
-| **acknowledgement**    | base             | acknowledgement, chat-guess-client |
-| **targeted-delivery**  | multiple clients | targeted-correct                   |
-| **disconnect-cleanup** | sender exclusion | disconnect-behavior                |
+| Stage                 | Prerequisite          | Added | Removed | Net | Total |
+| --------------------- | --------------------- | ----: | ------: | --: | ----: |
+| base single client    | none                  |    19 |       0 | +19 |    19 |
+| multiple clients      | base single client    |    28 |       7 | +21 |    40 |
+| room membership/bcast | multiple clients      |    38 |      25 | +13 |    53 |
+| sender exclusion      | room membership/bcast |     5 |       3 |  +2 |    55 |
+| acknowledgement       | sender exclusion      |     3 |       3 |   0 |    55 |
+| targeted delivery     | acknowledgement       |     6 |       5 |  +1 |    56 |
+| disconnect cleanup    | targeted delivery     |    15 |       2 | +13 |    69 |
+| full golden workflow  | disconnect cleanup    |   128 |      66 | +62 |   131 |
 
-Each stage runs with its prerequisite closure. Absence checks send a barrier from
-the same client after the tested event; the server emits a marker only after
-handling that barrier. No short timeout decides a recipient is absent.
+The additions and deletions come from deterministic diffs of counted source lines;
+they are not marker positions inside one final framework. The large final transition
+is visible because the workflow needs the package-substitution boundary and fuller
+Socket.IO-shaped listener lifecycle that earlier stages do not pre-own.
+
+Absence checks send a barrier from the same client after the tested event. The
+server emits a marker only after handling that barrier, so no short timeout decides
+that a recipient is absent.
 
 ## Reproduce
 
@@ -37,24 +47,22 @@ handling that barrier. No short timeout decides a recipient is absent.
     pnpm case-study:drawing-game:maintenance:snippets:check
     pnpm case-study:drawing-game:test
 
-[maintenance.generated.json](./maintenance.generated.json) contains feature
-prerequisites, +N lines, cumulative totals, counted and excluded files, exact
-line numbers, executed-stage results, and the three final observations.
+[maintenance.generated.json](./maintenance.generated.json) contains stage ids,
+prerequisites, actual source closures, hashes, additions, deletions, net changes,
+totals, code and diff blocks, assertion results, and the three final observations.
 [maintenance-snippets.generated.json](./maintenance-snippets.generated.json)
-contains actual code and source ranges extracted from executable markers.
+contains the same executable stage source and transition diffs for downstream use.
 
 ## Counting and interpretation
 
-The counter first requires checked-in source to match Prettier. It excludes blank,
-comment-only, snippet-marker, and punctuation-only formatting lines. Tests,
-scenarios, assertions, generated JSON, lockfiles, and README files are listed with
-their exclusion reasons. Shared application/client LOC is recorded separately and
-never contributes to the target difference.
+The counter first requires source to match Prettier. It excludes blank,
+comment-only, snippet-marker, and punctuation-only formatting lines. Test harnesses,
+generated JSON, lockfiles, and README files are listed with exclusion reasons.
+Shared golden application/client LOC is recorded separately and never contributes
+to the target difference.
 
-A small handwritten fake can be the simplest choice at the baseline. Source grows
-when the application takes ownership of socket identity, room routing, sender
-exclusion, acknowledgements, targeting, and disconnect cleanup; that growth is not
-drawing or chat logic. LOC is a maintenance-surface count, not a claim about
-development time, productivity, reliability, or quality. The result applies only
-to this workflow and these counting rules, so it is not a universal recommendation
-to use Smocket.
+The result supports two narrow statements: the minimal fake is small, and this
+workflow makes the application own more transport source plus several structural
+rewrites. It does not show that more LOC necessarily takes more time or produces
+lower productivity, reliability, or quality. No stage or count is adjusted to fit
+a preferred conclusion, and one workflow cannot establish a universal tool choice.

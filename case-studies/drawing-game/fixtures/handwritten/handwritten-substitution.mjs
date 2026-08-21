@@ -1,4 +1,3 @@
-// [maintenance-snippet:start base-loader-registration]
 import * as nodeModule from 'node:module';
 
 if (typeof nodeModule.register !== 'function') {
@@ -6,4 +5,3 @@ if (typeof nodeModule.register !== 'function') {
 }
 
 nodeModule.register(new URL('./handwritten-loader.mjs', import.meta.url), import.meta.url);
-// [maintenance-snippet:end base-loader-registration]

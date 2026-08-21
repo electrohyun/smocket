@@ -1,397 +1,459 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "caseStudy": "drawing-game-maintenance-surface",
   "sourceRevision": "6afc76aa6b9531e26454c09200627dba1b626640",
-  "regenerateWith": "pnpm case-study:drawing-game:maintenance:snippets",
-  "featureIds": [
+  "stageIds": [
     "base-single-client",
     "multiple-clients",
     "room-broadcast",
     "sender-exclusion",
     "acknowledgement",
     "targeted-delivery",
-    "disconnect-cleanup"
+    "disconnect-cleanup",
+    "full-workflow"
   ],
+  "regeneration": "pnpm case-study:drawing-game:maintenance:snippets",
   "snippets": [
     {
-      "id": "handwritten.base-single-client.base-single-client",
-      "sourceFile": "case-studies/drawing-game/fixtures/handwritten/handwritten-socket.mjs",
+      "id": "handwritten.base-single-client.source.transport",
+      "role": "transport",
+      "sourceFile": "case-studies/drawing-game/fixtures/handwritten/stage-sources/01-base-single-client.mjs",
       "language": "javascript",
-      "code": "export const HANDWRITTEN_FEATURE_IDS = [\n  'multiple-clients',\n  'room-broadcast',\n  'sender-exclusion',\n  'acknowledgement',\n  'targeted-delivery',\n  'disconnect-cleanup',\n];\n\nconst origins = new Map();\n\nfunction createListenerStore() {\n  return { events: new Map(), any: [] };\n}\n\nfunction addListener(store, event, listener, once = false) {\n  const listeners = store.events.get(event) ?? [];\n  listeners.push({ listener, once });\n  store.events.set(event, listeners);\n}\n\nfunction removeListener(store, event, listener) {\n  const listeners = store.events.get(event);\n  if (!listeners) return;\n  store.events.set(\n    event,\n    listeners.filter((entry) => entry.listener !== listener),\n  );\n}\n\nfunction dispatch(store, event, args) {\n  for (const listener of [...store.any]) listener(event, ...args);\n  const listeners = [...(store.events.get(event) ?? [])];\n  for (const entry of listeners) {\n    if (entry.once) removeListener(store, event, entry.listener);\n    entry.listener(...args);\n  }\n}\n\nfunction attachListenerApi(target, store) {\n  return Object.assign(target, {\n    on(event, listener) {\n      addListener(store, event, listener);\n      return target;\n    },\n    once(event, listener) {\n      addListener(store, event, listener, true);\n      return target;\n    },\n    off(event, listener) {\n      removeListener(store, event, listener);\n      return target;\n    },\n    onAny(listener) {\n      store.any.push(listener);\n      return target;\n    },\n  });\n}\n\nfunction createBaseState(origin, featureIds) {\n  const state = {\n    origin,\n    featureIds,\n    nextSocketId: 0,\n    singlePair: undefined,\n    serverListeners: createListenerStore(),\n    registerPair(pair) {\n      if (state.singlePair) throw new Error('The base handwritten stage supports one client.');\n      pair.id = 'handwritten-single';\n      state.singlePair = pair;\n    },\n    listPairs() {\n      return state.singlePair ? [state.singlePair] : [];\n    },\n    findPair(socketId) {\n      return state.singlePair?.id === socketId ? state.singlePair : undefined;\n    },\n    removePair(pair) {\n      if (state.singlePair === pair) state.singlePair = undefined;\n    },\n    resetConnections() {\n      state.singlePair = undefined;\n    },\n    prepareClientArguments(args) {\n      return args.filter((argument) => typeof argument !== 'function');\n    },\n    filterRecipients(pairs) {\n      return pairs;\n    },\n    selectRecipients() {\n      throw new Error('Room or socket targeting is not enabled for this stage.');\n    },\n    route(target, senderId, event, args) {\n      const selected = state.selectRecipients(target);\n      const recipients = state.filterRecipients(selected, senderId);\n      for (const pair of recipients) dispatch(pair.clientListeners, event, args);\n    },\n    join() {\n      throw new Error('Room membership is not enabled for this stage.');\n    },\n    leaveAllRooms() {},\n    resetRooms() {},\n    disconnectPair(pair, reason) {\n      if (!pair.client.connected) return;\n      pair.client.connected = false;\n      pair.serverSocket.connected = false;\n      dispatch(pair.serverListeners, 'disconnect', [reason]);\n      dispatch(pair.clientListeners, 'disconnect', [reason]);\n    },\n  };\n  return state;\n}\n\nfunction installFeatures(state) {\n  if (state.featureIds.has('multiple-clients')) installMultipleClients(state);\n  if (state.featureIds.has('room-broadcast')) installRoomBroadcast(state);\n  if (state.featureIds.has('sender-exclusion')) installSenderExclusion(state);\n  if (state.featureIds.has('acknowledgement')) installAcknowledgement(state);\n  if (state.featureIds.has('targeted-delivery')) installTargetedDelivery(state);\n  if (state.featureIds.has('disconnect-cleanup')) installDisconnectCleanup(state);\n}\n\nfunction createPair(state, auth) {\n  const clientListeners = createListenerStore();\n  const serverListeners = createListenerStore();\n  const pair = {\n    id: '',\n    client: undefined,\n    serverSocket: undefined,\n    clientListeners,\n    serverListeners,\n  };\n\n  const client = attachListenerApi(\n    {\n      id: '',\n      connected: true,\n      emit(event, ...args) {\n        dispatch(serverListeners, event, state.prepareClientArguments(args));\n        return client;\n      },\n      disconnect() {\n        state.disconnectPair(pair, 'client namespace disconnect');\n        return client;\n      },\n    },\n    clientListeners,\n  );\n  const serverSocket = attachListenerApi(\n    {\n      id: '',\n      connected: true,\n      handshake: { auth: { ...auth } },\n      emit(event, ...args) {\n        dispatch(clientListeners, event, args);\n        return true;\n      },\n      async join(room) {\n        state.join(pair, room);\n      },\n      to(target) {\n        return createBroadcastOperator(state, target, pair.id);\n      },\n      disconnect() {\n        state.disconnectPair(pair, 'server namespace disconnect');\n        return serverSocket;\n      },\n    },\n    serverListeners,\n  );\n\n  pair.client = client;\n  pair.serverSocket = serverSocket;\n  state.registerPair(pair);\n  client.id = pair.id;\n  serverSocket.id = pair.id;\n  dispatch(state.serverListeners, 'connection', [serverSocket]);\n  dispatch(clientListeners, 'connect', []);\n  return client;\n}\n\nfunction createBroadcastOperator(state, target, senderId) {\n  return {\n    emit(event, ...args) {\n      state.route(target, senderId, event, args);\n      return true;\n    },\n  };\n}\n\nexport class Server {\n  constructor(origin, options = {}) {\n    if (origins.has(origin)) throw new Error(`A handwritten server already owns ${origin}`);\n    const featureIds = new Set(options.features ?? HANDWRITTEN_FEATURE_IDS);\n    for (const featureId of featureIds) {\n      if (!HANDWRITTEN_FEATURE_IDS.includes(featureId)) {\n        throw new Error(`Unknown handwritten feature: ${featureId}`);\n      }\n    }\n    this.state = createBaseState(origin, featureIds);\n    installFeatures(this.state);\n    origins.set(origin, this.state);\n  }\n\n  on(event, listener) {\n    addListener(this.state.serverListeners, event, listener);\n    return this;\n  }\n\n  emit(event, ...args) {\n    for (const pair of this.state.listPairs()) dispatch(pair.clientListeners, event, args);\n    return true;\n  }\n\n  to(target) {\n    return createBroadcastOperator(this.state, target, undefined);\n  }\n\n  async close() {\n    for (const pair of [...this.state.listPairs()]) {\n      this.state.disconnectPair(pair, 'server shutting down');\n    }\n    this.state.resetConnections();\n    this.state.resetRooms();\n    origins.delete(this.state.origin);\n  }\n}\n\nexport function io(origin, options = {}) {\n  const state = origins.get(origin);\n  if (!state) throw new Error(`No handwritten server is registered for ${origin}`);\n  return createPair(state, options.auth ?? {});\n}",
-      "sourceSha256": "2e20788292223ccd1575b62a2f2c64afc45515ea53195bb998dbe207887e1fd8",
-      "sourceRange": { "startLine": 2, "endLine": 235 },
-      "loc": 162,
+      "code": "export function createBaseFake(response) {\n  const clientListeners = new Map();\n  const serverListeners = new Map();\n\n  const serverSocket = {\n    on(event, listener) {\n      serverListeners.set(event, listener);\n      return serverSocket;\n    },\n    emit(event, value) {\n      clientListeners.get(event)?.(value);\n      return true;\n    },\n  };\n  const clientSocket = {\n    on(event, listener) {\n      clientListeners.set(event, listener);\n      return clientSocket;\n    },\n    emit(event, value) {\n      serverListeners.get(event)?.(value);\n      return clientSocket;\n    },\n  };\n\n  serverSocket.on('request', () => serverSocket.emit('response', response));\n  return { clientSocket, serverSocket };\n}",
+      "sourceSha256": "e2ff60f4cf042cdbd1e2c9570f1346619ed532c4497cfc1f63b5e304d8182f65",
+      "sourceRange": { "startLine": 1, "endLine": 28 },
+      "loc": 19,
+      "countedLineNumbers": [1, 2, 3, 5, 6, 7, 8, 10, 11, 12, 15, 16, 17, 18, 20, 21, 22, 26, 27],
+      "excludedLineNumbers": {
+        "blank": [4, 25],
+        "snippetMarker": [],
+        "commentOnly": [],
+        "formattingOnly": [9, 13, 14, 19, 23, 24, 28]
+      },
+      "owner": "handwritten",
+      "kind": "source",
+      "stageId": "base-single-client",
+      "purpose": "One client/server pair returns one configured response"
+    },
+    {
+      "id": "handwritten.base-single-client.diff.transport",
+      "role": "transport",
+      "previousSourceFile": "/dev/null",
+      "currentSourceFile": "case-studies/drawing-game/fixtures/handwritten/stage-sources/01-base-single-client.mjs",
+      "language": "diff",
+      "code": "--- /dev/null\n+++ case-studies/drawing-game/fixtures/handwritten/stage-sources/01-base-single-client.mjs\n@@ counted LOC @@\n+export function createBaseFake(response) {\n+  const clientListeners = new Map();\n+  const serverListeners = new Map();\n+  const serverSocket = {\n+    on(event, listener) {\n+      serverListeners.set(event, listener);\n+      return serverSocket;\n+    emit(event, value) {\n+      clientListeners.get(event)?.(value);\n+      return true;\n+  const clientSocket = {\n+    on(event, listener) {\n+      clientListeners.set(event, listener);\n+      return clientSocket;\n+    emit(event, value) {\n+      serverListeners.get(event)?.(value);\n+      return clientSocket;\n+  serverSocket.on('request', () => serverSocket.emit('response', response));\n+  return { clientSocket, serverSocket };",
+      "sourceSha256": "ad970d4e577c2b862b0280d27dc7cde32cca798cfec789e921f52c8d3fbe00c7",
+      "additions": 19,
+      "deletions": 0,
+      "owner": "handwritten",
+      "kind": "diff",
+      "stageId": "base-single-client",
+      "purpose": "Counted source change from an empty implementation."
+    },
+    {
+      "id": "handwritten.multiple-clients.source.transport",
+      "role": "transport",
+      "sourceFile": "case-studies/drawing-game/fixtures/handwritten/stage-sources/02-multiple-clients.mjs",
+      "language": "javascript",
+      "code": "function addListener(store, event, listener) {\n  const listeners = store.get(event) ?? [];\n  listeners.push(listener);\n  store.set(event, listeners);\n}\n\nfunction dispatch(store, event, args) {\n  for (const listener of store.get(event) ?? []) listener(...args);\n}\n\nfunction createPair(id) {\n  const clientListeners = new Map();\n  const serverListeners = new Map();\n  const serverSocket = {\n    id,\n    on(event, listener) {\n      addListener(serverListeners, event, listener);\n      return serverSocket;\n    },\n    emit(event, ...args) {\n      dispatch(clientListeners, event, args);\n      return true;\n    },\n  };\n  const clientSocket = {\n    id,\n    connected: true,\n    on(event, listener) {\n      addListener(clientListeners, event, listener);\n      return clientSocket;\n    },\n    emit(event, value) {\n      dispatch(serverListeners, event, [value]);\n      return clientSocket;\n    },\n  };\n  return { clientSocket, serverSocket };\n}\n\nexport function createMultipleClientFake() {\n  const connectionListeners = [];\n  let nextId = 0;\n  const server = {\n    on(event, listener) {\n      if (event === 'connection') connectionListeners.push(listener);\n      return server;\n    },\n  };\n\n  return {\n    server,\n    connect() {\n      const pair = createPair(`handwritten-${++nextId}`);\n      for (const listener of connectionListeners) listener(pair.serverSocket);\n      return pair.clientSocket;\n    },\n  };\n}",
+      "sourceSha256": "a5ad0530c2f8407e2b246495d67d0e581ac6e913c243c3402fd90ef3abdf9fb5",
+      "sourceRange": { "startLine": 1, "endLine": 58 },
+      "loc": 40,
       "countedLineNumbers": [
-        2, 3, 4, 5, 6, 7, 8, 11, 13, 14, 17, 18, 19, 20, 23, 24, 25, 26, 27, 28, 32, 33, 34, 35, 36,
-        37, 41, 42, 43, 44, 45, 47, 48, 49, 51, 52, 53, 55, 56, 57, 62, 63, 64, 65, 66, 67, 68, 69,
-        70, 71, 72, 74, 75, 77, 78, 80, 81, 83, 84, 86, 87, 89, 90, 92, 93, 95, 96, 97, 98, 100,
-        101, 103, 104, 105, 106, 107, 108, 109, 110, 113, 116, 117, 118, 119, 120, 121, 122, 125,
-        126, 127, 128, 129, 130, 131, 132, 133, 136, 138, 139, 140, 141, 142, 144, 145, 146, 149,
-        151, 153, 154, 155, 156, 157, 158, 160, 161, 163, 164, 166, 167, 168, 171, 174, 175, 176,
-        177, 178, 179, 180, 181, 184, 185, 186, 187, 188, 193, 194, 195, 196, 197, 198, 199, 202,
-        203, 204, 207, 208, 209, 212, 213, 214, 217, 218, 221, 222, 223, 225, 226, 227, 231, 232,
-        233, 234
+        1, 2, 3, 4, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 20, 21, 22, 25, 26, 27, 28, 29, 30, 32,
+        33, 34, 37, 40, 41, 42, 43, 44, 45, 46, 50, 51, 52, 53, 54, 55
       ],
       "excludedLineNumbers": {
-        "blank": [
-          10, 12, 16, 22, 31, 40, 61, 115, 124, 135, 173, 183, 192, 206, 211, 216, 220, 230
-        ],
+        "blank": [6, 10, 39, 49],
+        "snippetMarker": [],
+        "commentOnly": [],
+        "formattingOnly": [5, 9, 19, 23, 24, 31, 35, 36, 38, 47, 48, 56, 57, 58]
+      },
+      "owner": "handwritten",
+      "kind": "source",
+      "stageId": "multiple-clients",
+      "purpose": "Three clients have independent ids and listeners"
+    },
+    {
+      "id": "handwritten.multiple-clients.diff.transport",
+      "role": "transport",
+      "previousSourceFile": "case-studies/drawing-game/fixtures/handwritten/stage-sources/01-base-single-client.mjs",
+      "currentSourceFile": "case-studies/drawing-game/fixtures/handwritten/stage-sources/02-multiple-clients.mjs",
+      "language": "diff",
+      "code": "--- case-studies/drawing-game/fixtures/handwritten/stage-sources/01-base-single-client.mjs\n+++ case-studies/drawing-game/fixtures/handwritten/stage-sources/02-multiple-clients.mjs\n@@ counted LOC @@\n-export function createBaseFake(response) {\n+function addListener(store, event, listener) {\n+  const listeners = store.get(event) ?? [];\n+  listeners.push(listener);\n+  store.set(event, listeners);\n+function dispatch(store, event, args) {\n+  for (const listener of store.get(event) ?? []) listener(...args);\n+function createPair(id) {\n   const clientListeners = new Map();\n   const serverListeners = new Map();\n   const serverSocket = {\n+    id,\n     on(event, listener) {\n-      serverListeners.set(event, listener);\n+      addListener(serverListeners, event, listener);\n       return serverSocket;\n-    emit(event, value) {\n-      clientListeners.get(event)?.(value);\n+    emit(event, ...args) {\n+      dispatch(clientListeners, event, args);\n       return true;\n   const clientSocket = {\n+    id,\n+    connected: true,\n     on(event, listener) {\n-      clientListeners.set(event, listener);\n+      addListener(clientListeners, event, listener);\n       return clientSocket;\n     emit(event, value) {\n-      serverListeners.get(event)?.(value);\n+      dispatch(serverListeners, event, [value]);\n       return clientSocket;\n-  serverSocket.on('request', () => serverSocket.emit('response', response));\n   return { clientSocket, serverSocket };\n+export function createMultipleClientFake() {\n+  const connectionListeners = [];\n+  let nextId = 0;\n+  const server = {\n+    on(event, listener) {\n+      if (event === 'connection') connectionListeners.push(listener);\n+      return server;\n+  return {\n+    server,\n+    connect() {\n+      const pair = createPair(`handwritten-${++nextId}`);\n+      for (const listener of connectionListeners) listener(pair.serverSocket);\n+      return pair.clientSocket;",
+      "sourceSha256": "e43d715e5e619377eaf86c92376dbed2df9c8272ec3e12c13b67f2101de693f8",
+      "additions": 28,
+      "deletions": 7,
+      "owner": "handwritten",
+      "kind": "diff",
+      "stageId": "multiple-clients",
+      "purpose": "Counted source change from base-single-client."
+    },
+    {
+      "id": "handwritten.room-broadcast.source.transport",
+      "role": "transport",
+      "sourceFile": "case-studies/drawing-game/fixtures/handwritten/stage-sources/03-room-broadcast.mjs",
+      "language": "javascript",
+      "code": "function addListener(store, event, listener) {\n  const listeners = store.get(event) ?? [];\n  listeners.push(listener);\n  store.set(event, listeners);\n}\n\nfunction dispatch(store, event, args) {\n  for (const listener of store.get(event) ?? []) listener(...args);\n}\n\nexport function createRoomFake() {\n  const connectionListeners = [];\n  const pairs = new Map();\n  const rooms = new Map();\n  let nextId = 0;\n\n  function createBroadcast(room) {\n    return {\n      emit(event, ...args) {\n        for (const id of rooms.get(room) ?? []) {\n          dispatch(pairs.get(id).clientListeners, event, args);\n        }\n        return true;\n      },\n    };\n  }\n\n  const server = {\n    on(event, listener) {\n      if (event === 'connection') connectionListeners.push(listener);\n      return server;\n    },\n    to(room) {\n      return createBroadcast(room);\n    },\n  };\n\n  return {\n    server,\n    connect() {\n      const id = `handwritten-${++nextId}`;\n      const clientListeners = new Map();\n      const serverListeners = new Map();\n      const serverSocket = {\n        id,\n        on(event, listener) {\n          addListener(serverListeners, event, listener);\n          return serverSocket;\n        },\n        emit(event, ...args) {\n          dispatch(clientListeners, event, args);\n          return true;\n        },\n        async join(room) {\n          const members = rooms.get(room) ?? new Set();\n          members.add(id);\n          rooms.set(room, members);\n        },\n      };\n      const clientSocket = {\n        id,\n        connected: true,\n        on(event, listener) {\n          addListener(clientListeners, event, listener);\n          return clientSocket;\n        },\n        emit(event, value) {\n          dispatch(serverListeners, event, [value]);\n          return clientSocket;\n        },\n      };\n      pairs.set(id, { clientListeners, serverSocket });\n      for (const listener of connectionListeners) listener(serverSocket);\n      return clientSocket;\n    },\n  };\n}",
+      "sourceSha256": "7dc4979568f2ca22efe4eabad689b855a60fd8906831f59e53a2b8e93d7daffa",
+      "sourceRange": { "startLine": 1, "endLine": 77 },
+      "loc": 53,
+      "countedLineNumbers": [
+        1, 2, 3, 4, 7, 8, 11, 12, 13, 14, 15, 17, 18, 19, 20, 21, 23, 28, 29, 30, 31, 33, 34, 38,
+        39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 50, 51, 52, 54, 55, 56, 57, 60, 61, 62, 63, 64, 65,
+        67, 68, 69, 72, 73, 74
+      ],
+      "excludedLineNumbers": {
+        "blank": [6, 10, 16, 27, 37],
+        "snippetMarker": [],
+        "commentOnly": [],
+        "formattingOnly": [5, 9, 22, 24, 25, 26, 32, 35, 36, 49, 53, 58, 59, 66, 70, 71, 75, 76, 77]
+      },
+      "owner": "handwritten",
+      "kind": "source",
+      "stageId": "room-broadcast",
+      "purpose": "Room membership selects every room member"
+    },
+    {
+      "id": "handwritten.room-broadcast.diff.transport",
+      "role": "transport",
+      "previousSourceFile": "case-studies/drawing-game/fixtures/handwritten/stage-sources/02-multiple-clients.mjs",
+      "currentSourceFile": "case-studies/drawing-game/fixtures/handwritten/stage-sources/03-room-broadcast.mjs",
+      "language": "diff",
+      "code": "--- case-studies/drawing-game/fixtures/handwritten/stage-sources/02-multiple-clients.mjs\n+++ case-studies/drawing-game/fixtures/handwritten/stage-sources/03-room-broadcast.mjs\n@@ counted LOC @@\n function addListener(store, event, listener) {\n   const listeners = store.get(event) ?? [];\n   listeners.push(listener);\n   store.set(event, listeners);\n function dispatch(store, event, args) {\n   for (const listener of store.get(event) ?? []) listener(...args);\n-function createPair(id) {\n-  const clientListeners = new Map();\n-  const serverListeners = new Map();\n-  const serverSocket = {\n-    id,\n-    on(event, listener) {\n-      addListener(serverListeners, event, listener);\n-      return serverSocket;\n-    emit(event, ...args) {\n-      dispatch(clientListeners, event, args);\n-      return true;\n-  const clientSocket = {\n-    id,\n-    connected: true,\n-    on(event, listener) {\n-      addListener(clientListeners, event, listener);\n-      return clientSocket;\n-    emit(event, value) {\n-      dispatch(serverListeners, event, [value]);\n-      return clientSocket;\n-  return { clientSocket, serverSocket };\n-export function createMultipleClientFake() {\n+export function createRoomFake() {\n   const connectionListeners = [];\n+  const pairs = new Map();\n+  const rooms = new Map();\n   let nextId = 0;\n+  function createBroadcast(room) {\n+    return {\n+      emit(event, ...args) {\n+        for (const id of rooms.get(room) ?? []) {\n+          dispatch(pairs.get(id).clientListeners, event, args);\n+        return true;\n   const server = {\n     on(event, listener) {\n       if (event === 'connection') connectionListeners.push(listener);\n       return server;\n+    to(room) {\n+      return createBroadcast(room);\n   return {\n     server,\n     connect() {\n-      const pair = createPair(`handwritten-${++nextId}`);\n-      for (const listener of connectionListeners) listener(pair.serverSocket);\n-      return pair.clientSocket;\n+      const id = `handwritten-${++nextId}`;\n+      const clientListeners = new Map();\n+      const serverListeners = new Map();\n+      const serverSocket = {\n+        id,\n+        on(event, listener) {\n+          addListener(serverListeners, event, listener);\n+          return serverSocket;\n+        emit(event, ...args) {\n+          dispatch(clientListeners, event, args);\n+          return true;\n+        async join(room) {\n+          const members = rooms.get(room) ?? new Set();\n+          members.add(id);\n+          rooms.set(room, members);\n+      const clientSocket = {\n+        id,\n+        connected: true,\n+        on(event, listener) {\n+          addListener(clientListeners, event, listener);\n+          return clientSocket;\n+        emit(event, value) {\n+          dispatch(serverListeners, event, [value]);\n+          return clientSocket;\n+      pairs.set(id, { clientListeners, serverSocket });\n+      for (const listener of connectionListeners) listener(serverSocket);\n+      return clientSocket;",
+      "sourceSha256": "735171ebd40a9f08a1b80e9dfeedbeadc423b447ac83daeedccda54a323ce3a4",
+      "additions": 38,
+      "deletions": 25,
+      "owner": "handwritten",
+      "kind": "diff",
+      "stageId": "room-broadcast",
+      "purpose": "Counted source change from multiple-clients."
+    },
+    {
+      "id": "handwritten.sender-exclusion.source.transport",
+      "role": "transport",
+      "sourceFile": "case-studies/drawing-game/fixtures/handwritten/stage-sources/04-sender-exclusion.mjs",
+      "language": "javascript",
+      "code": "function addListener(store, event, listener) {\n  const listeners = store.get(event) ?? [];\n  listeners.push(listener);\n  store.set(event, listeners);\n}\n\nfunction dispatch(store, event, args) {\n  for (const listener of store.get(event) ?? []) listener(...args);\n}\n\nexport function createSenderExclusionFake() {\n  const connectionListeners = [];\n  const pairs = new Map();\n  const rooms = new Map();\n  let nextId = 0;\n\n  function createBroadcast(room, senderId) {\n    return {\n      emit(event, ...args) {\n        for (const id of rooms.get(room) ?? []) {\n          if (id !== senderId) dispatch(pairs.get(id).clientListeners, event, args);\n        }\n        return true;\n      },\n    };\n  }\n\n  const server = {\n    on(event, listener) {\n      if (event === 'connection') connectionListeners.push(listener);\n      return server;\n    },\n    to(room) {\n      return createBroadcast(room);\n    },\n  };\n\n  return {\n    server,\n    connect() {\n      const id = `handwritten-${++nextId}`;\n      const clientListeners = new Map();\n      const serverListeners = new Map();\n      const serverSocket = {\n        id,\n        on(event, listener) {\n          addListener(serverListeners, event, listener);\n          return serverSocket;\n        },\n        emit(event, ...args) {\n          dispatch(clientListeners, event, args);\n          return true;\n        },\n        async join(room) {\n          const members = rooms.get(room) ?? new Set();\n          members.add(id);\n          rooms.set(room, members);\n        },\n        to(room) {\n          return createBroadcast(room, id);\n        },\n      };\n      const clientSocket = {\n        id,\n        connected: true,\n        on(event, listener) {\n          addListener(clientListeners, event, listener);\n          return clientSocket;\n        },\n        emit(event, value) {\n          dispatch(serverListeners, event, [value]);\n          return clientSocket;\n        },\n      };\n      pairs.set(id, { clientListeners, serverSocket });\n      for (const listener of connectionListeners) listener(serverSocket);\n      return clientSocket;\n    },\n  };\n}",
+      "sourceSha256": "448a7d324d2ac2c585992a79146fc5cba667353369716d7483f55f3a2a0502ad",
+      "sourceRange": { "startLine": 1, "endLine": 80 },
+      "loc": 55,
+      "countedLineNumbers": [
+        1, 2, 3, 4, 7, 8, 11, 12, 13, 14, 15, 17, 18, 19, 20, 21, 23, 28, 29, 30, 31, 33, 34, 38,
+        39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 50, 51, 52, 54, 55, 56, 57, 59, 60, 63, 64, 65, 66,
+        67, 68, 70, 71, 72, 75, 76, 77
+      ],
+      "excludedLineNumbers": {
+        "blank": [6, 10, 16, 27, 37],
         "snippetMarker": [],
         "commentOnly": [],
         "formattingOnly": [
-          9, 15, 21, 29, 30, 38, 39, 46, 50, 54, 58, 59, 60, 73, 76, 79, 82, 85, 88, 91, 94, 99,
-          102, 111, 112, 114, 123, 134, 137, 143, 147, 148, 150, 152, 159, 162, 165, 169, 170, 172,
-          182, 189, 190, 191, 200, 201, 205, 210, 215, 219, 224, 228, 229, 235
+          5, 9, 22, 24, 25, 26, 32, 35, 36, 49, 53, 58, 61, 62, 69, 73, 74, 78, 79, 80
         ]
       },
-      "featureId": "base-single-client",
-      "ownership": "handwritten-support",
-      "purpose": "One client/server socket pair registers listeners and returns one configured response."
+      "owner": "handwritten",
+      "kind": "source",
+      "stageId": "sender-exclusion",
+      "purpose": "Room broadcast excludes its sender"
     },
     {
-      "id": "handwritten.base-single-client.base-client-substitution",
+      "id": "handwritten.sender-exclusion.diff.transport",
+      "role": "transport",
+      "previousSourceFile": "case-studies/drawing-game/fixtures/handwritten/stage-sources/03-room-broadcast.mjs",
+      "currentSourceFile": "case-studies/drawing-game/fixtures/handwritten/stage-sources/04-sender-exclusion.mjs",
+      "language": "diff",
+      "code": "--- case-studies/drawing-game/fixtures/handwritten/stage-sources/03-room-broadcast.mjs\n+++ case-studies/drawing-game/fixtures/handwritten/stage-sources/04-sender-exclusion.mjs\n@@ counted LOC @@\n function addListener(store, event, listener) {\n   const listeners = store.get(event) ?? [];\n   listeners.push(listener);\n   store.set(event, listeners);\n function dispatch(store, event, args) {\n   for (const listener of store.get(event) ?? []) listener(...args);\n-export function createRoomFake() {\n+export function createSenderExclusionFake() {\n   const connectionListeners = [];\n   const pairs = new Map();\n   const rooms = new Map();\n   let nextId = 0;\n-  function createBroadcast(room) {\n+  function createBroadcast(room, senderId) {\n     return {\n       emit(event, ...args) {\n         for (const id of rooms.get(room) ?? []) {\n-          dispatch(pairs.get(id).clientListeners, event, args);\n+          if (id !== senderId) dispatch(pairs.get(id).clientListeners, event, args);\n         return true;\n   const server = {\n     on(event, listener) {\n       if (event === 'connection') connectionListeners.push(listener);\n       return server;\n     to(room) {\n       return createBroadcast(room);\n   return {\n     server,\n     connect() {\n       const id = `handwritten-${++nextId}`;\n       const clientListeners = new Map();\n       const serverListeners = new Map();\n       const serverSocket = {\n         id,\n         on(event, listener) {\n           addListener(serverListeners, event, listener);\n           return serverSocket;\n         emit(event, ...args) {\n           dispatch(clientListeners, event, args);\n           return true;\n         async join(room) {\n           const members = rooms.get(room) ?? new Set();\n           members.add(id);\n           rooms.set(room, members);\n+        to(room) {\n+          return createBroadcast(room, id);\n       const clientSocket = {\n         id,\n         connected: true,\n         on(event, listener) {\n           addListener(clientListeners, event, listener);\n           return clientSocket;\n         emit(event, value) {\n           dispatch(serverListeners, event, [value]);\n           return clientSocket;\n       pairs.set(id, { clientListeners, serverSocket });\n       for (const listener of connectionListeners) listener(serverSocket);\n       return clientSocket;",
+      "sourceSha256": "adae0dce20745ceaea2e8c456188380a4337dc7eab68caf555356a9e3693c3e1",
+      "additions": 5,
+      "deletions": 3,
+      "owner": "handwritten",
+      "kind": "diff",
+      "stageId": "sender-exclusion",
+      "purpose": "Counted source change from room-broadcast."
+    },
+    {
+      "id": "handwritten.acknowledgement.source.transport",
+      "role": "transport",
+      "sourceFile": "case-studies/drawing-game/fixtures/handwritten/stage-sources/05-acknowledgement.mjs",
+      "language": "javascript",
+      "code": "function addListener(store, event, listener) {\n  const listeners = store.get(event) ?? [];\n  listeners.push(listener);\n  store.set(event, listeners);\n}\n\nfunction dispatch(store, event, args) {\n  for (const listener of store.get(event) ?? []) listener(...args);\n}\n\nexport function createAcknowledgementFake() {\n  const connectionListeners = [];\n  const pairs = new Map();\n  const rooms = new Map();\n  let nextId = 0;\n\n  function createBroadcast(room, senderId) {\n    return {\n      emit(event, ...args) {\n        for (const id of rooms.get(room) ?? []) {\n          if (id !== senderId) dispatch(pairs.get(id).clientListeners, event, args);\n        }\n        return true;\n      },\n    };\n  }\n\n  const server = {\n    on(event, listener) {\n      if (event === 'connection') connectionListeners.push(listener);\n      return server;\n    },\n    to(room) {\n      return createBroadcast(room);\n    },\n  };\n\n  return {\n    server,\n    connect() {\n      const id = `handwritten-${++nextId}`;\n      const clientListeners = new Map();\n      const serverListeners = new Map();\n      const serverSocket = {\n        id,\n        on(event, listener) {\n          addListener(serverListeners, event, listener);\n          return serverSocket;\n        },\n        emit(event, ...args) {\n          dispatch(clientListeners, event, args);\n          return true;\n        },\n        async join(room) {\n          const members = rooms.get(room) ?? new Set();\n          members.add(id);\n          rooms.set(room, members);\n        },\n        to(room) {\n          return createBroadcast(room, id);\n        },\n      };\n      const clientSocket = {\n        id,\n        connected: true,\n        on(event, listener) {\n          addListener(clientListeners, event, listener);\n          return clientSocket;\n        },\n        emit(event, ...args) {\n          dispatch(serverListeners, event, args);\n          return clientSocket;\n        },\n      };\n      pairs.set(id, { clientListeners, serverSocket });\n      for (const listener of connectionListeners) listener(serverSocket);\n      return clientSocket;\n    },\n  };\n}",
+      "sourceSha256": "d1233d1c1e09643a1cc35394cf81b073ce9367634830cf1302de7bf76160a770",
+      "sourceRange": { "startLine": 1, "endLine": 80 },
+      "loc": 55,
+      "countedLineNumbers": [
+        1, 2, 3, 4, 7, 8, 11, 12, 13, 14, 15, 17, 18, 19, 20, 21, 23, 28, 29, 30, 31, 33, 34, 38,
+        39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 50, 51, 52, 54, 55, 56, 57, 59, 60, 63, 64, 65, 66,
+        67, 68, 70, 71, 72, 75, 76, 77
+      ],
+      "excludedLineNumbers": {
+        "blank": [6, 10, 16, 27, 37],
+        "snippetMarker": [],
+        "commentOnly": [],
+        "formattingOnly": [
+          5, 9, 22, 24, 25, 26, 32, 35, 36, 49, 53, 58, 61, 62, 69, 73, 74, 78, 79, 80
+        ]
+      },
+      "owner": "handwritten",
+      "kind": "source",
+      "stageId": "acknowledgement",
+      "purpose": "A server handler can invoke the client callback"
+    },
+    {
+      "id": "handwritten.acknowledgement.diff.transport",
+      "role": "transport",
+      "previousSourceFile": "case-studies/drawing-game/fixtures/handwritten/stage-sources/04-sender-exclusion.mjs",
+      "currentSourceFile": "case-studies/drawing-game/fixtures/handwritten/stage-sources/05-acknowledgement.mjs",
+      "language": "diff",
+      "code": "--- case-studies/drawing-game/fixtures/handwritten/stage-sources/04-sender-exclusion.mjs\n+++ case-studies/drawing-game/fixtures/handwritten/stage-sources/05-acknowledgement.mjs\n@@ counted LOC @@\n function addListener(store, event, listener) {\n   const listeners = store.get(event) ?? [];\n   listeners.push(listener);\n   store.set(event, listeners);\n function dispatch(store, event, args) {\n   for (const listener of store.get(event) ?? []) listener(...args);\n-export function createSenderExclusionFake() {\n+export function createAcknowledgementFake() {\n   const connectionListeners = [];\n   const pairs = new Map();\n   const rooms = new Map();\n   let nextId = 0;\n   function createBroadcast(room, senderId) {\n     return {\n       emit(event, ...args) {\n         for (const id of rooms.get(room) ?? []) {\n           if (id !== senderId) dispatch(pairs.get(id).clientListeners, event, args);\n         return true;\n   const server = {\n     on(event, listener) {\n       if (event === 'connection') connectionListeners.push(listener);\n       return server;\n     to(room) {\n       return createBroadcast(room);\n   return {\n     server,\n     connect() {\n       const id = `handwritten-${++nextId}`;\n       const clientListeners = new Map();\n       const serverListeners = new Map();\n       const serverSocket = {\n         id,\n         on(event, listener) {\n           addListener(serverListeners, event, listener);\n           return serverSocket;\n         emit(event, ...args) {\n           dispatch(clientListeners, event, args);\n           return true;\n         async join(room) {\n           const members = rooms.get(room) ?? new Set();\n           members.add(id);\n           rooms.set(room, members);\n         to(room) {\n           return createBroadcast(room, id);\n       const clientSocket = {\n         id,\n         connected: true,\n         on(event, listener) {\n           addListener(clientListeners, event, listener);\n           return clientSocket;\n-        emit(event, value) {\n-          dispatch(serverListeners, event, [value]);\n+        emit(event, ...args) {\n+          dispatch(serverListeners, event, args);\n           return clientSocket;\n       pairs.set(id, { clientListeners, serverSocket });\n       for (const listener of connectionListeners) listener(serverSocket);\n       return clientSocket;",
+      "sourceSha256": "ee80581275b4aa8beab30fd51857f74ac5db29ac4eed03757861f2e986a1825e",
+      "additions": 3,
+      "deletions": 3,
+      "owner": "handwritten",
+      "kind": "diff",
+      "stageId": "acknowledgement",
+      "purpose": "Counted source change from sender-exclusion."
+    },
+    {
+      "id": "handwritten.targeted-delivery.source.transport",
+      "role": "transport",
+      "sourceFile": "case-studies/drawing-game/fixtures/handwritten/stage-sources/06-targeted-delivery.mjs",
+      "language": "javascript",
+      "code": "function addListener(store, event, listener) {\n  const listeners = store.get(event) ?? [];\n  listeners.push(listener);\n  store.set(event, listeners);\n}\n\nfunction dispatch(store, event, args) {\n  for (const listener of store.get(event) ?? []) listener(...args);\n}\n\nexport function createTargetedDeliveryFake() {\n  const connectionListeners = [];\n  const pairs = new Map();\n  const rooms = new Map();\n  let nextId = 0;\n\n  function createBroadcast(target, senderId) {\n    return {\n      emit(event, ...args) {\n        const ids = pairs.has(target) ? [target] : (rooms.get(target) ?? []);\n        for (const id of ids) {\n          if (id !== senderId) dispatch(pairs.get(id).clientListeners, event, args);\n        }\n        return true;\n      },\n    };\n  }\n\n  const server = {\n    on(event, listener) {\n      if (event === 'connection') connectionListeners.push(listener);\n      return server;\n    },\n    to(target) {\n      return createBroadcast(target);\n    },\n  };\n\n  return {\n    server,\n    connect() {\n      const id = `handwritten-${++nextId}`;\n      const clientListeners = new Map();\n      const serverListeners = new Map();\n      const serverSocket = {\n        id,\n        on(event, listener) {\n          addListener(serverListeners, event, listener);\n          return serverSocket;\n        },\n        emit(event, ...args) {\n          dispatch(clientListeners, event, args);\n          return true;\n        },\n        async join(room) {\n          const members = rooms.get(room) ?? new Set();\n          members.add(id);\n          rooms.set(room, members);\n        },\n        to(room) {\n          return createBroadcast(room, id);\n        },\n      };\n      const clientSocket = {\n        id,\n        connected: true,\n        on(event, listener) {\n          addListener(clientListeners, event, listener);\n          return clientSocket;\n        },\n        emit(event, ...args) {\n          dispatch(serverListeners, event, args);\n          return clientSocket;\n        },\n      };\n      pairs.set(id, { clientListeners, serverSocket });\n      for (const listener of connectionListeners) listener(serverSocket);\n      return clientSocket;\n    },\n  };\n}",
+      "sourceSha256": "ceef83727304335952bdd2a72e02dedfc46c3afdf626c42e09bbd9cfb1cc3523",
+      "sourceRange": { "startLine": 1, "endLine": 81 },
+      "loc": 56,
+      "countedLineNumbers": [
+        1, 2, 3, 4, 7, 8, 11, 12, 13, 14, 15, 17, 18, 19, 20, 21, 22, 24, 29, 30, 31, 32, 34, 35,
+        39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 51, 52, 53, 55, 56, 57, 58, 60, 61, 64, 65, 66,
+        67, 68, 69, 71, 72, 73, 76, 77, 78
+      ],
+      "excludedLineNumbers": {
+        "blank": [6, 10, 16, 28, 38],
+        "snippetMarker": [],
+        "commentOnly": [],
+        "formattingOnly": [
+          5, 9, 23, 25, 26, 27, 33, 36, 37, 50, 54, 59, 62, 63, 70, 74, 75, 79, 80, 81
+        ]
+      },
+      "owner": "handwritten",
+      "kind": "source",
+      "stageId": "targeted-delivery",
+      "purpose": "Socket-id targeting reaches one client"
+    },
+    {
+      "id": "handwritten.targeted-delivery.diff.transport",
+      "role": "transport",
+      "previousSourceFile": "case-studies/drawing-game/fixtures/handwritten/stage-sources/05-acknowledgement.mjs",
+      "currentSourceFile": "case-studies/drawing-game/fixtures/handwritten/stage-sources/06-targeted-delivery.mjs",
+      "language": "diff",
+      "code": "--- case-studies/drawing-game/fixtures/handwritten/stage-sources/05-acknowledgement.mjs\n+++ case-studies/drawing-game/fixtures/handwritten/stage-sources/06-targeted-delivery.mjs\n@@ counted LOC @@\n function addListener(store, event, listener) {\n   const listeners = store.get(event) ?? [];\n   listeners.push(listener);\n   store.set(event, listeners);\n function dispatch(store, event, args) {\n   for (const listener of store.get(event) ?? []) listener(...args);\n-export function createAcknowledgementFake() {\n+export function createTargetedDeliveryFake() {\n   const connectionListeners = [];\n   const pairs = new Map();\n   const rooms = new Map();\n   let nextId = 0;\n-  function createBroadcast(room, senderId) {\n+  function createBroadcast(target, senderId) {\n     return {\n       emit(event, ...args) {\n-        for (const id of rooms.get(room) ?? []) {\n+        const ids = pairs.has(target) ? [target] : (rooms.get(target) ?? []);\n+        for (const id of ids) {\n           if (id !== senderId) dispatch(pairs.get(id).clientListeners, event, args);\n         return true;\n   const server = {\n     on(event, listener) {\n       if (event === 'connection') connectionListeners.push(listener);\n       return server;\n-    to(room) {\n-      return createBroadcast(room);\n+    to(target) {\n+      return createBroadcast(target);\n   return {\n     server,\n     connect() {\n       const id = `handwritten-${++nextId}`;\n       const clientListeners = new Map();\n       const serverListeners = new Map();\n       const serverSocket = {\n         id,\n         on(event, listener) {\n           addListener(serverListeners, event, listener);\n           return serverSocket;\n         emit(event, ...args) {\n           dispatch(clientListeners, event, args);\n           return true;\n         async join(room) {\n           const members = rooms.get(room) ?? new Set();\n           members.add(id);\n           rooms.set(room, members);\n         to(room) {\n           return createBroadcast(room, id);\n       const clientSocket = {\n         id,\n         connected: true,\n         on(event, listener) {\n           addListener(clientListeners, event, listener);\n           return clientSocket;\n         emit(event, ...args) {\n           dispatch(serverListeners, event, args);\n           return clientSocket;\n       pairs.set(id, { clientListeners, serverSocket });\n       for (const listener of connectionListeners) listener(serverSocket);\n       return clientSocket;",
+      "sourceSha256": "20a85c49cf0549c6e91c32bc3196df41b1cb82cd5eb0aa00d4301bd1df67ea72",
+      "additions": 6,
+      "deletions": 5,
+      "owner": "handwritten",
+      "kind": "diff",
+      "stageId": "targeted-delivery",
+      "purpose": "Counted source change from acknowledgement."
+    },
+    {
+      "id": "handwritten.disconnect-cleanup.source.transport",
+      "role": "transport",
+      "sourceFile": "case-studies/drawing-game/fixtures/handwritten/stage-sources/07-disconnect-cleanup.mjs",
+      "language": "javascript",
+      "code": "function addListener(store, event, listener) {\n  const listeners = store.get(event) ?? [];\n  listeners.push(listener);\n  store.set(event, listeners);\n}\n\nfunction dispatch(store, event, args) {\n  for (const listener of store.get(event) ?? []) listener(...args);\n}\n\nexport function createDisconnectFake() {\n  const connectionListeners = [];\n  const pairs = new Map();\n  const rooms = new Map();\n  let nextId = 0;\n\n  function createBroadcast(target, senderId) {\n    return {\n      emit(event, ...args) {\n        const ids = pairs.has(target) ? [target] : (rooms.get(target) ?? []);\n        for (const id of ids) {\n          if (id !== senderId) dispatch(pairs.get(id).clientListeners, event, args);\n        }\n        return true;\n      },\n    };\n  }\n\n  function disconnect(pair) {\n    if (!pair.clientSocket.connected) return;\n    pair.clientSocket.connected = false;\n    pair.serverSocket.connected = false;\n    pairs.delete(pair.id);\n    for (const members of rooms.values()) members.delete(pair.id);\n    dispatch(pair.serverListeners, 'disconnect', ['client namespace disconnect']);\n  }\n\n  const server = {\n    on(event, listener) {\n      if (event === 'connection') connectionListeners.push(listener);\n      return server;\n    },\n    to(target) {\n      return createBroadcast(target);\n    },\n  };\n\n  return {\n    server,\n    connect() {\n      const id = `handwritten-${++nextId}`;\n      const clientListeners = new Map();\n      const serverListeners = new Map();\n      const pair = { id, clientListeners, serverListeners };\n      const serverSocket = {\n        id,\n        connected: true,\n        on(event, listener) {\n          addListener(serverListeners, event, listener);\n          return serverSocket;\n        },\n        emit(event, ...args) {\n          dispatch(clientListeners, event, args);\n          return true;\n        },\n        async join(room) {\n          const members = rooms.get(room) ?? new Set();\n          members.add(id);\n          rooms.set(room, members);\n        },\n        to(room) {\n          return createBroadcast(room, id);\n        },\n      };\n      const clientSocket = {\n        id,\n        connected: true,\n        on(event, listener) {\n          addListener(clientListeners, event, listener);\n          return clientSocket;\n        },\n        emit(event, ...args) {\n          dispatch(serverListeners, event, args);\n          return clientSocket;\n        },\n        disconnect() {\n          disconnect(pair);\n          return clientSocket;\n        },\n      };\n      Object.assign(pair, { clientSocket, serverSocket });\n      pairs.set(id, pair);\n      for (const listener of connectionListeners) listener(serverSocket);\n      return clientSocket;\n    },\n  };\n}",
+      "sourceSha256": "7bc88dd9bf15367f63eb2180221d568974b35c1be1d9f3794b324a4001869f25",
+      "sourceRange": { "startLine": 1, "endLine": 97 },
+      "loc": 69,
+      "countedLineNumbers": [
+        1, 2, 3, 4, 7, 8, 11, 12, 13, 14, 15, 17, 18, 19, 20, 21, 22, 24, 29, 30, 31, 32, 33, 34,
+        35, 38, 39, 40, 41, 43, 44, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 62, 63, 64,
+        66, 67, 68, 69, 71, 72, 75, 76, 77, 78, 79, 80, 82, 83, 84, 86, 87, 88, 91, 92, 93, 94
+      ],
+      "excludedLineNumbers": {
+        "blank": [6, 10, 16, 28, 37, 47],
+        "snippetMarker": [],
+        "commentOnly": [],
+        "formattingOnly": [
+          5, 9, 23, 25, 26, 27, 36, 42, 45, 46, 61, 65, 70, 73, 74, 81, 85, 89, 90, 95, 96, 97
+        ]
+      },
+      "owner": "handwritten",
+      "kind": "source",
+      "stageId": "disconnect-cleanup",
+      "purpose": "Disconnect removes socket and room membership"
+    },
+    {
+      "id": "handwritten.disconnect-cleanup.diff.transport",
+      "role": "transport",
+      "previousSourceFile": "case-studies/drawing-game/fixtures/handwritten/stage-sources/06-targeted-delivery.mjs",
+      "currentSourceFile": "case-studies/drawing-game/fixtures/handwritten/stage-sources/07-disconnect-cleanup.mjs",
+      "language": "diff",
+      "code": "--- case-studies/drawing-game/fixtures/handwritten/stage-sources/06-targeted-delivery.mjs\n+++ case-studies/drawing-game/fixtures/handwritten/stage-sources/07-disconnect-cleanup.mjs\n@@ counted LOC @@\n function addListener(store, event, listener) {\n   const listeners = store.get(event) ?? [];\n   listeners.push(listener);\n   store.set(event, listeners);\n function dispatch(store, event, args) {\n   for (const listener of store.get(event) ?? []) listener(...args);\n-export function createTargetedDeliveryFake() {\n+export function createDisconnectFake() {\n   const connectionListeners = [];\n   const pairs = new Map();\n   const rooms = new Map();\n   let nextId = 0;\n   function createBroadcast(target, senderId) {\n     return {\n       emit(event, ...args) {\n         const ids = pairs.has(target) ? [target] : (rooms.get(target) ?? []);\n         for (const id of ids) {\n           if (id !== senderId) dispatch(pairs.get(id).clientListeners, event, args);\n         return true;\n+  function disconnect(pair) {\n+    if (!pair.clientSocket.connected) return;\n+    pair.clientSocket.connected = false;\n+    pair.serverSocket.connected = false;\n+    pairs.delete(pair.id);\n+    for (const members of rooms.values()) members.delete(pair.id);\n+    dispatch(pair.serverListeners, 'disconnect', ['client namespace disconnect']);\n   const server = {\n     on(event, listener) {\n       if (event === 'connection') connectionListeners.push(listener);\n       return server;\n     to(target) {\n       return createBroadcast(target);\n   return {\n     server,\n     connect() {\n       const id = `handwritten-${++nextId}`;\n       const clientListeners = new Map();\n       const serverListeners = new Map();\n+      const pair = { id, clientListeners, serverListeners };\n       const serverSocket = {\n         id,\n+        connected: true,\n         on(event, listener) {\n           addListener(serverListeners, event, listener);\n           return serverSocket;\n         emit(event, ...args) {\n           dispatch(clientListeners, event, args);\n           return true;\n         async join(room) {\n           const members = rooms.get(room) ?? new Set();\n           members.add(id);\n           rooms.set(room, members);\n         to(room) {\n           return createBroadcast(room, id);\n       const clientSocket = {\n         id,\n         connected: true,\n         on(event, listener) {\n           addListener(clientListeners, event, listener);\n           return clientSocket;\n         emit(event, ...args) {\n           dispatch(serverListeners, event, args);\n           return clientSocket;\n-      pairs.set(id, { clientListeners, serverSocket });\n+        disconnect() {\n+          disconnect(pair);\n+          return clientSocket;\n+      Object.assign(pair, { clientSocket, serverSocket });\n+      pairs.set(id, pair);\n       for (const listener of connectionListeners) listener(serverSocket);\n       return clientSocket;",
+      "sourceSha256": "8fa9a06a3f812a596e777466ffc63ca63ea334c4cbd931520fdd2dd68784173e",
+      "additions": 15,
+      "deletions": 2,
+      "owner": "handwritten",
+      "kind": "diff",
+      "stageId": "disconnect-cleanup",
+      "purpose": "Counted source change from targeted-delivery."
+    },
+    {
+      "id": "handwritten.full-workflow.source.transport",
+      "role": "transport",
+      "sourceFile": "case-studies/drawing-game/fixtures/handwritten/stage-sources/08-full-workflow.mjs",
+      "language": "javascript",
+      "code": "const origins = new Map();\n\nfunction createListenerStore() {\n  return { events: new Map(), any: [] };\n}\n\nfunction addListener(store, event, listener, once = false) {\n  const listeners = store.events.get(event) ?? [];\n  listeners.push({ listener, once });\n  store.events.set(event, listeners);\n}\n\nfunction removeListener(store, event, listener) {\n  const listeners = store.events.get(event) ?? [];\n  store.events.set(\n    event,\n    listeners.filter((entry) => entry.listener !== listener),\n  );\n}\n\nfunction dispatch(store, event, args) {\n  for (const listener of [...store.any]) listener(event, ...args);\n  for (const entry of [...(store.events.get(event) ?? [])]) {\n    if (entry.once) removeListener(store, event, entry.listener);\n    entry.listener(...args);\n  }\n}\n\nfunction attachListenerApi(target, store) {\n  return Object.assign(target, {\n    on(event, listener) {\n      addListener(store, event, listener);\n      return target;\n    },\n    once(event, listener) {\n      addListener(store, event, listener, true);\n      return target;\n    },\n    off(event, listener) {\n      removeListener(store, event, listener);\n      return target;\n    },\n    onAny(listener) {\n      store.any.push(listener);\n      return target;\n    },\n  });\n}\n\nfunction createBroadcast(state, target, senderId) {\n  return {\n    emit(event, ...args) {\n      const ids = state.pairs.has(target) ? [target] : (state.rooms.get(target) ?? []);\n      for (const id of ids) {\n        const pair = state.pairs.get(id);\n        if (pair && id !== senderId) dispatch(pair.clientListeners, event, args);\n      }\n      return true;\n    },\n  };\n}\n\nfunction disconnectPair(state, pair, reason) {\n  if (!pair.client.connected) return;\n  pair.client.connected = false;\n  pair.serverSocket.connected = false;\n  state.pairs.delete(pair.id);\n  for (const members of state.rooms.values()) members.delete(pair.id);\n  dispatch(pair.serverListeners, 'disconnect', [reason]);\n  dispatch(pair.clientListeners, 'disconnect', [reason]);\n}\n\nfunction createPair(state, auth) {\n  const id = `handwritten-${++state.nextId}`;\n  const clientListeners = createListenerStore();\n  const serverListeners = createListenerStore();\n  const pair = { id, clientListeners, serverListeners };\n\n  const client = attachListenerApi(\n    {\n      id,\n      connected: true,\n      emit(event, ...args) {\n        dispatch(serverListeners, event, args);\n        return client;\n      },\n      disconnect() {\n        disconnectPair(state, pair, 'client namespace disconnect');\n        return client;\n      },\n    },\n    clientListeners,\n  );\n  const serverSocket = attachListenerApi(\n    {\n      id,\n      connected: true,\n      handshake: { auth: { ...auth } },\n      emit(event, ...args) {\n        dispatch(clientListeners, event, args);\n        return true;\n      },\n      async join(room) {\n        const members = state.rooms.get(room) ?? new Set();\n        members.add(id);\n        state.rooms.set(room, members);\n      },\n      to(target) {\n        return createBroadcast(state, target, id);\n      },\n      disconnect() {\n        disconnectPair(state, pair, 'server namespace disconnect');\n        return serverSocket;\n      },\n    },\n    serverListeners,\n  );\n\n  Object.assign(pair, { client, serverSocket });\n  state.pairs.set(id, pair);\n  dispatch(state.serverListeners, 'connection', [serverSocket]);\n  if (client.connected) dispatch(clientListeners, 'connect', []);\n  return client;\n}\n\nexport class Server {\n  constructor(origin) {\n    if (origins.has(origin)) throw new Error(`A handwritten server already owns ${origin}`);\n    this.state = {\n      origin,\n      nextId: 0,\n      pairs: new Map(),\n      rooms: new Map(),\n      serverListeners: createListenerStore(),\n    };\n    origins.set(origin, this.state);\n  }\n\n  on(event, listener) {\n    addListener(this.state.serverListeners, event, listener);\n    return this;\n  }\n\n  emit(event, ...args) {\n    for (const pair of this.state.pairs.values()) {\n      dispatch(pair.clientListeners, event, args);\n    }\n    return true;\n  }\n\n  to(target) {\n    return createBroadcast(this.state, target);\n  }\n\n  async close() {\n    for (const pair of [...this.state.pairs.values()]) {\n      disconnectPair(this.state, pair, 'server shutting down');\n    }\n    this.state.rooms.clear();\n    origins.delete(this.state.origin);\n  }\n}\n\nexport function io(origin, options = {}) {\n  const state = origins.get(origin);\n  if (!state) throw new Error(`No handwritten server is listening at ${origin}`);\n  return createPair(state, options.auth ?? {});\n}",
+      "sourceSha256": "9eb6aa5d51c8ece6259926dbd988ba52e582c61d9c8e2aa2e91292fc245d5a46",
+      "sourceRange": { "startLine": 1, "endLine": 168 },
+      "loc": 112,
+      "countedLineNumbers": [
+        1, 3, 4, 7, 8, 9, 10, 13, 14, 15, 16, 17, 21, 22, 23, 24, 25, 29, 30, 31, 32, 33, 35, 36,
+        37, 39, 40, 41, 43, 44, 45, 50, 51, 52, 53, 54, 55, 56, 58, 63, 64, 65, 66, 67, 68, 69, 70,
+        73, 74, 75, 76, 77, 79, 81, 82, 83, 84, 85, 87, 88, 89, 92, 94, 96, 97, 98, 99, 100, 101,
+        103, 104, 105, 106, 108, 109, 111, 112, 113, 116, 119, 120, 121, 122, 123, 126, 127, 128,
+        129, 130, 131, 132, 133, 134, 136, 139, 140, 141, 144, 145, 146, 148, 151, 152, 155, 156,
+        157, 159, 160, 164, 165, 166, 167
+      ],
+      "excludedLineNumbers": {
+        "blank": [2, 6, 12, 20, 28, 49, 62, 72, 78, 118, 125, 138, 143, 150, 154, 163],
+        "snippetMarker": [],
+        "commentOnly": [],
+        "formattingOnly": [
+          5, 11, 18, 19, 26, 27, 34, 38, 42, 46, 47, 48, 57, 59, 60, 61, 71, 80, 86, 90, 91, 93, 95,
+          102, 107, 110, 114, 115, 117, 124, 135, 137, 142, 147, 149, 153, 158, 161, 162, 168
+        ]
+      },
+      "owner": "handwritten",
+      "kind": "source",
+      "stageId": "full-workflow",
+      "purpose": "The unchanged golden drawing game runs through the handwritten transport"
+    },
+    {
+      "id": "handwritten.full-workflow.source.client-substitution",
+      "role": "client-substitution",
       "sourceFile": "case-studies/drawing-game/fixtures/handwritten/handwritten-loader.mjs",
       "language": "javascript",
-      "code": "export async function resolve(specifier, context, nextResolve) {\n  const fromGoldenBuild = context.parentURL?.includes('/examples/drawing-game/dist/real/');\n  if (specifier === 'socket.io-client' && fromGoldenBuild) {\n    return nextResolve(new URL('./handwritten-socket.mjs', import.meta.url).href, context);\n  }\n  return nextResolve(specifier, context);\n}",
-      "sourceSha256": "91ae018dd26e691b148560a83a273385733b6b12db154ef57a963eff56cd2d98",
-      "sourceRange": { "startLine": 2, "endLine": 8 },
-      "loc": 5,
-      "countedLineNumbers": [2, 3, 4, 5, 7],
+      "code": "export async function resolve(specifier, context, nextResolve) {\n  const fromGoldenBuild = context.parentURL?.includes('/examples/drawing-game/dist/real/');\n  if (specifier === 'socket.io-client' && fromGoldenBuild) {\n    return nextResolve(\n      new URL('./stage-sources/08-full-workflow.mjs', import.meta.url).href,\n      context,\n    );\n  }\n  return nextResolve(specifier, context);\n}",
+      "sourceSha256": "e6107487745dac916b582c5e4eb3a171d3c4432856397a680e471b3b1d8a40f6",
+      "sourceRange": { "startLine": 1, "endLine": 10 },
+      "loc": 7,
+      "countedLineNumbers": [1, 2, 3, 4, 5, 6, 9],
       "excludedLineNumbers": {
         "blank": [],
         "snippetMarker": [],
         "commentOnly": [],
-        "formattingOnly": [6, 8]
+        "formattingOnly": [7, 8, 10]
       },
-      "featureId": "base-single-client",
-      "ownership": "handwritten-support",
-      "purpose": "One client/server socket pair registers listeners and returns one configured response."
+      "owner": "handwritten",
+      "kind": "source",
+      "stageId": "full-workflow",
+      "purpose": "The unchanged golden drawing game runs through the handwritten transport"
     },
     {
-      "id": "handwritten.base-single-client.base-loader-registration",
+      "id": "handwritten.full-workflow.source.loader-registration",
+      "role": "loader-registration",
       "sourceFile": "case-studies/drawing-game/fixtures/handwritten/handwritten-substitution.mjs",
       "language": "javascript",
       "code": "import * as nodeModule from 'node:module';\n\nif (typeof nodeModule.register !== 'function') {\n  throw new Error('The drawing-game handwritten maintenance flow requires Node.js >=20.6.0.');\n}\n\nnodeModule.register(new URL('./handwritten-loader.mjs', import.meta.url), import.meta.url);",
       "sourceSha256": "70fdd754fe3f16c8087bbf54c9654207bd39d85bf28cadeaabfb89026ff22f02",
-      "sourceRange": { "startLine": 2, "endLine": 8 },
+      "sourceRange": { "startLine": 1, "endLine": 7 },
       "loc": 4,
-      "countedLineNumbers": [2, 4, 5, 8],
+      "countedLineNumbers": [1, 3, 4, 7],
       "excludedLineNumbers": {
-        "blank": [3, 7],
+        "blank": [2, 6],
         "snippetMarker": [],
         "commentOnly": [],
-        "formattingOnly": [6]
+        "formattingOnly": [5]
       },
-      "featureId": "base-single-client",
-      "ownership": "handwritten-support",
-      "purpose": "One client/server socket pair registers listeners and returns one configured response."
+      "owner": "handwritten",
+      "kind": "source",
+      "stageId": "full-workflow",
+      "purpose": "The unchanged golden drawing game runs through the handwritten transport"
     },
     {
-      "id": "handwritten.base-single-client.base-handwritten-bootstrap",
+      "id": "handwritten.full-workflow.source.application-bootstrap",
+      "role": "application-bootstrap",
       "sourceFile": "case-studies/drawing-game/fixtures/handwritten/bootstrap.mjs",
       "language": "javascript",
-      "code": "export function startHandwrittenApplication() {\n  const server = new Server(origin);\n  registerDrawingGameHandlers(server);\n  return createScenarioApplication(server, origin, () => server.close());\n}",
-      "sourceSha256": "c6118b85468eee5a44acb3eb4d277bd2645321477fe5eb5fce3584dca18d3100",
-      "sourceRange": { "startLine": 8, "endLine": 12 },
-      "loc": 4,
-      "countedLineNumbers": [8, 9, 10, 11],
+      "code": "import { registerDrawingGameHandlers } from '../../../../examples/drawing-game/dist/real/application.js';\nimport { createScenarioApplication } from '../../../../examples/drawing-game/dist/real/target.js';\nimport { Server } from './stage-sources/08-full-workflow.mjs';\n\nconst origin = 'http://drawing-game.handwritten.test';\n\nexport function startHandwrittenApplication() {\n  const server = new Server(origin);\n  registerDrawingGameHandlers(server);\n  return createScenarioApplication(server, origin, () => server.close());\n}",
+      "sourceSha256": "3e5511f10a236ff5ebe34e0c7335cbc5d481306686fef5f17bda66c0bee5c5a2",
+      "sourceRange": { "startLine": 1, "endLine": 11 },
+      "loc": 8,
+      "countedLineNumbers": [1, 2, 3, 5, 7, 8, 9, 10],
       "excludedLineNumbers": {
-        "blank": [],
+        "blank": [4, 6],
         "snippetMarker": [],
         "commentOnly": [],
-        "formattingOnly": [12]
+        "formattingOnly": [11]
       },
-      "featureId": "base-single-client",
-      "ownership": "handwritten-support",
-      "purpose": "One client/server socket pair registers listeners and returns one configured response."
+      "owner": "handwritten",
+      "kind": "source",
+      "stageId": "full-workflow",
+      "purpose": "The unchanged golden drawing game runs through the handwritten transport"
     },
     {
-      "id": "shared.base-single-client.drawing-client",
-      "sourceFile": "examples/drawing-game/client.ts",
-      "language": "typescript",
-      "code": "export function receiveStrokes(\n  client: DrawingGameClient,\n  receive: (segment: StrokeSegment) => void,\n): void {\n  client.on('stroke', receive);\n}\n\nexport function sendStroke(client: DrawingGameClient, segment: StrokeSegment): void {\n  client.emit('stroke', segment);\n}",
-      "sourceSha256": "2bca919600b3ceb2e6da1f572576e6bb37180bba9388e2672de7785db3d508cf",
-      "sourceRange": { "startLine": 46, "endLine": 55 },
-      "loc": 7,
-      "countedLineNumbers": [46, 47, 48, 49, 50, 53, 54],
-      "excludedLineNumbers": {
-        "blank": [52],
-        "snippetMarker": [],
-        "commentOnly": [],
-        "formattingOnly": [51, 55]
-      },
-      "featureId": "base-single-client",
-      "ownership": "shared-application",
-      "purpose": "Golden application code used by both targets: One drawing client sends and receives"
+      "id": "handwritten.full-workflow.diff.transport",
+      "role": "transport",
+      "previousSourceFile": "case-studies/drawing-game/fixtures/handwritten/stage-sources/07-disconnect-cleanup.mjs",
+      "currentSourceFile": "case-studies/drawing-game/fixtures/handwritten/stage-sources/08-full-workflow.mjs",
+      "language": "diff",
+      "code": "--- case-studies/drawing-game/fixtures/handwritten/stage-sources/07-disconnect-cleanup.mjs\n+++ case-studies/drawing-game/fixtures/handwritten/stage-sources/08-full-workflow.mjs\n@@ counted LOC @@\n-function addListener(store, event, listener) {\n-  const listeners = store.get(event) ?? [];\n-  listeners.push(listener);\n-  store.set(event, listeners);\n+const origins = new Map();\n+function createListenerStore() {\n+  return { events: new Map(), any: [] };\n+function addListener(store, event, listener, once = false) {\n+  const listeners = store.events.get(event) ?? [];\n+  listeners.push({ listener, once });\n+  store.events.set(event, listeners);\n+function removeListener(store, event, listener) {\n+  const listeners = store.events.get(event) ?? [];\n+  store.events.set(\n+    event,\n+    listeners.filter((entry) => entry.listener !== listener),\n function dispatch(store, event, args) {\n-  for (const listener of store.get(event) ?? []) listener(...args);\n-export function createDisconnectFake() {\n-  const connectionListeners = [];\n-  const pairs = new Map();\n-  const rooms = new Map();\n-  let nextId = 0;\n-  function createBroadcast(target, senderId) {\n-    return {\n-      emit(event, ...args) {\n-        const ids = pairs.has(target) ? [target] : (rooms.get(target) ?? []);\n-        for (const id of ids) {\n-          if (id !== senderId) dispatch(pairs.get(id).clientListeners, event, args);\n-        return true;\n-  function disconnect(pair) {\n-    if (!pair.clientSocket.connected) return;\n-    pair.clientSocket.connected = false;\n-    pair.serverSocket.connected = false;\n-    pairs.delete(pair.id);\n-    for (const members of rooms.values()) members.delete(pair.id);\n-    dispatch(pair.serverListeners, 'disconnect', ['client namespace disconnect']);\n-  const server = {\n+  for (const listener of [...store.any]) listener(event, ...args);\n+  for (const entry of [...(store.events.get(event) ?? [])]) {\n+    if (entry.once) removeListener(store, event, entry.listener);\n+    entry.listener(...args);\n+function attachListenerApi(target, store) {\n+  return Object.assign(target, {\n     on(event, listener) {\n-      if (event === 'connection') connectionListeners.push(listener);\n-      return server;\n-    to(target) {\n-      return createBroadcast(target);\n+      addListener(store, event, listener);\n+      return target;\n+    once(event, listener) {\n+      addListener(store, event, listener, true);\n+      return target;\n+    off(event, listener) {\n+      removeListener(store, event, listener);\n+      return target;\n+    onAny(listener) {\n+      store.any.push(listener);\n+      return target;\n+function createBroadcast(state, target, senderId) {\n   return {\n-    server,\n-    connect() {\n-      const id = `handwritten-${++nextId}`;\n-      const clientListeners = new Map();\n-      const serverListeners = new Map();\n-      const pair = { id, clientListeners, serverListeners };\n-      const serverSocket = {\n-        id,\n-        connected: true,\n-        on(event, listener) {\n-          addListener(serverListeners, event, listener);\n-          return serverSocket;\n-        emit(event, ...args) {\n-          dispatch(clientListeners, event, args);\n-          return true;\n-        async join(room) {\n-          const members = rooms.get(room) ?? new Set();\n-          members.add(id);\n-          rooms.set(room, members);\n-        to(room) {\n-          return createBroadcast(room, id);\n-      const clientSocket = {\n-        id,\n-        connected: true,\n-        on(event, listener) {\n-          addListener(clientListeners, event, listener);\n-          return clientSocket;\n-        emit(event, ...args) {\n-          dispatch(serverListeners, event, args);\n-          return clientSocket;\n-        disconnect() {\n-          disconnect(pair);\n-          return clientSocket;\n-      Object.assign(pair, { clientSocket, serverSocket });\n-      pairs.set(id, pair);\n-      for (const listener of connectionListeners) listener(serverSocket);\n-      return clientSocket;\n+    emit(event, ...args) {\n+      const ids = state.pairs.has(target) ? [target] : (state.rooms.get(target) ?? []);\n+      for (const id of ids) {\n+        const pair = state.pairs.get(id);\n+        if (pair && id !== senderId) dispatch(pair.clientListeners, event, args);\n+      return true;\n+function disconnectPair(state, pair, reason) {\n+  if (!pair.client.connected) return;\n+  pair.client.connected = false;\n+  pair.serverSocket.connected = false;\n+  state.pairs.delete(pair.id);\n+  for (const members of state.rooms.values()) members.delete(pair.id);\n+  dispatch(pair.serverListeners, 'disconnect', [reason]);\n+  dispatch(pair.clientListeners, 'disconnect', [reason]);\n+function createPair(state, auth) {\n+  const id = `handwritten-${++state.nextId}`;\n+  const clientListeners = createListenerStore();\n+  const serverListeners = createListenerStore();\n+  const pair = { id, clientListeners, serverListeners };\n+  const client = attachListenerApi(\n+      id,\n+      connected: true,\n+      emit(event, ...args) {\n+        dispatch(serverListeners, event, args);\n+        return client;\n+      disconnect() {\n+        disconnectPair(state, pair, 'client namespace disconnect');\n+        return client;\n+    clientListeners,\n+  const serverSocket = attachListenerApi(\n+      id,\n+      connected: true,\n+      handshake: { auth: { ...auth } },\n+      emit(event, ...args) {\n+        dispatch(clientListeners, event, args);\n+        return true;\n+      async join(room) {\n+        const members = state.rooms.get(room) ?? new Set();\n+        members.add(id);\n+        state.rooms.set(room, members);\n+      to(target) {\n+        return createBroadcast(state, target, id);\n+      disconnect() {\n+        disconnectPair(state, pair, 'server namespace disconnect');\n+        return serverSocket;\n+    serverListeners,\n+  Object.assign(pair, { client, serverSocket });\n+  state.pairs.set(id, pair);\n+  dispatch(state.serverListeners, 'connection', [serverSocket]);\n+  if (client.connected) dispatch(clientListeners, 'connect', []);\n+  return client;\n+export class Server {\n+  constructor(origin) {\n+    if (origins.has(origin)) throw new Error(`A handwritten server already owns ${origin}`);\n+    this.state = {\n+      origin,\n+      nextId: 0,\n+      pairs: new Map(),\n+      rooms: new Map(),\n+      serverListeners: createListenerStore(),\n+    origins.set(origin, this.state);\n+  on(event, listener) {\n+    addListener(this.state.serverListeners, event, listener);\n+    return this;\n+  emit(event, ...args) {\n+    for (const pair of this.state.pairs.values()) {\n+      dispatch(pair.clientListeners, event, args);\n+    return true;\n+  to(target) {\n+    return createBroadcast(this.state, target);\n+  async close() {\n+    for (const pair of [...this.state.pairs.values()]) {\n+      disconnectPair(this.state, pair, 'server shutting down');\n+    this.state.rooms.clear();\n+    origins.delete(this.state.origin);\n+export function io(origin, options = {}) {\n+  const state = origins.get(origin);\n+  if (!state) throw new Error(`No handwritten server is listening at ${origin}`);\n+  return createPair(state, options.auth ?? {});",
+      "sourceSha256": "e25652a58e8d5e51412e497febf051a7e8105b8f126bf7f8c1869ce5ccc9bafd",
+      "additions": 109,
+      "deletions": 66,
+      "owner": "handwritten",
+      "kind": "diff",
+      "stageId": "full-workflow",
+      "purpose": "Counted source change from disconnect-cleanup."
     },
     {
-      "id": "handwritten.multiple-clients.multiple-clients",
-      "sourceFile": "case-studies/drawing-game/fixtures/handwritten/handwritten-socket.mjs",
-      "language": "javascript",
-      "code": "function installMultipleClients(state) {\n  const connections = new Map();\n  state.registerPair = (pair) => {\n    state.nextSocketId += 1;\n    pair.id = `handwritten-${state.nextSocketId}`;\n    connections.set(pair.id, pair);\n  };\n  state.listPairs = () => [...connections.values()];\n  state.findPair = (socketId) => connections.get(socketId);\n  state.removePair = (pair) => connections.delete(pair.id);\n  state.resetConnections = () => connections.clear();\n}",
-      "sourceSha256": "2ebe5bec9a49b6c8b73fb06c8eb9c317e40765fbf1f465d0601d39ff3074fd1e",
-      "sourceRange": { "startLine": 239, "endLine": 250 },
-      "loc": 10,
-      "countedLineNumbers": [239, 240, 241, 242, 243, 244, 246, 247, 248, 249],
-      "excludedLineNumbers": {
-        "blank": [],
-        "snippetMarker": [],
-        "commentOnly": [],
-        "formattingOnly": [245, 250]
-      },
-      "featureId": "multiple-clients",
-      "ownership": "handwritten-support",
-      "purpose": "Each connection owns a distinct socket id and listener registry."
+      "id": "handwritten.full-workflow.diff.client-substitution",
+      "role": "client-substitution",
+      "previousSourceFile": "/dev/null",
+      "currentSourceFile": "case-studies/drawing-game/fixtures/handwritten/handwritten-loader.mjs",
+      "language": "diff",
+      "code": "--- /dev/null\n+++ case-studies/drawing-game/fixtures/handwritten/handwritten-loader.mjs\n@@ counted LOC @@\n+export async function resolve(specifier, context, nextResolve) {\n+  const fromGoldenBuild = context.parentURL?.includes('/examples/drawing-game/dist/real/');\n+  if (specifier === 'socket.io-client' && fromGoldenBuild) {\n+    return nextResolve(\n+      new URL('./stage-sources/08-full-workflow.mjs', import.meta.url).href,\n+      context,\n+  return nextResolve(specifier, context);",
+      "sourceSha256": "fc8970b34672c9f280212b9dc46b107600b4d5e822fa8c44fce2b5589d87999e",
+      "additions": 7,
+      "deletions": 0,
+      "owner": "handwritten",
+      "kind": "diff",
+      "stageId": "full-workflow",
+      "purpose": "Counted source change from disconnect-cleanup."
     },
     {
-      "id": "shared.multiple-clients.drawing-client",
-      "sourceFile": "examples/drawing-game/client.ts",
-      "language": "typescript",
-      "code": "export function receiveStrokes(\n  client: DrawingGameClient,\n  receive: (segment: StrokeSegment) => void,\n): void {\n  client.on('stroke', receive);\n}\n\nexport function sendStroke(client: DrawingGameClient, segment: StrokeSegment): void {\n  client.emit('stroke', segment);\n}",
-      "sourceSha256": "2bca919600b3ceb2e6da1f572576e6bb37180bba9388e2672de7785db3d508cf",
-      "sourceRange": { "startLine": 46, "endLine": 55 },
-      "loc": 7,
-      "countedLineNumbers": [46, 47, 48, 49, 50, 53, 54],
-      "excludedLineNumbers": {
-        "blank": [52],
-        "snippetMarker": [],
-        "commentOnly": [],
-        "formattingOnly": [51, 55]
-      },
-      "featureId": "multiple-clients",
-      "ownership": "shared-application",
-      "purpose": "Golden application code used by both targets: A, B, and C connect independently"
+      "id": "handwritten.full-workflow.diff.loader-registration",
+      "role": "loader-registration",
+      "previousSourceFile": "/dev/null",
+      "currentSourceFile": "case-studies/drawing-game/fixtures/handwritten/handwritten-substitution.mjs",
+      "language": "diff",
+      "code": "--- /dev/null\n+++ case-studies/drawing-game/fixtures/handwritten/handwritten-substitution.mjs\n@@ counted LOC @@\n+import * as nodeModule from 'node:module';\n+if (typeof nodeModule.register !== 'function') {\n+  throw new Error('The drawing-game handwritten maintenance flow requires Node.js >=20.6.0.');\n+nodeModule.register(new URL('./handwritten-loader.mjs', import.meta.url), import.meta.url);",
+      "sourceSha256": "0b0482509894c82e0aad371b65c932fc7fe3443e3806d0a0ba0bc92afb446147",
+      "additions": 4,
+      "deletions": 0,
+      "owner": "handwritten",
+      "kind": "diff",
+      "stageId": "full-workflow",
+      "purpose": "Counted source change from disconnect-cleanup."
     },
     {
-      "id": "handwritten.room-broadcast.room-broadcast",
-      "sourceFile": "case-studies/drawing-game/fixtures/handwritten/handwritten-socket.mjs",
-      "language": "javascript",
-      "code": "function installRoomBroadcast(state) {\n  const rooms = new Map();\n  state.join = (pair, room) => {\n    const members = rooms.get(room) ?? new Set();\n    members.add(pair.id);\n    rooms.set(room, members);\n  };\n  state.selectRecipients = (room) =>\n    [...(rooms.get(room) ?? [])]\n      .map((socketId) => state.findPair(socketId))\n      .filter((pair) => pair?.client.connected);\n  state.leaveAllRooms = (pair) => {\n    for (const members of rooms.values()) members.delete(pair.id);\n  };\n  state.resetRooms = () => rooms.clear();\n}",
-      "sourceSha256": "031a0c628703fbd620dd6ba4583be1a8381d245216786bffda98c22d80599323",
-      "sourceRange": { "startLine": 254, "endLine": 269 },
-      "loc": 13,
-      "countedLineNumbers": [254, 255, 256, 257, 258, 259, 261, 262, 263, 264, 265, 266, 268],
-      "excludedLineNumbers": {
-        "blank": [],
-        "snippetMarker": [],
-        "commentOnly": [],
-        "formattingOnly": [260, 267, 269]
-      },
-      "featureId": "room-broadcast",
-      "ownership": "handwritten-support",
-      "purpose": "Server-owned room membership selects every connected room member."
+      "id": "handwritten.full-workflow.diff.application-bootstrap",
+      "role": "application-bootstrap",
+      "previousSourceFile": "/dev/null",
+      "currentSourceFile": "case-studies/drawing-game/fixtures/handwritten/bootstrap.mjs",
+      "language": "diff",
+      "code": "--- /dev/null\n+++ case-studies/drawing-game/fixtures/handwritten/bootstrap.mjs\n@@ counted LOC @@\n+import { registerDrawingGameHandlers } from '../../../../examples/drawing-game/dist/real/application.js';\n+import { createScenarioApplication } from '../../../../examples/drawing-game/dist/real/target.js';\n+import { Server } from './stage-sources/08-full-workflow.mjs';\n+const origin = 'http://drawing-game.handwritten.test';\n+export function startHandwrittenApplication() {\n+  const server = new Server(origin);\n+  registerDrawingGameHandlers(server);\n+  return createScenarioApplication(server, origin, () => server.close());",
+      "sourceSha256": "9017bc1044e24d4274cffbb965123154e7a7468c8e71f5b3b23a688899d689a1",
+      "additions": 8,
+      "deletions": 0,
+      "owner": "handwritten",
+      "kind": "diff",
+      "stageId": "full-workflow",
+      "purpose": "Counted source change from disconnect-cleanup."
     },
     {
-      "id": "shared.room-broadcast.room-join",
-      "sourceFile": "examples/drawing-game/application.ts",
-      "language": "typescript",
-      "code": "    socket.on('join', async (room, acknowledge) => {\n      if (room !== ROOM) {\n        acknowledge({ accepted: false, room });\n        return;\n      }\n      await socket.join(room);\n      acknowledge({ accepted: true, room });\n    });",
-      "sourceSha256": "4077b26b78845a4833e209f4f1d5ae329d0db028627094ca78b51f7824dc0b10",
-      "sourceRange": { "startLine": 61, "endLine": 68 },
-      "loc": 6,
-      "countedLineNumbers": [61, 62, 63, 64, 66, 67],
-      "excludedLineNumbers": {
-        "blank": [],
-        "snippetMarker": [],
-        "commentOnly": [],
-        "formattingOnly": [65, 68]
-      },
-      "featureId": "room-broadcast",
-      "ownership": "shared-application",
-      "purpose": "Golden application code used by both targets: Players join one game room"
-    },
-    {
-      "id": "shared.room-broadcast.room-announce",
-      "sourceFile": "examples/drawing-game/application.ts",
-      "language": "typescript",
-      "code": "      io.to(ROOM).emit('announce', { winner: label, word: WORD });",
-      "sourceSha256": "ce17d5f22a1540cc83c480bc101d35c9ea5549826cd529831681086ca48862a9",
-      "sourceRange": { "startLine": 97, "endLine": 97 },
-      "loc": 1,
-      "countedLineNumbers": [97],
-      "excludedLineNumbers": {
-        "blank": [],
-        "snippetMarker": [],
-        "commentOnly": [],
-        "formattingOnly": []
-      },
-      "featureId": "room-broadcast",
-      "ownership": "shared-application",
-      "purpose": "Golden application code used by both targets: Players join one game room"
-    },
-    {
-      "id": "handwritten.sender-exclusion.sender-exclusion",
-      "sourceFile": "case-studies/drawing-game/fixtures/handwritten/handwritten-socket.mjs",
-      "language": "javascript",
-      "code": "function installSenderExclusion(state) {\n  state.filterRecipients = (pairs, senderId) =>\n    senderId === undefined ? pairs : pairs.filter((pair) => pair.id !== senderId);\n}",
-      "sourceSha256": "7873b977d6bd87ee98f7f03f525b3ee19208e2c73285bfcd3b09ecf4301cd376",
-      "sourceRange": { "startLine": 273, "endLine": 276 },
-      "loc": 3,
-      "countedLineNumbers": [273, 274, 275],
-      "excludedLineNumbers": {
-        "blank": [],
-        "snippetMarker": [],
-        "commentOnly": [],
-        "formattingOnly": [276]
-      },
-      "featureId": "sender-exclusion",
-      "ownership": "handwritten-support",
-      "purpose": "socket.to(room) excludes the originating socket from room delivery."
-    },
-    {
-      "id": "shared.sender-exclusion.drawing-server-handler",
-      "sourceFile": "examples/drawing-game/application.ts",
-      "language": "typescript",
-      "code": "    socket.on('stroke', (segment) => {\n      socket.to(ROOM).emit('stroke', segment);\n    });",
-      "sourceSha256": "0bdd2730ed341e3201b0c71a1979d9b87a192618984895b8f056079f4a1aa4c3",
-      "sourceRange": { "startLine": 72, "endLine": 74 },
-      "loc": 2,
-      "countedLineNumbers": [72, 73],
-      "excludedLineNumbers": {
-        "blank": [],
-        "snippetMarker": [],
-        "commentOnly": [],
-        "formattingOnly": [74]
-      },
-      "featureId": "sender-exclusion",
-      "ownership": "shared-application",
-      "purpose": "Golden application code used by both targets: A's stroke reaches only peers"
-    },
-    {
-      "id": "handwritten.acknowledgement.acknowledgement",
-      "sourceFile": "case-studies/drawing-game/fixtures/handwritten/handwritten-socket.mjs",
-      "language": "javascript",
-      "code": "function installAcknowledgement(state) {\n  state.prepareClientArguments = (args) => args;\n}",
-      "sourceSha256": "29a702ff671380e01415b802bbc88d0433b93b3bd81c50141f54b24f59b150fa",
-      "sourceRange": { "startLine": 280, "endLine": 282 },
-      "loc": 2,
-      "countedLineNumbers": [280, 281],
-      "excludedLineNumbers": {
-        "blank": [],
-        "snippetMarker": [],
-        "commentOnly": [],
-        "formattingOnly": [282]
-      },
-      "featureId": "acknowledgement",
-      "ownership": "handwritten-support",
-      "purpose": "A client callback crosses the event boundary and is invoked by the server handler."
-    },
-    {
-      "id": "shared.acknowledgement.acknowledgement",
-      "sourceFile": "examples/drawing-game/application.ts",
-      "language": "typescript",
-      "code": "      const correct = text === WORD;\n      acknowledge(correct);",
-      "sourceSha256": "f426fbe805ba48287ec92d1c8452c57633032074e4e74c30c422292fff3c5132",
-      "sourceRange": { "startLine": 84, "endLine": 85 },
-      "loc": 2,
-      "countedLineNumbers": [84, 85],
-      "excludedLineNumbers": {
-        "blank": [],
-        "snippetMarker": [],
-        "commentOnly": [],
-        "formattingOnly": []
-      },
-      "featureId": "acknowledgement",
-      "ownership": "shared-application",
-      "purpose": "Golden application code used by both targets: Guesses receive a boolean result"
-    },
-    {
-      "id": "shared.acknowledgement.chat-guess-client",
-      "sourceFile": "examples/drawing-game/client.ts",
-      "language": "typescript",
-      "code": "export function receiveChat(client: DrawingGameClient, receive: (message: ChatMessage) => void) {\n  client.on('chat', receive);\n}\n\nexport function receiveCorrect(client: DrawingGameClient, receive: (word: string) => void) {\n  client.on('correct', ({ word }) => receive(word));\n}\n\nexport function receiveAnnouncement(\n  client: DrawingGameClient,\n  receive: (result: RoundResult) => void,\n) {\n  client.on('announce', receive);\n}\n\nexport function submitGuess(client: DrawingGameClient, text: string): Promise<boolean> {\n  return new Promise((resolve) => client.emit('guess', text, resolve));\n}",
-      "sourceSha256": "db4fb18e8b4c4ee2f7e78edd289a574723ce55097fa36352a982c15fc1e7b293",
-      "sourceRange": { "startLine": 59, "endLine": 76 },
-      "loc": 11,
-      "countedLineNumbers": [59, 60, 63, 64, 67, 68, 69, 70, 71, 74, 75],
-      "excludedLineNumbers": {
-        "blank": [62, 66, 73],
-        "snippetMarker": [],
-        "commentOnly": [],
-        "formattingOnly": [61, 65, 72, 76]
-      },
-      "featureId": "acknowledgement",
-      "ownership": "shared-application",
-      "purpose": "Golden application code used by both targets: Guesses receive a boolean result"
-    },
-    {
-      "id": "handwritten.targeted-delivery.targeted-delivery",
-      "sourceFile": "case-studies/drawing-game/fixtures/handwritten/handwritten-socket.mjs",
-      "language": "javascript",
-      "code": "function installTargetedDelivery(state) {\n  const selectRoomRecipients = state.selectRecipients;\n  state.selectRecipients = (target) => {\n    const socket = state.findPair(target);\n    return socket?.client.connected ? [socket] : selectRoomRecipients(target);\n  };\n}",
-      "sourceSha256": "47335ea42a3cd7f2671bcf254e99f18baafb2a25819fe0650e4ef04838036594",
-      "sourceRange": { "startLine": 286, "endLine": 292 },
-      "loc": 5,
-      "countedLineNumbers": [286, 287, 288, 289, 290],
-      "excludedLineNumbers": {
-        "blank": [],
-        "snippetMarker": [],
-        "commentOnly": [],
-        "formattingOnly": [291, 292]
-      },
-      "featureId": "targeted-delivery",
-      "ownership": "handwritten-support",
-      "purpose": "io.to(socket.id) selects one connected socket rather than a room."
-    },
-    {
-      "id": "shared.targeted-delivery.targeted-correct",
-      "sourceFile": "examples/drawing-game/application.ts",
-      "language": "typescript",
-      "code": "      io.to(socket.id).emit('correct', { word: WORD });",
-      "sourceSha256": "7e246e974b6abdcde52228b5a5b52e10aa3abaac685c2541a8b3f6ea137a926f",
-      "sourceRange": { "startLine": 94, "endLine": 94 },
-      "loc": 1,
-      "countedLineNumbers": [94],
-      "excludedLineNumbers": {
-        "blank": [],
-        "snippetMarker": [],
-        "commentOnly": [],
-        "formattingOnly": []
-      },
-      "featureId": "targeted-delivery",
-      "ownership": "shared-application",
-      "purpose": "Golden application code used by both targets: Only the winner receives correct"
-    },
-    {
-      "id": "handwritten.disconnect-cleanup.disconnect-cleanup",
-      "sourceFile": "case-studies/drawing-game/fixtures/handwritten/handwritten-socket.mjs",
-      "language": "javascript",
-      "code": "function installDisconnectCleanup(state) {\n  const disconnectWithoutCleanup = state.disconnectPair;\n  state.disconnectPair = (pair, reason) => {\n    if (!pair.client.connected) return;\n    disconnectWithoutCleanup(pair, reason);\n    state.leaveAllRooms(pair);\n    state.removePair(pair);\n  };\n}",
-      "sourceSha256": "cdee3ee2c25b86a2320ceb4296cf0e3c84100f25db103107415425cbcc60bfc9",
-      "sourceRange": { "startLine": 296, "endLine": 304 },
-      "loc": 7,
-      "countedLineNumbers": [296, 297, 298, 299, 300, 301, 302],
-      "excludedLineNumbers": {
-        "blank": [],
-        "snippetMarker": [],
-        "commentOnly": [],
-        "formattingOnly": [303, 304]
-      },
-      "featureId": "disconnect-cleanup",
-      "ownership": "handwritten-support",
-      "purpose": "Disconnect removes socket and room state before later routing selects recipients."
-    },
-    {
-      "id": "shared.disconnect-cleanup.disconnect-behavior",
-      "sourceFile": "examples/drawing-game/scenario.ts",
-      "language": "typescript",
-      "code": "    const serverDisconnected = application.waitForDisconnect('C');\n    clients.C.disconnect();\n    await serverDisconnected;\n\n    const secondStroke: StrokeSegment = {\n      id: 2,\n      points: [[0.5, 0.6]],\n      end: true,\n    };\n    sendStroke(clients.A, secondStroke);\n    await crossBarrier(application, clients.A, observers, ['A', 'B'], 'after-disconnect-stroke');",
-      "sourceSha256": "c6a6057cc27a8c403fa0afc4071f760a347127c5c6bc2474c11170f687bbd5ee",
-      "sourceRange": { "startLine": 155, "endLine": 165 },
-      "loc": 9,
-      "countedLineNumbers": [155, 156, 157, 159, 160, 161, 162, 164, 165],
-      "excludedLineNumbers": {
-        "blank": [158],
-        "snippetMarker": [],
-        "commentOnly": [],
-        "formattingOnly": [163]
-      },
-      "featureId": "disconnect-cleanup",
-      "ownership": "shared-application",
-      "purpose": "Golden application code used by both targets: C leaves before the next stroke"
-    },
-    {
-      "id": "smocket.base-single-client.smocket-bootstrap",
+      "id": "smocket.integration.smocket-bootstrap",
+      "role": "smocket-bootstrap",
       "sourceFile": "examples/drawing-game/smocket.ts",
       "language": "typescript",
       "code": "export function startSmocketApplication(): ScenarioApplication {\n  nextOrigin += 1;\n  const url = `http://drawing-game-${nextOrigin}.smocket.test`;\n  const io = new SmocketServer<ClientToServerEvents, ServerToClientEvents>(url);\n  registerDrawingGameHandlers(io);\n\n  return createScenarioApplication(io, url, () => io.close());\n}",
@@ -405,12 +467,13 @@
         "commentOnly": [],
         "formattingOnly": [23]
       },
-      "featureId": "base-single-client",
-      "ownership": "smocket-integration",
-      "purpose": "Canonical server bootstrap and socket.io-client package substitution."
+      "owner": "smocket",
+      "kind": "source",
+      "purpose": "Canonical Smocket bootstrap or client substitution used by the golden workflow."
     },
     {
-      "id": "smocket.base-single-client.smocket-client-substitution",
+      "id": "smocket.integration.smocket-client-substitution",
+      "role": "smocket-client-substitution",
       "sourceFile": "examples/drawing-game/smocket-loader.mjs",
       "language": "javascript",
       "code": "export async function resolve(specifier, context, nextResolve) {\n  const fromSmocketBuild = context.parentURL?.includes('/examples/drawing-game/dist/smocket/');\n  if (specifier === 'socket.io-client' && fromSmocketBuild) {\n    return nextResolve(\n      new URL('../../packages/smocket-client/dist/index.mjs', import.meta.url).href,\n      context,\n    );\n  }\n  const fromSmocketClient = context.parentURL?.includes('/packages/smocket-client/dist/');\n  if (specifier === 'smocket' && (fromSmocketBuild || fromSmocketClient)) {\n    return nextResolve(new URL('../../dist/index.js', import.meta.url).href, context);\n  }\n  return nextResolve(specifier, context);\n}",
@@ -424,12 +487,13 @@
         "commentOnly": [],
         "formattingOnly": [8, 9, 13, 15]
       },
-      "featureId": "base-single-client",
-      "ownership": "smocket-integration",
-      "purpose": "Canonical server bootstrap and socket.io-client package substitution."
+      "owner": "smocket",
+      "kind": "source",
+      "purpose": "Canonical Smocket bootstrap or client substitution used by the golden workflow."
     },
     {
-      "id": "smocket.base-single-client.smocket-loader-registration",
+      "id": "smocket.integration.smocket-loader-registration",
+      "role": "loader-registration",
       "sourceFile": "examples/drawing-game/smocket-substitution.mjs",
       "language": "javascript",
       "code": "import { register } from 'node:module';\n\nregister(new URL('./smocket-loader.mjs', import.meta.url), import.meta.url);",
@@ -443,9 +507,9 @@
         "commentOnly": [],
         "formattingOnly": []
       },
-      "featureId": "base-single-client",
-      "ownership": "smocket-integration",
-      "purpose": "Canonical server bootstrap and socket.io-client package substitution."
+      "owner": "smocket",
+      "kind": "source",
+      "purpose": "Canonical Smocket bootstrap or client substitution used by the golden workflow."
     }
   ]
 }

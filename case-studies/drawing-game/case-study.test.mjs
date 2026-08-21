@@ -1,14 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFile } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
+import { basename, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { STEP_IDS, TARGET_IDS, assertMeasurementArtifact } from './schema.mjs';
 import {
-  MAINTENANCE_FEATURE_IDS,
+  HANDWRITTEN_STAGE_DEFINITIONS,
+  HANDWRITTEN_STAGE_IDS,
   assertMaintenanceArtifact,
   assertMaintenanceSnippets,
-  prerequisiteClosure,
 } from './maintenance-schema.mjs';
 import {
   createMaintenanceSnippetArtifact,
@@ -96,19 +96,49 @@ test('the staged maintenance artifact satisfies its schema and oracle comparison
   );
 });
 
-test('every handwritten feature stage ran with its prerequisite closure', async () => {
+test('every handwritten stage ran from its declared source closure', async () => {
   const artifact = JSON.parse(
     await readFile(resolve(moduleDirectory, 'maintenance.generated.json'), 'utf8'),
   );
-  assert.ok(artifact.stages.every(({ passed }) => passed));
+  assert.ok(artifact.stages.every(({ validation }) => validation.passed));
   assert.deepEqual(
-    artifact.stages.map(({ enabledFeatureIds }) => enabledFeatureIds),
-    MAINTENANCE_FEATURE_IDS.map(prerequisiteClosure),
+    artifact.stages.map(({ id, prerequisite, sourceFiles }) => ({
+      id,
+      prerequisite,
+      sourceFiles,
+    })),
+    HANDWRITTEN_STAGE_DEFINITIONS.map(({ id, prerequisite, sources }) => ({
+      id,
+      prerequisite,
+      sourceFiles: sources.map(({ sourceFile }) => sourceFile),
+    })),
   );
+
+  const stageRunner = await readFile(
+    resolve(moduleDirectory, 'fixtures/handwritten/stages.mjs'),
+    'utf8',
+  );
+  for (const definition of HANDWRITTEN_STAGE_DEFINITIONS.slice(0, -1)) {
+    assert.ok(stageRunner.includes(basename(definition.sources[0].sourceFile)));
+  }
+  const finalSource = basename(HANDWRITTEN_STAGE_DEFINITIONS.at(-1).sources[0].sourceFile);
+  const finalLoaders = await Promise.all(
+    ['bootstrap.mjs', 'handwritten-loader.mjs'].map((sourceFile) =>
+      readFile(resolve(moduleDirectory, 'fixtures/handwritten', sourceFile), 'utf8'),
+    ),
+  );
+  assert.ok(finalLoaders.every((source) => source.includes(finalSource)));
 });
 
-test('the maintenance line counter and snippet extraction are deterministic', async () => {
-  assert.deepEqual(await createMaintenanceSourceModel(), await createMaintenanceSourceModel());
+test('the maintenance closures, LOC diffs, and snippets are deterministic', async () => {
+  const firstModel = await createMaintenanceSourceModel();
+  const secondModel = await createMaintenanceSourceModel();
+  assert.deepEqual(firstModel, secondModel);
+  let previousTotal = 0;
+  for (const stage of firstModel.stages) {
+    assert.equal(previousTotal + stage.change.additions - stage.change.deletions, stage.totalLoc);
+    previousTotal = stage.totalLoc;
+  }
   const measurement = JSON.parse(
     await readFile(resolve(moduleDirectory, 'maintenance.generated.json'), 'utf8'),
   );
@@ -119,15 +149,41 @@ test('the maintenance line counter and snippet extraction are deterministic', as
   assert.deepEqual(snippets, await createMaintenanceSnippetArtifact(measurement.sourceRevision));
 });
 
-test('the handwritten transport contains no drawing-game answers or named fixtures', async () => {
+test('the base closure contains no source for future stages', async () => {
   const model = await createMaintenanceSourceModel();
-  const sourceFiles = new Set(
-    [...model.handwrittenByFeature.values()].flat().map(({ sourceFile }) => sourceFile),
-  );
+  const base = model.stages[0];
+  assert.equal(base.id, 'base-single-client');
+  assert.deepEqual(base.sourceFiles, [HANDWRITTEN_STAGE_DEFINITIONS[0].sources[0].sourceFile]);
+  assert.equal(base.sourceBlocks.length, 1);
+  const source = base.sourceBlocks[0].code.toLowerCase();
+  for (const forbidden of [
+    'feature',
+    'registry',
+    'origin',
+    'room',
+    'route',
+    'recipient',
+    'select',
+    'install',
+    'broadcast',
+    'target',
+    'disconnect',
+  ]) {
+    assert.equal(source.includes(forbidden), false, `base source contains ${forbidden}`);
+  }
+});
+
+test('handwritten stage source contains no drawing-game answers or named fixtures', async () => {
+  const model = await createMaintenanceSourceModel();
+  const sourceFiles = new Set(model.stages.flatMap(({ sourceFiles }) => sourceFiles));
   for (const sourceFile of sourceFiles) {
     const source = await readFile(resolve(root, sourceFile), 'utf8');
     for (const forbidden of ["'A'", "'B'", "'C'", 'room-1', 'giraffe', 'zebra']) {
       assert.equal(source.includes(forbidden), false, `${sourceFile} contains ${forbidden}`);
     }
   }
+  assert.deepEqual(
+    model.stages.map(({ id }) => id),
+    HANDWRITTEN_STAGE_IDS,
+  );
 });

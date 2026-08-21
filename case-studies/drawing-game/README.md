@@ -87,11 +87,11 @@ is the handoff contract for the demo site and interactive report.
 
 ## Staged handwritten maintenance surface
 
-The companion [maintenance-surface case study](./maintenance.md) runs a generic
-handwritten transport through a direct base and six independently extracted
-delivery blocks. It reuses the golden workflow, derives behavior from a fresh Real
-Socket.IO run, confirms workspace Smocket still agrees, and records deterministic
-LOC and source snippets without changing the public-tool cards above.
+The companion [maintenance-surface case study](./maintenance.md) runs eight
+independent handwritten implementations, from a minimal single-client response to
+the complete golden workflow. It derives behavior from a fresh Real Socket.IO run,
+confirms workspace Smocket still agrees, and records deterministic source closures,
+LOC diffs, and snippets without changing the public-tool cards above.
 
 These observations apply only to this six-step workflow. `mock-socket` is primarily a
 WebSocket mock with limited Socket.IO support, the MSW binding documents missing rooms and
