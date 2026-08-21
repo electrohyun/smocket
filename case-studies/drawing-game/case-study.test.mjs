@@ -130,6 +130,31 @@ test('every handwritten stage ran from its declared source closure', async () =>
   assert.ok(finalLoaders.every((source) => source.includes(finalSource)));
 });
 
+test('the final handwritten client exposes its deferred connect lifecycle', async () => {
+  const { Server, io } = await import('./fixtures/handwritten/stage-sources/08-full-workflow.mjs');
+  const origin = 'http://drawing-game-connect-timing.handwritten.test';
+  const server = new Server(origin);
+  const order = [];
+  server.on('connection', () => order.push('server connection'));
+  const client = io(origin);
+  assert.equal(client.connected, false);
+  const connected = new Promise((resolve) => {
+    client.once('connect', () => {
+      order.push('client connect');
+      resolve();
+    });
+  });
+
+  try {
+    await connected;
+    assert.equal(client.connected, true);
+    assert.deepEqual(order, ['server connection', 'client connect']);
+  } finally {
+    client.disconnect();
+    await server.close();
+  }
+});
+
 test('the maintenance closures, LOC diffs, and snippets are deterministic', async () => {
   const firstModel = await createMaintenanceSourceModel();
   const secondModel = await createMaintenanceSourceModel();
