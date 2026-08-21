@@ -192,6 +192,7 @@ complete Vitest and Jest setups.
 | A setup that fails before the first event    | [troubleshooting by actual signal](docs/troubleshooting.md)                           |
 | A hand-written socket mock                   | [the problem](#the-problem)                                                           |
 | Wanting to read a program rather than a test | [examples/chat-room](examples/chat-room/)                                             |
+| Wanting a typed drawing and chat workflow    | [examples/drawing-game](examples/drawing-game/)                                       |
 | Wanting to compare real and mock runs        | [the dual-target consumer walkthrough](consumers/chat-room/)                          |
 | Wanting the exact guarantees                 | [the conformance report](docs/conformance.md)                                         |
 
@@ -202,6 +203,12 @@ Runnable programs live in [examples/](examples/), outside the published package.
 moderated announcement, and a disconnect. From a clean checkout, `pnpm install`
 then `pnpm example:chat-room`. CI runs it on every push, so it fails rather than
 rots.
+
+[drawing-game](examples/drawing-game/) is the TypeScript golden example for a
+three-client drawing and guessing room. Its unchanged application source runs through
+Real Socket.IO 4.8.3 and the workspace Smocket packages, and its generated snippet
+artifact is the source for later site, report, and live-coding content. Run
+`pnpm example:drawing-game` for the dual-target check.
 
 The [dual-target chat room consumer](consumers/chat-room/) runs the same handlers and
 scenario against real Socket.IO and Smocket after npm installs the released packages
