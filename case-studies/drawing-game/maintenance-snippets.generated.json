@@ -71,16 +71,16 @@
       "id": "handwritten.base-single-client.base-loader-registration",
       "sourceFile": "case-studies/drawing-game/fixtures/handwritten/handwritten-substitution.mjs",
       "language": "javascript",
-      "code": "import { register } from 'node:module';\n\nregister(new URL('./handwritten-loader.mjs', import.meta.url), import.meta.url);",
-      "sourceSha256": "42dcab8874a50a0ac29e9bcb00e725836ff5871d1ec5181ec92ca821ebb95ea8",
-      "sourceRange": { "startLine": 2, "endLine": 4 },
-      "loc": 2,
-      "countedLineNumbers": [2, 4],
+      "code": "import * as nodeModule from 'node:module';\n\nif (typeof nodeModule.register !== 'function') {\n  throw new Error('The drawing-game handwritten maintenance flow requires Node.js >=20.6.0.');\n}\n\nnodeModule.register(new URL('./handwritten-loader.mjs', import.meta.url), import.meta.url);",
+      "sourceSha256": "70fdd754fe3f16c8087bbf54c9654207bd39d85bf28cadeaabfb89026ff22f02",
+      "sourceRange": { "startLine": 2, "endLine": 8 },
+      "loc": 4,
+      "countedLineNumbers": [2, 4, 5, 8],
       "excludedLineNumbers": {
-        "blank": [3],
+        "blank": [3, 7],
         "snippetMarker": [],
         "commentOnly": [],
-        "formattingOnly": []
+        "formattingOnly": [6]
       },
       "featureId": "base-single-client",
       "ownership": "handwritten-support",

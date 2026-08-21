@@ -4,7 +4,12 @@ import { readFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { STEP_IDS, TARGET_IDS, assertMeasurementArtifact } from './schema.mjs';
-import { assertMaintenanceArtifact, assertMaintenanceSnippets } from './maintenance-schema.mjs';
+import {
+  MAINTENANCE_FEATURE_IDS,
+  assertMaintenanceArtifact,
+  assertMaintenanceSnippets,
+  prerequisiteClosure,
+} from './maintenance-schema.mjs';
 import {
   createMaintenanceSnippetArtifact,
   createMaintenanceSourceModel,
@@ -98,7 +103,7 @@ test('every handwritten feature stage ran with its prerequisite closure', async 
   assert.ok(artifact.stages.every(({ passed }) => passed));
   assert.deepEqual(
     artifact.stages.map(({ enabledFeatureIds }) => enabledFeatureIds),
-    artifact.features.map(({ validation }) => validation.enabledFeatureIds),
+    MAINTENANCE_FEATURE_IDS.map(prerequisiteClosure),
   );
 });
 
@@ -115,11 +120,14 @@ test('the maintenance line counter and snippet extraction are deterministic', as
 });
 
 test('the handwritten transport contains no drawing-game answers or named fixtures', async () => {
-  const source = await readFile(
-    resolve(moduleDirectory, 'fixtures/handwritten/handwritten-socket.mjs'),
-    'utf8',
+  const model = await createMaintenanceSourceModel();
+  const sourceFiles = new Set(
+    [...model.handwrittenByFeature.values()].flat().map(({ sourceFile }) => sourceFile),
   );
-  for (const forbidden of ["'A'", "'B'", "'C'", 'room-1', 'giraffe', 'zebra']) {
-    assert.equal(source.includes(forbidden), false, `handwritten runtime contains ${forbidden}`);
+  for (const sourceFile of sourceFiles) {
+    const source = await readFile(resolve(root, sourceFile), 'utf8');
+    for (const forbidden of ["'A'", "'B'", "'C'", 'room-1', 'giraffe', 'zebra']) {
+      assert.equal(source.includes(forbidden), false, `${sourceFile} contains ${forbidden}`);
+    }
   }
 });

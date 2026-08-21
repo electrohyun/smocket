@@ -78,14 +78,7 @@ async function runProbe(targetId) {
       ).href,
     );
   }
-  commandArgs.push(
-    resolve(
-      caseStudyRoot,
-      'fixtures',
-      targetId === 'handwritten' ? 'handwritten' : targetId,
-      'probe.mjs',
-    ),
-  );
+  commandArgs.push(resolve(caseStudyRoot, 'fixtures', targetId, 'probe.mjs'));
   return JSON.parse(await run(process.execPath, commandArgs));
 }
 
@@ -233,32 +226,44 @@ const countedFiles = [
   ...summarizeCountedFiles('smocket-integration', sourceModel.smocketIntegration),
   ...summarizeCountedFiles('handwritten-support', handwrittenBlocks),
 ];
+for (const [category, blocks] of [
+  ['shared-application', sourceModel.sharedApplication],
+  ['smocket-integration', sourceModel.smocketIntegration],
+  ['handwritten-support', handwrittenBlocks],
+]) {
+  const perFileLoc = countedFiles
+    .filter((file) => file.category === category)
+    .reduce((sum, file) => sum + file.loc, 0);
+  const perBlockLoc = blocks.reduce((sum, block) => sum + block.loc, 0);
+  assert.equal(perFileLoc, perBlockLoc, `${category} source blocks overlap`);
+}
 const excludedFiles = await createExcludedFiles(countedFiles);
+const modelSourceFiles = [
+  ...sourceModel.golden.values(),
+  ...sourceModel.sharedApplication,
+  ...sourceModel.smocketIntegration,
+  ...handwrittenBlocks,
+].map(({ sourceFile }) => sourceFile);
 const sourceInputs = await Promise.all(
   [
-    'package.json',
-    'pnpm-lock.yaml',
-    'examples/drawing-game/application.ts',
-    'examples/drawing-game/client.ts',
-    'examples/drawing-game/scenario.ts',
-    'examples/drawing-game/assertions.ts',
-    'examples/drawing-game/target.ts',
-    'examples/drawing-game/real.ts',
-    'examples/drawing-game/smocket.ts',
-    'examples/drawing-game/smocket-loader.mjs',
-    'examples/drawing-game/smocket-substitution.mjs',
-    'case-studies/drawing-game/fixtures/real/probe.mjs',
-    'case-studies/drawing-game/fixtures/smocket/probe.mjs',
-    'case-studies/drawing-game/fixtures/handwritten/handwritten-socket.mjs',
-    'case-studies/drawing-game/fixtures/handwritten/handwritten-loader.mjs',
-    'case-studies/drawing-game/fixtures/handwritten/handwritten-substitution.mjs',
-    'case-studies/drawing-game/fixtures/handwritten/bootstrap.mjs',
-    'case-studies/drawing-game/fixtures/handwritten/stages.mjs',
-    'case-studies/drawing-game/fixtures/handwritten/probe.mjs',
-    'case-studies/drawing-game/maintenance-schema.mjs',
-    'case-studies/drawing-game/maintenance-source.mjs',
-    'scripts/run-drawing-game-maintenance.mjs',
-    'scripts/drawing-game-maintenance-snippets.mjs',
+    ...new Set([
+      'package.json',
+      'pnpm-lock.yaml',
+      'examples/drawing-game/package.json',
+      'packages/smocket-client/package.json',
+      ...modelSourceFiles,
+      'examples/drawing-game/assertions.ts',
+      'examples/drawing-game/target.ts',
+      'examples/drawing-game/real.ts',
+      'case-studies/drawing-game/fixtures/real/probe.mjs',
+      'case-studies/drawing-game/fixtures/smocket/probe.mjs',
+      'case-studies/drawing-game/fixtures/handwritten/stages.mjs',
+      'case-studies/drawing-game/fixtures/handwritten/probe.mjs',
+      'case-studies/drawing-game/maintenance-schema.mjs',
+      'case-studies/drawing-game/maintenance-source.mjs',
+      'scripts/run-drawing-game-maintenance.mjs',
+      'scripts/drawing-game-maintenance-snippets.mjs',
+    ]),
   ].map(describeFile),
 );
 const sharedLineReferences = lineReferences(sourceModel.sharedApplication);
@@ -331,7 +336,7 @@ const artifact = {
     role: 'Used unchanged by both targets and excluded from the headline difference.',
     loc: sharedLineReferences.length,
     files: sourceModel.sharedApplication,
-    countedLineNumbers: sharedLineReferences,
+    countedLineReferences: sharedLineReferences,
   },
   countedFiles,
   excludedFiles,

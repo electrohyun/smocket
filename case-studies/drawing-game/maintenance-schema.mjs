@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 
 export const MAINTENANCE_FEATURES = [
   {
@@ -81,7 +82,9 @@ function assertSourceBlock(block, owner) {
   assert.equal(typeof block.language, 'string');
   assert.equal(typeof block.code, 'string');
   assert.match(block.sourceSha256, /^[a-f0-9]{64}$/);
+  assert.equal(createHash('sha256').update(block.code).digest('hex'), block.sourceSha256);
   assert.ok(Number.isInteger(block.sourceRange.startLine));
+  assert.ok(Number.isInteger(block.sourceRange.endLine));
   assert.ok(block.sourceRange.endLine >= block.sourceRange.startLine);
   assert.equal(block.loc, block.countedLineNumbers.length);
   assert.ok(block.countedLineNumbers.every((line) => Number.isInteger(line)));
@@ -91,7 +94,7 @@ export function assertMaintenanceArtifact(artifact) {
   assertObject(artifact, 'maintenance artifact must be an object');
   assert.equal(artifact.schemaVersion, 1);
   assert.equal(artifact.caseStudy, 'drawing-game-maintenance-surface');
-  assert.equal(typeof artifact.sourceRevision, 'string');
+  assert.match(artifact.sourceRevision, /^[a-f0-9]{40}$/);
   assert.equal(artifact.question.targets.join(','), 'smocket,handwritten');
   assert.equal(artifact.question.realSocketIoRole, 'behavior-oracle-only');
   assertObject(artifact.measurementRules, 'measurement rules are required');
@@ -114,7 +117,7 @@ export function assertMaintenanceArtifact(artifact) {
   }
   assert.equal(
     artifact.sharedApplication.loc,
-    artifact.sharedApplication.countedLineNumbers.length,
+    artifact.sharedApplication.countedLineReferences.length,
   );
   assert.deepEqual(
     artifact.features.map(({ id }) => id),
@@ -169,6 +172,7 @@ export function assertMaintenanceSnippets(artifact) {
   assertObject(artifact, 'maintenance snippets must be an object');
   assert.equal(artifact.schemaVersion, 1);
   assert.equal(artifact.caseStudy, 'drawing-game-maintenance-surface');
+  assert.match(artifact.sourceRevision, /^[a-f0-9]{40}$/);
   assert.deepEqual(artifact.featureIds, MAINTENANCE_FEATURE_IDS);
   const ids = new Set();
   for (const snippet of artifact.snippets) {
