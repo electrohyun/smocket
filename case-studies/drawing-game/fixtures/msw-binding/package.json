@@ -1,0 +1,10 @@
+{
+  "name": "drawing-game-msw-binding-fixture",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@mswjs/socket.io-binding": "0.2.0",
+    "msw": "2.15.0",
+    "socket.io-client": "4.8.3"
+  }
+}

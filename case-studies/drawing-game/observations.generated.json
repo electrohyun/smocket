@@ -1,0 +1,956 @@
+{
+  "schemaVersion": 1,
+  "caseStudy": "drawing-game-compatibility",
+  "environment": {
+    "measuredAt": "2026-08-21T10:51:21.349Z",
+    "platform": "win32",
+    "architecture": "x64",
+    "node": "v24.11.1",
+    "npm": "11.6.4",
+    "smocketSourceCommit": "8885dcead7446ad9d268ee15a6203740b6a1e12e",
+    "sourceState": "smocketSourceCommit identifies the committed golden workflow; per-file SHA-256 values identify the measured case-study sources without a self-referential generated commit id."
+  },
+  "workflow": {
+    "source": "examples/drawing-game",
+    "stepIds": [
+      "1-connect",
+      "2-room-join",
+      "3-sender-excluded-stroke",
+      "4-wrong-guess",
+      "5-correct-guess",
+      "6-disconnect"
+    ],
+    "oracleRule": "Every expected step value is derived from the fresh Real Socket.IO observation.",
+    "nonReceiptRule": "Use causal barrier/marker completion, never a short absence timeout."
+  },
+  "reproduction": {
+    "run": "pnpm case-study:drawing-game",
+    "record": "pnpm case-study:drawing-game:record",
+    "check": "pnpm case-study:drawing-game:check",
+    "snippets": "pnpm case-study:drawing-game:snippets",
+    "snippetsCheck": "pnpm case-study:drawing-game:snippets:check",
+    "targets": {
+      "real": "node scripts/run-drawing-game-case-study.mjs --target real",
+      "smocket": "node scripts/run-drawing-game-case-study.mjs --target smocket",
+      "mock-socket": "node scripts/run-drawing-game-case-study.mjs --target mock-socket",
+      "msw-binding": "node scripts/run-drawing-game-case-study.mjs --target msw-binding",
+      "socket.io-mock": "node scripts/run-drawing-game-case-study.mjs --target socket.io-mock"
+    }
+  },
+  "sources": {
+    "golden": [
+      {
+        "path": "examples/drawing-game/application.ts",
+        "sha256": "26beea00affb7ba6e216382d595124b5169f678b1d6a42c6337c3a4718283b51"
+      },
+      {
+        "path": "examples/drawing-game/client.ts",
+        "sha256": "db7800887bf6342d1241f6b0a812bb2059355963fda235d02c710a2657fe8b04"
+      },
+      {
+        "path": "examples/drawing-game/scenario.ts",
+        "sha256": "37b3656de7d45c621ddb72a95d0bb704fdd2986cb72b8053eb532c17fab26bce"
+      },
+      {
+        "path": "examples/drawing-game/assertions.ts",
+        "sha256": "1db1a38d8bcf3c78978417a6e18b603de72191753f7875a87a57f2d5c2bda640"
+      },
+      {
+        "path": "examples/drawing-game/target.ts",
+        "sha256": "33193e62998c270aa1a52e2117273ca0325a307d20869fce7f99f10ce469cdf7"
+      }
+    ],
+    "fixtures": [
+      {
+        "path": "case-studies/drawing-game/fixtures/real/probe.mjs",
+        "sha256": "4d2504d07f40b7ccbbb6727b29abf037d095ed45bb72552ebe4abaf7e8115dff"
+      },
+      {
+        "path": "case-studies/drawing-game/fixtures/smocket/probe.mjs",
+        "sha256": "a17f92a92305a9df3e08b7948c1c92c548840e602f4d912c360f72c76398b862"
+      },
+      {
+        "path": "case-studies/drawing-game/fixtures/mock-socket/probe.mjs",
+        "sha256": "7b9f74f483d7fc4aaf43ccfa0961c0386464a84f8438e5b5baac6e7d20bb919d"
+      },
+      {
+        "path": "case-studies/drawing-game/fixtures/msw-binding/probe.mjs",
+        "sha256": "76ef3a715e5dede0044319364faafa525ecc65c0ece5dd5fc9dbcdf2f3fcec84"
+      },
+      {
+        "path": "case-studies/drawing-game/fixtures/socket.io-mock/probe.mjs",
+        "sha256": "c38116b230500a40a85fe7ae4b70374fb94da1946b23b501d31026c72c2b8f98"
+      }
+    ]
+  },
+  "packageSources": {
+    "real": [
+      "https://www.npmjs.com/package/socket.io/v/4.8.3",
+      "https://www.npmjs.com/package/socket.io-client/v/4.8.3"
+    ],
+    "smocket": ["workspace source at environment.smocketSourceCommit"],
+    "mock-socket": [
+      "https://www.npmjs.com/package/mock-socket/v/9.3.1",
+      "https://github.com/thoov/mock-socket"
+    ],
+    "msw-binding": [
+      "https://www.npmjs.com/package/@mswjs/socket.io-binding/v/0.2.0",
+      "https://www.npmjs.com/package/msw/v/2.15.0"
+    ],
+    "socket.io-mock": [
+      "https://www.npmjs.com/package/socket.io-mock/v/1.3.2",
+      "https://github.com/supremetechnopriest/socket.io-mock"
+    ]
+  },
+  "oracle": {
+    "targetId": "real",
+    "label": "Real Socket.IO oracle",
+    "packages": { "socket.io": "4.8.3", "socket.io-client": "4.8.3" },
+    "fixture": "case-studies/drawing-game/fixtures/real",
+    "repeatedRunMatches": true,
+    "observation": {
+      "connections": [
+        { "label": "A", "socketId": "sid_A" },
+        { "label": "B", "socketId": "sid_B" },
+        { "label": "C", "socketId": "sid_C" }
+      ],
+      "distinctSocketIds": true,
+      "joins": [
+        { "label": "A", "acknowledgement": { "accepted": true, "room": "room-1" } },
+        { "label": "B", "acknowledgement": { "accepted": true, "room": "room-1" } },
+        { "label": "C", "acknowledgement": { "accepted": true, "room": "room-1" } }
+      ],
+      "events": {
+        "A": [
+          { "event": "chat", "payload": { "from": "B", "text": "zebra" } },
+          { "event": "announce", "payload": { "winner": "C", "word": "giraffe" } }
+        ],
+        "B": [
+          {
+            "event": "stroke",
+            "payload": {
+              "id": 1,
+              "points": [
+                [0.1, 0.2],
+                [0.3, 0.4]
+              ]
+            }
+          },
+          { "event": "chat", "payload": { "from": "B", "text": "zebra" } },
+          { "event": "announce", "payload": { "winner": "C", "word": "giraffe" } },
+          { "event": "stroke", "payload": { "id": 2, "points": [[0.5, 0.6]], "end": true } }
+        ],
+        "C": [
+          {
+            "event": "stroke",
+            "payload": {
+              "id": 1,
+              "points": [
+                [0.1, 0.2],
+                [0.3, 0.4]
+              ]
+            }
+          },
+          { "event": "chat", "payload": { "from": "B", "text": "zebra" } },
+          { "event": "correct", "payload": { "word": "giraffe" } },
+          { "event": "announce", "payload": { "winner": "C", "word": "giraffe" } }
+        ]
+      },
+      "acknowledgements": [
+        { "from": "B", "value": false },
+        { "from": "C", "value": true }
+      ],
+      "deliveries": [
+        {
+          "event": "stroke",
+          "payload": {
+            "id": 1,
+            "points": [
+              [0.1, 0.2],
+              [0.3, 0.4]
+            ]
+          },
+          "recipients": ["B", "C"],
+          "senderExcluded": "A"
+        },
+        {
+          "event": "chat",
+          "payload": { "from": "B", "text": "zebra" },
+          "recipients": ["A", "B", "C"]
+        },
+        { "event": "correct", "payload": { "word": "giraffe" }, "recipients": ["C"] },
+        {
+          "event": "announce",
+          "payload": { "winner": "C", "word": "giraffe" },
+          "recipients": ["A", "B", "C"]
+        },
+        {
+          "event": "stroke",
+          "payload": { "id": 2, "points": [[0.5, 0.6]], "end": true },
+          "recipients": ["B"],
+          "senderExcluded": "A",
+          "disconnected": ["C"]
+        }
+      ],
+      "disconnect": {
+        "label": "C",
+        "serverObserved": true,
+        "connectedAfter": false,
+        "remaining": ["A", "B"]
+      }
+    },
+    "steps": {
+      "1-connect": {
+        "connections": [
+          { "label": "A", "socketId": "sid_A" },
+          { "label": "B", "socketId": "sid_B" },
+          { "label": "C", "socketId": "sid_C" }
+        ],
+        "distinctSocketIds": true
+      },
+      "2-room-join": {
+        "joins": [
+          { "label": "A", "acknowledgement": { "accepted": true, "room": "room-1" } },
+          { "label": "B", "acknowledgement": { "accepted": true, "room": "room-1" } },
+          { "label": "C", "acknowledgement": { "accepted": true, "room": "room-1" } }
+        ]
+      },
+      "3-sender-excluded-stroke": {
+        "delivery": {
+          "event": "stroke",
+          "payload": {
+            "id": 1,
+            "points": [
+              [0.1, 0.2],
+              [0.3, 0.4]
+            ]
+          },
+          "recipients": ["B", "C"],
+          "senderExcluded": "A"
+        }
+      },
+      "4-wrong-guess": {
+        "acknowledgement": { "from": "B", "value": false },
+        "delivery": {
+          "event": "chat",
+          "payload": { "from": "B", "text": "zebra" },
+          "recipients": ["A", "B", "C"]
+        }
+      },
+      "5-correct-guess": {
+        "acknowledgement": { "from": "C", "value": true },
+        "targeted": { "event": "correct", "payload": { "word": "giraffe" }, "recipients": ["C"] },
+        "announce": {
+          "event": "announce",
+          "payload": { "winner": "C", "word": "giraffe" },
+          "recipients": ["A", "B", "C"]
+        }
+      },
+      "6-disconnect": {
+        "disconnect": {
+          "label": "C",
+          "serverObserved": true,
+          "connectedAfter": false,
+          "remaining": ["A", "B"]
+        },
+        "delivery": {
+          "event": "stroke",
+          "payload": { "id": 2, "points": [[0.5, 0.6]], "end": true },
+          "recipients": ["B"],
+          "senderExcluded": "A",
+          "disconnected": ["C"]
+        }
+      }
+    }
+  },
+  "cards": [
+    {
+      "targetId": "smocket",
+      "label": "Smocket workspace source",
+      "fixture": "case-studies/drawing-game/fixtures/smocket",
+      "packages": { "smocket": "workspace:0.5.0", "smocket-client": "workspace:0.5.0" },
+      "repeatedRunMatches": true,
+      "steps": [
+        {
+          "stepId": "1-connect",
+          "status": "MATCH",
+          "expected": {
+            "connections": [
+              { "label": "A", "socketId": "sid_A" },
+              { "label": "B", "socketId": "sid_B" },
+              { "label": "C", "socketId": "sid_C" }
+            ],
+            "distinctSocketIds": true
+          },
+          "actual": {
+            "connections": [
+              { "label": "A", "socketId": "sid_A" },
+              { "label": "B", "socketId": "sid_B" },
+              { "label": "C", "socketId": "sid_C" }
+            ],
+            "distinctSocketIds": true
+          },
+          "evidenceIds": ["smocket-workspace-substitution"]
+        },
+        {
+          "stepId": "2-room-join",
+          "status": "MATCH",
+          "expected": {
+            "joins": [
+              { "label": "A", "acknowledgement": { "accepted": true, "room": "room-1" } },
+              { "label": "B", "acknowledgement": { "accepted": true, "room": "room-1" } },
+              { "label": "C", "acknowledgement": { "accepted": true, "room": "room-1" } }
+            ]
+          },
+          "actual": {
+            "joins": [
+              { "label": "A", "acknowledgement": { "accepted": true, "room": "room-1" } },
+              { "label": "B", "acknowledgement": { "accepted": true, "room": "room-1" } },
+              { "label": "C", "acknowledgement": { "accepted": true, "room": "room-1" } }
+            ]
+          },
+          "evidenceIds": ["smocket-workspace-substitution"]
+        },
+        {
+          "stepId": "3-sender-excluded-stroke",
+          "status": "MATCH",
+          "expected": {
+            "delivery": {
+              "event": "stroke",
+              "payload": {
+                "id": 1,
+                "points": [
+                  [0.1, 0.2],
+                  [0.3, 0.4]
+                ]
+              },
+              "recipients": ["B", "C"],
+              "senderExcluded": "A"
+            }
+          },
+          "actual": {
+            "delivery": {
+              "event": "stroke",
+              "payload": {
+                "id": 1,
+                "points": [
+                  [0.1, 0.2],
+                  [0.3, 0.4]
+                ]
+              },
+              "recipients": ["B", "C"],
+              "senderExcluded": "A"
+            }
+          },
+          "evidenceIds": ["smocket-workspace-substitution"]
+        },
+        {
+          "stepId": "4-wrong-guess",
+          "status": "MATCH",
+          "expected": {
+            "acknowledgement": { "from": "B", "value": false },
+            "delivery": {
+              "event": "chat",
+              "payload": { "from": "B", "text": "zebra" },
+              "recipients": ["A", "B", "C"]
+            }
+          },
+          "actual": {
+            "acknowledgement": { "from": "B", "value": false },
+            "delivery": {
+              "event": "chat",
+              "payload": { "from": "B", "text": "zebra" },
+              "recipients": ["A", "B", "C"]
+            }
+          },
+          "evidenceIds": ["smocket-workspace-substitution"]
+        },
+        {
+          "stepId": "5-correct-guess",
+          "status": "MATCH",
+          "expected": {
+            "acknowledgement": { "from": "C", "value": true },
+            "targeted": {
+              "event": "correct",
+              "payload": { "word": "giraffe" },
+              "recipients": ["C"]
+            },
+            "announce": {
+              "event": "announce",
+              "payload": { "winner": "C", "word": "giraffe" },
+              "recipients": ["A", "B", "C"]
+            }
+          },
+          "actual": {
+            "acknowledgement": { "from": "C", "value": true },
+            "targeted": {
+              "event": "correct",
+              "payload": { "word": "giraffe" },
+              "recipients": ["C"]
+            },
+            "announce": {
+              "event": "announce",
+              "payload": { "winner": "C", "word": "giraffe" },
+              "recipients": ["A", "B", "C"]
+            }
+          },
+          "evidenceIds": ["smocket-workspace-substitution"]
+        },
+        {
+          "stepId": "6-disconnect",
+          "status": "MATCH",
+          "expected": {
+            "disconnect": {
+              "label": "C",
+              "serverObserved": true,
+              "connectedAfter": false,
+              "remaining": ["A", "B"]
+            },
+            "delivery": {
+              "event": "stroke",
+              "payload": { "id": 2, "points": [[0.5, 0.6]], "end": true },
+              "recipients": ["B"],
+              "senderExcluded": "A",
+              "disconnected": ["C"]
+            }
+          },
+          "actual": {
+            "disconnect": {
+              "label": "C",
+              "serverObserved": true,
+              "connectedAfter": false,
+              "remaining": ["A", "B"]
+            },
+            "delivery": {
+              "event": "stroke",
+              "payload": { "id": 2, "points": [[0.5, 0.6]], "end": true },
+              "recipients": ["B"],
+              "senderExcluded": "A",
+              "disconnected": ["C"]
+            }
+          },
+          "evidenceIds": ["smocket-workspace-substitution"]
+        }
+      ],
+      "capabilityEvidence": [
+        {
+          "id": "smocket-workspace-substitution",
+          "kind": "source",
+          "source": "examples/drawing-game/smocket-loader.mjs",
+          "finding": "socket.io-client resolves to the workspace smocket-client build for this target."
+        }
+      ]
+    },
+    {
+      "targetId": "mock-socket",
+      "label": "mock-socket",
+      "fixture": "case-studies/drawing-game/fixtures/mock-socket",
+      "packages": { "mock-socket": "9.3.1" },
+      "repeatedRunMatches": true,
+      "steps": [
+        {
+          "stepId": "1-connect",
+          "status": "DIFFERENT",
+          "expected": {
+            "connections": [
+              { "label": "A", "socketId": "sid_A" },
+              { "label": "B", "socketId": "sid_B" },
+              { "label": "C", "socketId": "sid_C" }
+            ],
+            "distinctSocketIds": true
+          },
+          "actual": {
+            "connections": [
+              { "label": "A", "socketId": null },
+              { "label": "B", "socketId": null },
+              { "label": "C", "socketId": null }
+            ],
+            "distinctSocketIds": false
+          },
+          "reason": "Three clients connect, but the public SocketIO facade supplies no socket ids.",
+          "evidenceIds": ["mock-socket-declaration"]
+        },
+        {
+          "stepId": "2-room-join",
+          "status": "UNSUPPORTED",
+          "expected": {
+            "joins": [
+              { "label": "A", "acknowledgement": { "accepted": true, "room": "room-1" } },
+              { "label": "B", "acknowledgement": { "accepted": true, "room": "room-1" } },
+              { "label": "C", "acknowledgement": { "accepted": true, "room": "room-1" } }
+            ]
+          },
+          "actual": {
+            "acknowledgement": { "accepted": true, "room": "room-1" },
+            "listenerRunsOnSharedServer": true,
+            "listenerArgumentTypes": ["string", "function"],
+            "originatingSocketArgument": false
+          },
+          "reason": "The server event listener receives room and ack but no originating per-connection socket to join.",
+          "evidenceIds": ["mock-socket-runtime-origin", "mock-socket-declaration"]
+        },
+        {
+          "stepId": "3-sender-excluded-stroke",
+          "status": "BLOCKED",
+          "expected": {
+            "delivery": {
+              "event": "stroke",
+              "payload": {
+                "id": 1,
+                "points": [
+                  [0.1, 0.2],
+                  [0.3, 0.4]
+                ]
+              },
+              "recipients": ["B", "C"],
+              "senderExcluded": "A"
+            }
+          },
+          "actual": {
+            "initiator": "client",
+            "recipients": ["B", "C"],
+            "markerRecipients": ["B", "C"]
+          },
+          "blockedByStepId": "2-room-join",
+          "reason": "The workflow cannot establish server-owned room membership for the originating socket.",
+          "evidenceIds": []
+        },
+        {
+          "stepId": "4-wrong-guess",
+          "status": "BLOCKED",
+          "expected": {
+            "acknowledgement": { "from": "B", "value": false },
+            "delivery": {
+              "event": "chat",
+              "payload": { "from": "B", "text": "zebra" },
+              "recipients": ["A", "B", "C"]
+            }
+          },
+          "actual": { "acknowledgement": false, "originatingSocketAvailableToHandler": false },
+          "blockedByStepId": "2-room-join",
+          "reason": "The ack crosses, but the handler cannot identify B to create the room chat payload and route it.",
+          "evidenceIds": []
+        },
+        {
+          "stepId": "5-correct-guess",
+          "status": "BLOCKED",
+          "expected": {
+            "acknowledgement": { "from": "C", "value": true },
+            "targeted": {
+              "event": "correct",
+              "payload": { "word": "giraffe" },
+              "recipients": ["C"]
+            },
+            "announce": {
+              "event": "announce",
+              "payload": { "winner": "C", "word": "giraffe" },
+              "recipients": ["A", "B", "C"]
+            }
+          },
+          "actual": { "serverHasSocketIdTargeting": false, "clientId": null },
+          "blockedByStepId": "2-room-join",
+          "reason": "The handler has neither an originating socket id nor server-side socket targeting for C.",
+          "evidenceIds": []
+        },
+        {
+          "stepId": "6-disconnect",
+          "status": "BLOCKED",
+          "expected": {
+            "disconnect": {
+              "label": "C",
+              "serverObserved": true,
+              "connectedAfter": false,
+              "remaining": ["A", "B"]
+            },
+            "delivery": {
+              "event": "stroke",
+              "payload": { "id": 2, "points": [[0.5, 0.6]], "end": true },
+              "recipients": ["B"],
+              "senderExcluded": "A",
+              "disconnected": ["C"]
+            }
+          },
+          "actual": { "connectedClientsAfterCDisconnect": 2, "cReadyState": 3 },
+          "blockedByStepId": "2-room-join",
+          "reason": "Disconnect cleanup exists, but the required server-owned room workflow was never established.",
+          "evidenceIds": []
+        }
+      ],
+      "capabilityEvidence": [
+        {
+          "id": "mock-socket-declaration",
+          "kind": "installed-declaration",
+          "source": "node_modules/mock-socket/index.d.ts",
+          "sourceSha256": "f3cf76387308428c3754e9f3bc06f60a8e2a3ac3b125e01f936c91404d618319",
+          "finding": "SocketIOClient exposes join/to/broadcast but no id; Server connection types do not model a Socket.IO server socket."
+        },
+        {
+          "id": "mock-socket-runtime-origin",
+          "kind": "runtime-probe",
+          "source": "fixtures/mock-socket/probe.mjs",
+          "finding": "A join listener receives only the room and acknowledgement and runs on the shared Server object."
+        }
+      ]
+    },
+    {
+      "targetId": "msw-binding",
+      "label": "@mswjs/socket.io-binding",
+      "fixture": "case-studies/drawing-game/fixtures/msw-binding",
+      "packages": {
+        "@mswjs/socket.io-binding": "0.2.0",
+        "msw": "2.15.0",
+        "socket.io-client": "4.8.3"
+      },
+      "repeatedRunMatches": true,
+      "steps": [
+        {
+          "stepId": "1-connect",
+          "status": "DIFFERENT",
+          "expected": {
+            "connections": [
+              { "label": "A", "socketId": "sid_A" },
+              { "label": "B", "socketId": "sid_B" },
+              { "label": "C", "socketId": "sid_C" }
+            ],
+            "distinctSocketIds": true
+          },
+          "actual": { "connections": [], "distinctSocketIds": false },
+          "reason": "MSW intercepts all three attempts, but the binding does not complete the Socket.IO handshake with the current compatible MSW release.",
+          "evidenceIds": ["msw-binding-runtime"]
+        },
+        {
+          "stepId": "2-room-join",
+          "status": "BLOCKED",
+          "expected": {
+            "joins": [
+              { "label": "A", "acknowledgement": { "accepted": true, "room": "room-1" } },
+              { "label": "B", "acknowledgement": { "accepted": true, "room": "room-1" } },
+              { "label": "C", "acknowledgement": { "accepted": true, "room": "room-1" } }
+            ]
+          },
+          "actual": {
+            "interceptedConnections": 0,
+            "connectionResults": [
+              {
+                "label": "A",
+                "state": "connect_error",
+                "socketId": null,
+                "error": "websocket error"
+              },
+              {
+                "label": "B",
+                "state": "connect_error",
+                "socketId": null,
+                "error": "websocket error"
+              },
+              {
+                "label": "C",
+                "state": "connect_error",
+                "socketId": null,
+                "error": "websocket error"
+              }
+            ],
+            "bindingMethods": ["on", "send", "emit"],
+            "roomApi": false,
+            "acknowledgementPacketApi": false
+          },
+          "blockedByStepId": "1-connect",
+          "reason": "No Socket.IO client connected, so join and ack cannot run.",
+          "evidenceIds": []
+        },
+        {
+          "stepId": "3-sender-excluded-stroke",
+          "status": "BLOCKED",
+          "expected": {
+            "delivery": {
+              "event": "stroke",
+              "payload": {
+                "id": 1,
+                "points": [
+                  [0.1, 0.2],
+                  [0.3, 0.4]
+                ]
+              },
+              "recipients": ["B", "C"],
+              "senderExcluded": "A"
+            }
+          },
+          "actual": { "roomApi": false, "broadcastApi": false, "senderExclusionApi": false },
+          "blockedByStepId": "1-connect",
+          "reason": "No connected clients exist; the binding also declares no room or broadcast API.",
+          "evidenceIds": []
+        },
+        {
+          "stepId": "4-wrong-guess",
+          "status": "BLOCKED",
+          "expected": {
+            "acknowledgement": { "from": "B", "value": false },
+            "delivery": {
+              "event": "chat",
+              "payload": { "from": "B", "text": "zebra" },
+              "recipients": ["A", "B", "C"]
+            }
+          },
+          "actual": { "acknowledgementPacketApi": false, "roomBroadcastApi": false },
+          "blockedByStepId": "1-connect",
+          "reason": "No connected clients exist; the binding declaration has no acknowledgement packet API.",
+          "evidenceIds": []
+        },
+        {
+          "stepId": "5-correct-guess",
+          "status": "BLOCKED",
+          "expected": {
+            "acknowledgement": { "from": "C", "value": true },
+            "targeted": {
+              "event": "correct",
+              "payload": { "word": "giraffe" },
+              "recipients": ["C"]
+            },
+            "announce": {
+              "event": "announce",
+              "payload": { "winner": "C", "word": "giraffe" },
+              "recipients": ["A", "B", "C"]
+            }
+          },
+          "actual": { "socketIdTargetingApi": false, "roomBroadcastApi": false },
+          "blockedByStepId": "1-connect",
+          "reason": "No connected clients or socket-id/room targeting APIs exist.",
+          "evidenceIds": []
+        },
+        {
+          "stepId": "6-disconnect",
+          "status": "BLOCKED",
+          "expected": {
+            "disconnect": {
+              "label": "C",
+              "serverObserved": true,
+              "connectedAfter": false,
+              "remaining": ["A", "B"]
+            },
+            "delivery": {
+              "event": "stroke",
+              "payload": { "id": 2, "points": [[0.5, 0.6]], "end": true },
+              "recipients": ["B"],
+              "senderExcluded": "A",
+              "disconnected": ["C"]
+            }
+          },
+          "actual": { "clientCloseAvailable": true, "roomCleanupObservable": false },
+          "blockedByStepId": "1-connect",
+          "reason": "The workflow never connected or joined a room, so disconnect cleanup cannot be compared.",
+          "evidenceIds": []
+        }
+      ],
+      "capabilityEvidence": [
+        {
+          "id": "msw-binding-readme",
+          "kind": "official-readme",
+          "source": "node_modules/@mswjs/socket.io-binding/README.md",
+          "sourceSha256": "feadcc880d1a61a62f2a85b4fd6c3173d665f497f6641557a2bc31a191da2914",
+          "url": "https://www.npmjs.com/package/@mswjs/socket.io-binding",
+          "finding": "The package documents rooms, namespaces, and broadcasting as missing features."
+        },
+        {
+          "id": "msw-binding-declaration",
+          "kind": "installed-declaration",
+          "source": "node_modules/@mswjs/socket.io-binding/build/index.d.ts",
+          "sourceSha256": "e6d6687e313e1c44e8404d9e4d16a75a948eda3db22d688b6f7fd9dbae08c407",
+          "finding": "The bound connection exposes on, send, and emit only; no room, targeting, or acknowledgement API is declared."
+        },
+        {
+          "id": "msw-binding-runtime",
+          "kind": "runtime-probe",
+          "source": "fixtures/msw-binding/probe.mjs",
+          "finding": "MSW receives each connection event, but socket.io-client emits connect_error: timeout."
+        }
+      ]
+    },
+    {
+      "targetId": "socket.io-mock",
+      "label": "socket.io-mock",
+      "fixture": "case-studies/drawing-game/fixtures/socket.io-mock",
+      "packages": { "socket.io-mock": "1.3.2" },
+      "repeatedRunMatches": true,
+      "steps": [
+        {
+          "stepId": "1-connect",
+          "status": "DIFFERENT",
+          "expected": {
+            "connections": [
+              { "label": "A", "socketId": "sid_A" },
+              { "label": "B", "socketId": "sid_B" },
+              { "label": "C", "socketId": "sid_C" }
+            ],
+            "distinctSocketIds": true
+          },
+          "actual": {
+            "connections": [
+              { "label": "A", "socketId": null },
+              { "label": "B", "socketId": null },
+              { "label": "C", "socketId": null }
+            ],
+            "distinctSocketIds": false
+          },
+          "reason": "The paired clients are connected but expose no socket ids and share no server registry.",
+          "evidenceIds": ["socket-io-mock-runtime"]
+        },
+        {
+          "stepId": "2-room-join",
+          "status": "MATCH",
+          "expected": {
+            "joins": [
+              { "label": "A", "acknowledgement": { "accepted": true, "room": "room-1" } },
+              { "label": "B", "acknowledgement": { "accepted": true, "room": "room-1" } },
+              { "label": "C", "acknowledgement": { "accepted": true, "room": "room-1" } }
+            ]
+          },
+          "actual": {
+            "joins": [
+              { "label": "A", "acknowledgement": { "accepted": true, "room": "room-1" } },
+              { "label": "B", "acknowledgement": { "accepted": true, "room": "room-1" } },
+              { "label": "C", "acknowledgement": { "accepted": true, "room": "room-1" } }
+            ]
+          },
+          "evidenceIds": ["socket-io-mock-source"]
+        },
+        {
+          "stepId": "3-sender-excluded-stroke",
+          "status": "DIFFERENT",
+          "expected": {
+            "delivery": {
+              "event": "stroke",
+              "payload": {
+                "id": 1,
+                "points": [
+                  [0.1, 0.2],
+                  [0.3, 0.4]
+                ]
+              },
+              "recipients": ["B", "C"],
+              "senderExcluded": "A"
+            }
+          },
+          "actual": {
+            "delivery": {
+              "event": "stroke",
+              "payload": {
+                "id": 1,
+                "points": [
+                  [0.1, 0.2],
+                  [0.3, 0.4]
+                ]
+              },
+              "recipients": [],
+              "senderExcluded": "A"
+            }
+          },
+          "reason": "broadcast.to() invokes a local observation callback but does not route to the other SocketMock instances.",
+          "evidenceIds": ["socket-io-mock-runtime"]
+        },
+        {
+          "stepId": "4-wrong-guess",
+          "status": "DIFFERENT",
+          "expected": {
+            "acknowledgement": { "from": "B", "value": false },
+            "delivery": {
+              "event": "chat",
+              "payload": { "from": "B", "text": "zebra" },
+              "recipients": ["A", "B", "C"]
+            }
+          },
+          "actual": {
+            "acknowledgement": { "from": "B", "value": false },
+            "delivery": {
+              "event": "chat",
+              "payload": { "from": "B", "text": "zebra" },
+              "recipients": []
+            }
+          },
+          "evidenceIds": ["socket-io-mock-runtime"]
+        },
+        {
+          "stepId": "5-correct-guess",
+          "status": "DIFFERENT",
+          "expected": {
+            "acknowledgement": { "from": "C", "value": true },
+            "targeted": {
+              "event": "correct",
+              "payload": { "word": "giraffe" },
+              "recipients": ["C"]
+            },
+            "announce": {
+              "event": "announce",
+              "payload": { "winner": "C", "word": "giraffe" },
+              "recipients": ["A", "B", "C"]
+            }
+          },
+          "actual": {
+            "acknowledgement": { "from": "C", "value": true },
+            "targeted": {
+              "event": "correct",
+              "payload": { "word": "giraffe" },
+              "recipients": ["C"]
+            },
+            "announce": {
+              "event": "announce",
+              "payload": { "winner": "C", "word": "giraffe" },
+              "recipients": []
+            }
+          },
+          "evidenceIds": ["socket-io-mock-runtime"]
+        },
+        {
+          "stepId": "6-disconnect",
+          "status": "DIFFERENT",
+          "expected": {
+            "disconnect": {
+              "label": "C",
+              "serverObserved": true,
+              "connectedAfter": false,
+              "remaining": ["A", "B"]
+            },
+            "delivery": {
+              "event": "stroke",
+              "payload": { "id": 2, "points": [[0.5, 0.6]], "end": true },
+              "recipients": ["B"],
+              "senderExcluded": "A",
+              "disconnected": ["C"]
+            }
+          },
+          "actual": {
+            "disconnect": {
+              "label": "C",
+              "serverObserved": false,
+              "connectedAfter": false,
+              "remaining": ["A", "B"]
+            },
+            "delivery": {
+              "event": "stroke",
+              "payload": { "id": 2, "points": [[0.5, 0.6]], "end": true },
+              "recipients": [],
+              "senderExcluded": "A",
+              "disconnected": ["C"]
+            }
+          },
+          "evidenceIds": ["socket-io-mock-runtime"]
+        }
+      ],
+      "capabilityEvidence": [
+        {
+          "id": "socket-io-mock-source",
+          "kind": "installed-source",
+          "source": "node_modules/socket.io-mock/dist/index.js",
+          "sourceSha256": "d9ca92c3b013627436af5a91dd6887d51b76be8aa61b068283b4f731f088c3b3",
+          "finding": "Each constructor owns one server/client pair and one local rooms array."
+        },
+        {
+          "id": "socket-io-mock-runtime",
+          "kind": "runtime-probe",
+          "source": "fixtures/socket.io-mock/probe.mjs",
+          "finding": "Acknowledgements and pair-local targeted emits work; room broadcasts do not reach other instances."
+        }
+      ]
+    }
+  ],
+  "claimBoundary": "These statuses apply only to the six recorded drawing-game steps and are not claims of overall library quality or Socket.IO compatibility."
+}

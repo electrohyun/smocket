@@ -9,7 +9,9 @@
     "type": "git",
     "url": "git+https://github.com/electrohyun/smocket.git"
   },
-  "bugs": "https://github.com/electrohyun/smocket/issues",
+  "bugs": {
+    "url": "https://github.com/electrohyun/smocket/issues"
+  },
   "homepage": "https://github.com/electrohyun/smocket#readme",
   "keywords": [
     "socket.io",
@@ -82,6 +84,18 @@
     "case-study:chat-room": "node scripts/run-chat-room-case-study.mjs",
     "case-study:chat-room:record": "node scripts/run-chat-room-case-study.mjs --write",
     "case-study:chat-room:check": "node scripts/run-chat-room-case-study.mjs --check",
+    "case-study:drawing-game": "pnpm case-study:drawing-game:prepare && node scripts/run-drawing-game-case-study.mjs",
+    "case-study:drawing-game:prepare": "pnpm example:drawing-game:prepare && pnpm --filter drawing-game-example build",
+    "case-study:drawing-game:record": "pnpm case-study:drawing-game:prepare && node scripts/run-drawing-game-case-study.mjs --write",
+    "case-study:drawing-game:check": "pnpm case-study:drawing-game:prepare && node scripts/run-drawing-game-case-study.mjs --check",
+    "case-study:drawing-game:test": "node --test case-studies/drawing-game/case-study.test.mjs",
+    "case-study:drawing-game:snippets": "node scripts/drawing-game-case-study-snippets.mjs --write",
+    "case-study:drawing-game:snippets:check": "node scripts/drawing-game-case-study-snippets.mjs --check",
+    "case-study:drawing-game:real": "pnpm case-study:drawing-game:prepare && node scripts/run-drawing-game-case-study.mjs --target real",
+    "case-study:drawing-game:smocket": "pnpm case-study:drawing-game:prepare && node scripts/run-drawing-game-case-study.mjs --target smocket",
+    "case-study:drawing-game:mock-socket": "pnpm case-study:drawing-game:prepare && node scripts/run-drawing-game-case-study.mjs --target mock-socket",
+    "case-study:drawing-game:msw-binding": "pnpm case-study:drawing-game:prepare && node scripts/run-drawing-game-case-study.mjs --target msw-binding",
+    "case-study:drawing-game:socket-io-mock": "pnpm case-study:drawing-game:prepare && node scripts/run-drawing-game-case-study.mjs --target socket.io-mock",
     "conformance": "node scripts/conformance-report.mjs",
     "check:conformance": "node scripts/conformance-report.mjs --check",
     "public-surface": "node scripts/check-public-surface.mjs --write",
@@ -110,5 +124,9 @@
     "typescript": "6.0.3",
     "typescript-eslint": "^8.64.0",
     "vitest": "^4.1.10"
+  },
+  "directories": {
+    "doc": "docs",
+    "example": "examples"
   }
 }
