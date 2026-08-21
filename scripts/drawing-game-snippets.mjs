@@ -1,7 +1,8 @@
 import { readFile, writeFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const root = resolve(import.meta.dirname, '..');
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const artifactPath = resolve(root, 'examples/drawing-game/snippets.generated.json');
 const regenerateWith = 'pnpm example:drawing-game:snippets';
 
