@@ -2,7 +2,6 @@
   "schemaVersion": 1,
   "caseStudy": "drawing-game-compatibility",
   "environment": {
-    "measuredAt": "2026-08-21T12:04:22.752Z",
     "platform": "win32",
     "architecture": "x64",
     "node": "v24.11.1",
@@ -83,7 +82,7 @@
     "measurement": [
       {
         "path": "case-studies/drawing-game/schema.mjs",
-        "sha256": "ac60a61e435134ccbb1e0b66e54c83e83933920362e75e9ce2f39266861ac3ad"
+        "sha256": "08c7a90861b779e0be8474bec01717f3fc74c5532abbcd87ffac65f1d3ac8dd0"
       },
       {
         "path": "case-studies/drawing-game/evaluate.mjs",
@@ -91,11 +90,11 @@
       },
       {
         "path": "scripts/run-drawing-game-case-study.mjs",
-        "sha256": "04eb37ed1644ed896c3544f94a11ad4e4351ad6932936990fa0e73dfbf1edcf6"
+        "sha256": "5dfe21eb69b5406eba582df68961a544f819e3e7f434088e5a5b7ab4798279cb"
       },
       {
         "path": "package.json",
-        "sha256": "eae5ac5cb17ea57053aa88c8d72cafad6b62ba4a1fb6540db76390cb4335c32c"
+        "sha256": "319dfb9b756ec39b2a44ddbacd00f4e52d5a3649a843c2468417dee0557d5bb8"
       },
       {
         "path": "pnpm-lock.yaml",

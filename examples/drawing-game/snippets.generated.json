@@ -7,6 +7,7 @@
       "sourceFile": "examples/drawing-game/application.ts",
       "language": "typescript",
       "purpose": "Join and acknowledge the shared room.",
+      "stepIds": ["2-room-join"],
       "code": "    socket.on('join', async (room, acknowledge) => {\n      if (room !== ROOM) {\n        acknowledge({ accepted: false, room });\n        return;\n      }\n      await socket.join(room);\n      acknowledge({ accepted: true, room });\n    });"
     },
     {
@@ -14,6 +15,7 @@
       "sourceFile": "examples/drawing-game/application.ts",
       "language": "typescript",
       "purpose": "Exclude the drawer while broadcasting a stroke to the room.",
+      "stepIds": ["3-sender-excluded-stroke"],
       "code": "    socket.on('stroke', (segment) => {\n      socket.to(ROOM).emit('stroke', segment);\n    });"
     },
     {
@@ -21,6 +23,7 @@
       "sourceFile": "examples/drawing-game/client.ts",
       "language": "typescript",
       "purpose": "Send stroke segments and receive the segments delivered by the server.",
+      "stepIds": ["3-sender-excluded-stroke"],
       "code": "export function receiveStrokes(\n  client: DrawingGameClient,\n  receive: (segment: StrokeSegment) => void,\n): void {\n  client.on('stroke', receive);\n}\n\nexport function sendStroke(client: DrawingGameClient, segment: StrokeSegment): void {\n  client.emit('stroke', segment);\n}"
     },
     {
@@ -28,6 +31,7 @@
       "sourceFile": "examples/drawing-game/application.ts",
       "language": "typescript",
       "purpose": "Handle chat and guesses, including acknowledgements and winner delivery.",
+      "stepIds": ["4-wrong-guess", "5-correct-guess"],
       "code": "    socket.on('chat', (text) => {\n      io.to(ROOM).emit('chat', { from: label, text });\n    });\n\n    socket.on('guess', (text, acknowledge) => {\n      const correct = text === WORD;\n      acknowledge(correct);\n\n      if (!correct) {\n        io.to(ROOM).emit('chat', { from: label, text });\n        return;\n      }\n\n      io.to(socket.id).emit('correct', { word: WORD });\n      io.to(ROOM).emit('announce', { winner: label, word: WORD });\n    });"
     },
     {
@@ -35,6 +39,7 @@
       "sourceFile": "examples/drawing-game/client.ts",
       "language": "typescript",
       "purpose": "Submit guesses and receive chat, targeted correct, and room announce events.",
+      "stepIds": ["4-wrong-guess", "5-correct-guess"],
       "code": "export function receiveChat(client: DrawingGameClient, receive: (message: ChatMessage) => void) {\n  client.on('chat', receive);\n}\n\nexport function receiveCorrect(client: DrawingGameClient, receive: (word: string) => void) {\n  client.on('correct', ({ word }) => receive(word));\n}\n\nexport function receiveAnnouncement(\n  client: DrawingGameClient,\n  receive: (result: RoundResult) => void,\n) {\n  client.on('announce', receive);\n}\n\nexport function submitGuess(client: DrawingGameClient, text: string): Promise<boolean> {\n  return new Promise((resolve) => client.emit('guess', text, resolve));\n}"
     },
     {
@@ -42,6 +47,7 @@
       "sourceFile": "examples/drawing-game/application.ts",
       "language": "typescript",
       "purpose": "Return the server-side boolean guess acknowledgement.",
+      "stepIds": ["4-wrong-guess", "5-correct-guess"],
       "code": "      const correct = text === WORD;\n      acknowledge(correct);"
     },
     {
@@ -49,6 +55,7 @@
       "sourceFile": "examples/drawing-game/application.ts",
       "language": "typescript",
       "purpose": "Emit the correct result only to the winning socket id.",
+      "stepIds": ["5-correct-guess"],
       "code": "      io.to(socket.id).emit('correct', { word: WORD });"
     },
     {
@@ -56,6 +63,7 @@
       "sourceFile": "examples/drawing-game/application.ts",
       "language": "typescript",
       "purpose": "Announce the winner and word to every connected room member.",
+      "stepIds": ["5-correct-guess"],
       "code": "      io.to(ROOM).emit('announce', { winner: label, word: WORD });"
     },
     {
@@ -63,6 +71,7 @@
       "sourceFile": "examples/drawing-game/scenario.ts",
       "language": "typescript",
       "purpose": "Disconnect C, wait for server cleanup, and prove the next stroke reaches only B.",
+      "stepIds": ["6-disconnect"],
       "code": "    const serverDisconnected = application.waitForDisconnect('C');\n    clients.C.disconnect();\n    await serverDisconnected;\n\n    const secondStroke: StrokeSegment = {\n      id: 2,\n      points: [[0.5, 0.6]],\n      end: true,\n    };\n    sendStroke(clients.A, secondStroke);\n    await crossBarrier(application, clients.A, observers, ['A', 'B'], 'after-disconnect-stroke');"
     },
     {
@@ -70,6 +79,7 @@
       "sourceFile": "examples/drawing-game/real.ts",
       "language": "typescript",
       "purpose": "Start Real Socket.IO on an ephemeral Node HTTP port and register the golden handlers.",
+      "stepIds": ["1-connect"],
       "code": "export async function startRealApplication(): Promise<ScenarioApplication> {\n  const httpServer = createServer();\n  const io = new SocketIoServer<ClientToServerEvents, ServerToClientEvents>(httpServer);\n  registerDrawingGameHandlers(io);\n  await listen(httpServer);\n\n  const address = httpServer.address();\n  if (!address || typeof address === 'string') {\n    await closeSocketIo(io);\n    throw new Error('Socket.IO did not receive a TCP address');\n  }\n\n  return createScenarioApplication(io, `http://127.0.0.1:${address.port}`, () => closeSocketIo(io));\n}"
     },
     {
@@ -77,6 +87,7 @@
       "sourceFile": "examples/drawing-game/smocket.ts",
       "language": "typescript",
       "purpose": "Start an isolated in-memory Smocket server and register the golden handlers.",
+      "stepIds": ["1-connect"],
       "code": "export function startSmocketApplication(): ScenarioApplication {\n  nextOrigin += 1;\n  const url = `http://drawing-game-${nextOrigin}.smocket.test`;\n  const io = new SmocketServer<ClientToServerEvents, ServerToClientEvents>(url);\n  registerDrawingGameHandlers(io);\n\n  return createScenarioApplication(io, url, () => io.close());\n}"
     },
     {
@@ -84,6 +95,7 @@
       "sourceFile": "examples/drawing-game/smocket-loader.mjs",
       "language": "javascript",
       "purpose": "Resolve socket.io-client to smocket-client only for the compiled Smocket target.",
+      "stepIds": ["1-connect"],
       "code": "export async function resolve(specifier, context, nextResolve) {\n  const fromSmocketBuild = context.parentURL?.includes('/examples/drawing-game/dist/smocket/');\n  if (specifier === 'socket.io-client' && fromSmocketBuild) {\n    return nextResolve(\n      new URL('../../packages/smocket-client/dist/index.mjs', import.meta.url).href,\n      context,\n    );\n  }\n  const fromSmocketClient = context.parentURL?.includes('/packages/smocket-client/dist/');\n  if (specifier === 'smocket' && (fromSmocketBuild || fromSmocketClient)) {\n    return nextResolve(new URL('../../dist/index.js', import.meta.url).href, context);\n  }\n  return nextResolve(specifier, context);\n}"
     }
   ]

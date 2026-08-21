@@ -33,9 +33,9 @@ pnpm case-study:drawing-game:test
 ```
 
 `record` intentionally replaces the machine-readable observation with a fresh run.
-`check` reruns all targets and compares every stable field with that record. The measured
-timestamp and host environment remain descriptive, while source hashes, versions, oracle,
-cards, statuses, expected values, actual values, and the base source commit must match.
+`check` reruns all targets and compares every stable field with that record. The host
+environment remains descriptive, while source hashes, versions, oracle, cards, statuses,
+expected values, actual values, and the base source commit must match.
 The recorded commit is the commit that last changed the golden workflow. Per-file hashes
 identify the golden code, evaluator, runner, substitution loader, probes, manifests, and
 lockfiles, avoiding a generated file that would need to contain the hash of the commit that
@@ -72,6 +72,22 @@ completion callback before collecting recipients. The MSW fixture's 200 ms optio
 Socket.IO connection failure result, not an event-absence assertion.
 
 ## Generated inputs for UI and reports
+
+[`publication.generated.json`](./publication.generated.json) is the single downstream entry
+point. It records stable hashes and JSON locations for the five canonical artifacts, then
+indexes workflow steps, target classifications, package versions, source metadata, staged
+LOC changes, and every snippet id without copying observation or code payloads.
+
+```bash
+pnpm case-study:drawing-game:publication:record
+pnpm case-study:drawing-game:publication:check
+pnpm case-study:drawing-game:publication:validate
+```
+
+`record` rebuilds only the manifest, `check` detects any direct edit or changed canonical
+artifact, and `validate` checks its schema and all workflow, stage, target, snippet, hash,
+and source-revision references. The manifest contains no timestamp, so repeated generation
+from the same five inputs is byte-for-byte stable.
 
 - [`observations.generated.json`](./observations.generated.json) contains the environment,
   source revision and hashes, exact packages and sources, full Real oracle, four cards,

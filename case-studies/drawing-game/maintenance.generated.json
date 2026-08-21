@@ -892,6 +892,14 @@
       "reason": "Generated output is not counted."
     },
     {
+      "sourceFile": "case-studies/drawing-game/publication-schema.mjs",
+      "reason": "Measurement and generation tooling is not counted."
+    },
+    {
+      "sourceFile": "case-studies/drawing-game/publication.generated.json",
+      "reason": "Generated output is not counted."
+    },
+    {
       "sourceFile": "case-studies/drawing-game/schema.mjs",
       "reason": "Measurement and generation tooling is not counted."
     },
@@ -963,6 +971,10 @@
       "reason": "Measurement and generation tooling is not counted."
     },
     {
+      "sourceFile": "scripts/drawing-game-publication.mjs",
+      "reason": "Measurement and generation tooling is not counted."
+    },
+    {
       "sourceFile": "scripts/drawing-game-snippets.mjs",
       "reason": "Measurement and generation tooling is not counted."
     },
@@ -978,7 +990,7 @@
   "sourceInputs": [
     {
       "sourceFile": "package.json",
-      "sha256": "eae5ac5cb17ea57053aa88c8d72cafad6b62ba4a1fb6540db76390cb4335c32c"
+      "sha256": "319dfb9b756ec39b2a44ddbacd00f4e52d5a3649a843c2468417dee0557d5bb8"
     },
     {
       "sourceFile": "pnpm-lock.yaml",
@@ -1090,7 +1102,7 @@
     },
     {
       "sourceFile": "case-studies/drawing-game/case-study.test.mjs",
-      "sha256": "b03778115a6059413e485b725aeb82fdea2e870130ed4dccbe5c3110994bd916"
+      "sha256": "7daba54148d547512262026c55c0bba585c4e8c8a590b99da26a6e237bdd3773"
     },
     {
       "sourceFile": "case-studies/drawing-game/maintenance-schema.mjs",
@@ -1102,7 +1114,7 @@
     },
     {
       "sourceFile": "scripts/run-drawing-game-maintenance.mjs",
-      "sha256": "def427dfbb057193a46c79064a1fad740bdc1e0c3627572c18e92cb87fed4d3f"
+      "sha256": "28a169f31416a8449df186eaae3b9f8b05e88eb7bc364cc3aa7fe2c86ae2a468"
     },
     {
       "sourceFile": "scripts/drawing-game-maintenance-snippets.mjs",
