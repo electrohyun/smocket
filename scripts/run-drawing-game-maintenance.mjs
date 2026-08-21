@@ -157,6 +157,7 @@ async function createExcludedFiles(countedFiles) {
     'scripts/drawing-game-snippets.mjs',
     'scripts/run-drawing-game-maintenance.mjs',
     'scripts/drawing-game-maintenance-snippets.mjs',
+    'scripts/drawing-game-publication.mjs',
     'package.json',
     'pnpm-lock.yaml',
     'packages/smocket-client/package.json',

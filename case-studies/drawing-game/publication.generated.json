@@ -1,0 +1,828 @@
+{
+  "schemaVersion": 1,
+  "publication": "drawing-game",
+  "sourceRevision": "6afc76aa6b9531e26454c09200627dba1b626640",
+  "commands": {
+    "record": "pnpm case-study:drawing-game:publication:record",
+    "check": "pnpm case-study:drawing-game:publication:check",
+    "validate": "pnpm case-study:drawing-game:publication:validate"
+  },
+  "canonicalArtifacts": [
+    {
+      "id": "golden-snippets",
+      "path": "examples/drawing-game/snippets.generated.json",
+      "purpose": "Executable TypeScript application and target-bootstrap snippets.",
+      "schemaVersion": 1,
+      "sha256": "b34391543f1b9b12a6776b58e80fec33b63eec4dc589812c3763324129923c65"
+    },
+    {
+      "id": "comparison-observations",
+      "path": "case-studies/drawing-game/observations.generated.json",
+      "purpose": "Real oracle and Smocket or competitor step results.",
+      "schemaVersion": 1,
+      "sha256": "87ed7244e42edae96268ece1bcd196c603f62eaa91db50f4343594ef266f037f"
+    },
+    {
+      "id": "comparison-snippets",
+      "path": "case-studies/drawing-game/snippets.generated.json",
+      "purpose": "Executable source snippets indexed by target and workflow step.",
+      "schemaVersion": 1,
+      "sha256": "461f5f1c4ca874d3a4b22b24e941389d3ecbf5626056a614f814dd9cb0908866"
+    },
+    {
+      "id": "maintenance-measurement",
+      "path": "case-studies/drawing-game/maintenance.generated.json",
+      "purpose": "Staged handwritten LOC, diffs, source closures, and assertions.",
+      "schemaVersion": 2,
+      "sha256": "735b2bdd2e6a2153a44c49243a1cc05fd6830e2bdbeb3bba630c83a917ceb209"
+    },
+    {
+      "id": "maintenance-snippets",
+      "path": "case-studies/drawing-game/maintenance-snippets.generated.json",
+      "purpose": "Executable handwritten stage and Smocket integration snippets.",
+      "schemaVersion": 2,
+      "sha256": "5002eae5be52af231b99f45fdf4c2b141ea5aacf076dec64f5d1fcf58e6badba"
+    }
+  ],
+  "workflow": {
+    "definition": { "artifactId": "comparison-observations", "jsonPointer": "/workflow" },
+    "stepIds": [
+      "1-connect",
+      "2-room-join",
+      "3-sender-excluded-stroke",
+      "4-wrong-guess",
+      "5-correct-guess",
+      "6-disconnect"
+    ],
+    "steps": [
+      {
+        "id": "1-connect",
+        "purpose": "Create A, B, and C as independent clients.",
+        "oracle": {
+          "artifactId": "comparison-observations",
+          "jsonPointer": "/oracle/steps/1-connect"
+        },
+        "goldenSnippetIds": ["real-bootstrap", "smocket-bootstrap", "smocket-client-substitution"],
+        "comparisonSnippetIds": [
+          "real.1-connect",
+          "smocket.1-connect",
+          "mock-socket.1-connect",
+          "msw-binding.1-connect",
+          "socket.io-mock.1-connect",
+          "smocket.1-connect.substitution"
+        ]
+      },
+      {
+        "id": "2-room-join",
+        "purpose": "Join room-1 and return the acknowledgement.",
+        "oracle": {
+          "artifactId": "comparison-observations",
+          "jsonPointer": "/oracle/steps/2-room-join"
+        },
+        "goldenSnippetIds": ["room-join"],
+        "comparisonSnippetIds": [
+          "real.2-room-join",
+          "smocket.2-room-join",
+          "mock-socket.2-room-join",
+          "msw-binding.2-room-join",
+          "socket.io-mock.2-room-join"
+        ]
+      },
+      {
+        "id": "3-sender-excluded-stroke",
+        "purpose": "Send A stroke to B and C while excluding A.",
+        "oracle": {
+          "artifactId": "comparison-observations",
+          "jsonPointer": "/oracle/steps/3-sender-excluded-stroke"
+        },
+        "goldenSnippetIds": ["drawing-server-handler", "drawing-client"],
+        "comparisonSnippetIds": [
+          "real.3-sender-excluded-stroke",
+          "smocket.3-sender-excluded-stroke",
+          "mock-socket.3-sender-excluded-stroke",
+          "msw-binding.3-sender-excluded-stroke",
+          "socket.io-mock.3-sender-excluded-stroke"
+        ]
+      },
+      {
+        "id": "4-wrong-guess",
+        "purpose": "Return false and deliver B wrong guess as room chat.",
+        "oracle": {
+          "artifactId": "comparison-observations",
+          "jsonPointer": "/oracle/steps/4-wrong-guess"
+        },
+        "goldenSnippetIds": ["chat-guess-server-handler", "chat-guess-client", "acknowledgement"],
+        "comparisonSnippetIds": [
+          "real.4-wrong-guess",
+          "smocket.4-wrong-guess",
+          "mock-socket.4-wrong-guess",
+          "msw-binding.4-wrong-guess",
+          "socket.io-mock.4-wrong-guess"
+        ]
+      },
+      {
+        "id": "5-correct-guess",
+        "purpose": "Return true, target C, and announce to the room.",
+        "oracle": {
+          "artifactId": "comparison-observations",
+          "jsonPointer": "/oracle/steps/5-correct-guess"
+        },
+        "goldenSnippetIds": [
+          "chat-guess-server-handler",
+          "chat-guess-client",
+          "acknowledgement",
+          "targeted-correct",
+          "room-announce"
+        ],
+        "comparisonSnippetIds": [
+          "real.5-correct-guess",
+          "smocket.5-correct-guess",
+          "mock-socket.5-correct-guess",
+          "msw-binding.5-correct-guess",
+          "socket.io-mock.5-correct-guess"
+        ]
+      },
+      {
+        "id": "6-disconnect",
+        "purpose": "Disconnect C and route the next A stroke only to B.",
+        "oracle": {
+          "artifactId": "comparison-observations",
+          "jsonPointer": "/oracle/steps/6-disconnect"
+        },
+        "goldenSnippetIds": ["disconnect-behavior"],
+        "comparisonSnippetIds": [
+          "real.6-disconnect",
+          "smocket.6-disconnect",
+          "mock-socket.6-disconnect",
+          "msw-binding.6-disconnect",
+          "socket.io-mock.6-disconnect"
+        ]
+      }
+    ],
+    "targets": [
+      {
+        "id": "real",
+        "label": "Real Socket.IO oracle",
+        "role": "behavior-oracle",
+        "packages": { "socket.io": "4.8.3", "socket.io-client": "4.8.3" },
+        "result": { "artifactId": "comparison-observations", "jsonPointer": "/oracle" },
+        "packageSources": {
+          "artifactId": "comparison-observations",
+          "jsonPointer": "/packageSources/real"
+        },
+        "steps": [
+          {
+            "stepId": "1-connect",
+            "status": "ORACLE",
+            "result": {
+              "artifactId": "comparison-observations",
+              "jsonPointer": "/oracle/steps/1-connect"
+            },
+            "snippetIds": ["real.1-connect"]
+          },
+          {
+            "stepId": "2-room-join",
+            "status": "ORACLE",
+            "result": {
+              "artifactId": "comparison-observations",
+              "jsonPointer": "/oracle/steps/2-room-join"
+            },
+            "snippetIds": ["real.2-room-join"]
+          },
+          {
+            "stepId": "3-sender-excluded-stroke",
+            "status": "ORACLE",
+            "result": {
+              "artifactId": "comparison-observations",
+              "jsonPointer": "/oracle/steps/3-sender-excluded-stroke"
+            },
+            "snippetIds": ["real.3-sender-excluded-stroke"]
+          },
+          {
+            "stepId": "4-wrong-guess",
+            "status": "ORACLE",
+            "result": {
+              "artifactId": "comparison-observations",
+              "jsonPointer": "/oracle/steps/4-wrong-guess"
+            },
+            "snippetIds": ["real.4-wrong-guess"]
+          },
+          {
+            "stepId": "5-correct-guess",
+            "status": "ORACLE",
+            "result": {
+              "artifactId": "comparison-observations",
+              "jsonPointer": "/oracle/steps/5-correct-guess"
+            },
+            "snippetIds": ["real.5-correct-guess"]
+          },
+          {
+            "stepId": "6-disconnect",
+            "status": "ORACLE",
+            "result": {
+              "artifactId": "comparison-observations",
+              "jsonPointer": "/oracle/steps/6-disconnect"
+            },
+            "snippetIds": ["real.6-disconnect"]
+          }
+        ]
+      },
+      {
+        "id": "smocket",
+        "label": "Smocket workspace source",
+        "role": "subject",
+        "packages": { "smocket": "workspace:0.5.0", "smocket-client": "workspace:0.5.0" },
+        "result": { "artifactId": "comparison-observations", "jsonPointer": "/cards/0" },
+        "packageSources": {
+          "artifactId": "comparison-observations",
+          "jsonPointer": "/packageSources/smocket"
+        },
+        "steps": [
+          {
+            "stepId": "1-connect",
+            "status": "MATCH",
+            "result": {
+              "artifactId": "comparison-observations",
+              "jsonPointer": "/cards/0/steps/0"
+            },
+            "snippetIds": ["smocket.1-connect", "smocket.1-connect.substitution"]
+          },
+          {
+            "stepId": "2-room-join",
+            "status": "MATCH",
+            "result": {
+              "artifactId": "comparison-observations",
+              "jsonPointer": "/cards/0/steps/1"
+            },
+            "snippetIds": ["smocket.2-room-join"]
+          },
+          {
+            "stepId": "3-sender-excluded-stroke",
+            "status": "MATCH",
+            "result": {
+              "artifactId": "comparison-observations",
+              "jsonPointer": "/cards/0/steps/2"
+            },
+            "snippetIds": ["smocket.3-sender-excluded-stroke"]
+          },
+          {
+            "stepId": "4-wrong-guess",
+            "status": "MATCH",
+            "result": {
+              "artifactId": "comparison-observations",
+              "jsonPointer": "/cards/0/steps/3"
+            },
+            "snippetIds": ["smocket.4-wrong-guess"]
+          },
+          {
+            "stepId": "5-correct-guess",
+            "status": "MATCH",
+            "result": {
+              "artifactId": "comparison-observations",
+              "jsonPointer": "/cards/0/steps/4"
+            },
+            "snippetIds": ["smocket.5-correct-guess"]
+          },
+          {
+            "stepId": "6-disconnect",
+            "status": "MATCH",
+            "result": {
+              "artifactId": "comparison-observations",
+              "jsonPointer": "/cards/0/steps/5"
+            },
+            "snippetIds": ["smocket.6-disconnect"]
+          }
+        ]
+      },
+      {
+        "id": "mock-socket",
+        "label": "mock-socket",
+        "role": "competitor",
+        "packages": { "mock-socket": "9.3.1" },
+        "result": { "artifactId": "comparison-observations", "jsonPointer": "/cards/1" },
+        "packageSources": {
+          "artifactId": "comparison-observations",
+          "jsonPointer": "/packageSources/mock-socket"
+        },
+        "steps": [
+          {
+            "stepId": "1-connect",
+            "status": "DIFFERENT",
+            "reason": "Three clients connect, but the public SocketIO facade supplies no socket ids.",
+            "result": {
+              "artifactId": "comparison-observations",
+              "jsonPointer": "/cards/1/steps/0"
+            },
+            "snippetIds": ["mock-socket.1-connect"]
+          },
+          {
+            "stepId": "2-room-join",
+            "status": "UNSUPPORTED",
+            "reason": "The server event listener receives room and ack but no originating per-connection socket to join.",
+            "result": {
+              "artifactId": "comparison-observations",
+              "jsonPointer": "/cards/1/steps/1"
+            },
+            "snippetIds": ["mock-socket.2-room-join"]
+          },
+          {
+            "stepId": "3-sender-excluded-stroke",
+            "status": "BLOCKED",
+            "reason": "The workflow cannot establish server-owned room membership for the originating socket.",
+            "blockedByStepId": "2-room-join",
+            "result": {
+              "artifactId": "comparison-observations",
+              "jsonPointer": "/cards/1/steps/2"
+            },
+            "snippetIds": ["mock-socket.3-sender-excluded-stroke"]
+          },
+          {
+            "stepId": "4-wrong-guess",
+            "status": "BLOCKED",
+            "reason": "The ack crosses, but the handler cannot identify B to create the room chat payload and route it.",
+            "blockedByStepId": "2-room-join",
+            "result": {
+              "artifactId": "comparison-observations",
+              "jsonPointer": "/cards/1/steps/3"
+            },
+            "snippetIds": ["mock-socket.4-wrong-guess"]
+          },
+          {
+            "stepId": "5-correct-guess",
+            "status": "BLOCKED",
+            "reason": "The handler has neither an originating socket id nor server-side socket targeting for C.",
+            "blockedByStepId": "2-room-join",
+            "result": {
+              "artifactId": "comparison-observations",
+              "jsonPointer": "/cards/1/steps/4"
+            },
+            "snippetIds": ["mock-socket.5-correct-guess"]
+          },
+          {
+            "stepId": "6-disconnect",
+            "status": "BLOCKED",
+            "reason": "Disconnect cleanup exists, but the required server-owned room workflow was never established.",
+            "blockedByStepId": "2-room-join",
+            "result": {
+              "artifactId": "comparison-observations",
+              "jsonPointer": "/cards/1/steps/5"
+            },
+            "snippetIds": ["mock-socket.6-disconnect"]
+          }
+        ]
+      },
+      {
+        "id": "msw-binding",
+        "label": "@mswjs/socket.io-binding",
+        "role": "competitor",
+        "packages": {
+          "@mswjs/socket.io-binding": "0.2.0",
+          "msw": "2.15.0",
+          "socket.io-client": "4.8.3"
+        },
+        "result": { "artifactId": "comparison-observations", "jsonPointer": "/cards/2" },
+        "packageSources": {
+          "artifactId": "comparison-observations",
+          "jsonPointer": "/packageSources/msw-binding"
+        },
+        "steps": [
+          {
+            "stepId": "1-connect",
+            "status": "DIFFERENT",
+            "reason": "All three clients fail with connect_error before the MSW connection handler runs.",
+            "result": {
+              "artifactId": "comparison-observations",
+              "jsonPointer": "/cards/2/steps/0"
+            },
+            "snippetIds": ["msw-binding.1-connect"]
+          },
+          {
+            "stepId": "2-room-join",
+            "status": "BLOCKED",
+            "reason": "No Socket.IO client connected, so join and ack cannot run.",
+            "blockedByStepId": "1-connect",
+            "result": {
+              "artifactId": "comparison-observations",
+              "jsonPointer": "/cards/2/steps/1"
+            },
+            "snippetIds": ["msw-binding.2-room-join"]
+          },
+          {
+            "stepId": "3-sender-excluded-stroke",
+            "status": "BLOCKED",
+            "reason": "No connected clients exist; the binding also declares no room or broadcast API.",
+            "blockedByStepId": "1-connect",
+            "result": {
+              "artifactId": "comparison-observations",
+              "jsonPointer": "/cards/2/steps/2"
+            },
+            "snippetIds": ["msw-binding.3-sender-excluded-stroke"]
+          },
+          {
+            "stepId": "4-wrong-guess",
+            "status": "BLOCKED",
+            "reason": "No connected clients exist; the binding declaration has no acknowledgement packet API.",
+            "blockedByStepId": "1-connect",
+            "result": {
+              "artifactId": "comparison-observations",
+              "jsonPointer": "/cards/2/steps/3"
+            },
+            "snippetIds": ["msw-binding.4-wrong-guess"]
+          },
+          {
+            "stepId": "5-correct-guess",
+            "status": "BLOCKED",
+            "reason": "No connected clients or socket-id/room targeting APIs exist.",
+            "blockedByStepId": "1-connect",
+            "result": {
+              "artifactId": "comparison-observations",
+              "jsonPointer": "/cards/2/steps/4"
+            },
+            "snippetIds": ["msw-binding.5-correct-guess"]
+          },
+          {
+            "stepId": "6-disconnect",
+            "status": "BLOCKED",
+            "reason": "The workflow never connected or joined a room, so disconnect cleanup cannot be compared.",
+            "blockedByStepId": "1-connect",
+            "result": {
+              "artifactId": "comparison-observations",
+              "jsonPointer": "/cards/2/steps/5"
+            },
+            "snippetIds": ["msw-binding.6-disconnect"]
+          }
+        ]
+      },
+      {
+        "id": "socket.io-mock",
+        "label": "socket.io-mock",
+        "role": "competitor",
+        "packages": { "socket.io-mock": "1.3.2" },
+        "result": { "artifactId": "comparison-observations", "jsonPointer": "/cards/3" },
+        "packageSources": {
+          "artifactId": "comparison-observations",
+          "jsonPointer": "/packageSources/socket.io-mock"
+        },
+        "steps": [
+          {
+            "stepId": "1-connect",
+            "status": "DIFFERENT",
+            "reason": "The paired clients are connected but expose no socket ids and share no server registry.",
+            "result": {
+              "artifactId": "comparison-observations",
+              "jsonPointer": "/cards/3/steps/0"
+            },
+            "snippetIds": ["socket.io-mock.1-connect"]
+          },
+          {
+            "stepId": "2-room-join",
+            "status": "MATCH",
+            "result": {
+              "artifactId": "comparison-observations",
+              "jsonPointer": "/cards/3/steps/1"
+            },
+            "snippetIds": ["socket.io-mock.2-room-join"]
+          },
+          {
+            "stepId": "3-sender-excluded-stroke",
+            "status": "DIFFERENT",
+            "reason": "broadcast.to() invokes a local observation callback but does not route to the other SocketMock instances.",
+            "result": {
+              "artifactId": "comparison-observations",
+              "jsonPointer": "/cards/3/steps/2"
+            },
+            "snippetIds": ["socket.io-mock.3-sender-excluded-stroke"]
+          },
+          {
+            "stepId": "4-wrong-guess",
+            "status": "DIFFERENT",
+            "result": {
+              "artifactId": "comparison-observations",
+              "jsonPointer": "/cards/3/steps/3"
+            },
+            "snippetIds": ["socket.io-mock.4-wrong-guess"]
+          },
+          {
+            "stepId": "5-correct-guess",
+            "status": "DIFFERENT",
+            "result": {
+              "artifactId": "comparison-observations",
+              "jsonPointer": "/cards/3/steps/4"
+            },
+            "snippetIds": ["socket.io-mock.5-correct-guess"]
+          },
+          {
+            "stepId": "6-disconnect",
+            "status": "DIFFERENT",
+            "result": {
+              "artifactId": "comparison-observations",
+              "jsonPointer": "/cards/3/steps/5"
+            },
+            "snippetIds": ["socket.io-mock.6-disconnect"]
+          }
+        ]
+      }
+    ],
+    "classificationRules": {
+      "ORACLE": "Expected values come from the executed Real Socket.IO workflow.",
+      "MATCH": "The public API ran and its normalized result equals the oracle.",
+      "DIFFERENT": "The public API ran and its normalized result differs from the oracle.",
+      "UNSUPPORTED": "The required concept or public API is absent; no replacement behavior is added.",
+      "BLOCKED": "An earlier non-matching step prevents this step from executing.",
+      "applicationOwned": "Handwritten stages are application-owned implementations, not package support or competitor results."
+    }
+  },
+  "maintenance": {
+    "role": "application-owned-supplement",
+    "definition": { "artifactId": "maintenance-measurement", "jsonPointer": "" },
+    "question": {
+      "targets": ["smocket", "handwritten"],
+      "realSocketIoRole": "behavior-oracle-only",
+      "selectedWorkflow": "examples/drawing-game",
+      "measuredChange": "Executable application-owned support as a handwritten fake grows from one response to the unchanged golden workflow."
+    },
+    "measurementRules": {
+      "sharedApplicationCountedAsDifference": false,
+      "sourceFormatting": "Prettier-formatted checked-in source.",
+      "countedLine": "A nonblank source line containing code after comment-only and punctuation-only lines are removed.",
+      "stageClosure": "Only the source files imported by that independently executed stage are included in its total.",
+      "transitionDiff": "Additions and deletions are an LCS diff over counted code lines grouped by stable source role.",
+      "invariant": "previous total + additions - deletions = current total"
+    },
+    "sharedApplicationLoc": 103,
+    "smocketIntegrationLoc": 18,
+    "smocketSnippetIds": [
+      "smocket.integration.smocket-bootstrap",
+      "smocket.integration.smocket-client-substitution",
+      "smocket.integration.smocket-loader-registration"
+    ],
+    "stageIds": [
+      "base-single-client",
+      "multiple-clients",
+      "room-broadcast",
+      "sender-exclusion",
+      "acknowledgement",
+      "targeted-delivery",
+      "disconnect-cleanup",
+      "full-workflow"
+    ],
+    "stages": [
+      {
+        "id": "base-single-client",
+        "label": "One client/server pair returns one configured response",
+        "prerequisite": null,
+        "sourceFiles": [
+          "case-studies/drawing-game/fixtures/handwritten/stage-sources/01-base-single-client.mjs"
+        ],
+        "totalLoc": 19,
+        "change": { "additions": 19, "deletions": 0, "net": 19 },
+        "result": { "artifactId": "maintenance-measurement", "jsonPointer": "/stages/0" },
+        "snippetIds": [
+          "handwritten.base-single-client.source.transport",
+          "handwritten.base-single-client.diff.transport"
+        ]
+      },
+      {
+        "id": "multiple-clients",
+        "label": "Three clients have independent ids and listeners",
+        "prerequisite": "base-single-client",
+        "sourceFiles": [
+          "case-studies/drawing-game/fixtures/handwritten/stage-sources/02-multiple-clients.mjs"
+        ],
+        "totalLoc": 40,
+        "change": { "additions": 28, "deletions": 7, "net": 21 },
+        "result": { "artifactId": "maintenance-measurement", "jsonPointer": "/stages/1" },
+        "snippetIds": [
+          "handwritten.multiple-clients.source.transport",
+          "handwritten.multiple-clients.diff.transport"
+        ]
+      },
+      {
+        "id": "room-broadcast",
+        "label": "Room membership selects every room member",
+        "prerequisite": "multiple-clients",
+        "sourceFiles": [
+          "case-studies/drawing-game/fixtures/handwritten/stage-sources/03-room-broadcast.mjs"
+        ],
+        "totalLoc": 53,
+        "change": { "additions": 38, "deletions": 25, "net": 13 },
+        "result": { "artifactId": "maintenance-measurement", "jsonPointer": "/stages/2" },
+        "snippetIds": [
+          "handwritten.room-broadcast.source.transport",
+          "handwritten.room-broadcast.diff.transport"
+        ]
+      },
+      {
+        "id": "sender-exclusion",
+        "label": "Room broadcast excludes its sender",
+        "prerequisite": "room-broadcast",
+        "sourceFiles": [
+          "case-studies/drawing-game/fixtures/handwritten/stage-sources/04-sender-exclusion.mjs"
+        ],
+        "totalLoc": 55,
+        "change": { "additions": 5, "deletions": 3, "net": 2 },
+        "result": { "artifactId": "maintenance-measurement", "jsonPointer": "/stages/3" },
+        "snippetIds": [
+          "handwritten.sender-exclusion.source.transport",
+          "handwritten.sender-exclusion.diff.transport"
+        ]
+      },
+      {
+        "id": "acknowledgement",
+        "label": "A server handler can invoke the client callback",
+        "prerequisite": "sender-exclusion",
+        "sourceFiles": [
+          "case-studies/drawing-game/fixtures/handwritten/stage-sources/05-acknowledgement.mjs"
+        ],
+        "totalLoc": 55,
+        "change": { "additions": 3, "deletions": 3, "net": 0 },
+        "result": { "artifactId": "maintenance-measurement", "jsonPointer": "/stages/4" },
+        "snippetIds": [
+          "handwritten.acknowledgement.source.transport",
+          "handwritten.acknowledgement.diff.transport"
+        ]
+      },
+      {
+        "id": "targeted-delivery",
+        "label": "Socket-id targeting reaches one client",
+        "prerequisite": "acknowledgement",
+        "sourceFiles": [
+          "case-studies/drawing-game/fixtures/handwritten/stage-sources/06-targeted-delivery.mjs"
+        ],
+        "totalLoc": 56,
+        "change": { "additions": 6, "deletions": 5, "net": 1 },
+        "result": { "artifactId": "maintenance-measurement", "jsonPointer": "/stages/5" },
+        "snippetIds": [
+          "handwritten.targeted-delivery.source.transport",
+          "handwritten.targeted-delivery.diff.transport"
+        ]
+      },
+      {
+        "id": "disconnect-cleanup",
+        "label": "Disconnect removes socket and room membership",
+        "prerequisite": "targeted-delivery",
+        "sourceFiles": [
+          "case-studies/drawing-game/fixtures/handwritten/stage-sources/07-disconnect-cleanup.mjs"
+        ],
+        "totalLoc": 71,
+        "change": { "additions": 17, "deletions": 2, "net": 15 },
+        "result": { "artifactId": "maintenance-measurement", "jsonPointer": "/stages/6" },
+        "snippetIds": [
+          "handwritten.disconnect-cleanup.source.transport",
+          "handwritten.disconnect-cleanup.diff.transport"
+        ]
+      },
+      {
+        "id": "full-workflow",
+        "label": "The unchanged golden drawing game runs through the handwritten transport",
+        "prerequisite": "disconnect-cleanup",
+        "sourceFiles": [
+          "case-studies/drawing-game/fixtures/handwritten/stage-sources/08-full-workflow.mjs",
+          "case-studies/drawing-game/fixtures/handwritten/handwritten-loader.mjs",
+          "case-studies/drawing-game/fixtures/handwritten/handwritten-substitution.mjs",
+          "case-studies/drawing-game/fixtures/handwritten/bootstrap.mjs"
+        ],
+        "totalLoc": 140,
+        "change": { "additions": 137, "deletions": 68, "net": 69 },
+        "result": { "artifactId": "maintenance-measurement", "jsonPointer": "/stages/7" },
+        "snippetIds": [
+          "handwritten.full-workflow.source.transport",
+          "handwritten.full-workflow.source.client-substitution",
+          "handwritten.full-workflow.source.loader-registration",
+          "handwritten.full-workflow.source.application-bootstrap",
+          "handwritten.full-workflow.diff.transport",
+          "handwritten.full-workflow.diff.client-substitution",
+          "handwritten.full-workflow.diff.loader-registration",
+          "handwritten.full-workflow.diff.application-bootstrap"
+        ]
+      }
+    ],
+    "finalWorkflow": {
+      "realVsSmocketDeepEqual": true,
+      "realVsHandwrittenDeepEqual": true,
+      "repeatedRunMatches": { "real": true, "smocket": true, "handwritten": true },
+      "observations": {
+        "artifactId": "maintenance-measurement",
+        "jsonPointer": "/finalWorkflow/observations"
+      }
+    },
+    "interpretation": [
+      "The minimal one-pair fake is 19 counted LOC and contains no source for later routing or lifecycle stages.",
+      "Growing to the unchanged golden workflow reaches 140 counted LOC after recording both additions and removals at every transition.",
+      "A transition with deletions represents real rewriting or a structural change rather than hidden cumulative scaffolding.",
+      "The recorded numbers are generated from executable source closures; they are not adjusted to support a preferred narrative.",
+      "LOC describes an application-owned maintenance surface; it does not prove time, productivity, reliability, or code quality."
+    ],
+    "limitations": [
+      "The result applies only to this drawing-game workflow, stage order, implementation choices, and line-count rule.",
+      "Each handwritten stage is deliberately limited to the behavior reached at that point and is not a general Socket.IO replacement.",
+      "Real Socket.IO supplies expected behavior only and is not included in the convenience LOC comparison.",
+      "Source diff size describes checked-in maintenance surface, not the effort or skill required to author it."
+    ]
+  },
+  "snippets": {
+    "catalogs": [
+      {
+        "id": "golden",
+        "artifactId": "golden-snippets",
+        "snippetIds": [
+          "room-join",
+          "drawing-server-handler",
+          "drawing-client",
+          "chat-guess-server-handler",
+          "chat-guess-client",
+          "acknowledgement",
+          "targeted-correct",
+          "room-announce",
+          "disconnect-behavior",
+          "real-bootstrap",
+          "smocket-bootstrap",
+          "smocket-client-substitution"
+        ]
+      },
+      {
+        "id": "comparison",
+        "artifactId": "comparison-snippets",
+        "snippetIds": [
+          "real.1-connect",
+          "real.2-room-join",
+          "real.3-sender-excluded-stroke",
+          "real.4-wrong-guess",
+          "real.5-correct-guess",
+          "real.6-disconnect",
+          "smocket.1-connect",
+          "smocket.2-room-join",
+          "smocket.3-sender-excluded-stroke",
+          "smocket.4-wrong-guess",
+          "smocket.5-correct-guess",
+          "smocket.6-disconnect",
+          "mock-socket.1-connect",
+          "mock-socket.2-room-join",
+          "mock-socket.3-sender-excluded-stroke",
+          "mock-socket.4-wrong-guess",
+          "mock-socket.5-correct-guess",
+          "mock-socket.6-disconnect",
+          "msw-binding.1-connect",
+          "msw-binding.2-room-join",
+          "msw-binding.3-sender-excluded-stroke",
+          "msw-binding.4-wrong-guess",
+          "msw-binding.5-correct-guess",
+          "msw-binding.6-disconnect",
+          "socket.io-mock.1-connect",
+          "socket.io-mock.2-room-join",
+          "socket.io-mock.3-sender-excluded-stroke",
+          "socket.io-mock.4-wrong-guess",
+          "socket.io-mock.5-correct-guess",
+          "socket.io-mock.6-disconnect",
+          "smocket.1-connect.substitution"
+        ]
+      },
+      {
+        "id": "maintenance",
+        "artifactId": "maintenance-snippets",
+        "snippetIds": [
+          "handwritten.base-single-client.source.transport",
+          "handwritten.base-single-client.diff.transport",
+          "handwritten.multiple-clients.source.transport",
+          "handwritten.multiple-clients.diff.transport",
+          "handwritten.room-broadcast.source.transport",
+          "handwritten.room-broadcast.diff.transport",
+          "handwritten.sender-exclusion.source.transport",
+          "handwritten.sender-exclusion.diff.transport",
+          "handwritten.acknowledgement.source.transport",
+          "handwritten.acknowledgement.diff.transport",
+          "handwritten.targeted-delivery.source.transport",
+          "handwritten.targeted-delivery.diff.transport",
+          "handwritten.disconnect-cleanup.source.transport",
+          "handwritten.disconnect-cleanup.diff.transport",
+          "handwritten.full-workflow.source.transport",
+          "handwritten.full-workflow.source.client-substitution",
+          "handwritten.full-workflow.source.loader-registration",
+          "handwritten.full-workflow.source.application-bootstrap",
+          "handwritten.full-workflow.diff.transport",
+          "handwritten.full-workflow.diff.client-substitution",
+          "handwritten.full-workflow.diff.loader-registration",
+          "handwritten.full-workflow.diff.application-bootstrap",
+          "smocket.integration.smocket-bootstrap",
+          "smocket.integration.smocket-client-substitution",
+          "smocket.integration.smocket-loader-registration"
+        ]
+      }
+    ]
+  },
+  "provenance": {
+    "sourceRevision": "6afc76aa6b9531e26454c09200627dba1b626640",
+    "sourceFiles": [
+      { "artifactId": "comparison-observations", "jsonPointer": "/sources" },
+      { "artifactId": "maintenance-measurement", "jsonPointer": "/sourceInputs" }
+    ],
+    "packageVersions": [
+      { "artifactId": "comparison-observations", "jsonPointer": "/oracle/packages" },
+      { "artifactId": "comparison-observations", "jsonPointer": "/cards" }
+    ]
+  },
+  "claimBoundaries": {
+    "workflow": "These statuses apply only to the six recorded drawing-game steps and are not claims of overall library quality or Socket.IO compatibility.",
+    "maintenance": { "artifactId": "maintenance-measurement", "jsonPointer": "/limitations" }
+  }
+}

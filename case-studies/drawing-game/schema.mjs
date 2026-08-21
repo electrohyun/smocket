@@ -88,7 +88,6 @@ export function assertMeasurementArtifact(artifact) {
   assert.equal(artifact.caseStudy, 'drawing-game-compatibility');
   assert.deepEqual(artifact.workflow.stepIds, STEP_IDS);
   assertObject(artifact.environment, 'environment is required');
-  assert.equal(typeof artifact.environment.measuredAt, 'string');
   assert.equal(typeof artifact.environment.platform, 'string');
   assert.equal(typeof artifact.environment.architecture, 'string');
   assert.equal(typeof artifact.environment.node, 'string');

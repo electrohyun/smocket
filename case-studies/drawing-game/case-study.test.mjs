@@ -14,6 +14,11 @@ import {
   createMaintenanceSnippetArtifact,
   createMaintenanceSourceModel,
 } from './maintenance-source.mjs';
+import {
+  assertPublicationArtifact,
+  createPublicationArtifact,
+  loadPublicationInputs,
+} from './publication-schema.mjs';
 
 const moduleDirectory = dirname(fileURLToPath(import.meta.url));
 const root = resolve(moduleDirectory, '../..');
@@ -203,6 +208,25 @@ test('the base closure contains no source for future stages', async () => {
   ]) {
     assert.equal(source.includes(forbidden), false, `base source contains ${forbidden}`);
   }
+});
+
+test('the publication entry point validates every canonical artifact and cross-reference', async () => {
+  const inputs = await loadPublicationInputs(root);
+  const artifact = JSON.parse(
+    await readFile(resolve(moduleDirectory, 'publication.generated.json'), 'utf8'),
+  );
+  assertPublicationArtifact(artifact, inputs);
+});
+
+test('the publication artifact is deterministic and rejects workflow drift', async () => {
+  const inputs = await loadPublicationInputs(root);
+  const first = createPublicationArtifact(inputs);
+  const second = createPublicationArtifact(inputs);
+  assert.deepEqual(first, second);
+
+  const drifted = structuredClone(first);
+  drifted.workflow.stepIds.pop();
+  assert.throws(() => assertPublicationArtifact(drifted, inputs));
 });
 
 test('handwritten stage source contains no drawing-game answers or named fixtures', async () => {

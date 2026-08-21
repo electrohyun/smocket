@@ -1,67 +1,85 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { format, resolveConfig } from 'prettier';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const prettierConfig = (await resolveConfig(resolve(root, 'package.json'))) ?? {};
 const artifactPath = resolve(root, 'examples/drawing-game/snippets.generated.json');
 const regenerateWith = 'pnpm example:drawing-game:snippets';
 
 const definitions = [
-  ['room-join', 'examples/drawing-game/application.ts', 'Join and acknowledge the shared room.'],
+  [
+    'room-join',
+    'examples/drawing-game/application.ts',
+    'Join and acknowledge the shared room.',
+    ['2-room-join'],
+  ],
   [
     'drawing-server-handler',
     'examples/drawing-game/application.ts',
     'Exclude the drawer while broadcasting a stroke to the room.',
+    ['3-sender-excluded-stroke'],
   ],
   [
     'drawing-client',
     'examples/drawing-game/client.ts',
     'Send stroke segments and receive the segments delivered by the server.',
+    ['3-sender-excluded-stroke'],
   ],
   [
     'chat-guess-server-handler',
     'examples/drawing-game/application.ts',
     'Handle chat and guesses, including acknowledgements and winner delivery.',
+    ['4-wrong-guess', '5-correct-guess'],
   ],
   [
     'chat-guess-client',
     'examples/drawing-game/client.ts',
     'Submit guesses and receive chat, targeted correct, and room announce events.',
+    ['4-wrong-guess', '5-correct-guess'],
   ],
   [
     'acknowledgement',
     'examples/drawing-game/application.ts',
     'Return the server-side boolean guess acknowledgement.',
+    ['4-wrong-guess', '5-correct-guess'],
   ],
   [
     'targeted-correct',
     'examples/drawing-game/application.ts',
     'Emit the correct result only to the winning socket id.',
+    ['5-correct-guess'],
   ],
   [
     'room-announce',
     'examples/drawing-game/application.ts',
     'Announce the winner and word to every connected room member.',
+    ['5-correct-guess'],
   ],
   [
     'disconnect-behavior',
     'examples/drawing-game/scenario.ts',
     'Disconnect C, wait for server cleanup, and prove the next stroke reaches only B.',
+    ['6-disconnect'],
   ],
   [
     'real-bootstrap',
     'examples/drawing-game/real.ts',
     'Start Real Socket.IO on an ephemeral Node HTTP port and register the golden handlers.',
+    ['1-connect'],
   ],
   [
     'smocket-bootstrap',
     'examples/drawing-game/smocket.ts',
     'Start an isolated in-memory Smocket server and register the golden handlers.',
+    ['1-connect'],
   ],
   [
     'smocket-client-substitution',
     'examples/drawing-game/smocket-loader.mjs',
     'Resolve socket.io-client to smocket-client only for the compiled Smocket target.',
+    ['1-connect'],
   ],
 ];
 
@@ -125,17 +143,21 @@ async function generate() {
   return {
     schemaVersion: 1,
     regenerateWith,
-    snippets: definitions.map(([id, sourceFile, purpose]) => ({
+    snippets: definitions.map(([id, sourceFile, purpose, stepIds]) => ({
       id,
       sourceFile,
       language: sourceFile.endsWith('.ts') ? 'typescript' : 'javascript',
       purpose,
+      stepIds,
       code: extracted.get(id),
     })),
   };
 }
 
-const serialized = `${JSON.stringify(await generate(), null, 2)}\n`;
+const serialized = await format(JSON.stringify(await generate()), {
+  ...prettierConfig,
+  parser: 'json',
+});
 
 if (process.argv.includes('--write')) {
   await writeFile(artifactPath, serialized);

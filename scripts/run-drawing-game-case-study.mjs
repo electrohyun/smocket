@@ -193,7 +193,6 @@ try {
     schemaVersion: 1,
     caseStudy: 'drawing-game-compatibility',
     environment: {
-      measuredAt: new Date().toISOString(),
       platform: process.platform,
       architecture: process.arch,
       node: process.version,
