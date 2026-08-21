@@ -66,7 +66,7 @@
         }
       }
     ],
-    "countedLineNumbers": [
+    "countedLineReferences": [
       { "sourceFile": "examples/drawing-game/application.ts", "line": 1 },
       { "sourceFile": "examples/drawing-game/application.ts", "line": 3 },
       { "sourceFile": "examples/drawing-game/application.ts", "line": 4 },
@@ -253,8 +253,8 @@
       "sourceFile": "case-studies/drawing-game/fixtures/handwritten/handwritten-substitution.mjs",
       "category": "handwritten-support",
       "blockIds": ["base-loader-registration"],
-      "loc": 2,
-      "countedLineNumbers": [2, 4]
+      "loc": 4,
+      "countedLineNumbers": [2, 4, 5, 8]
     },
     {
       "sourceFile": "case-studies/drawing-game/fixtures/handwritten/bootstrap.mjs",
@@ -450,6 +450,14 @@
       "sha256": "d5d68c43084d7ad5b4f3ae7ec08876bde1724558aef0e0835acd5c9cea0dc3cd"
     },
     {
+      "sourceFile": "examples/drawing-game/package.json",
+      "sha256": "5861c34568881dc51be9834b11701858f05a9a7d70d503d8008b16a9431e9f9c"
+    },
+    {
+      "sourceFile": "packages/smocket-client/package.json",
+      "sha256": "2bc6fb49252c2c8eda195e3d86efa0002ec37bacbcb344f44b6a3dc5317b8891"
+    },
+    {
       "sourceFile": "examples/drawing-game/application.ts",
       "sha256": "26beea00affb7ba6e216382d595124b5169f678b1d6a42c6337c3a4718283b51"
     },
@@ -460,18 +468,6 @@
     {
       "sourceFile": "examples/drawing-game/scenario.ts",
       "sha256": "37b3656de7d45c621ddb72a95d0bb704fdd2986cb72b8053eb532c17fab26bce"
-    },
-    {
-      "sourceFile": "examples/drawing-game/assertions.ts",
-      "sha256": "1db1a38d8bcf3c78978417a6e18b603de72191753f7875a87a57f2d5c2bda640"
-    },
-    {
-      "sourceFile": "examples/drawing-game/target.ts",
-      "sha256": "33193e62998c270aa1a52e2117273ca0325a307d20869fce7f99f10ce469cdf7"
-    },
-    {
-      "sourceFile": "examples/drawing-game/real.ts",
-      "sha256": "ab0f6e7cd1a3a31e994c28d37cdb69cf690d3e5c1cdd8b9db382b64d26034ddd"
     },
     {
       "sourceFile": "examples/drawing-game/smocket.ts",
@@ -486,14 +482,6 @@
       "sha256": "ec26e8b258f810728b956c92702075f86fedc414c33fe71616e58436f20da1c5"
     },
     {
-      "sourceFile": "case-studies/drawing-game/fixtures/real/probe.mjs",
-      "sha256": "4d2504d07f40b7ccbbb6727b29abf037d095ed45bb72552ebe4abaf7e8115dff"
-    },
-    {
-      "sourceFile": "case-studies/drawing-game/fixtures/smocket/probe.mjs",
-      "sha256": "17d163bcd0b6bd90317b2d0a826a0edad40ab1f0272ec15fff58bfea3884e4b2"
-    },
-    {
       "sourceFile": "case-studies/drawing-game/fixtures/handwritten/handwritten-socket.mjs",
       "sha256": "97dc21b3b9f13593f2ee7dc5b0ccb24076be3f1c3741d3608a3ba3e338b45efb"
     },
@@ -503,15 +491,35 @@
     },
     {
       "sourceFile": "case-studies/drawing-game/fixtures/handwritten/handwritten-substitution.mjs",
-      "sha256": "626e5b3612571d55b0b702800380e33974db9d5b70be07a7090845b04742841b"
+      "sha256": "4b13e17be51e1018b20d0d9fa594d800e870338214d04d6d609237a061dc7ee2"
     },
     {
       "sourceFile": "case-studies/drawing-game/fixtures/handwritten/bootstrap.mjs",
       "sha256": "e265fc51d4187834ee8afdd2a8cdcfd13a7807d469fd29167497a5f13f2ac471"
     },
     {
+      "sourceFile": "examples/drawing-game/assertions.ts",
+      "sha256": "1db1a38d8bcf3c78978417a6e18b603de72191753f7875a87a57f2d5c2bda640"
+    },
+    {
+      "sourceFile": "examples/drawing-game/target.ts",
+      "sha256": "33193e62998c270aa1a52e2117273ca0325a307d20869fce7f99f10ce469cdf7"
+    },
+    {
+      "sourceFile": "examples/drawing-game/real.ts",
+      "sha256": "ab0f6e7cd1a3a31e994c28d37cdb69cf690d3e5c1cdd8b9db382b64d26034ddd"
+    },
+    {
+      "sourceFile": "case-studies/drawing-game/fixtures/real/probe.mjs",
+      "sha256": "4d2504d07f40b7ccbbb6727b29abf037d095ed45bb72552ebe4abaf7e8115dff"
+    },
+    {
+      "sourceFile": "case-studies/drawing-game/fixtures/smocket/probe.mjs",
+      "sha256": "17d163bcd0b6bd90317b2d0a826a0edad40ab1f0272ec15fff58bfea3884e4b2"
+    },
+    {
       "sourceFile": "case-studies/drawing-game/fixtures/handwritten/stages.mjs",
-      "sha256": "503951cfd6923930ef338febf9339383a2b3bf49f8afc3d932fe42399df1bf49"
+      "sha256": "8ccea3e1c109a9192e78776c04abad0c9b0bd4fc7efe4eb749734486121bebd4"
     },
     {
       "sourceFile": "case-studies/drawing-game/fixtures/handwritten/probe.mjs",
@@ -519,15 +527,15 @@
     },
     {
       "sourceFile": "case-studies/drawing-game/maintenance-schema.mjs",
-      "sha256": "c9881f38a2232da5d6b9a0449c39e151e2753cf223f4661050dfd66dbf623c5d"
+      "sha256": "16fdf29ec0ecd221f30aaff8fcaadd8d7163816d8c8a91179d32340e193887e3"
     },
     {
       "sourceFile": "case-studies/drawing-game/maintenance-source.mjs",
-      "sha256": "5a3cd7a1422cfa73f7089b04c1180942b0cc546da1dc47e36a6dcd525080c035"
+      "sha256": "542a51a51b78945bfbb1017a61f0c4eb582d98ce428252a829a3f90513e20555"
     },
     {
       "sourceFile": "scripts/run-drawing-game-maintenance.mjs",
-      "sha256": "15b100788386fd6cfb96a174683540444acbacd74a25f8a2d038848eb9074f03"
+      "sha256": "eb20e80df230ddb63e125ef7584f2f9150fa8a979649b585b29f6ee45935ff84"
     },
     {
       "sourceFile": "scripts/drawing-game-maintenance-snippets.mjs",
@@ -606,9 +614,9 @@
         },
         "handwritten": {
           "provider": "The application owns and executes this transport support.",
-          "deltaLoc": 173,
-          "deltaLabel": "+173 lines",
-          "cumulativeLoc": 173,
+          "deltaLoc": 175,
+          "deltaLabel": "+175 lines",
+          "cumulativeLoc": 175,
           "sourceBlocks": [
             {
               "id": "base-single-client",
@@ -663,16 +671,16 @@
               "id": "base-loader-registration",
               "sourceFile": "case-studies/drawing-game/fixtures/handwritten/handwritten-substitution.mjs",
               "language": "javascript",
-              "code": "import { register } from 'node:module';\n\nregister(new URL('./handwritten-loader.mjs', import.meta.url), import.meta.url);",
-              "sourceSha256": "42dcab8874a50a0ac29e9bcb00e725836ff5871d1ec5181ec92ca821ebb95ea8",
-              "sourceRange": { "startLine": 2, "endLine": 4 },
-              "loc": 2,
-              "countedLineNumbers": [2, 4],
+              "code": "import * as nodeModule from 'node:module';\n\nif (typeof nodeModule.register !== 'function') {\n  throw new Error('The drawing-game handwritten maintenance flow requires Node.js >=20.6.0.');\n}\n\nnodeModule.register(new URL('./handwritten-loader.mjs', import.meta.url), import.meta.url);",
+              "sourceSha256": "70fdd754fe3f16c8087bbf54c9654207bd39d85bf28cadeaabfb89026ff22f02",
+              "sourceRange": { "startLine": 2, "endLine": 8 },
+              "loc": 4,
+              "countedLineNumbers": [2, 4, 5, 8],
               "excludedLineNumbers": {
-                "blank": [3],
+                "blank": [3, 7],
                 "snippetMarker": [],
                 "commentOnly": [],
-                "formattingOnly": []
+                "formattingOnly": [6]
               }
             },
             {
@@ -722,7 +730,7 @@
           "provider": "The application owns and executes this transport support.",
           "deltaLoc": 10,
           "deltaLabel": "+10 lines",
-          "cumulativeLoc": 183,
+          "cumulativeLoc": 185,
           "sourceBlocks": [
             {
               "id": "multiple-clients",
@@ -768,7 +776,7 @@
           "provider": "The application owns and executes this transport support.",
           "deltaLoc": 13,
           "deltaLabel": "+13 lines",
-          "cumulativeLoc": 196,
+          "cumulativeLoc": 198,
           "sourceBlocks": [
             {
               "id": "room-broadcast",
@@ -816,7 +824,7 @@
           "provider": "The application owns and executes this transport support.",
           "deltaLoc": 3,
           "deltaLabel": "+3 lines",
-          "cumulativeLoc": 199,
+          "cumulativeLoc": 201,
           "sourceBlocks": [
             {
               "id": "sender-exclusion",
@@ -862,7 +870,7 @@
           "provider": "The application owns and executes this transport support.",
           "deltaLoc": 2,
           "deltaLabel": "+2 lines",
-          "cumulativeLoc": 201,
+          "cumulativeLoc": 203,
           "sourceBlocks": [
             {
               "id": "acknowledgement",
@@ -908,7 +916,7 @@
           "provider": "The application owns and executes this transport support.",
           "deltaLoc": 5,
           "deltaLabel": "+5 lines",
-          "cumulativeLoc": 206,
+          "cumulativeLoc": 208,
           "sourceBlocks": [
             {
               "id": "targeted-delivery",
@@ -962,7 +970,7 @@
           "provider": "The application owns and executes this transport support.",
           "deltaLoc": 7,
           "deltaLabel": "+7 lines",
-          "cumulativeLoc": 213,
+          "cumulativeLoc": 215,
           "sourceBlocks": [
             {
               "id": "disconnect-cleanup",

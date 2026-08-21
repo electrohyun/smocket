@@ -127,6 +127,14 @@ export async function extractRegions(sourceFile, markerName) {
       const [, operation, id] = match;
       if (operation === 'start') {
         assert.equal(blocks.has(id), false, `duplicate marker ${id} in ${sourceFile}`);
+        assert.equal(
+          open.some((region) => region.id === id),
+          false,
+          `re-entered marker ${id} in ${sourceFile}`,
+        );
+        if (markerName === 'maintenance-snippet') {
+          assert.equal(open.length, 0, `overlapping marker ${id} in ${sourceFile}`);
+        }
         open.push({ id, startLine: lineNumber + 1, entries: [] });
       } else {
         const region = open.pop();
@@ -210,6 +218,15 @@ export async function createMaintenanceSourceModel() {
   ]);
   for (const [featureId, blocks] of handwrittenByFeature) {
     assert.ok(blocks.every(Boolean), `missing handwritten source for ${featureId}`);
+  }
+  const consumedHandwrittenIds = new Set(
+    [...handwrittenByFeature.values()].flat().map(({ id }) => id),
+  );
+  for (const id of handwritten.keys()) {
+    assert.ok(
+      consumedHandwrittenIds.has(id),
+      `handwritten marker ${id} is not attributed to a feature`,
+    );
   }
   const smocketIntegration = [
     golden.get('smocket-bootstrap'),

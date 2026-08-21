@@ -42,6 +42,7 @@ async function runBaseStage() {
     const client = io(origin);
     const responses = observe(client, 'response');
     client.emit('request', { ignoredByResponse: true });
+    await crossBarrier(client, [client], 'after-base-response');
     assert.deepEqual(responses, [{ status: 'ready' }]);
     return {
       id: 'base-single-client',
