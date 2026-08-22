@@ -9,6 +9,8 @@
   [README quick start](../README.md#quick-start)
 - **How to run smocket inside a test runner:**
   [test-runner-integration.md](./test-runner-integration.md)
+- **How to share one in-browser mock server across tabs:**
+  [shared-worker.md](./shared-worker.md)
 - **Why a test setup failed and how to correct it:**
   [troubleshooting.md](./troubleshooting.md)
 - **Which behaviours are verified against real socket.io:**

@@ -193,6 +193,7 @@ complete Vitest and Jest setups.
 | A hand-written socket mock                     | [the problem](#the-problem)                                                           |
 | Wanting to read a program rather than a test   | [examples/chat-room](examples/chat-room/)                                             |
 | Wanting a typed drawing and chat workflow      | [examples/drawing-game](examples/drawing-game/)                                       |
+| Wanting several tabs to share one browser mock | [the SharedWorker workflow](docs/shared-worker.md)                                    |
 | Wanting an executable compatibility case study | [case-studies/drawing-game](case-studies/drawing-game/)                               |
 | Wanting to compare real and mock runs          | [the dual-target consumer walkthrough](consumers/chat-room/)                          |
 | Wanting the exact guarantees                   | [the conformance report](docs/conformance.md)                                         |
@@ -210,6 +211,12 @@ three-client drawing and guessing room. Its unchanged application source runs th
 Real Socket.IO 4.8.3 and the workspace Smocket packages, and its generated snippet
 artifact is the source for later site, report, and live-coding content. Run
 `pnpm example:drawing-game` for the dual-target check.
+
+[shared-worker-lobby](examples/shared-worker-lobby/) is a static Vite frontend in
+which three same-origin Chromium tabs share one caller-owned in-browser Smocket
+server. Run `pnpm example:shared-worker` for the automated lobby workflow, or read
+the [SharedWorker guide](docs/shared-worker.md) before adopting its explicit worker
+and client subpaths.
 
 The [dual-target chat room consumer](consumers/chat-room/) runs the same handlers and
 scenario against real Socket.IO and Smocket after npm installs the released packages
@@ -389,6 +396,7 @@ already cover the first question well. See
 | [docs/README.md](docs/README.md)                              | the documentation map, by the question you arrived with                  |
 | [roadmap.md](docs/roadmap.md)                                 | the guarantees, dependencies, and release path toward v1.0.0             |
 | [test-runner-integration.md](docs/test-runner-integration.md) | running smocket inside Vitest or Jest, and what keeps its types          |
+| [shared-worker.md](docs/shared-worker.md)                     | sharing one development server across same-origin browser tabs           |
 | [troubleshooting.md](docs/troubleshooting.md)                 | reproductions, signals, causes, and corrections for adoption failures    |
 | [conformance.md](docs/conformance.md)                         | every behaviour verified against real socket.io, generated from the run  |
 | [scope.md](docs/scope.md)                                     | the boundary, and the layer split it follows                             |
