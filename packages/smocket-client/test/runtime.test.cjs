@@ -2,11 +2,17 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 const client = require('../dist/index.cjs');
 const { Server } = require('smocket');
+const { connectSharedWorker: rootConnectSharedWorker } = require('smocket/shared-worker');
+const { connectSharedWorker } = require('../dist/shared-worker.cjs');
 
 test('CommonJS root is the lookup function and owns both aliases', () => {
   assert.equal(typeof client, 'function');
   assert.equal(client, client.io);
   assert.equal(client.io, client.connect);
+});
+
+test('CommonJS shared-worker entry re-exports the exact peer implementation', () => {
+  assert.equal(connectSharedWorker, rootConnectSharedWorker);
 });
 
 test('CommonJS facade and peer share the server registry', async () => {

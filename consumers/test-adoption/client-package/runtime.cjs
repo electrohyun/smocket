@@ -1,10 +1,13 @@
 const assert = require('node:assert/strict');
 const client = require('smocket-client');
+const { connectSharedWorker: clientConnectSharedWorker } = require('smocket-client/shared-worker');
 const { Server } = require('smocket');
+const { connectSharedWorker: rootConnectSharedWorker } = require('smocket/shared-worker');
 
 assert.equal(typeof client, 'function');
 assert.equal(client, client.io);
 assert.equal(client.io, client.connect);
+assert.equal(clientConnectSharedWorker, rootConnectSharedWorker);
 
 async function main() {
   const server = new Server('http://localhost:3277');

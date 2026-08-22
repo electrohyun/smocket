@@ -28,6 +28,13 @@
   "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.cts",
+  "typesVersions": {
+    "*": {
+      "shared-worker": [
+        "./dist/shared-worker.d.mts"
+      ]
+    }
+  },
   "exports": {
     ".": {
       "import": {
@@ -37,6 +44,16 @@
       "require": {
         "types": "./dist/index.d.cts",
         "default": "./dist/index.cjs"
+      }
+    },
+    "./shared-worker": {
+      "import": {
+        "types": "./dist/shared-worker.d.mts",
+        "default": "./dist/shared-worker.mjs"
+      },
+      "require": {
+        "types": "./dist/shared-worker.d.cts",
+        "default": "./dist/shared-worker.cjs"
       }
     },
     "./package.json": "./package.json"

@@ -2,10 +2,16 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import client, { connect, io } from '../dist/index.mjs';
 import { Server } from 'smocket';
+import { connectSharedWorker as rootConnectSharedWorker } from 'smocket/shared-worker';
+import { connectSharedWorker } from '../dist/shared-worker.mjs';
 
 test('ESM exports one lookup function', () => {
   assert.equal(client, io);
   assert.equal(io, connect);
+});
+
+test('ESM shared-worker entry re-exports the exact peer implementation', () => {
+  assert.equal(connectSharedWorker, rootConnectSharedWorker);
 });
 
 test('ESM facade and peer share the server registry', async () => {

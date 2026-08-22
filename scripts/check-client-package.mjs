@@ -103,7 +103,14 @@ export function inspectClientPackagePolicy({
   }
 
   const packedEntries = new Set(tarEntries.map(normalizeTarEntryPath));
-  for (const requiredEntry of ['package/LICENSE', 'package/README.md']) {
+  for (const requiredEntry of [
+    'package/LICENSE',
+    'package/README.md',
+    'package/dist/shared-worker.mjs',
+    'package/dist/shared-worker.d.mts',
+    'package/dist/shared-worker.cjs',
+    'package/dist/shared-worker.d.cts',
+  ]) {
     if (!packedEntries.has(requiredEntry)) {
       violations.push(`packed tarball must contain ${requiredEntry}`);
     }
