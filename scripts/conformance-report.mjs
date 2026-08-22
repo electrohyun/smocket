@@ -272,6 +272,12 @@ const AREAS = [
       'Connecting through the narrow page API, listener behavior, acknowledgements, stale-generation suppression, and bridge errors.',
   },
   {
+    file: 'examples/shared-worker-lobby/src/application.test.ts',
+    title: 'SharedWorker lobby application handlers',
+    blurb:
+      'Running the documented lobby handlers against real Socket.IO and Smocket, including duplicate-label identity, readiness, start, and disconnect.',
+  },
+  {
     file: 'src/emitter-returns.test.ts',
     title: 'Return values',
     blurb:

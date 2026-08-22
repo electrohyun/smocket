@@ -396,7 +396,7 @@ already cover the first question well. See
 | [docs/README.md](docs/README.md)                              | the documentation map, by the question you arrived with                  |
 | [roadmap.md](docs/roadmap.md)                                 | the guarantees, dependencies, and release path toward v1.0.0             |
 | [test-runner-integration.md](docs/test-runner-integration.md) | running smocket inside Vitest or Jest, and what keeps its types          |
-| [shared-worker.md](docs/shared-worker.md)                     | sharing one development server across same-origin browser tabs           |
+| [shared-worker.md](docs/shared-worker.md)                     | sharing one in-browser Smocket server across same-origin browser tabs    |
 | [troubleshooting.md](docs/troubleshooting.md)                 | reproductions, signals, causes, and corrections for adoption failures    |
 | [conformance.md](docs/conformance.md)                         | every behaviour verified against real socket.io, generated from the run  |
 | [scope.md](docs/scope.md)                                     | the boundary, and the layer split it follows                             |
