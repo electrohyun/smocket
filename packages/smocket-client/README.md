@@ -31,6 +31,17 @@ that package name to `smocket-client`. See the
 [test-runner integration guide](https://github.com/electrohyun/smocket/blob/main/docs/test-runner-integration.md)
 for Vitest and Jest examples.
 
+## SharedWorker tabs
+
+Browser pages can explicitly import `connectSharedWorker` from
+`smocket-client/shared-worker` and pass a port from a caller-owned module
+`SharedWorker`. The worker imports `attachSharedWorker` from
+`smocket/shared-worker`, creates the server, and registers application handlers.
+This facade is intentionally narrower than the ordinary client contract; see the
+[multi-tab workflow guide](https://github.com/electrohyun/smocket/blob/main/docs/shared-worker.md)
+for the runnable example, supported surface, production migration, and browser
+limits.
+
 Smocket models Socket.IO's in-process logic layer. It does not reproduce
 transports, heartbeat, reconnection, or multi-server adapters. See the
 [documented scope](https://github.com/electrohyun/smocket/blob/main/docs/scope.md)
