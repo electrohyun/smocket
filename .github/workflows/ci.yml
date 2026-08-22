@@ -115,6 +115,8 @@ jobs:
         run: pnpm test:shared-worker
       - name: Verify production SharedWorker tab lifecycle
         run: pnpm test:shared-worker:lifecycle
+      - name: Compare SharedWorker with a real Socket.IO sidecar
+        run: pnpm test:shared-worker:parity
       - name: Run candidate packages in Chromium
         run: pnpm consumer:client:candidate -- --manifest .release-candidate/release-candidate.json --browser
 
