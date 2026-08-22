@@ -11,6 +11,7 @@ body {
 
 main {
   width: min(34rem, calc(100% - 3rem));
+  box-sizing: border-box;
   margin: 4rem auto;
   padding: 2rem;
   border: 1px solid #cbd7f4;

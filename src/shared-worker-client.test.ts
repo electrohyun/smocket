@@ -85,7 +85,7 @@ afterEach(async () => {
 });
 
 describe('shared-worker client facade', () => {
-  it('connects automatically, snapshots auth, buffers emits, and reconnects with a fresh id', async () => {
+  it('connects automatically, snapshots auth, buffers emits, and explicitly replaces the active generation', async () => {
     const handshakes: Array<Record<string, unknown>> = [];
     const serverSockets: ServerSocketContract[] = [];
     const auth = { label: 'A' };
@@ -148,6 +148,13 @@ describe('shared-worker client facade', () => {
     const removedOnce = (): void => {
       seen.push('removed-once');
     };
+    expect(socket.listenersAny()).toEqual([]);
+    socket.offAny();
+    socket.on('present', middle).off('present', duplicate);
+    expect(socket.listeners('present')).toEqual([middle]);
+    socket.off('present');
+    socket.on('cleared-by-off', middle).off();
+    expect(socket.listeners('cleared-by-off')).toEqual([]);
     socket.on('tick', duplicate).on('tick', middle).on('tick', duplicate).once('tick', once);
     socket.once('removed-once', removedOnce).off('removed-once', removedOnce);
     socket.onAny(any).onAny(any);
@@ -369,6 +376,114 @@ describe('shared-worker client facade', () => {
     ]);
   });
 
+  it('ignores host messages that do not belong to the current local state', async () => {
+    let serverSocket!: ServerSocketContract;
+    const { harness, socket } = setup((io) =>
+      io.on('connection', (connected) => (serverSocket = connected)),
+    );
+    const errors: string[] = [];
+    const disconnects: string[] = [];
+    socket.on('bridge_error', (error: Error) => errors.push(error.message));
+    socket.on('disconnect', (reason: string) => disconnects.push(reason));
+    await nextEvent(socket, 'connect');
+
+    harness.injectHostMessage({
+      version: SHARED_WORKER_PROTOCOL_VERSION,
+      type: SHARED_WORKER_MESSAGE_TYPES.connectError,
+      requestId: 'stale-connect',
+      generation: 1,
+      error: 'ignored stale connect error',
+    });
+    harness.injectHostMessage({
+      version: SHARED_WORKER_PROTOCOL_VERSION,
+      type: SHARED_WORKER_MESSAGE_TYPES.connected,
+      requestId: 'stale-connect',
+      generation: 1,
+      id: 'stale-socket',
+    });
+    const firstMarker = nextEvent(socket, 'bridge_error');
+    harness.injectHostMessage({
+      version: SHARED_WORKER_PROTOCOL_VERSION,
+      type: SHARED_WORKER_MESSAGE_TYPES.bridgeError,
+      requestId: 'connect:1',
+      generation: 1,
+      error: 'first marker',
+    });
+    await firstMarker;
+
+    (socket as unknown as { connected: boolean }).connected = false;
+    harness.injectHostMessage({
+      version: SHARED_WORKER_PROTOCOL_VERSION,
+      type: SHARED_WORKER_MESSAGE_TYPES.serverEvent,
+      generation: 1,
+      event: 'ignored-while-disconnected',
+      args: [],
+    });
+    harness.injectHostMessage({
+      version: SHARED_WORKER_PROTOCOL_VERSION,
+      type: SHARED_WORKER_MESSAGE_TYPES.acknowledgement,
+      generation: 1,
+      direction: 'client',
+      ackId: 'unknown-while-disconnected',
+      args: [],
+    });
+    const secondMarker = nextEvent(socket, 'bridge_error');
+    harness.injectHostMessage({
+      version: SHARED_WORKER_PROTOCOL_VERSION,
+      type: SHARED_WORKER_MESSAGE_TYPES.bridgeError,
+      requestId: 'connect:1',
+      generation: 1,
+      error: 'second marker',
+    });
+    await secondMarker;
+
+    (socket as unknown as { connected: boolean }).connected = true;
+    harness.injectHostMessage({
+      version: SHARED_WORKER_PROTOCOL_VERSION,
+      type: SHARED_WORKER_MESSAGE_TYPES.acknowledgement,
+      generation: 1,
+      direction: 'client',
+      ackId: 'unknown-while-connected',
+      args: [],
+    });
+    const serverMarker = nextEvent(socket, 'marker');
+    serverSocket.emit('marker');
+    await serverMarker;
+
+    (socket as unknown as { connected: boolean }).connected = false;
+    harness.injectHostMessage({
+      version: SHARED_WORKER_PROTOCOL_VERSION,
+      type: SHARED_WORKER_MESSAGE_TYPES.disconnected,
+      requestId: 'connect:1',
+      generation: 1,
+      reason: 'already locally disconnected',
+    });
+    const finalMarker = nextEvent(socket, 'bridge_error');
+    harness.injectHostMessage({
+      version: SHARED_WORKER_PROTOCOL_VERSION,
+      type: SHARED_WORKER_MESSAGE_TYPES.bridgeError,
+      requestId: 'connect:1',
+      error: 'final marker',
+    });
+    await finalMarker;
+
+    expect(errors).toEqual(['first marker', 'second marker', 'final marker']);
+    expect(disconnects).toEqual([]);
+  });
+
+  it('reports a server-initiated disconnect while locally connected', async () => {
+    let serverSocket!: ServerSocketContract;
+    const { socket } = setup((io) =>
+      io.on('connection', (connected) => (serverSocket = connected)),
+    );
+    await nextEvent(socket, 'connect');
+
+    const disconnected = nextEvent(socket, 'disconnect');
+    serverSocket.disconnect();
+    await expect(disconnected).resolves.toHaveLength(1);
+    expect(socket.disconnected).toBe(true);
+  });
+
   it('finishes an immediate disconnect after the initial admission', async () => {
     let resolveServerDisconnect!: () => void;
     const serverDisconnected = new Promise<void>((resolve) => {
@@ -406,7 +521,7 @@ describe('shared-worker client facade', () => {
     expect(posts).toBe(1);
   });
 
-  it('retains the rest of a buffered batch when delivery changes connection state', () => {
+  it('stops flushing a buffered batch when delivery changes connection state', () => {
     let receive!: (event: MessageEvent<unknown>) => void;
     const posted: unknown[] = [];
     const port = {
@@ -428,6 +543,7 @@ describe('shared-worker client facade', () => {
     } as unknown as MessagePort;
 
     const socket = connectSharedWorker(port, { url: 'http://buffer-interruption.test' });
+    (socket as unknown as { flushOutgoing(): void }).flushOutgoing();
     socket.emit('first').emit('second');
     receive(
       new MessageEvent('message', {
@@ -458,6 +574,7 @@ describe('shared-worker client facade', () => {
   it('drops a server acknowledgement after local connection state ends', async () => {
     let serverSocket!: ServerSocketContract;
     let retainedAcknowledgement!: (value: string) => void;
+    const serverAcknowledgements: string[] = [];
     let resolveAcknowledgement!: () => void;
     const acknowledgementReceived = new Promise<void>((resolve) => {
       resolveAcknowledgement = resolve;
@@ -470,11 +587,16 @@ describe('shared-worker client facade', () => {
       resolveAcknowledgement();
     });
     await nextEvent(socket, 'connect');
-    serverSocket.emit('retained-ack', () => undefined);
+    serverSocket.emit('retained-ack', (value: string) => serverAcknowledgements.push(value));
     await acknowledgementReceived;
 
     (socket as unknown as { connected: boolean }).connected = false;
     retainedAcknowledgement('ignored');
+    (socket as unknown as { connected: boolean }).connected = true;
+    const marker = nextEvent(socket, 'marker');
+    serverSocket.emit('marker');
+    await marker;
+    expect(serverAcknowledgements).toEqual([]);
   });
 
   it('reports admission failure once and uses current auth on an explicit retry', async () => {

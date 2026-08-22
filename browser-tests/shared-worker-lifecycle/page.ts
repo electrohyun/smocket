@@ -48,14 +48,15 @@ function matches(args: EventArguments, expected: unknown): boolean {
 }
 
 function record(event: string, args: EventArguments): void {
+  const serializableArgs = args.filter((argument) => typeof argument !== 'function');
   const entries = observed.get(event) ?? [];
-  entries.push(args);
+  entries.push(serializableArgs);
   observed.set(event, entries);
   for (let index = waiters.length - 1; index >= 0; index -= 1) {
     const waiter = waiters[index];
-    if (!waiter || waiter.event !== event || !matches(args, waiter.expected)) continue;
+    if (!waiter || waiter.event !== event || !matches(serializableArgs, waiter.expected)) continue;
     waiters.splice(index, 1);
-    waiter.resolve(args);
+    waiter.resolve(serializableArgs);
   }
 }
 

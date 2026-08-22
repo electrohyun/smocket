@@ -47,6 +47,7 @@ function connectionTarget(url: string): {
   const parsed = new URL(url, base);
   const query = Object.fromEntries(parsed.searchParams);
   return {
+    /* v8 ignore next -- supported HTTP(S) connection URLs always expose a non-empty pathname. */
     namespace: parsed.pathname || '/',
     query: Object.keys(query).length === 0 ? undefined : query,
   };
@@ -80,6 +81,7 @@ export function attachSharedWorker<
         type: SHARED_WORKER_MESSAGE_TYPES.bridgeError,
         error: `could not clone host message: ${errorMessage(error)}`,
         ...('requestId' in message ? { requestId: message.requestId } : {}),
+        /* v8 ignore next -- every non-error host message has a generation. */
         ...('generation' in message ? { generation: message.generation } : {}),
       };
       try {
@@ -111,6 +113,7 @@ export function attachSharedWorker<
     state.pendingServerAcknowledgements.clear();
     for (const reference of state.pendingClientAcknowledgements) reference.state = undefined;
     state.pendingClientAcknowledgements.clear();
+    /* v8 ignore next -- a superseded state is marked finished before active changes. */
     if (active === state) active = undefined;
     if (disconnectSocket) state.socket.disconnect();
     if (notify) {
@@ -135,6 +138,7 @@ export function attachSharedWorker<
     ackId: string | undefined,
     args: unknown[],
   ): void => {
+    /* v8 ignore next -- acknowledgement references are invalidated synchronously by finish(). */
     if (!ackId || state.finished || active !== state) return;
     const message: SharedWorkerClientAcknowledgementMessage = {
       version: SHARED_WORKER_PROTOCOL_VERSION,
@@ -152,6 +156,7 @@ export function attachSharedWorker<
     event: string,
     incomingArgs: unknown[],
   ): void => {
+    /* v8 ignore next -- every inactive state is finished before active ownership changes. */
     if (state.finished || active !== state) return;
     const args = [...incomingArgs];
     const candidate = args.at(-1);
@@ -225,6 +230,7 @@ export function attachSharedWorker<
       if (!post(connected)) disconnect(state, 'bridge delivery failed', false);
     });
     socket.on('connect_error', (error: Error) => {
+      /* v8 ignore next -- every inactive state is finished before active ownership changes. */
       if (state.finished || active !== state) return;
       const failed: SharedWorkerConnectErrorMessage = {
         version: SHARED_WORKER_PROTOCOL_VERSION,

@@ -257,8 +257,11 @@ describe('shared-worker host', () => {
       type: SHARED_WORKER_MESSAGE_TYPES.serverEvent,
       event: 'question',
       args: [41],
+      ackId: expect.any(String),
     });
-    if (question.type !== SHARED_WORKER_MESSAGE_TYPES.serverEvent || !question.ackId) return;
+    if (question.type !== SHARED_WORKER_MESSAGE_TYPES.serverEvent || !question.ackId) {
+      throw new Error('question event did not include an acknowledgement id');
+    }
     const answer = {
       version: SHARED_WORKER_PROTOCOL_VERSION,
       type: SHARED_WORKER_MESSAGE_TYPES.acknowledgement,
@@ -334,8 +337,17 @@ describe('shared-worker host', () => {
       expect(value).toBe('late');
     });
     const heldServerEvent = await bridge.next();
-    if (heldServerEvent.type !== SHARED_WORKER_MESSAGE_TYPES.serverEvent || !heldServerEvent.ackId)
-      return;
+    expect(heldServerEvent).toMatchObject({
+      type: SHARED_WORKER_MESSAGE_TYPES.serverEvent,
+      event: 'held-server-event',
+      ackId: expect.any(String),
+    });
+    if (
+      heldServerEvent.type !== SHARED_WORKER_MESSAGE_TYPES.serverEvent ||
+      !heldServerEvent.ackId
+    ) {
+      throw new Error('held server event did not include an acknowledgement id');
+    }
 
     bridge.post(clientEvent(first.generation, 'hold-client-ack', [], 'old-client-acknowledgement'));
     expect(await bridge.next()).toMatchObject({
@@ -466,7 +478,7 @@ describe('shared-worker host', () => {
       new MessageEvent('message', { data: connectMessage('request:1', url) }),
     );
     const serverSocket = await serverConnection;
-    serverSocket.emit('cannot-deliver', 'payload');
+    serverSocket.emit('cannot-deliver', 'payload', () => undefined);
     serverSocket.emit('cannot-deliver', 'payload-with-undeliverable-report');
     serverSocket.emit('marker');
     await markerDelivered;
@@ -482,6 +494,66 @@ describe('shared-worker host', () => {
       type: SHARED_WORKER_MESSAGE_TYPES.serverEvent,
       event: 'marker',
     });
+    host.close();
+  });
+
+  it('releases a connection when its admission result cannot cross the port', async () => {
+    const url = `http://shared-worker-connected-post-${++nextOrigin}.test`;
+    const io = new Server(url);
+    servers.push(io);
+    const listeners = new Map<string, (event: MessageEvent<unknown>) => void>();
+    const outbound: SharedWorkerHostMessage[] = [];
+    const port = {
+      addEventListener: (type: string, listener: (event: MessageEvent<unknown>) => void) => {
+        listeners.set(type, listener);
+      },
+      removeEventListener: (type: string) => listeners.delete(type),
+      start: () => undefined,
+      postMessage: (message: SharedWorkerHostMessage) => {
+        if (message.type === SHARED_WORKER_MESSAGE_TYPES.connected) {
+          throw new Error('connected message rejected');
+        }
+        outbound.push(message);
+      },
+    } as unknown as MessagePort;
+    const host = attachSharedWorker(io, port);
+    const serverConnection = new Promise<ServerSocketContract>((resolve) => {
+      io.on('connection', resolve);
+    });
+
+    listeners.get('message')?.(
+      new MessageEvent('message', { data: connectMessage('request:1', url) }),
+    );
+    await serverConnection;
+
+    expect(outbound).toContainEqual({
+      version: SHARED_WORKER_PROTOCOL_VERSION,
+      type: SHARED_WORKER_MESSAGE_TYPES.bridgeError,
+      requestId: 'request:1',
+      generation: 1,
+      error: 'could not clone host message: connected message rejected',
+    });
+    expect(outbound.some((message) => message.type === SHARED_WORKER_MESSAGE_TYPES.connected)).toBe(
+      false,
+    );
+    host.close();
+  });
+
+  it('tolerates a port that cannot carry a bridge error', () => {
+    const listeners = new Map<string, (event: MessageEvent<unknown>) => void>();
+    const port = {
+      addEventListener: (type: string, listener: (event: MessageEvent<unknown>) => void) => {
+        listeners.set(type, listener);
+      },
+      removeEventListener: (type: string) => listeners.delete(type),
+      start: () => undefined,
+      postMessage: () => {
+        throw new Error('closed port');
+      },
+    } as unknown as MessagePort;
+    const host = attachSharedWorker({} as never, port);
+
+    expect(() => listeners.get('messageerror')?.(new MessageEvent('messageerror'))).not.toThrow();
     host.close();
   });
 
@@ -527,14 +599,27 @@ describe('shared-worker host', () => {
   it('disconnects a generation replaced before its connection callback', () => {
     type SocketListener = (...args: unknown[]) => void;
     const socketListeners = [new Map<string, SocketListener>(), new Map<string, SocketListener>()];
+    const anyListeners: Array<SocketListener | undefined> = [];
     const disconnectCalls = [0, 0];
+    let retainedClientAcknowledgement: SocketListener | undefined;
     const sockets = socketListeners.map((listeners, index) => ({
       id: `socket:${index + 1}`,
-      onAny: () => undefined,
+      onAny: (listener: SocketListener) => {
+        anyListeners[index] = listener;
+      },
       on: (event: string, listener: SocketListener) => {
         listeners.set(event, listener);
       },
-      emit: () => undefined,
+      emit: (event: string, ...args: unknown[]) => {
+        const acknowledgement = args.at(-1);
+        if (event === 'hold-client-ack' && typeof acknowledgement === 'function') {
+          retainedClientAcknowledgement = acknowledgement as SocketListener;
+        }
+        if (event === 'double-client-ack' && typeof acknowledgement === 'function') {
+          acknowledgement('first');
+          acknowledgement('duplicate');
+        }
+      },
       disconnect: () => {
         disconnectCalls[index] = (disconnectCalls[index] ?? 0) + 1;
       },
@@ -562,6 +647,11 @@ describe('shared-worker host', () => {
     );
     receive(
       new MessageEvent('message', {
+        data: clientEvent(1, 'hold-client-ack', [], 'client:retained'),
+      }),
+    );
+    receive(
+      new MessageEvent('message', {
         data: connectMessage('request:second', 'http://replacement.test'),
       }),
     );
@@ -572,6 +662,9 @@ describe('shared-worker host', () => {
       reason: 'replaced connection',
     });
     expect(disconnectCalls[0]).toBe(1);
+    retainedClientAcknowledgement?.('late');
+    anyListeners[0]?.('late-server-event');
+    socketListeners[0]?.get('connect_error')?.(new Error('late connect error'));
     socketListeners[0]?.get('connect')?.();
     expect(disconnectCalls[0]).toBe(2);
     socketListeners[1]?.get('connect')?.();
@@ -579,6 +672,29 @@ describe('shared-worker host', () => {
       type: SHARED_WORKER_MESSAGE_TYPES.connected,
       requestId: 'request:second',
       generation: 2,
+    });
+    receive(
+      new MessageEvent('message', {
+        data: clientEvent(2, 'double-client-ack', [], 'client:double'),
+      }),
+    );
+    expect(
+      outbound.filter(
+        (message) =>
+          message.type === SHARED_WORKER_MESSAGE_TYPES.acknowledgement &&
+          message.ackId === 'client:double',
+      ),
+    ).toEqual([
+      expect.objectContaining({
+        direction: 'client',
+        args: ['first'],
+      }),
+    ]);
+    socketListeners[1]?.get('disconnect')?.('transport close');
+    expect(outbound.at(-1)).toMatchObject({
+      type: SHARED_WORKER_MESSAGE_TYPES.disconnected,
+      requestId: 'request:second',
+      reason: 'transport close',
     });
     host.close();
   });
