@@ -1,0 +1,20 @@
+{
+  "name": "shared-worker-lobby-example",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite --host 127.0.0.1",
+    "typecheck": "tsc -p tsconfig.client.json --noEmit && tsc -p tsconfig.worker.json --noEmit",
+    "verify": "vite build && node verify.mjs"
+  },
+  "dependencies": {
+    "smocket": "workspace:*",
+    "smocket-client": "workspace:*"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1",
+    "typescript": "6.0.3",
+    "vite": "8.1.5"
+  }
+}
