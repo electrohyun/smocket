@@ -111,6 +111,8 @@ jobs:
       # behaves in Node. #139 is what happens without it.
       - name: Run the mock target in a browser
         run: pnpm test:browser
+      - name: Prove one SharedWorker lobby across three Chromium tabs
+        run: pnpm test:shared-worker
       - name: Run candidate packages in Chromium
         run: pnpm consumer:client:candidate -- --manifest .release-candidate/release-candidate.json --browser
 
