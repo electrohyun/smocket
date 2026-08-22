@@ -108,6 +108,7 @@ describe('shared-worker client facade', () => {
     const firstId = socket.id;
     expect(socket.connected).toBe(true);
     expect(socket.disconnected).toBe(false);
+    expect(socket.connect()).toBe(socket);
 
     const localDisconnect = nextEvent(socket, 'disconnect');
     socket.auth = { label: 'B' };
@@ -199,6 +200,8 @@ describe('shared-worker client facade', () => {
 
     socket.on('cleared', () => undefined).removeAllListeners();
     expect(socket.listeners('cleared')).toEqual([]);
+    socket.off('missing', duplicate).onAny(any).offAny();
+    expect(socket.listenersAny()).toEqual([]);
   });
 
   it('carries callback, promise, send, and server acknowledgements exactly once', async () => {
@@ -322,18 +325,156 @@ describe('shared-worker client facade', () => {
       auth: {},
     });
     socket.emit('not-cloneable', () => undefined, 'trailing-value');
+    socket.emit(
+      'not-cloneable-ack',
+      () => undefined,
+      () => undefined,
+    );
     harness.reportMessageError();
+    harness.injectHostMessage({
+      version: SHARED_WORKER_PROTOCOL_VERSION,
+      type: SHARED_WORKER_MESSAGE_TYPES.bridgeError,
+      requestId: 'stale-request',
+      generation: 1,
+      error: 'ignored stale request',
+    });
+    harness.injectHostMessage({
+      version: SHARED_WORKER_PROTOCOL_VERSION,
+      type: SHARED_WORKER_MESSAGE_TYPES.bridgeError,
+      requestId: 'connect:1',
+      generation: 99,
+      error: 'ignored stale generation',
+    });
+    harness.injectHostMessage({
+      version: SHARED_WORKER_PROTOCOL_VERSION,
+      type: SHARED_WORKER_MESSAGE_TYPES.bridgeError,
+      requestId: 'connect:1',
+      generation: 1,
+      error: 'host reported failure',
+    });
 
     const marker = nextEvent(socket, 'marker');
     serverSocket.emit('marker');
     await marker;
-    expect(errors).toHaveLength(4);
-    expect(errors[0]).toMatch(/^could not clone page message:/);
-    expect(errors.slice(1)).toEqual([
+    expect(errors).toHaveLength(6);
+    expect(errors.slice(0, 2)).toEqual([
+      expect.stringMatching(/^could not clone page message:/),
+      expect.stringMatching(/^could not clone page message:/),
+    ]);
+    expect(errors.slice(2)).toEqual([
       'shared-worker message could not be deserialized',
       'unsupported shared-worker protocol version: 2',
       'unexpected CONNECT from shared-worker host',
+      'host reported failure',
     ]);
+  });
+
+  it('finishes an immediate disconnect after the initial admission', async () => {
+    let resolveServerDisconnect!: () => void;
+    const serverDisconnected = new Promise<void>((resolve) => {
+      resolveServerDisconnect = resolve;
+    });
+    const { socket } = setup((io) => {
+      io.on('connection', (serverSocket) =>
+        serverSocket.once('disconnect', resolveServerDisconnect),
+      );
+    });
+    const localDisconnect = nextEvent(socket, 'disconnect');
+    socket.disconnect();
+
+    await expect(localDisconnect).resolves.toEqual(['io client disconnect']);
+    await serverDisconnected;
+  });
+
+  it('stays disconnected when the initial port post fails', () => {
+    let started = false;
+    let posts = 0;
+    const port = {
+      addEventListener: () => undefined,
+      start: () => {
+        started = true;
+      },
+      postMessage: () => {
+        posts += 1;
+        throw 'closed port';
+      },
+    } as unknown as MessagePort;
+
+    const socket = connectSharedWorker(port, { url: 'http://post-failure.test' });
+    expect(socket.disconnected).toBe(true);
+    expect(started).toBe(true);
+    expect(posts).toBe(1);
+  });
+
+  it('retains the rest of a buffered batch when delivery changes connection state', () => {
+    let receive!: (event: MessageEvent<unknown>) => void;
+    const posted: unknown[] = [];
+    const port = {
+      addEventListener: (type: string, listener: (event: MessageEvent<unknown>) => void) => {
+        if (type === 'message') receive = listener;
+      },
+      start: () => undefined,
+      postMessage: (message: unknown) => {
+        posted.push(message);
+        if (
+          typeof message === 'object' &&
+          message !== null &&
+          'type' in message &&
+          message.type === SHARED_WORKER_MESSAGE_TYPES.clientEvent
+        ) {
+          (socket as unknown as { connected: boolean }).connected = false;
+        }
+      },
+    } as unknown as MessagePort;
+
+    const socket = connectSharedWorker(port, { url: 'http://buffer-interruption.test' });
+    socket.emit('first').emit('second');
+    receive(
+      new MessageEvent('message', {
+        data: {
+          version: SHARED_WORKER_PROTOCOL_VERSION,
+          type: SHARED_WORKER_MESSAGE_TYPES.connected,
+          requestId: 'connect:1',
+          generation: 1,
+          id: 'socket:1',
+        },
+      }),
+    );
+
+    expect(posted).toContainEqual(
+      expect.objectContaining({
+        type: SHARED_WORKER_MESSAGE_TYPES.clientEvent,
+        event: 'first',
+      }),
+    );
+    expect(posted).not.toContainEqual(
+      expect.objectContaining({
+        type: SHARED_WORKER_MESSAGE_TYPES.clientEvent,
+        event: 'second',
+      }),
+    );
+  });
+
+  it('drops a server acknowledgement after local connection state ends', async () => {
+    let serverSocket!: ServerSocketContract;
+    let retainedAcknowledgement!: (value: string) => void;
+    let resolveAcknowledgement!: () => void;
+    const acknowledgementReceived = new Promise<void>((resolve) => {
+      resolveAcknowledgement = resolve;
+    });
+    const { socket } = setup((io) => {
+      io.on('connection', (connected) => (serverSocket = connected));
+    });
+    socket.on('retained-ack', (acknowledge: (value: string) => void) => {
+      retainedAcknowledgement = acknowledge;
+      resolveAcknowledgement();
+    });
+    await nextEvent(socket, 'connect');
+    serverSocket.emit('retained-ack', () => undefined);
+    await acknowledgementReceived;
+
+    (socket as unknown as { connected: boolean }).connected = false;
+    retainedAcknowledgement('ignored');
   });
 
   it('reports admission failure once and uses current auth on an explicit retry', async () => {
