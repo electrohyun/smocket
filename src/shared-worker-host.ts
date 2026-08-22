@@ -11,6 +11,7 @@ import {
   type SharedWorkerConnectErrorMessage,
   type SharedWorkerDisconnectedMessage,
   type SharedWorkerHostMessage,
+  type SharedWorkerPageMessage,
   type SharedWorkerServerEventMessage,
 } from './shared-worker-protocol';
 
@@ -19,9 +20,14 @@ interface SharedWorkerConnectionState {
   readonly generation: number;
   readonly socket: ClientSocketContract;
   readonly pendingServerAcknowledgements: Map<string, (...args: unknown[]) => void>;
+  readonly pendingClientAcknowledgements: Set<SharedWorkerConnectionReference>;
   nextAcknowledgement: number;
   finished: boolean;
   disconnectReason?: string;
+}
+
+interface SharedWorkerConnectionReference {
+  state: SharedWorkerConnectionState | undefined;
 }
 
 export interface SharedWorkerHost {
@@ -85,6 +91,15 @@ export function attachSharedWorker<
     }
   };
 
+  const reportBridgeError = (error: unknown): void => {
+    const bridgeError: SharedWorkerBridgeErrorMessage = {
+      version: SHARED_WORKER_PROTOCOL_VERSION,
+      type: SHARED_WORKER_MESSAGE_TYPES.bridgeError,
+      error: errorMessage(error),
+    };
+    post(bridgeError);
+  };
+
   const finish = (
     state: SharedWorkerConnectionState,
     reason: string,
@@ -94,6 +109,8 @@ export function attachSharedWorker<
     if (state.finished) return;
     state.finished = true;
     state.pendingServerAcknowledgements.clear();
+    for (const reference of state.pendingClientAcknowledgements) reference.state = undefined;
+    state.pendingClientAcknowledgements.clear();
     if (active === state) active = undefined;
     if (disconnectSocket) state.socket.disconnect();
     if (notify) {
@@ -186,6 +203,7 @@ export function attachSharedWorker<
       generation,
       socket,
       pendingServerAcknowledgements: new Map(),
+      pendingClientAcknowledgements: new Set(),
       nextAcknowledgement: 0,
       finished: false,
     };
@@ -228,52 +246,66 @@ export function attachSharedWorker<
     message: SharedWorkerClientEventMessage,
   ): void => {
     const args = [...message.args];
-    if (message.ackId) {
+    const ackId = message.ackId;
+    if (ackId) {
       let answered = false;
+      const reference: SharedWorkerConnectionReference = { state };
+      state.pendingClientAcknowledgements.add(reference);
       args.push((...acknowledgementArgs: unknown[]) => {
         if (answered) return;
         answered = true;
-        acknowledgeClientEvent(state, message.ackId, acknowledgementArgs);
+        const current = reference.state;
+        reference.state = undefined;
+        if (!current) return;
+        current.pendingClientAcknowledgements.delete(reference);
+        acknowledgeClientEvent(current, ackId, acknowledgementArgs);
       });
     }
     state.socket.emit(message.event, ...args);
   };
 
   const handleMessage = (value: unknown): void => {
+    let message: SharedWorkerPageMessage;
     try {
-      const message = readSharedWorkerPageMessage(value);
-      if (message.type === SHARED_WORKER_MESSAGE_TYPES.connect) {
-        connect(message);
-        return;
-      }
-
-      const state = active;
-      if (!state) throw new Error('shared-worker port has no active connection');
-      if (message.generation !== state.generation) return;
-      if (
-        message.type === SHARED_WORKER_MESSAGE_TYPES.disconnect &&
-        message.requestId !== state.requestId
-      ) {
-        throw new Error('disconnect request does not own the active connection');
-      }
-
-      if (message.type === SHARED_WORKER_MESSAGE_TYPES.clientEvent) {
-        handleClientEvent(state, message);
-      } else if (message.type === SHARED_WORKER_MESSAGE_TYPES.acknowledgement) {
-        const acknowledge = state.pendingServerAcknowledgements.get(message.ackId);
-        if (!acknowledge) return;
-        state.pendingServerAcknowledgements.delete(message.ackId);
-        acknowledge(...message.args);
-      } else {
-        disconnect(state, message.reason);
-      }
+      message = readSharedWorkerPageMessage(value);
     } catch (error) {
-      const bridgeError: SharedWorkerBridgeErrorMessage = {
-        version: SHARED_WORKER_PROTOCOL_VERSION,
-        type: SHARED_WORKER_MESSAGE_TYPES.bridgeError,
-        error: errorMessage(error),
-      };
-      post(bridgeError);
+      reportBridgeError(error);
+      return;
+    }
+
+    if (message.type === SHARED_WORKER_MESSAGE_TYPES.connect) {
+      connect(message);
+      return;
+    }
+
+    const state = active;
+    if (!state) {
+      if (message.generation <= nextGeneration) return;
+      reportBridgeError(new Error('shared-worker port has no active connection'));
+      return;
+    }
+    if (message.generation < state.generation) return;
+    if (message.generation > state.generation) {
+      reportBridgeError(new Error('unknown shared-worker connection generation'));
+      return;
+    }
+    if (
+      message.type === SHARED_WORKER_MESSAGE_TYPES.disconnect &&
+      message.requestId !== state.requestId
+    ) {
+      reportBridgeError(new Error('disconnect request does not own the active connection'));
+      return;
+    }
+
+    if (message.type === SHARED_WORKER_MESSAGE_TYPES.clientEvent) {
+      handleClientEvent(state, message);
+    } else if (message.type === SHARED_WORKER_MESSAGE_TYPES.acknowledgement) {
+      const acknowledge = state.pendingServerAcknowledgements.get(message.ackId);
+      if (!acknowledge) return;
+      state.pendingServerAcknowledgements.delete(message.ackId);
+      acknowledge(...message.args);
+    } else {
+      disconnect(state, message.reason);
     }
   };
 
