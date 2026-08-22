@@ -49,3 +49,4 @@ these are written.
 | [0035](./0035-inherited-emitter-follows-each-receiver.md)               | Inherited emitter behavior follows each receiver                                        | Accepted | #274                 |
 | [0036](./0036-drop-final-broadcast-recipients-by-sid.md)                | Drop final broadcast recipients by sid                                                  | Accepted | #263                 |
 | [0037](./0037-keep-broadcast-management-local-and-canonical.md)         | Keep local broadcast management canonical                                               | Accepted | #265                 |
+| [0038](./0038-shared-worker-is-an-explicit-narrow-facade.md)            | SharedWorker uses explicit host and client subpaths with a narrow facade                | Accepted | #376, #377, #379     |
