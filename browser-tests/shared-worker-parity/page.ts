@@ -116,7 +116,22 @@ globalThis.sharedWorkerParityProbe = {
   waitFor(event, expected) {
     const existing = observed.get(event)?.find((args) => matches(args, expected));
     if (existing) return Promise.resolve(existing);
-    return new Promise((resolve) => waiters.push({ event, expected, resolve }));
+    return new Promise((resolve, reject) => {
+      const waiter: EventWaiter = {
+        event,
+        expected,
+        resolve: (args) => {
+          clearTimeout(timer);
+          resolve(args);
+        },
+      };
+      const timer = setTimeout(() => {
+        const index = waiters.indexOf(waiter);
+        if (index >= 0) waiters.splice(index, 1);
+        reject(new Error(`Timed out waiting for "${event}" on ${label}`));
+      }, 10_000);
+      waiters.push(waiter);
+    });
   },
   snapshot() {
     return { id: socket.id, connected: socket.connected };
