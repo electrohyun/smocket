@@ -61,7 +61,7 @@ try {
         return item;
       }),
     );
-    const current = state.players.find((player) => player.label === label);
+    const current = state.players.find((player) => player.id === socket.id);
     startButton.disabled = !(state.canStart && current?.leader);
     noticeNode.textContent = state.canStart ? 'The leader can start.' : 'Waiting for everyone.';
   });

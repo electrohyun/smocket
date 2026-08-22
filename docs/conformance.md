@@ -770,6 +770,13 @@ stale-generation suppression, and bridge errors.
 - [shared-worker client facade reports admission failure once and uses current auth on an explicit retry](../src/shared-worker-client.test.ts#L339)
 - [shared-worker client facade disconnects once on pagehide and releases page lifecycle ownership](../src/shared-worker-client.test.ts#L362)
 
+### SharedWorker lobby application handlers
+
+Running the documented lobby handlers against real Socket.IO and Smocket, including
+duplicate-label identity, readiness, start, and disconnect.
+
+- [the documented lobby handlers preserve identity and lifecycle across both targets](../examples/shared-worker-lobby/src/application.test.ts#L12)
+
 <!-- conformance:generated end -->
 
 ## How to add a case
