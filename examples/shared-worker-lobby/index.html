@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Smocket SharedWorker lobby</title>
+  </head>
+  <body>
+    <main>
+      <p class="eyebrow">Smocket multi-tab preview</p>
+      <h1>Lobby <span id="label"></span></h1>
+      <p id="connection">Connecting through the shared worker…</p>
+      <p class="socket">Socket <code id="socket-id">pending</code></p>
+      <ul id="players" aria-label="Players"></ul>
+      <div class="actions">
+        <button id="ready" type="button">Ready</button>
+        <button id="start" type="button" disabled>Start game</button>
+      </div>
+      <p id="notice" role="status">Waiting for three tabs.</p>
+    </main>
+    <script type="module" src="/src/client.ts"></script>
+  </body>
+</html>
