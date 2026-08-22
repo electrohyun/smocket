@@ -748,13 +748,14 @@ and close settlement.
 Validating port messages, generations, acknowledgements, ordering, errors, and explicit
 teardown around the existing in-process server.
 
-- [shared-worker protocol validates message shape, direction, and protocol version at both boundaries](../src/shared-worker.test.ts#L106)
-- [shared-worker host connects through the existing server and carries acknowledgements both ways](../src/shared-worker.test.ts#L186)
-- [shared-worker host keeps client events FIFO through an acknowledgement marker](../src/shared-worker.test.ts#L250)
-- [shared-worker host ends the old generation and suppresses its late events and acknowledgements](../src/shared-worker.test.ts#L276)
-- [shared-worker host reports malformed and unexpected messages without stopping the port](../src/shared-worker.test.ts#L357)
-- [shared-worker host reports connection rejection and releases the failed generation](../src/shared-worker.test.ts#L393)
-- [shared-worker host disconnects explicitly with the page-supplied reason](../src/shared-worker.test.ts#L411)
+- [shared-worker protocol validates message shape, direction, and protocol version at both boundaries](../src/shared-worker.test.ts#L110)
+- [shared-worker host connects through the existing server and carries acknowledgements both ways](../src/shared-worker.test.ts#L190)
+- [shared-worker host keeps client events FIFO through an acknowledgement marker](../src/shared-worker.test.ts#L254)
+- [shared-worker host ends the old generation and suppresses its late events and acknowledgements](../src/shared-worker.test.ts#L280)
+- [shared-worker host reports malformed and unexpected messages without stopping the port](../src/shared-worker.test.ts#L361)
+- [shared-worker host reports connection rejection and releases the failed generation](../src/shared-worker.test.ts#L397)
+- [shared-worker host closes an active host once and preserves its shutdown reason](../src/shared-worker.test.ts#L423)
+- [shared-worker host disconnects explicitly with the page-supplied reason](../src/shared-worker.test.ts#L443)
 
 <!-- conformance:generated end -->
 
