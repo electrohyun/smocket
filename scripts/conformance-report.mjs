@@ -266,6 +266,12 @@ const AREAS = [
       'Validating port messages, generations, acknowledgements, ordering, errors, and explicit teardown around the existing in-process server.',
   },
   {
+    file: 'src/shared-worker-client.test.ts',
+    title: 'SharedWorker client facade',
+    blurb:
+      'Connecting through the narrow page API, listener behavior, acknowledgements, stale-generation suppression, and bridge errors.',
+  },
+  {
     file: 'src/emitter-returns.test.ts',
     title: 'Return values',
     blurb:
