@@ -757,6 +757,18 @@ teardown around the existing in-process server.
 - [shared-worker host closes an active host once and preserves its shutdown reason](../src/shared-worker.test.ts#L423)
 - [shared-worker host disconnects explicitly with the page-supplied reason](../src/shared-worker.test.ts#L443)
 
+### SharedWorker client facade
+
+Connecting through the narrow page API, listener behavior, acknowledgements,
+stale-generation suppression, and bridge errors.
+
+- [shared-worker client facade connects automatically, snapshots auth, buffers emits, and reconnects with a fresh id](../src/shared-worker-client.test.ts#L69)
+- [shared-worker client facade matches the supported ordinary and incoming catch-all listener behavior](../src/shared-worker-client.test.ts#L108)
+- [shared-worker client facade carries callback, promise, send, and server acknowledgements exactly once](../src/shared-worker-client.test.ts#L185)
+- [shared-worker client facade drops stale generation traffic and retained acknowledgements before a later marker](../src/shared-worker-client.test.ts#L224)
+- [shared-worker client facade reports invalid and non-cloneable traffic without stopping later delivery](../src/shared-worker-client.test.ts#L280)
+- [shared-worker client facade reports admission failure once and uses current auth on an explicit retry](../src/shared-worker-client.test.ts#L320)
+
 <!-- conformance:generated end -->
 
 ## How to add a case
