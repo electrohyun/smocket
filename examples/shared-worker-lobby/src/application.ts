@@ -2,6 +2,7 @@ export const LOBBY_URL = 'http://shared-worker-lobby.example';
 export const ROOM = 'lobby';
 
 export interface Player {
+  id: string;
   label: string;
   ready: boolean;
   leader: boolean;
@@ -49,11 +50,12 @@ function readLabel(value: unknown): string {
 
 /** Register the same Socket.IO-shaped application handlers used by every tab. */
 export function registerLobbyHandlers(io: LobbyServer): void {
-  const players = new Map<string, Omit<Player, 'leader'>>();
+  const players = new Map<string, Omit<Player, 'id' | 'leader'>>();
 
   const snapshot = (): LobbyState => {
     const leaderId = players.keys().next().value as string | undefined;
     const current = [...players].map(([id, player]) => ({
+      id,
       ...player,
       leader: id === leaderId,
     }));
@@ -82,8 +84,7 @@ export function registerLobbyHandlers(io: LobbyServer): void {
 
     socket.on('start-game', (acknowledge) => {
       const state = snapshot();
-      const player = state.players.find((candidate) => candidate.label === label);
-      const accepted = state.canStart && player?.leader === true;
+      const accepted = state.canStart && socket.id === players.keys().next().value;
       acknowledge({ accepted });
       if (accepted) io.to(ROOM).emit('game-started', { by: label });
     });
