@@ -52,6 +52,7 @@
     "test:mock": "vitest run --project=mock",
     "test:browser": "tsup && pnpm --filter smocket-client build && vitest run --config vitest.browser.config.ts",
     "test:shared-worker": "tsup && node experiments/shared-worker-lobby/experiment.mjs",
+    "test:shared-worker:lifecycle": "node scripts/shared-worker-lifecycle.mjs",
     "test:dist": "vitest run --config vitest.dist.config.ts",
     "smoke": "node scripts/smoke.mjs",
     "coverage": "vitest run --project=mock --coverage",
