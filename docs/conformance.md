@@ -743,6 +743,19 @@ and close settlement.
 - [close discards unclaimed sockets and rejects later observers](../src/connection-api.test.ts#L231)
 - [close preserves a ready socket claimed before teardown](../src/connection-api.test.ts#L241)
 
+### SharedWorker host bridge
+
+Validating port messages, generations, acknowledgements, ordering, errors, and explicit
+teardown around the existing in-process server.
+
+- [shared-worker protocol validates message shape, direction, and protocol version at both boundaries](../src/shared-worker.test.ts#L106)
+- [shared-worker host connects through the existing server and carries acknowledgements both ways](../src/shared-worker.test.ts#L186)
+- [shared-worker host keeps client events FIFO through an acknowledgement marker](../src/shared-worker.test.ts#L250)
+- [shared-worker host ends the old generation and suppresses its late events and acknowledgements](../src/shared-worker.test.ts#L276)
+- [shared-worker host reports malformed and unexpected messages without stopping the port](../src/shared-worker.test.ts#L357)
+- [shared-worker host reports connection rejection and releases the failed generation](../src/shared-worker.test.ts#L393)
+- [shared-worker host disconnects explicitly with the page-supplied reason](../src/shared-worker.test.ts#L411)
+
 <!-- conformance:generated end -->
 
 ## How to add a case
