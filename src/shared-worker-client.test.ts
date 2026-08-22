@@ -326,8 +326,10 @@ describe('shared-worker client facade', () => {
       },
       { allowed: false },
     );
-    const connectError = nextEvent(socket, 'connect_error');
-    await expect(connectError).resolves.toMatchObject([{ message: 'not admitted' }]);
+    const connectErrors: string[] = [];
+    socket.on('connect_error', (error: Error) => connectErrors.push(error.message));
+    const firstError = nextEvent(socket, 'connect_error');
+    await expect(firstError).resolves.toMatchObject([{ message: 'not admitted' }]);
     expect(socket.disconnected).toBe(true);
 
     socket.auth = { allowed: true };
@@ -335,5 +337,6 @@ describe('shared-worker client facade', () => {
     socket.connect();
     await connected;
     expect(socket.connected).toBe(true);
+    expect(connectErrors).toEqual(['not admitted']);
   });
 });
