@@ -14,6 +14,24 @@ let nextOrigin = 0;
 const harnesses: ClientHarness[] = [];
 const servers: Server[] = [];
 
+class PageLifecycleHarness {
+  readonly listeners = new Set<() => void>();
+
+  addEventListener(type: string, listener: () => void): void {
+    if (type === 'pagehide') this.listeners.add(listener);
+  }
+
+  removeEventListener(type: string, listener: () => void): void {
+    if (type === 'pagehide') this.listeners.delete(listener);
+  }
+
+  pageHide(): void {
+    const listeners = [...this.listeners];
+    this.listeners.clear();
+    for (const listener of listeners) listener();
+  }
+}
+
 class ClientHarness {
   readonly socket: SharedWorkerSocket;
   private readonly workerPort: MessagePort;
@@ -37,6 +55,7 @@ class ClientHarness {
   }
 
   close(): void {
+    this.socket.disconnect();
     this.host.close('test cleanup');
     this.workerPort.close();
     this.pagePort.close();
@@ -338,5 +357,64 @@ describe('shared-worker client facade', () => {
     await connected;
     expect(socket.connected).toBe(true);
     expect(connectErrors).toEqual(['not admitted']);
+  });
+
+  it('disconnects once on pagehide and releases page lifecycle ownership', async () => {
+    const lifecycle = new PageLifecycleHarness();
+    const addDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'addEventListener');
+    const removeDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'removeEventListener');
+    Object.defineProperties(globalThis, {
+      addEventListener: {
+        configurable: true,
+        value: lifecycle.addEventListener.bind(lifecycle),
+      },
+      removeEventListener: {
+        configurable: true,
+        value: lifecycle.removeEventListener.bind(lifecycle),
+      },
+    });
+
+    try {
+      const disconnected: string[] = [];
+      const serverDisconnected: Array<Promise<void>> = [];
+      const { socket } = setup((io) => {
+        io.on('connection', (serverSocket) => {
+          serverDisconnected.push(
+            new Promise((resolve) =>
+              serverSocket.once('disconnect', () => {
+                disconnected.push(serverSocket.id);
+                resolve();
+              }),
+            ),
+          );
+        });
+      });
+      await nextEvent(socket, 'connect');
+      expect(lifecycle.listeners.size).toBe(1);
+
+      const localDisconnect = nextEvent(socket, 'disconnect');
+      lifecycle.pageHide();
+      lifecycle.pageHide();
+      await expect(localDisconnect).resolves.toEqual(['io client disconnect']);
+      await serverDisconnected[0];
+      expect(disconnected).toHaveLength(1);
+      expect(lifecycle.listeners.size).toBe(0);
+
+      const reconnected = nextEvent(socket, 'connect');
+      socket.connect();
+      await reconnected;
+      expect(lifecycle.listeners.size).toBe(1);
+      const secondServerDisconnect = serverDisconnected[1];
+      socket.disconnect();
+      await secondServerDisconnect;
+      expect(disconnected).toHaveLength(2);
+      expect(lifecycle.listeners.size).toBe(0);
+    } finally {
+      if (addDescriptor) Object.defineProperty(globalThis, 'addEventListener', addDescriptor);
+      else Reflect.deleteProperty(globalThis, 'addEventListener');
+      if (removeDescriptor)
+        Object.defineProperty(globalThis, 'removeEventListener', removeDescriptor);
+      else Reflect.deleteProperty(globalThis, 'removeEventListener');
+    }
   });
 });
