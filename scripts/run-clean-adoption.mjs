@@ -391,6 +391,55 @@ async function runClientPackageFixtures(projectRoot) {
   );
 }
 
+async function runSharedWorkerPackageFixtures(projectRoot) {
+  const tsc = join(projectRoot, 'node_modules', 'typescript', 'bin', 'tsc');
+
+  await run(
+    process.execPath,
+    ['client-package/shared-worker-runtime.mjs'],
+    projectRoot,
+    fixtureContext(
+      'Node.js',
+      'ESM SharedWorker subpath import',
+      clientPackageInput,
+      'client-package/shared-worker-runtime.mjs',
+    ),
+  );
+  await run(
+    process.execPath,
+    ['client-package/shared-worker-runtime.cjs'],
+    projectRoot,
+    fixtureContext(
+      'Node.js',
+      'CommonJS SharedWorker subpath import',
+      clientPackageInput,
+      'client-package/shared-worker-runtime.cjs',
+    ),
+  );
+  await run(
+    process.execPath,
+    [tsc, '-p', 'client-package/tsconfig.shared-worker.node16.json'],
+    projectRoot,
+    fixtureContext(
+      'TypeScript',
+      'Node16 SharedWorker subpath types',
+      clientPackageInput,
+      'client-package SharedWorker types',
+    ),
+  );
+  await run(
+    process.execPath,
+    [tsc, '-p', 'client-package/tsconfig.shared-worker.bundler.json'],
+    projectRoot,
+    fixtureContext(
+      'TypeScript',
+      'bundler SharedWorker subpath types',
+      clientPackageInput,
+      'client-package SharedWorker types',
+    ),
+  );
+}
+
 async function runPublishedFixtures(projectRoot, packageInput) {
   const vitest = join(projectRoot, 'node_modules', 'vitest', 'vitest.mjs');
   const jest = join(projectRoot, 'node_modules', 'jest', 'bin', 'jest.js');
@@ -499,7 +548,10 @@ try {
 
   if (mode === 'candidate') {
     await runNodeFixtures(projectRoot, packageInput);
-    if (clientPackageInput !== undefined) await runClientPackageFixtures(projectRoot);
+    if (clientPackageInput !== undefined) {
+      await runClientPackageFixtures(projectRoot);
+      await runSharedWorkerPackageFixtures(projectRoot);
+    }
     if (options.get('--browser') === true) await runBrowserFixture(projectRoot, packageInput);
   } else {
     await runPublishedFixtures(projectRoot, packageInput);
