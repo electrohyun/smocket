@@ -54,3 +54,41 @@ it('the documented lobby handlers preserve identity and lifecycle across both ta
   expect(afterDeparture.every((next) => next.players.length === 2)).toBe(true);
   expect(afterDeparture.every((next) => next.canStart === false)).toBe(true);
 });
+
+it('normalizes a blank label and ignores readiness after departure', async () => {
+  type Listener = (...args: unknown[]) => void;
+  const listeners = new Map<string, Listener>();
+  const states: LobbyState[] = [];
+  let connect!: (socket: unknown) => Promise<void>;
+  const io = {
+    on: (_event: string, listener: (socket: unknown) => Promise<void>) => {
+      connect = listener;
+    },
+    to: () => ({
+      emit: (event: string, state: LobbyState) => {
+        if (event === 'lobby-state') states.push(state);
+      },
+    }),
+  } as unknown as LobbyServer;
+  registerLobbyHandlers(io);
+  const socket = {
+    id: 'blank-label',
+    handshake: { auth: { label: '   ' } },
+    join: () => undefined,
+    on: (event: string, listener: Listener) => {
+      listeners.set(event, listener);
+      return socket;
+    },
+  };
+
+  await connect(socket);
+  expect(states.at(-1)?.players[0]?.label).toBe('anonymous');
+  listeners.get('disconnect')?.();
+  let accepted = false;
+  listeners.get('ready')?.(() => {
+    accepted = true;
+  });
+
+  expect(accepted).toBe(true);
+  expect(states.at(-1)?.players).toEqual([]);
+});

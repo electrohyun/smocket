@@ -51,6 +51,14 @@ try {
     connectionNode.textContent = error.message;
   });
 
+  socket.on('disconnect', (reason) => {
+    document.body.dataset.connected = 'false';
+    connectionNode.textContent = `Disconnected: ${reason}`;
+    socketIdNode.textContent = '';
+    readyButton.disabled = true;
+    startButton.disabled = true;
+  });
+
   socket.on('lobby-state', (state: LobbyState) => {
     document.body.dataset.playerCount = String(state.players.length);
     document.body.dataset.canStart = String(state.canStart);
@@ -77,8 +85,12 @@ try {
   });
 
   startButton.addEventListener('click', async () => {
+    startButton.disabled = true;
     const result = await socket.emitWithAck('start-game');
-    if (!result.accepted) noticeNode.textContent = 'Only the ready leader can start.';
+    if (!result.accepted) {
+      startButton.disabled = false;
+      noticeNode.textContent = 'Only the ready leader can start.';
+    }
   });
 } catch (error) {
   document.body.dataset.unsupported = 'true';

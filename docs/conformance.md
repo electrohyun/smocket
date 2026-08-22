@@ -750,31 +750,35 @@ teardown around the existing in-process server.
 
 - [shared-worker protocol validates message shape, direction, and protocol version at both boundaries](../src/shared-worker.test.ts#L114)
 - [shared-worker host connects through the existing server and carries acknowledgements both ways](../src/shared-worker.test.ts#L216)
-- [shared-worker host keeps client events FIFO through an acknowledgement marker](../src/shared-worker.test.ts#L280)
-- [shared-worker host ends the old generation and suppresses its late events and acknowledgements](../src/shared-worker.test.ts#L306)
-- [shared-worker host reports malformed and unexpected messages without stopping the port](../src/shared-worker.test.ts#L387)
-- [shared-worker host reports host delivery failures and survives an undeliverable report](../src/shared-worker.test.ts#L423)
-- [shared-worker host reports connection rejection and releases the failed generation](../src/shared-worker.test.ts#L488)
-- [shared-worker host disconnects a generation replaced before its connection callback](../src/shared-worker.test.ts#L527)
-- [shared-worker host closes an active host once and preserves its shutdown reason](../src/shared-worker.test.ts#L586)
-- [shared-worker host disconnects explicitly with the page-supplied reason](../src/shared-worker.test.ts#L606)
+- [shared-worker host keeps client events FIFO through an acknowledgement marker](../src/shared-worker.test.ts#L283)
+- [shared-worker host ends the old generation and suppresses its late events and acknowledgements](../src/shared-worker.test.ts#L309)
+- [shared-worker host reports malformed and unexpected messages without stopping the port](../src/shared-worker.test.ts#L399)
+- [shared-worker host reports host delivery failures and survives an undeliverable report](../src/shared-worker.test.ts#L435)
+- [shared-worker host releases a connection when its admission result cannot cross the port](../src/shared-worker.test.ts#L500)
+- [shared-worker host tolerates a port that cannot carry a bridge error](../src/shared-worker.test.ts#L542)
+- [shared-worker host reports connection rejection and releases the failed generation](../src/shared-worker.test.ts#L560)
+- [shared-worker host disconnects a generation replaced before its connection callback](../src/shared-worker.test.ts#L599)
+- [shared-worker host closes an active host once and preserves its shutdown reason](../src/shared-worker.test.ts#L702)
+- [shared-worker host disconnects explicitly with the page-supplied reason](../src/shared-worker.test.ts#L722)
 
 ### SharedWorker client facade
 
 Connecting through the narrow page API, listener behavior, acknowledgements,
 stale-generation suppression, and bridge errors.
 
-- [shared-worker client facade connects automatically, snapshots auth, buffers emits, and reconnects with a fresh id](../src/shared-worker-client.test.ts#L88)
+- [shared-worker client facade connects automatically, snapshots auth, buffers emits, and explicitly replaces the active generation](../src/shared-worker-client.test.ts#L88)
 - [shared-worker client facade matches the supported ordinary and incoming catch-all listener behavior](../src/shared-worker-client.test.ts#L128)
-- [shared-worker client facade carries callback, promise, send, and server acknowledgements exactly once](../src/shared-worker-client.test.ts#L207)
-- [shared-worker client facade drops stale generation traffic and retained acknowledgements before a later marker](../src/shared-worker-client.test.ts#L246)
-- [shared-worker client facade reports invalid and non-cloneable traffic without stopping later delivery](../src/shared-worker-client.test.ts#L302)
-- [shared-worker client facade finishes an immediate disconnect after the initial admission](../src/shared-worker-client.test.ts#L372)
-- [shared-worker client facade stays disconnected when the initial port post fails](../src/shared-worker-client.test.ts#L389)
-- [shared-worker client facade retains the rest of a buffered batch when delivery changes connection state](../src/shared-worker-client.test.ts#L409)
-- [shared-worker client facade drops a server acknowledgement after local connection state ends](../src/shared-worker-client.test.ts#L458)
-- [shared-worker client facade reports admission failure once and uses current auth on an explicit retry](../src/shared-worker-client.test.ts#L480)
-- [shared-worker client facade disconnects once on pagehide and releases page lifecycle ownership](../src/shared-worker-client.test.ts#L503)
+- [shared-worker client facade carries callback, promise, send, and server acknowledgements exactly once](../src/shared-worker-client.test.ts#L214)
+- [shared-worker client facade drops stale generation traffic and retained acknowledgements before a later marker](../src/shared-worker-client.test.ts#L253)
+- [shared-worker client facade reports invalid and non-cloneable traffic without stopping later delivery](../src/shared-worker-client.test.ts#L309)
+- [shared-worker client facade ignores host messages that do not belong to the current local state](../src/shared-worker-client.test.ts#L379)
+- [shared-worker client facade reports a server-initiated disconnect while locally connected](../src/shared-worker-client.test.ts#L474)
+- [shared-worker client facade finishes an immediate disconnect after the initial admission](../src/shared-worker-client.test.ts#L487)
+- [shared-worker client facade stays disconnected when the initial port post fails](../src/shared-worker-client.test.ts#L504)
+- [shared-worker client facade stops flushing a buffered batch when delivery changes connection state](../src/shared-worker-client.test.ts#L524)
+- [shared-worker client facade drops a server acknowledgement after local connection state ends](../src/shared-worker-client.test.ts#L574)
+- [shared-worker client facade reports admission failure once and uses current auth on an explicit retry](../src/shared-worker-client.test.ts#L602)
+- [shared-worker client facade disconnects once on pagehide and releases page lifecycle ownership](../src/shared-worker-client.test.ts#L625)
 
 ### SharedWorker lobby application handlers
 
@@ -782,6 +786,7 @@ Running the documented lobby handlers against real Socket.IO and Smocket, includ
 duplicate-label identity, readiness, start, and disconnect.
 
 - [the documented lobby handlers preserve identity and lifecycle across both targets](../examples/shared-worker-lobby/src/application.test.ts#L12)
+- [normalizes a blank label and ignores readiness after departure](../examples/shared-worker-lobby/src/application.test.ts#L58)
 
 <!-- conformance:generated end -->
 
