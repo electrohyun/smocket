@@ -319,8 +319,10 @@ try {
   );
   process.stdout.write('SharedWorker and real Socket.IO matched across three Chromium pages.\n');
 } finally {
-  await browser?.close();
-  await sidecar?.close();
-  if (staticServer) await closeServer(staticServer);
+  await Promise.allSettled([
+    browser?.close(),
+    sidecar?.close(),
+    staticServer ? closeServer(staticServer) : undefined,
+  ]);
   await rm(output, { recursive: true, force: true });
 }

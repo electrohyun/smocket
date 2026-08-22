@@ -145,3 +145,6 @@ vite.config.ts.timestamp-*
 
 # Vitest browser mode artifacts
 .vitest-attachments/
+
+# SharedWorker parity runner artifacts
+.tmp-shared-worker-parity-*
