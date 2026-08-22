@@ -60,6 +60,10 @@ class PortBridge {
     this.workerPort.close();
     this.pagePort.close();
   }
+
+  closeHost(reason: string): void {
+    this.host.close(reason);
+  }
 }
 
 function setup(): { bridge: PortBridge; io: Server; url: string } {
@@ -392,7 +396,13 @@ describe('shared-worker host', () => {
 
   it('reports connection rejection and releases the failed generation', async () => {
     const { bridge, io, url } = setup();
-    io.use((_socket, next) => next(new Error('not admitted')));
+    io.use((socket, next) =>
+      next(
+        socket.handshake.auth.requestId === 'request:denied'
+          ? new Error('not admitted')
+          : undefined,
+      ),
+    );
     bridge.post(connectMessage('request:denied', url));
 
     expect(await bridge.next()).toMatchObject({
@@ -402,10 +412,32 @@ describe('shared-worker host', () => {
       error: 'not admitted',
     });
     bridge.post(clientEvent(1, 'after-rejection', []));
+    bridge.post(connectMessage('request:accepted', url));
     expect(await bridge.next()).toMatchObject({
-      type: SHARED_WORKER_MESSAGE_TYPES.bridgeError,
-      error: 'shared-worker port has no active connection',
+      type: SHARED_WORKER_MESSAGE_TYPES.connected,
+      requestId: 'request:accepted',
+      generation: 2,
     });
+  });
+
+  it('closes an active host once and preserves its shutdown reason', async () => {
+    const { bridge, io, url } = setup();
+    const serverDisconnected = new Promise<string>((resolve) => {
+      io.on('connection', (socket) => socket.once('disconnect', resolve));
+    });
+    bridge.post(connectMessage('request:1', url));
+    const connected = await bridge.next();
+    expect(connected.type).toBe(SHARED_WORKER_MESSAGE_TYPES.connected);
+
+    bridge.closeHost('worker shutdown');
+    bridge.closeHost('ignored repeated shutdown');
+    expect(await bridge.next()).toMatchObject({
+      type: SHARED_WORKER_MESSAGE_TYPES.disconnected,
+      requestId: 'request:1',
+      generation: 1,
+      reason: 'worker shutdown',
+    });
+    await expect(serverDisconnected).resolves.toBe('client namespace disconnect');
   });
 
   it('disconnects explicitly with the page-supplied reason', async () => {
@@ -417,6 +449,12 @@ describe('shared-worker host', () => {
     const connected = await bridge.next();
     expect(connected.type).toBe(SHARED_WORKER_MESSAGE_TYPES.connected);
     if (connected.type !== SHARED_WORKER_MESSAGE_TYPES.connected) return;
+
+    bridge.post(clientEvent(connected.generation + 1, 'future-generation', []));
+    expect(await bridge.next()).toMatchObject({
+      type: SHARED_WORKER_MESSAGE_TYPES.bridgeError,
+      error: 'unknown shared-worker connection generation',
+    });
 
     bridge.post({
       version: SHARED_WORKER_PROTOCOL_VERSION,
