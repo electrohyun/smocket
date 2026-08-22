@@ -185,6 +185,10 @@ describe('client facade package policy', () => {
     'package/LICENSE',
     'package/README.md',
     'package/dist/index.mjs',
+    'package/dist/shared-worker.mjs',
+    'package/dist/shared-worker.d.mts',
+    'package/dist/shared-worker.cjs',
+    'package/dist/shared-worker.d.cts',
   ];
 
   function inspectClient(
@@ -238,16 +242,20 @@ describe('client facade package policy', () => {
     );
   });
 
-  it.each(['package/LICENSE', 'package/README.md'])(
-    'rejects a client tarball without %s',
-    (missingEntry) => {
-      const tarEntries = clientTarEntries.filter((entry) => entry !== missingEntry);
+  it.each([
+    'package/LICENSE',
+    'package/README.md',
+    'package/dist/shared-worker.mjs',
+    'package/dist/shared-worker.d.mts',
+    'package/dist/shared-worker.cjs',
+    'package/dist/shared-worker.d.cts',
+  ])('rejects a client tarball without %s', (missingEntry) => {
+    const tarEntries = clientTarEntries.filter((entry) => entry !== missingEntry);
 
-      expect(inspectClient(clientManifest, clientManifest, tarEntries).violations).toContain(
-        `packed tarball must contain ${missingEntry}`,
-      );
-    },
-  );
+    expect(inspectClient(clientManifest, clientManifest, tarEntries).violations).toContain(
+      `packed tarball must contain ${missingEntry}`,
+    );
+  });
 
   it.each([
     ['leading dot prefixes', './package/LICENSE', './package/README.md'],
@@ -259,6 +267,10 @@ describe('client facade package policy', () => {
       licenseEntry,
       readmeEntry,
       'package/dist/index.mjs',
+      'package/dist/shared-worker.mjs',
+      'package/dist/shared-worker.d.mts',
+      'package/dist/shared-worker.cjs',
+      'package/dist/shared-worker.d.cts',
     ];
 
     expect(inspectClient(clientManifest, clientManifest, tarEntries)).toEqual({

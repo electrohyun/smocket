@@ -1,11 +1,12 @@
 // Assert the built bundle imports nothing external.
 //
-// smocket bundles to a single self-contained file, and importing nothing is what
-// lets that file run in a browser at all (#105) and keeps it from dragging a
-// polyfill into every consumer's build. A `node:` import that a bundler shims
-// cleanly would still pass the browser job while doing exactly that, and the
-// packaging job checks resolution, not contents, so nothing but this holds the
-// property. #140 removed the last import (`node:crypto`); this keeps it out.
+// Every smocket runtime entry bundles to a self-contained file. Importing
+// nothing is what lets those files run in a browser at all (#105) and keeps
+// them from dragging a polyfill into every consumer's build. A `node:` import
+// that a bundler shims cleanly would still pass the browser job while doing
+// exactly that. The packaging job checks resolution, not contents, so nothing
+// but this holds the property. #140 removed the last import (`node:crypto`);
+// this keeps it out.
 //
 // The bundle should contain zero module references, so any match here is a
 // regression. Runs after `pnpm build` (wired into `check:package`). The
@@ -16,7 +17,12 @@ import { readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { detectExternalImports } from './detect-external-imports.js';
 
-const files = ['dist/index.js', 'dist/index.cjs'];
+const files = [
+  'dist/index.js',
+  'dist/index.cjs',
+  'dist/shared-worker.js',
+  'dist/shared-worker.cjs',
+];
 
 function findOffenders() {
   const offenders = [];

@@ -3,8 +3,9 @@
   "compilerOptions": {
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
+    "verbatimModuleSyntax": false,
     "rootDir": "src",
     "outDir": "dist"
   },
-  "include": ["src/index.cts"]
+  "include": ["src/index.cts", "src/shared-worker.cts"]
 }
