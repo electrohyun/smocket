@@ -99,6 +99,11 @@ interface ServerAcknowledgementReference {
   readonly ackId: string;
 }
 
+interface SharedWorkerPageLifecycle {
+  addEventListener(type: 'pagehide', listener: () => void, options: { once: true }): void;
+  removeEventListener(type: 'pagehide', listener: () => void): void;
+}
+
 const RESERVED_EVENTS = new Set([
   'connect',
   'connect_error',
@@ -121,6 +126,17 @@ function removeFirst(list: Listener[] | undefined, listener: Listener): void {
   if (index !== -1) list.splice(index, 1);
 }
 
+function pageLifecycle(): SharedWorkerPageLifecycle | undefined {
+  const candidate = globalThis as typeof globalThis & Partial<SharedWorkerPageLifecycle>;
+  if (
+    typeof candidate.addEventListener !== 'function' ||
+    typeof candidate.removeEventListener !== 'function'
+  ) {
+    return undefined;
+  }
+  return candidate as SharedWorkerPageLifecycle;
+}
+
 class SharedWorkerSocketImplementation<
   ListenEvents extends EventsMap = DefaultEventsMap,
   EmitEvents extends EventsMap = ListenEvents,
@@ -141,6 +157,12 @@ class SharedWorkerSocketImplementation<
   private connecting = false;
   private disconnecting = false;
   private disconnectAfterConnect = false;
+  private readonly lifecycle = pageLifecycle();
+  private observingPageHide = false;
+  private readonly handlePageHide = (): void => {
+    this.observingPageHide = false;
+    this.disconnect();
+  };
 
   constructor(
     private readonly port: MessagePort,
@@ -258,6 +280,7 @@ class SharedWorkerSocketImplementation<
     if (this.connected && !this.disconnecting) return this;
 
     this.releaseGeneration();
+    this.observePageHide();
     this.disconnectAfterConnect = false;
     this.disconnecting = false;
     this.connecting = true;
@@ -273,6 +296,7 @@ class SharedWorkerSocketImplementation<
     if (!this.post(message)) {
       this.connecting = false;
       this.requestId = undefined;
+      this.stopObservingPageHide();
     }
     return this;
   }
@@ -283,6 +307,7 @@ class SharedWorkerSocketImplementation<
 
   disconnect(): this {
     if (this.disconnecting || (!this.connected && !this.connecting)) return this;
+    this.stopObservingPageHide();
     if (!this.connected || this.generation === undefined || this.requestId === undefined) {
       this.disconnectAfterConnect = true;
       return this;
@@ -380,6 +405,7 @@ class SharedWorkerSocketImplementation<
       this.generation = undefined;
       this.id = undefined;
       this.connected = false;
+      this.stopObservingPageHide();
       this.dispatch('connect_error', [new Error(message.error)]);
       return;
     }
@@ -486,6 +512,19 @@ class SharedWorkerSocketImplementation<
     this.id = undefined;
     this.generation = undefined;
     this.releaseAcknowledgements();
+    this.stopObservingPageHide();
+  }
+
+  private observePageHide(): void {
+    if (!this.lifecycle || this.observingPageHide) return;
+    this.lifecycle.addEventListener('pagehide', this.handlePageHide, { once: true });
+    this.observingPageHide = true;
+  }
+
+  private stopObservingPageHide(): void {
+    if (!this.lifecycle || !this.observingPageHide) return;
+    this.lifecycle.removeEventListener('pagehide', this.handlePageHide);
+    this.observingPageHide = false;
   }
 
   private dispatchBridgeError(error: Error): void {
