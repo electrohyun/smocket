@@ -14,7 +14,7 @@ export interface LobbyState {
 }
 
 export interface ClientToServerEvents {
-  ready: (acknowledge: (result: { accepted: true }) => void) => void;
+  ready: (acknowledge: (result: { accepted: boolean }) => void) => void;
   'start-game': (acknowledge: (result: { accepted: boolean }) => void) => void;
 }
 
@@ -78,8 +78,8 @@ export function registerLobbyHandlers(io: LobbyServer): void {
     socket.on('ready', (acknowledge) => {
       const player = players.get(socket.id);
       if (player) player.ready = true;
-      acknowledge({ accepted: true });
-      publish();
+      acknowledge({ accepted: player !== undefined });
+      if (player) publish();
     });
 
     socket.on('start-game', (acknowledge) => {

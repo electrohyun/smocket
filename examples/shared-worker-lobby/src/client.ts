@@ -28,6 +28,8 @@ const playersNode = element<HTMLUListElement>('#players');
 const readyButton = element<HTMLButtonElement>('#ready');
 const startButton = element<HTMLButtonElement>('#start');
 const noticeNode = element<HTMLParagraphElement>('#notice');
+let startEligible = false;
+let startInFlight = false;
 labelNode.textContent = label;
 
 try {
@@ -57,6 +59,7 @@ try {
     socketIdNode.textContent = '';
     readyButton.disabled = true;
     startButton.disabled = true;
+    startEligible = false;
   });
 
   socket.on('lobby-state', (state: LobbyState) => {
@@ -70,7 +73,8 @@ try {
       }),
     );
     const current = state.players.find((player) => player.id === socket.id);
-    startButton.disabled = !(state.canStart && current?.leader);
+    startEligible = state.canStart && current?.leader === true;
+    startButton.disabled = startInFlight || !startEligible;
     noticeNode.textContent = state.canStart ? 'The leader can start.' : 'Waiting for everyone.';
   });
 
@@ -85,10 +89,13 @@ try {
   });
 
   startButton.addEventListener('click', async () => {
+    if (startInFlight) return;
+    startInFlight = true;
     startButton.disabled = true;
     const result = await socket.emitWithAck('start-game');
+    startInFlight = false;
     if (!result.accepted) {
-      startButton.disabled = false;
+      startButton.disabled = !startEligible;
       noticeNode.textContent = 'Only the ready leader can start.';
     }
   });

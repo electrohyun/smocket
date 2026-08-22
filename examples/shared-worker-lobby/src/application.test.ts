@@ -55,7 +55,7 @@ it('the documented lobby handlers preserve identity and lifecycle across both ta
   expect(afterDeparture.every((next) => next.canStart === false)).toBe(true);
 });
 
-it('normalizes a blank label and ignores readiness after departure', async () => {
+it('normalizes a blank label and rejects readiness after departure', async () => {
   type Listener = (...args: unknown[]) => void;
   const listeners = new Map<string, Listener>();
   const states: LobbyState[] = [];
@@ -84,11 +84,11 @@ it('normalizes a blank label and ignores readiness after departure', async () =>
   await connect(socket);
   expect(states.at(-1)?.players[0]?.label).toBe('anonymous');
   listeners.get('disconnect')?.();
-  let accepted = false;
-  listeners.get('ready')?.(() => {
-    accepted = true;
+  let accepted: boolean | undefined;
+  listeners.get('ready')?.((result: unknown) => {
+    accepted = (result as { accepted: boolean }).accepted;
   });
 
-  expect(accepted).toBe(true);
+  expect(accepted).toBe(false);
   expect(states.at(-1)?.players).toEqual([]);
 });

@@ -755,11 +755,11 @@ teardown around the existing in-process server.
 - [shared-worker host reports malformed and unexpected messages without stopping the port](../src/shared-worker.test.ts#L399)
 - [shared-worker host reports host delivery failures and survives an undeliverable report](../src/shared-worker.test.ts#L435)
 - [shared-worker host releases a connection when its admission result cannot cross the port](../src/shared-worker.test.ts#L500)
-- [shared-worker host tolerates a port that cannot carry a bridge error](../src/shared-worker.test.ts#L542)
-- [shared-worker host reports connection rejection and releases the failed generation](../src/shared-worker.test.ts#L560)
-- [shared-worker host disconnects a generation replaced before its connection callback](../src/shared-worker.test.ts#L599)
-- [shared-worker host closes an active host once and preserves its shutdown reason](../src/shared-worker.test.ts#L702)
-- [shared-worker host disconnects explicitly with the page-supplied reason](../src/shared-worker.test.ts#L722)
+- [shared-worker host tolerates a port that cannot carry a bridge error](../src/shared-worker.test.ts#L550)
+- [shared-worker host reports connection rejection and releases the failed generation](../src/shared-worker.test.ts#L568)
+- [shared-worker host disconnects a generation replaced before its connection callback](../src/shared-worker.test.ts#L607)
+- [shared-worker host closes an active host once and preserves its shutdown reason](../src/shared-worker.test.ts#L710)
+- [shared-worker host disconnects explicitly with the page-supplied reason](../src/shared-worker.test.ts#L730)
 
 ### SharedWorker client facade
 
@@ -786,7 +786,7 @@ Running the documented lobby handlers against real Socket.IO and Smocket, includ
 duplicate-label identity, readiness, start, and disconnect.
 
 - [the documented lobby handlers preserve identity and lifecycle across both targets](../examples/shared-worker-lobby/src/application.test.ts#L12)
-- [normalizes a blank label and ignores readiness after departure](../examples/shared-worker-lobby/src/application.test.ts#L58)
+- [normalizes a blank label and rejects readiness after departure](../examples/shared-worker-lobby/src/application.test.ts#L58)
 
 <!-- conformance:generated end -->
 
