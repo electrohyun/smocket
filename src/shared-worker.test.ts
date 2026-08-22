@@ -517,8 +517,15 @@ describe('shared-worker host', () => {
       },
     } as unknown as MessagePort;
     const host = attachSharedWorker(io, port);
+    let resolveServerDisconnect!: (reason: string) => void;
+    const serverDisconnected = new Promise<string>((resolve) => {
+      resolveServerDisconnect = resolve;
+    });
     const serverConnection = new Promise<ServerSocketContract>((resolve) => {
-      io.on('connection', resolve);
+      io.on('connection', (socket) => {
+        socket.once('disconnect', resolveServerDisconnect);
+        resolve(socket);
+      });
     });
 
     listeners.get('message')?.(
@@ -536,6 +543,7 @@ describe('shared-worker host', () => {
     expect(outbound.some((message) => message.type === SHARED_WORKER_MESSAGE_TYPES.connected)).toBe(
       false,
     );
+    await expect(serverDisconnected).resolves.toBe('client namespace disconnect');
     host.close();
   });
 
