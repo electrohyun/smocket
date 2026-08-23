@@ -26,7 +26,7 @@ Player 2**, then select **Open Player 3**; each selection opens one new page.
 When A, B, and C are connected, the countdown starts. Draw in A, submit guesses
 in B or C, and use `giraffe` to end the round.
 
-The target badge reads `MOCK · SHAREDWORKER`. This path starts no separate
+The target badge reads `MOCK · SHARED WORKER`. This path starts no separate
 Socket.IO backend process. One in-browser Smocket server owns the session while
 the several browser pages keep distinct socket ids.
 

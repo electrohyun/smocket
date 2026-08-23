@@ -237,7 +237,7 @@ export default function GameApp({
         <span className="target-label">
           <span>{GAME_TARGET === 'smocket' ? 'MOCK' : 'REAL'}</span>
           <span aria-hidden="true">·</span>
-          <span>{GAME_TARGET === 'smocket' ? 'SHAREDWORKER' : 'SOCKET.IO'}</span>
+          <span>{GAME_TARGET === 'smocket' ? 'SHARED WORKER' : 'SOCKET.IO'}</span>
         </span>
       </div>
       <aside className="player-badge" data-player={label} aria-label="Current player">
