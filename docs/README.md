@@ -1,50 +1,56 @@
+---
+slug: /
+---
+
 # smocket docs
 
-> **TL;DR** Where to look: how to use the mock directly or through a test runner,
-> which behaviours are verified against real socket.io, the road to the first
-> stable release, the documentation conventions, the scope boundary, the design
-> decisions, and the list of differences from real socket.io.
+> **TL;DR** Start with the README quick start, choose the test-runner or
+> SharedWorker workflow that matches your application, then use the scope,
+> differences, conformance, and troubleshooting pages to answer exact questions.
 
-- **How the server mock and client facade work together:**
-  [README quick start](../README.md#quick-start)
-- **How to run smocket inside a test runner:**
-  [test-runner-integration.md](./test-runner-integration.md)
-- **How to share one in-browser mock server across tabs:**
-  [shared-worker.md](./shared-worker.md)
-- **Why a test setup failed and how to correct it:**
-  [troubleshooting.md](./troubleshooting.md)
-- **Which behaviours are verified against real socket.io:**
-  [conformance.md](./conformance.md)
-- **How upstream public declarations are classified and regenerated:**
-  [public-surface.md](./public-surface.md)
-- **How one chat application compares three test-support targets:**
-  [application-case-study.md](./application-case-study.md)
-- **How the drawing-game workflow produces executable compatibility evidence:**
-  [drawing-game case study](../case-studies/drawing-game/README.md)
-- **What must happen before the first stable release:**
-  [roadmap.md](./roadmap.md)
-- **How five lenses guide development toward v1.0.0:**
-  [development-lenses.md](./development-lenses.md) · [한국어](./development-lenses.ko.md)
-- **How to write docs here:** [CONTRIBUTING-docs.md](./CONTRIBUTING-docs.md)
-- **How to contribute code, reports, ideas, or documentation:**
-  [CONTRIBUTING.md](../CONTRIBUTING.md) · [한국어](../CONTRIBUTING.ko.md)
-- **A socket.io term you do not know:** [glossary.md](./glossary.md)
-- **Whether something is in scope for smocket:** [scope.md](./scope.md)
-- **Why the code is shaped the way it is:** [decisions/](./decisions/README.md)
-- **Where smocket differs from real socket.io:** [differences.md](./differences.md)
-- **Why the root package has no runtime dependencies:**
-  [package-policy.md](./package-policy.md)
-- **How one immutable two-package release candidate is verified:**
-  [release-candidates.md](./release-candidates.md)
-- **How verified candidates are published to npm:**
-  [npm-publication.md](./npm-publication.md)
-- **What happens when an exact published version fails verification:**
-  [release-remediation.md](./release-remediation.md)
-- **How scheduled consumers follow one reviewed published version:**
-  [published-consumer-policy.md](./published-consumer-policy.md)
-- **What a version number promises when you upgrade:** [decisions/0019](./decisions/0019-what-counts-as-a-breaking-change.md)
-- **How to register a custom adapter, and why:** [adapter-registration.md](./adapter-registration.md)
-- **What the issue and pull request labels mean:** [labels.md](./labels.md)
+## Start with Smocket
+
+Smocket reproduces Socket.IO's in-memory delivery and routing rules so frontend and
+application tests can exercise rooms, namespaces, broadcasts, and acknowledgements
+without starting a network server. The [README quick start](../README.md#quick-start)
+is the shortest executable setup and remains the canonical installation example.
+
+From there, choose the path that matches the code you have:
+
+1. Keep an application's `socket.io-client` import with the
+   [test-runner integration guide](./test-runner-integration.md).
+2. Share one caller-owned mock server across same-origin browser tabs with the
+   [SharedWorker workflow](./shared-worker.md).
+3. Check the [scope boundary](./scope.md) and
+   [differences from real Socket.IO](./differences.md) before relying on an unverified
+   surface.
+4. Use the [troubleshooting guide](./troubleshooting.md) when setup fails before the
+   first application event.
+
+## Understand the guarantees
+
+- [Conformance report](./conformance.md): behaviours compared by the dual run.
+- [Adapter registration](./adapter-registration.md): Smocket-only routing extensions.
+- [Glossary](./glossary.md): Socket.IO and Smocket terms used by these guides.
+- [Roadmap](./roadmap.md): the boundary and release path toward v1.0.0.
+- [Drawing-game case study](../case-studies/drawing-game/README.md): executable
+  compatibility evidence from one application workflow.
+
+## Maintain the project
+
+- [Contributing](../CONTRIBUTING.md) · [한국어](../CONTRIBUTING.ko.md)
+- [Documentation guide](./CONTRIBUTING-docs.md)
+- [Development lenses](./development-lenses.md) ·
+  [한국어](./development-lenses.ko.md)
+- [Decisions index](./decisions/README.md)
+- [Public surface ledger](./public-surface.md)
+- [Package policy](./package-policy.md)
+- [Release candidates](./release-candidates.md),
+  [npm publication](./npm-publication.md), and
+  [release remediation](./release-remediation.md)
+- [Published consumer policy](./published-consumer-policy.md)
+- [Issue and pull request labels](./labels.md)
+- [Version compatibility decision](./decisions/0019-what-counts-as-a-breaking-change.md)
 
 A Korean version of a document, where one exists, sits beside it as
 `<name>.ko.md`, with the English version authoritative on any divergence.

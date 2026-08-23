@@ -46,7 +46,11 @@ smocket은 손으로 짠 목이 클라이언트 하나는 짝지어도 두 번�
 뒤에 확장점을 더하는 것은 파괴적 변경입니다. 그래서 먼저 넣는 것이 라우팅 계층을
 단일 인메모리 구현에 묶이지 않게 합니다([0008](./decisions/0008-adapter-api-before-v1.md)).
 
-여기서 짠 커스텀 adapter는 실물 socket.io에서 돌지 않습니다. 실물 adapter는
-배달까지 하며 smocket에는 없는 트랜스포트를 필요로 하기 때문입니다([0009](./decisions/0009-no-raw-websocket-mocking.md)).
-smocket은 자신의 배달이 실물 socket.io와 일치함을 보장할 뿐, 사용자의 확장 코드가
-이식 가능하다고 약속하지 않습니다. 그 경계는 [differences.md](./differences.md) §B에 적혀 있습니다.
+> [!IMPORTANT]
+> 여기서 짠 커스텀 adapter는 실물 socket.io에서 돌지 않습니다. 실물 adapter는
+> 배달까지 하며 smocket에는 없는 트랜스포트를 필요로 하기 때문입니다
+> ([0009](./decisions/0009-no-raw-websocket-mocking.md)). smocket은 자신의 배달이
+> 실물 socket.io와 일치함을 보장할 뿐, 사용자의 확장 코드가 이식 가능하다고
+> 약속하지 않습니다.
+
+그 경계는 [differences.md](./differences.md) §B에 적혀 있습니다.
