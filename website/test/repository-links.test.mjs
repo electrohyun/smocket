@@ -53,7 +53,13 @@ test('remark rewrites repository assets before Docusaurus bundles them', () => {
     type: 'root',
     children: [
       { type: 'link', url: '../case-studies/chat-room/observe.js', children: [] },
+      {
+        type: 'definition',
+        identifier: 'source',
+        url: '../src/connect-url.test.ts',
+      },
       { type: 'link', url: './scope.md', children: [] },
+      { type: 'mdxTextExpression', value: ' auth ', data: {} },
     ],
   };
 
@@ -65,5 +71,10 @@ test('remark rewrites repository assets before Docusaurus bundles them', () => {
     tree.children[0].url,
     'https://github.com/electrohyun/smocket/blob/main/case-studies/chat-room/observe.js',
   );
-  assert.equal(tree.children[1].url, './scope.md');
+  assert.equal(
+    tree.children[1].url,
+    'https://github.com/electrohyun/smocket/blob/main/src/connect-url.test.ts',
+  );
+  assert.equal(tree.children[2].url, './scope.md');
+  assert.deepEqual(tree.children[3], { type: 'text', value: '{ auth }' });
 });

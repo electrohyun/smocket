@@ -596,7 +596,7 @@ Resolving a url to a server, and what the url contributes to the handshake.
 - [a bare https origin resolves to the same server as its default port](../src/connect-url.test.ts#L63)
 - [connect(url) caches one Manager per normalized origin unless opted out](../src/connect-url.test.ts#L72)
 - [the url's query string lands on handshake.query](../src/connect-url.test.ts#L98)
-- [`connect(url, { auth })` puts the auth object on the handshake](../src/connect-url.test.ts#L111)
+- [connect(url, { auth }) puts the auth object on the handshake](../src/connect-url.test.ts#L111)
 - [a function auth holds the pairing until its callback fires](../src/connect-url.test.ts#L119)
 - [a function auth is re-evaluated on each connection, including a reconnect](../src/connect-url.test.ts#L139)
 - [a completed reconnect resets client.recovered to false](../src/connect-url.test.ts#L156)

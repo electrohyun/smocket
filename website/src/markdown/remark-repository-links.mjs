@@ -1,8 +1,14 @@
 import { repositoryUrlForMarkdownLink } from './repository-links.mjs';
 
 function rewriteLinks(node, sourceFilePath) {
-  if (node.type === 'link' && typeof node.url === 'string') {
+  if ((node.type === 'link' || node.type === 'definition') && typeof node.url === 'string') {
     node.url = repositoryUrlForMarkdownLink({ sourceFilePath, url: node.url }) ?? node.url;
+  }
+
+  if (node.type === 'mdxTextExpression') {
+    node.type = 'text';
+    node.value = `{${node.value}}`;
+    delete node.data;
   }
 
   if (Array.isArray(node.children)) {
