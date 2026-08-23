@@ -244,6 +244,7 @@ function declarationText(ts, declaration) {
 
 function declarationsOnlyReferenceLocalOrStandardTypes(ts, checker, declarations) {
   const roots = declarations.map((declaration) => dirname(declaration.getSourceFile().fileName));
+  const standardLibraryRoot = dirname(ts.getDefaultLibFilePath({ target: ts.ScriptTarget.ES2022 }));
   let safe = true;
 
   const visit = (node) => {
@@ -272,7 +273,14 @@ function declarationsOnlyReferenceLocalOrStandardTypes(ts, checker, declarations
         const resolved = resolveAlias(ts, checker, referenced);
         for (const declaration of symbolDeclarations(resolved)) {
           const source = declaration.getSourceFile();
-          if (source.hasNoDefaultLib) continue;
+          const standardLibraryPath = relative(standardLibraryRoot, source.fileName);
+          if (
+            standardLibraryPath.startsWith('lib.') &&
+            standardLibraryPath.endsWith('.d.ts') &&
+            !standardLibraryPath.includes(sep)
+          ) {
+            continue;
+          }
           const local = roots.some((root) => {
             const path = relative(root, source.fileName);
             return (
@@ -295,11 +303,66 @@ function declarationsOnlyReferenceLocalOrStandardTypes(ts, checker, declarations
   return safe;
 }
 
+function externalReferenceTexts(ts, checker, declarations) {
+  const roots = declarations.map((declaration) => dirname(declaration.getSourceFile().fileName));
+  const standardLibraryRoot = dirname(ts.getDefaultLibFilePath({ target: ts.ScriptTarget.ES2022 }));
+  const references = [];
+  const visited = new Set();
+
+  const collect = (symbol) => {
+    const resolved = symbol ? resolveAlias(ts, checker, symbol) : undefined;
+    if (!resolved || visited.has(resolved)) return;
+    const external = symbolDeclarations(resolved).filter((declaration) => {
+      const source = declaration.getSourceFile();
+      const standardLibraryPath = relative(standardLibraryRoot, source.fileName);
+      if (
+        standardLibraryPath.startsWith('lib.') &&
+        standardLibraryPath.endsWith('.d.ts') &&
+        !standardLibraryPath.includes(sep)
+      ) {
+        return false;
+      }
+      return !roots.some((root) => {
+        const path = relative(root, source.fileName);
+        return path !== '..' && !path.startsWith(`..${sep}`);
+      });
+    });
+    if (external.length === 0) return;
+    visited.add(resolved);
+    references.push(
+      external
+        .map((declaration) => declarationText(ts, declaration))
+        .sort()
+        .join('\n'),
+    );
+  };
+
+  const visit = (node) => {
+    if (ts.isImportTypeNode(node) && ts.isLiteralTypeNode(node.argument)) {
+      collect(checker.getSymbolAtLocation(node.argument.literal));
+    }
+    if (ts.isIdentifier(node)) collect(checker.getSymbolAtLocation(node));
+    ts.forEachChild(node, visit);
+  };
+  for (const declaration of declarations) visit(declaration);
+  return references.sort();
+}
+
+function externalReferencesAreTextuallyEqual(ts, checker, previous, candidate) {
+  const previousReferences = externalReferenceTexts(ts, checker, previous);
+  const candidateReferences = externalReferenceTexts(ts, checker, candidate);
+  return (
+    previousReferences.length === candidateReferences.length &&
+    previousReferences.every((reference, index) => reference === candidateReferences[index])
+  );
+}
+
 function declarationsAreTextuallyEqual(ts, checker, previous, candidate) {
-  if (
-    !declarationsOnlyReferenceLocalOrStandardTypes(ts, checker, previous) ||
-    !declarationsOnlyReferenceLocalOrStandardTypes(ts, checker, candidate)
-  ) {
+  const referencesAreSafe =
+    (declarationsOnlyReferenceLocalOrStandardTypes(ts, checker, previous) &&
+      declarationsOnlyReferenceLocalOrStandardTypes(ts, checker, candidate)) ||
+    externalReferencesAreTextuallyEqual(ts, checker, previous, candidate);
+  if (!referencesAreSafe) {
     return false;
   }
   const candidateTexts = new Set(candidate.map((declaration) => declarationText(ts, declaration)));
@@ -320,6 +383,61 @@ function signaturesAreTextuallyEqual(
       (signature, index) =>
         normalizedText(signatureText(ts, checker, signature, previousLocation)) ===
         normalizedText(signatureText(ts, checker, candidate[index], candidateLocation)),
+    )
+  );
+}
+
+function expandedTypeText(ts, checker, type, location) {
+  return normalizedText(
+    checker.typeToString(
+      type,
+      location,
+      ts.TypeFormatFlags.NoTruncation | ts.TypeFormatFlags.InTypeAlias,
+    ),
+  );
+}
+
+function expandedSignatureText(ts, checker, signature) {
+  const typeParameters = (signature.getTypeParameters() ?? []).map((parameter) => {
+    const constraint = checker.getBaseConstraintOfType(parameter);
+    return constraint
+      ? `${parameter.symbol?.getName() ?? 'T'} extends ${expandedTypeText(
+          ts,
+          checker,
+          constraint,
+          parameter.symbol?.getDeclarations()?.[0],
+        )}`
+      : (parameter.symbol?.getName() ?? 'T');
+  });
+  const parameters = signature.getParameters().map((parameter) => {
+    const declaration = parameterDeclaration(parameter);
+    if (!declaration) return parameter.getName();
+    const type = checker.getTypeOfSymbolAtLocation(parameter, declaration);
+    const rest = declaration.dotDotDotToken ? '...' : '';
+    const optional = parameter.flags & ts.SymbolFlags.Optional ? '?' : '';
+    return `${rest}${parameter.getName()}${optional}: ${expandedTypeText(
+      ts,
+      checker,
+      type,
+      declaration,
+    )}`;
+  });
+  const returns = expandedTypeText(
+    ts,
+    checker,
+    signature.getReturnType(),
+    signature.getDeclaration(),
+  );
+  return `${typeParameters.join(',')}|${parameters.join(',')}|${returns}`;
+}
+
+function signaturesHaveSameExpandedTypes(ts, checker, previous, candidate) {
+  return (
+    previous.length === candidate.length &&
+    previous.every(
+      (signature, index) =>
+        expandedSignatureText(ts, checker, signature) ===
+        expandedSignatureText(ts, checker, candidate[index]),
     )
   );
 }
@@ -620,7 +738,14 @@ function compareObjectType({
             previousLocation: previousProperty.declarations[0],
             candidateLocation: candidateProperty.declarations[0],
             compareReturn: true,
-          })
+          }) ||
+          (externalReferencesAreTextuallyEqual(
+            ts,
+            checker,
+            previousProperty.declarations,
+            candidateProperty.declarations,
+          ) &&
+            signaturesHaveSameExpandedTypes(ts, checker, previousCalls, candidateCalls))
         : checker.isTypeAssignableTo(candidatePropertyType, previousPropertyType) &&
           (isReadonly(ts, previousProperty.declarations) ||
             checker.isTypeAssignableTo(previousPropertyType, candidatePropertyType)));
@@ -786,64 +911,39 @@ function declarationGraph(ts, program, entrySource) {
   return sources;
 }
 
-function memberReferenceContext(ts, node, fallback) {
-  if (
-    (ts.isPropertySignature(node) ||
-      ts.isPropertyDeclaration(node) ||
-      ts.isMethodSignature(node) ||
-      ts.isMethodDeclaration(node) ||
-      ts.isGetAccessorDeclaration(node) ||
-      ts.isSetAccessorDeclaration(node)) &&
-    node.name
-  ) {
-    return `${fallback}.${node.name.getText()}`;
-  }
-  return fallback;
-}
-
 function reachableSupportDeclarations(ts, checker, sourceFiles, rootSymbols) {
   const sourceNames = new Set(sourceFiles.map((sourceFile) => sourceFile.fileName));
   const declarations = new Map();
-  const pending = [...rootSymbols].map(([name, symbol]) => ({ path: name, symbol }));
+  const pending = [...rootSymbols];
   const visited = new Set();
 
   while (pending.length > 0) {
-    const current = pending.pop();
-    if (!current) continue;
-    const symbol = resolveAlias(ts, checker, current.symbol);
+    const symbol = resolveAlias(ts, checker, pending.pop());
     if (!symbol || visited.has(symbol)) continue;
     visited.add(symbol);
 
     for (const declaration of symbolDeclarations(symbol)) {
       if (!sourceNames.has(declaration.getSourceFile().fileName)) continue;
-      const counts = new Map();
+      if (
+        (ts.isTypeAliasDeclaration(declaration) ||
+          ts.isInterfaceDeclaration(declaration) ||
+          ts.isClassDeclaration(declaration) ||
+          ts.isEnumDeclaration(declaration)) &&
+        declaration.name
+      ) {
+        const named = declarations.get(declaration.name.text) ?? [];
+        named.push(declaration);
+        declarations.set(declaration.name.text, named);
+      }
 
-      const visit = (node, context) => {
-        const nextContext = memberReferenceContext(ts, node, context);
+      const visit = (node) => {
         if (ts.isIdentifier(node) && node !== declaration.name) {
           const referenced = checker.getSymbolAtLocation(node);
-          const resolved = referenced ? resolveAlias(ts, checker, referenced) : undefined;
-          if (resolved && resolved !== symbol) {
-            const support = symbolDeclarations(resolved).filter(
-              (candidate) =>
-                sourceNames.has(candidate.getSourceFile().fileName) &&
-                (ts.isTypeAliasDeclaration(candidate) ||
-                  ts.isInterfaceDeclaration(candidate) ||
-                  ts.isClassDeclaration(candidate) ||
-                  ts.isEnumDeclaration(candidate)),
-            );
-            if (support.length > 0) {
-              const count = (counts.get(nextContext) ?? 0) + 1;
-              counts.set(nextContext, count);
-              const referencePath = `${current.path}/${nextContext}#${count}`;
-              declarations.set(referencePath, support);
-              pending.push({ path: referencePath, symbol: resolved });
-            }
-          }
+          if (referenced) pending.push(referenced);
         }
-        ts.forEachChild(node, (child) => visit(child, nextContext));
+        ts.forEachChild(node, visit);
       };
-      ts.forEachChild(declaration, (child) => visit(child, 'type'));
+      ts.forEachChild(declaration, visit);
     }
   }
   return declarations;
@@ -858,51 +958,57 @@ function compareSupportDeclarations({
   candidateExports,
   issues,
 }) {
+  const exportedSymbols = new Set(previousExports.values());
   const previousDeclarations = reachableSupportDeclarations(
     ts,
     checker,
     previousSources,
-    previousExports.entries(),
+    previousExports.values(),
   );
   const candidateDeclarations = reachableSupportDeclarations(
     ts,
     checker,
     candidateSources,
-    candidateExports.entries(),
+    candidateExports.values(),
   );
 
-  for (const [referencePath, previousNamed] of previousDeclarations) {
+  for (const [name, previousNamed] of previousDeclarations) {
+    const availableCandidates = [...(candidateDeclarations.get(name) ?? [])];
     for (const previousDeclaration of previousNamed) {
       const previousSymbol = checker.getSymbolAtLocation(previousDeclaration.name);
-      if (!previousSymbol) continue;
-      const name = previousDeclaration.name.text;
-      const candidateNamed = candidateDeclarations.get(referencePath) ?? [];
-      if (candidateNamed.length === 0) {
+      if (!previousSymbol || exportedSymbols.has(previousSymbol)) continue;
+      if (availableCandidates.length === 0) {
         issues.push({ shape: name, reason: 'reachable public type support was removed' });
         continue;
       }
-      if (declarationsAreTextuallyEqual(ts, checker, previousNamed, candidateNamed)) continue;
-      const compatible = candidateNamed.some((candidateDeclaration) => {
-        const candidateSymbol = checker.getSymbolAtLocation(candidateDeclaration.name);
-        if (!candidateSymbol) return false;
-        const supportIssues = [];
-        compareExportType({
-          ts,
-          checker,
-          previousSymbol,
-          candidateSymbol,
-          exportName: name,
-          issues: supportIssues,
+      let candidateIndex = availableCandidates.findIndex((candidateDeclaration) =>
+        declarationsAreTextuallyEqual(ts, checker, [previousDeclaration], [candidateDeclaration]),
+      );
+      if (candidateIndex < 0) {
+        candidateIndex = availableCandidates.findIndex((candidateDeclaration) => {
+          const candidateSymbol = checker.getSymbolAtLocation(candidateDeclaration.name);
+          if (!candidateSymbol) return false;
+          const supportIssues = [];
+          compareExportType({
+            ts,
+            checker,
+            previousSymbol,
+            candidateSymbol,
+            exportName: name,
+            issues: supportIssues,
+          });
+          return supportIssues.length === 0;
         });
-        return supportIssues.length === 0;
-      });
-      if (!compatible) {
+      }
+      if (candidateIndex < 0) {
         issues.push({
           shape: name,
           reason: 'type changed incompatibly',
           previous: declarationText(ts, previousDeclaration),
-          candidate: declarationText(ts, candidateNamed[0]),
+          candidate: declarationText(ts, availableCandidates[0]),
         });
+      } else {
+        availableCandidates.splice(candidateIndex, 1);
       }
     }
   }
