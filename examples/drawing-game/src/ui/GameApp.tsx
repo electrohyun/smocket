@@ -67,7 +67,7 @@ export default function GameApp({
   const bubbleTimers = useRef<Partial<Record<Label, number>>>({});
 
   const record = useCallback((row: TraceRowInput) => {
-    setEvents((current) => [...current.slice(-24), { ...row, id: nextEventId.current++ }]);
+    setEvents((current) => [...current, { ...row, id: nextEventId.current++ }]);
   }, []);
 
   const showChat = useCallback((message: ChatMessage) => {
@@ -234,7 +234,11 @@ export default function GameApp({
           <rect x="3" y="10" width="14" height="10" rx="2" />
           <path d="M3 13h14" />
         </svg>
-        {GAME_TARGET === 'smocket' ? 'MOCK · SHAREDWORKER' : 'REAL · SOCKET.IO'}
+        <span className="target-label">
+          <span>{GAME_TARGET === 'smocket' ? 'MOCK' : 'REAL'}</span>
+          <span aria-hidden="true">·</span>
+          <span>{GAME_TARGET === 'smocket' ? 'SHAREDWORKER' : 'SOCKET.IO'}</span>
+        </span>
       </div>
       <aside className="player-badge" data-player={label} aria-label="Current player">
         <strong>{label}</strong>

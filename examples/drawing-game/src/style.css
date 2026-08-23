@@ -154,6 +154,12 @@ h2 {
   stroke-width: 1.7;
 }
 
+.target-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
 .target-badge[data-target='real'] {
   border-color: #63e59d;
   color: #63e59d;

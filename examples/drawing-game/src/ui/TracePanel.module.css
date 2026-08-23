@@ -99,6 +99,11 @@
   color: var(--code-text);
 }
 
+.count {
+  color: var(--accent);
+  font-weight: 700;
+}
+
 .reach {
   padding-left: 14px;
   color: var(--text-dim);
