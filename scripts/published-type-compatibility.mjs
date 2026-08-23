@@ -250,9 +250,20 @@ function declarationsOnlyReferenceLocalOrStandardTypes(ts, checker, declarations
     if (!safe) return;
     if (ts.isImportTypeNode(node) && ts.isLiteralTypeNode(node.argument)) {
       const specifier = node.argument.literal;
-      if (ts.isStringLiteral(specifier) && !specifier.text.startsWith('.')) {
-        safe = false;
-        return;
+      if (ts.isStringLiteral(specifier)) {
+        if (!specifier.text.startsWith('.')) {
+          safe = false;
+          return;
+        }
+        const imported = resolve(dirname(node.getSourceFile().fileName), specifier.text);
+        const local = roots.some((root) => {
+          const path = relative(root, imported);
+          return path !== '..' && !path.startsWith(`..${sep}`);
+        });
+        if (!local) {
+          safe = false;
+          return;
+        }
       }
     }
     if (ts.isIdentifier(node)) {
@@ -775,39 +786,64 @@ function declarationGraph(ts, program, entrySource) {
   return sources;
 }
 
-function namedSupportDeclarations(ts, checker, sourceFiles, rootSymbols) {
+function memberReferenceContext(ts, node, fallback) {
+  if (
+    (ts.isPropertySignature(node) ||
+      ts.isPropertyDeclaration(node) ||
+      ts.isMethodSignature(node) ||
+      ts.isMethodDeclaration(node) ||
+      ts.isGetAccessorDeclaration(node) ||
+      ts.isSetAccessorDeclaration(node)) &&
+    node.name
+  ) {
+    return `${fallback}.${node.name.getText()}`;
+  }
+  return fallback;
+}
+
+function reachableSupportDeclarations(ts, checker, sourceFiles, rootSymbols) {
   const sourceNames = new Set(sourceFiles.map((sourceFile) => sourceFile.fileName));
   const declarations = new Map();
-  const pending = [...rootSymbols];
+  const pending = [...rootSymbols].map(([name, symbol]) => ({ path: name, symbol }));
   const visited = new Set();
 
   while (pending.length > 0) {
-    const symbol = resolveAlias(ts, checker, pending.pop());
+    const current = pending.pop();
+    if (!current) continue;
+    const symbol = resolveAlias(ts, checker, current.symbol);
     if (!symbol || visited.has(symbol)) continue;
     visited.add(symbol);
 
     for (const declaration of symbolDeclarations(symbol)) {
       if (!sourceNames.has(declaration.getSourceFile().fileName)) continue;
-      if (
-        (ts.isTypeAliasDeclaration(declaration) ||
-          ts.isInterfaceDeclaration(declaration) ||
-          ts.isClassDeclaration(declaration) ||
-          ts.isEnumDeclaration(declaration)) &&
-        declaration.name
-      ) {
-        const named = declarations.get(declaration.name.text) ?? [];
-        named.push(declaration);
-        declarations.set(declaration.name.text, named);
-      }
+      const counts = new Map();
 
-      const visit = (node) => {
+      const visit = (node, context) => {
+        const nextContext = memberReferenceContext(ts, node, context);
         if (ts.isIdentifier(node) && node !== declaration.name) {
           const referenced = checker.getSymbolAtLocation(node);
-          if (referenced) pending.push(referenced);
+          const resolved = referenced ? resolveAlias(ts, checker, referenced) : undefined;
+          if (resolved && resolved !== symbol) {
+            const support = symbolDeclarations(resolved).filter(
+              (candidate) =>
+                sourceNames.has(candidate.getSourceFile().fileName) &&
+                (ts.isTypeAliasDeclaration(candidate) ||
+                  ts.isInterfaceDeclaration(candidate) ||
+                  ts.isClassDeclaration(candidate) ||
+                  ts.isEnumDeclaration(candidate)),
+            );
+            if (support.length > 0) {
+              const count = (counts.get(nextContext) ?? 0) + 1;
+              counts.set(nextContext, count);
+              const referencePath = `${current.path}/${nextContext}#${count}`;
+              declarations.set(referencePath, support);
+              pending.push({ path: referencePath, symbol: resolved });
+            }
+          }
         }
-        ts.forEachChild(node, visit);
+        ts.forEachChild(node, (child) => visit(child, nextContext));
       };
-      ts.forEachChild(declaration, visit);
+      ts.forEachChild(declaration, (child) => visit(child, 'type'));
     }
   }
   return declarations;
@@ -822,25 +858,25 @@ function compareSupportDeclarations({
   candidateExports,
   issues,
 }) {
-  const exportedSymbols = new Set(previousExports.values());
-  const previousDeclarations = namedSupportDeclarations(
+  const previousDeclarations = reachableSupportDeclarations(
     ts,
     checker,
     previousSources,
-    previousExports.values(),
+    previousExports.entries(),
   );
-  const candidateDeclarations = namedSupportDeclarations(
+  const candidateDeclarations = reachableSupportDeclarations(
     ts,
     checker,
     candidateSources,
-    candidateExports.values(),
+    candidateExports.entries(),
   );
 
-  for (const [name, previousNamed] of previousDeclarations) {
+  for (const [referencePath, previousNamed] of previousDeclarations) {
     for (const previousDeclaration of previousNamed) {
       const previousSymbol = checker.getSymbolAtLocation(previousDeclaration.name);
-      if (!previousSymbol || exportedSymbols.has(previousSymbol)) continue;
-      const candidateNamed = candidateDeclarations.get(name) ?? [];
+      if (!previousSymbol) continue;
+      const name = previousDeclaration.name.text;
+      const candidateNamed = candidateDeclarations.get(referencePath) ?? [];
       if (candidateNamed.length === 0) {
         issues.push({ shape: name, reason: 'reachable public type support was removed' });
         continue;
@@ -901,6 +937,11 @@ export async function compareDeclarationEntries(previousEntry, candidateEntry) {
   const previousPublicExports = new Map(
     [...previousExports].filter(([name]) => previousExportNames.has(name)),
   );
+  const candidatePublicExports = new Map(
+    [...candidateExports].filter(
+      ([name]) => previousPublicExports.has(name) && candidateExportNames.has(name),
+    ),
+  );
   const issues = [];
   for (const [exportName, previousSymbol] of previousPublicExports) {
     const candidateSymbol = candidateExportNames.has(exportName)
@@ -925,7 +966,7 @@ export async function compareDeclarationEntries(previousEntry, candidateEntry) {
     previousSources: declarationGraph(ts, program, previousSource),
     candidateSources: declarationGraph(ts, program, candidateSource),
     previousExports: previousPublicExports,
-    candidateExports,
+    candidateExports: candidatePublicExports,
     issues,
   });
   return [...new Map(issues.map((issue) => [JSON.stringify(issue), issue])).values()];

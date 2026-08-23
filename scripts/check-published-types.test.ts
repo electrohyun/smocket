@@ -196,6 +196,25 @@ describe('published declaration compatibility', () => {
           shape: 'Socket.send',
           reason: 'call signature changed incompatibly',
         }),
+        expect.objectContaining({
+          shape: 'Socket.load',
+          reason: 'call signature changed incompatibly',
+        }),
+      ]),
+    );
+  });
+
+  it('keeps same-named support declarations in their reference contexts', async () => {
+    const issues = await compareDeclarationFixture(
+      `${fixtureRoot}/duplicate-previous.d.ts`,
+      `${fixtureRoot}/duplicate-candidate.d.ts`,
+    );
+    expect(issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          shape: 'Payload',
+          reason: 'type changed incompatibly',
+        }),
       ]),
     );
   });
