@@ -113,6 +113,20 @@ async function runRound(pages) {
   await Promise.all(
     pages.map((page) => waitForState(page, '[data-ended="true"][data-winner="C"]')),
   );
+  const fanfareVisibility = await Promise.all(
+    pages.map(async (page) => {
+      const fanfare = page.locator('.fanfare');
+      await fanfare.waitFor({ state: 'visible' });
+      return fanfare.isVisible();
+    }),
+  );
+  const resultVisibility = await Promise.all(
+    pages.map(async (page) => {
+      const result = page.locator('.round-result');
+      await result.waitFor({ state: 'visible' });
+      return result.isVisible();
+    }),
+  );
 
   const strokeCounts = await Promise.all(
     pages.map(async (page) => Number(await page.locator('main').getAttribute('data-stroke-count'))),
@@ -128,8 +142,10 @@ async function runRound(pages) {
       (await guesserB.locator('main').getAttribute('data-guess-ack')) === 'wrong',
     correctGuessAcknowledged:
       (await guesserC.locator('main').getAttribute('data-guess-ack')) === 'correct',
+    fanfarePages: labels.filter((_, index) => fanfareVisibility[index]),
+    resultPages: labels.filter((_, index) => resultVisibility[index]),
     winner: await drawerMain.getAttribute('data-winner'),
-    word: await drawer.locator('.secret strong').innerText(),
+    word: await drawer.locator('.round-result b').innerText(),
   };
 }
 
