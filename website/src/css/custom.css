@@ -1,0 +1,95 @@
+:root {
+  --ifm-color-primary: #d94668;
+  --ifm-color-primary-dark: #cf2d53;
+  --ifm-color-primary-darker: #c42b4f;
+  --ifm-color-primary-darkest: #a12341;
+  --ifm-color-primary-light: #df5f7d;
+  --ifm-color-primary-lighter: #e36d88;
+  --ifm-color-primary-lightest: #eb91a6;
+  --ifm-background-color: #fffdfd;
+  --ifm-code-font-size: 92%;
+  --ifm-font-family-base:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --ifm-heading-font-family: var(--ifm-font-family-base);
+  --ifm-navbar-shadow: 0 1px 0 rgb(56 31 39 / 10%);
+  --docusaurus-highlighted-code-line-bg: rgb(217 70 104 / 10%);
+}
+
+[data-theme='dark'] {
+  --ifm-color-primary: #ff8aa4;
+  --ifm-color-primary-dark: #ff6588;
+  --ifm-color-primary-darker: #ff537b;
+  --ifm-color-primary-darkest: #ff1b52;
+  --ifm-color-primary-light: #ffafc0;
+  --ifm-color-primary-lighter: #ffc1ce;
+  --ifm-color-primary-lightest: #ffe8ed;
+  --ifm-background-color: #151217;
+  --ifm-background-surface-color: #201a21;
+  --ifm-navbar-background-color: #19151b;
+  --docusaurus-highlighted-code-line-bg: rgb(255 138 164 / 14%);
+}
+
+html {
+  scroll-padding-top: calc(var(--ifm-navbar-height) + 1rem);
+}
+
+body {
+  text-rendering: optimizeLegibility;
+}
+
+.navbar__title {
+  font-weight: 800;
+  letter-spacing: -0.035em;
+}
+
+.theme-doc-markdown {
+  max-width: 52rem;
+}
+
+.theme-doc-markdown > h1:first-child {
+  letter-spacing: -0.035em;
+}
+
+.theme-doc-markdown p,
+.theme-doc-markdown li {
+  line-height: 1.72;
+}
+
+.theme-doc-markdown table {
+  display: table;
+  width: 100%;
+}
+
+.theme-admonition {
+  border-radius: 0.75rem;
+  box-shadow: none;
+}
+
+.theme-admonition [class*='admonitionHeading'] {
+  letter-spacing: 0.015em;
+}
+
+.menu__link,
+.table-of-contents__link {
+  line-height: 1.4;
+}
+
+.footer--dark {
+  --ifm-footer-background-color: #151217;
+}
+
+*:focus-visible {
+  outline: 3px solid var(--ifm-color-primary);
+  outline-offset: 2px;
+}
+
+@media (max-width: 996px) {
+  .theme-doc-markdown table {
+    display: block;
+    overflow-x: auto;
+  }
+
+  .theme-doc-markdown {
+    max-width: 100%;
+  }
+}

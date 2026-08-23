@@ -1,7 +1,9 @@
 packages:
   - examples/*
   - packages/*
+  - website
 allowBuilds:
+  core-js: false
   esbuild: true
 onlyBuiltDependencies:
   - esbuild
