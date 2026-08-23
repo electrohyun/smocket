@@ -10,14 +10,20 @@ const regenerateWith = 'pnpm example:drawing-game:snippets';
 
 const definitions = [
   [
+    'live-game-handler',
+    'examples/drawing-game/src/game/game-handler.ts',
+    'Register the room, stroke, guess acknowledgement, and round-end flow typed in the video.',
+    ['2-room-join', '3-sender-excluded-stroke', '4-wrong-guess', '5-correct-guess'],
+  ],
+  [
     'room-join',
-    'examples/drawing-game/application.ts',
+    'examples/drawing-game/src/game/game-handler.ts',
     'Join and acknowledge the shared room.',
     ['2-room-join'],
   ],
   [
     'drawing-server-handler',
-    'examples/drawing-game/application.ts',
+    'examples/drawing-game/src/game/game-handler.ts',
     'Exclude the drawer while broadcasting a stroke to the room.',
     ['3-sender-excluded-stroke'],
   ],
@@ -29,7 +35,7 @@ const definitions = [
   ],
   [
     'chat-guess-server-handler',
-    'examples/drawing-game/application.ts',
+    'examples/drawing-game/src/game/game-handler.ts',
     'Handle chat and guesses, including acknowledgements and winner delivery.',
     ['4-wrong-guess', '5-correct-guess'],
   ],
@@ -41,19 +47,19 @@ const definitions = [
   ],
   [
     'acknowledgement',
-    'examples/drawing-game/application.ts',
+    'examples/drawing-game/src/game/game-handler.ts',
     'Return the server-side boolean guess acknowledgement.',
     ['4-wrong-guess', '5-correct-guess'],
   ],
   [
     'targeted-correct',
-    'examples/drawing-game/application.ts',
+    'examples/drawing-game/src/game/game-handler.ts',
     'Emit the correct result only to the winning socket id.',
     ['5-correct-guess'],
   ],
   [
     'room-announce',
-    'examples/drawing-game/application.ts',
+    'examples/drawing-game/src/game/game-handler.ts',
     'Announce the winner and word to every connected room member.',
     ['5-correct-guess'],
   ],

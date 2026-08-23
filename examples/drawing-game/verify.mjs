@@ -1,0 +1,138 @@
+import assert from 'node:assert/strict';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { chromium } from 'playwright';
+import { createServer } from 'vite';
+
+const exampleRoot = dirname(fileURLToPath(import.meta.url));
+
+async function waitForState(page, expected) {
+  await page.locator(`main${expected}`).waitFor();
+}
+
+async function openPlayer(context, drawer, label) {
+  const opened = context.waitForEvent('page');
+  await drawer.locator(`.player-card[data-player="${label}"] .open-player`).click();
+  const page = await opened;
+  await waitForState(page, '[data-connected="true"][data-admitted="true"]');
+  return page;
+}
+
+async function openRound(context, origin, room) {
+  const drawer = await context.newPage();
+  await drawer.goto(`${origin}?room=${room}&label=A`);
+  await waitForState(drawer, '[data-connected="true"][data-admitted="true"]');
+  const guesserB = await openPlayer(context, drawer, 'B');
+  const guesserC = await openPlayer(context, drawer, 'C');
+  const pages = [drawer, guesserB, guesserC];
+  await Promise.all(
+    pages.map((page) => waitForState(page, '[data-player-count="3"][data-phase="active"]')),
+  );
+  return pages;
+}
+
+async function runRound(pages) {
+  const [drawer, guesserB, guesserC] = pages;
+  const socketIds = await Promise.all(
+    pages.map((page) => page.locator('main').getAttribute('data-socket-id')),
+  );
+  assert.equal(new Set(socketIds).size, 3, 'each page must have a distinct socket id');
+
+  const box = await drawer.locator('canvas').boundingBox();
+  if (!box) throw new Error('the drawing surface has no browser bounds');
+  await drawer.mouse.move(box.x + box.width * 0.25, box.y + box.height * 0.35);
+  await drawer.mouse.down();
+  await drawer.mouse.move(box.x + box.width * 0.45, box.y + box.height * 0.55, { steps: 5 });
+  await drawer.mouse.move(box.x + box.width * 0.65, box.y + box.height * 0.3, { steps: 5 });
+  await drawer.mouse.up();
+  await Promise.all(
+    [guesserB, guesserC].map((page) =>
+      page.waitForFunction(() => Number(document.querySelector('main')?.dataset.strokeCount) > 0),
+    ),
+  );
+  assert.equal(
+    await drawer.locator('main').getAttribute('data-stroke-count'),
+    '0',
+    'the drawer must not receive its own broadcast',
+  );
+
+  await guesserB.getByLabel('Guess').fill('zebra');
+  await guesserB.getByRole('button', { name: 'Send' }).click();
+  await waitForState(guesserB, '[data-guess-ack="wrong"]');
+  await Promise.all(
+    pages.map((page) => page.locator('.deliveries strong', { hasText: 'chat' }).waitFor()),
+  );
+
+  await guesserC.getByLabel('Guess').fill('giraffe');
+  await guesserC.getByRole('button', { name: 'Send' }).click();
+  await waitForState(guesserC, '[data-guess-ack="correct"]');
+  await Promise.all(
+    pages.map((page) => waitForState(page, '[data-ended="true"][data-winner="C"]')),
+  );
+
+  return {
+    distinctSocketIds: true,
+    playerCount: 3,
+    phase: 'ended',
+    strokeRecipients: ['B', 'C'],
+    senderExcluded: 'A',
+    wrongGuessAcknowledged: true,
+    correctGuessAcknowledged: true,
+    winner: 'C',
+    word: 'giraffe',
+  };
+}
+
+async function runTarget(browser, target) {
+  const vite = await createServer({
+    root: exampleRoot,
+    configFile: resolve(exampleRoot, target === 'real' ? 'vite.real.config.ts' : 'vite.config.ts'),
+    mode: `verify-${target}`,
+    logLevel: 'error',
+    server: { host: '127.0.0.1', port: 0 },
+  });
+  const context = await browser.newContext();
+  try {
+    await vite.listen();
+    const origin = vite.resolvedUrls?.local[0];
+    if (!origin) throw new Error(`Vite did not expose the ${target} example URL`);
+    const room = `verify-${target}`;
+    const pages = await openRound(context, origin, room);
+    const observation = await runRound(pages);
+
+    await pages[2].close();
+    await Promise.all(
+      pages.slice(0, 2).map((page) => waitForState(page, '[data-player-count="2"]')),
+    );
+    await pages[1].reload();
+    await waitForState(
+      pages[1],
+      '[data-connected="true"][data-admitted="true"][data-player-count="2"]',
+    );
+    const replacementC = await openPlayer(context, pages[0], 'C');
+    await waitForState(replacementC, '[data-player-count="3"][data-ended="true"]');
+
+    await Promise.all([pages[0].close(), pages[1].close(), replacementC.close()]);
+    const secondPages = await openRound(context, origin, room);
+    const secondIds = await Promise.all(
+      secondPages.map((page) => page.locator('main').getAttribute('data-socket-id')),
+    );
+    assert.equal(new Set(secondIds).size, 3, 'a repeated run must create three current players');
+    await Promise.all(secondPages.map((page) => page.close()));
+    return observation;
+  } finally {
+    await Promise.allSettled([context.close(), vite.close()]);
+  }
+}
+
+const browser = await chromium.launch({ headless: true });
+try {
+  const smocket = await runTarget(browser, 'smocket');
+  const real = await runTarget(browser, 'real');
+  assert.deepEqual(smocket, real);
+  process.stdout.write(
+    'Drawing game passed the same three-page workflow with Smocket and Real Socket.IO.\n',
+  );
+} finally {
+  await browser.close();
+}

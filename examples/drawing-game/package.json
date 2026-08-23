@@ -3,17 +3,32 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsc -p tsconfig.real.json && tsc -p tsconfig.smocket.json && tsc -p tsconfig.tools.json",
-    "typecheck": "tsc -p tsconfig.real.json --noEmit && tsc -p tsconfig.smocket.json --noEmit && tsc -p tsconfig.tools.json --noEmit",
-    "real": "pnpm build && node dist/real/real.js",
-    "smocket": "pnpm build && node --import ./smocket-substitution.mjs dist/smocket/smocket.js",
-    "test": "pnpm build && node --import ./smocket-substitution.mjs --test dist/dual-target.test.js",
-    "observe": "pnpm build && node --import ./smocket-substitution.mjs dist/observe.js"
+    "build": "pnpm build:node && pnpm build:browser",
+    "build:node": "tsc -p tsconfig.real.json && tsc -p tsconfig.smocket.json && tsc -p tsconfig.tools.json",
+    "build:browser": "vite build --mode smocket --outDir dist/browser/smocket && vite build --config vite.real.config.ts --mode real --outDir dist/browser/real",
+    "dev": "vite --mode smocket --host 127.0.0.1",
+    "dev:real": "vite --config vite.real.config.ts --mode real --host 127.0.0.1",
+    "typecheck": "tsc -p tsconfig.real.json --noEmit && tsc -p tsconfig.smocket.json --noEmit && tsc -p tsconfig.tools.json --noEmit && tsc -p tsconfig.browser.json --noEmit && tsc -p tsconfig.worker.json --noEmit && tsc -p tsconfig.server.json --noEmit",
+    "real": "pnpm build:node && node dist/real/real.js",
+    "smocket": "pnpm build:node && node --import ./smocket-substitution.mjs dist/smocket/smocket.js",
+    "test": "pnpm build:node && node --import ./smocket-substitution.mjs --test dist/dual-target.test.js",
+    "observe": "pnpm build:node && node --import ./smocket-substitution.mjs dist/observe.js",
+    "verify": "node verify.mjs"
   },
   "dependencies": {
     "smocket": "workspace:*",
     "smocket-client": "workspace:*",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
     "socket.io": "4.8.3",
     "socket.io-client": "4.8.3"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
+    "@vitejs/plugin-react": "6.1.0",
+    "playwright": "1.62.1",
+    "typescript": "6.0.3",
+    "vite": "8.1.5"
   }
 }

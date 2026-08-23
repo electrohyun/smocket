@@ -1,0 +1,18 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "noEmit": true,
+    "types": ["vite/client"]
+  },
+  "include": [
+    "src/env.d.ts",
+    "src/main.tsx",
+    "src/game/**/*.ts",
+    "src/connections/**/*.ts",
+    "src/ui/**/*.tsx"
+  ]
+}
