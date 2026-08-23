@@ -30,6 +30,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Build the documentation site and check its Markdown integrations
+        run: pnpm docs:check
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm format:check
