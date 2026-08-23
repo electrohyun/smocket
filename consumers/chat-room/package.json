@@ -10,8 +10,8 @@
     "test": "node --test dual-target.test.js"
   },
   "dependencies": {
-    "smocket": "0.5.0",
-    "smocket-client": "0.5.0",
+    "smocket": "0.5.1",
+    "smocket-client": "0.5.1",
     "socket.io": "4.8.3",
     "socket.io-client": "4.8.3"
   }
