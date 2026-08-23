@@ -5,6 +5,7 @@ import { chromium } from 'playwright';
 import { createServer } from 'vite';
 
 const exampleRoot = dirname(fileURLToPath(import.meta.url));
+const labels = ['A', 'B', 'C'];
 
 async function waitForState(page, expected) {
   await page.locator(`main${expected}`).waitFor();
@@ -31,12 +32,55 @@ async function openRound(context, origin, room) {
   return pages;
 }
 
+async function verifyHandlerReload(vite, pages) {
+  const previousIds = await Promise.all(
+    pages.map((page) => page.locator('main').getAttribute('data-socket-id')),
+  );
+  const version = `verify-${Date.now()}`;
+  const reloads = pages.map((page) =>
+    page.waitForURL((url) => url.searchParams.get('workerVersion') === version),
+  );
+  vite.ws.send({
+    type: 'custom',
+    event: 'drawing-game:handler-changed',
+    data: { version },
+  });
+  await Promise.all(reloads);
+  await Promise.all(
+    pages.map((page) =>
+      waitForState(
+        page,
+        '[data-connected="true"][data-admitted="true"][data-player-count="3"][data-phase="active"]',
+      ),
+    ),
+  );
+  const replacementIds = await Promise.all(
+    pages.map((page) => page.locator('main').getAttribute('data-socket-id')),
+  );
+  assert.equal(new Set(replacementIds).size, 3, 'handler reload must create three current sockets');
+  assert.ok(
+    replacementIds.every((id, index) => id && id !== previousIds[index]),
+    'handler reload must replace the SharedWorker socket identities',
+  );
+  assert.equal(
+    await pages[0].evaluate(() => localStorage.getItem('drawing-game-worker-version')),
+    version,
+    'handler reload must persist the worker version',
+  );
+}
+
 async function runRound(pages) {
   const [drawer, guesserB, guesserC] = pages;
   const socketIds = await Promise.all(
     pages.map((page) => page.locator('main').getAttribute('data-socket-id')),
   );
   assert.equal(new Set(socketIds).size, 3, 'each page must have a distinct socket id');
+  assert.equal(await drawer.locator('canvas').getAttribute('aria-disabled'), 'false');
+  await Promise.all(
+    [guesserB, guesserC].map(async (page) =>
+      assert.equal(await page.locator('canvas').getAttribute('aria-disabled'), 'true'),
+    ),
+  );
 
   const box = await drawer.locator('canvas').boundingBox();
   if (!box) throw new Error('the drawing surface has no browser bounds');
@@ -70,16 +114,22 @@ async function runRound(pages) {
     pages.map((page) => waitForState(page, '[data-ended="true"][data-winner="C"]')),
   );
 
+  const strokeCounts = await Promise.all(
+    pages.map(async (page) => Number(await page.locator('main').getAttribute('data-stroke-count'))),
+  );
+  const drawerMain = drawer.locator('main');
   return {
-    distinctSocketIds: true,
-    playerCount: 3,
-    phase: 'ended',
-    strokeRecipients: ['B', 'C'],
-    senderExcluded: 'A',
-    wrongGuessAcknowledged: true,
-    correctGuessAcknowledged: true,
-    winner: 'C',
-    word: 'giraffe',
+    distinctSocketIds: new Set(socketIds).size === 3,
+    playerCount: Number(await drawerMain.getAttribute('data-player-count')),
+    phase: await drawerMain.getAttribute('data-phase'),
+    strokeRecipients: labels.filter((_, index) => strokeCounts[index] > 0),
+    senderExcluded: strokeCounts[0] === 0 ? 'A' : null,
+    wrongGuessAcknowledged:
+      (await guesserB.locator('main').getAttribute('data-guess-ack')) === 'wrong',
+    correctGuessAcknowledged:
+      (await guesserC.locator('main').getAttribute('data-guess-ack')) === 'correct',
+    winner: await drawerMain.getAttribute('data-winner'),
+    word: await drawer.locator('.secret strong').innerText(),
   };
 }
 
@@ -98,6 +148,7 @@ async function runTarget(browser, target) {
     if (!origin) throw new Error(`Vite did not expose the ${target} example URL`);
     const room = `verify-${target}`;
     const pages = await openRound(context, origin, room);
+    if (target === 'smocket') await verifyHandlerReload(vite, pages);
     const observation = await runRound(pages);
 
     await pages[2].close();
