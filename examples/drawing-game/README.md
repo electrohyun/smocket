@@ -6,11 +6,11 @@
 > handler and show the same game screen.
 
 The screen and round follow the multi-tab demo from `smocket-site` commit
-`a9c5122686dd4bc1cc8d3b450321cbf800dcd6f8`. This example brings over the
-drawing surface, guess UI, countdown, player pages, and visible game flow. It
-does not include Next.js, landing or case-study routes, marketing navigation,
-analytics, generated site files, snapshots, or the earlier handwritten mock
-comparison.
+`a9c5122686dd4bc1cc8d3b450321cbf800dcd6f8`. This example brings over its
+drawing surface, guess UI, countdown, player pages, delivery record, mascot,
+night-sky asset, mono font, and visible game flow. It does not include Next.js,
+landing or case-study routes, marketing navigation, analytics, generated site
+files, snapshots, or the earlier handwritten mock comparison.
 
 ## Run with Smocket
 
@@ -79,8 +79,8 @@ server. Browser-specific code is limited to the page connections and React UI.
 
 ## Record the live-coding scene
 
-Open the Smocket URL with `?recording=1`. It enters the same game and handler but
-keeps the target and player badges prominent and removes the extra footer hint.
+Open the Smocket URL with `?recording=1`. It enters the same game and handler,
+uses a recording session id, and keeps the target and player badges prominent.
 Open B and C with the two buttons in A.
 
 The actual file to type is

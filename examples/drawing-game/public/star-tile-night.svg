@@ -1,4 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400">
+  <!-- The demo's night sky. Warm cream rather than white, so the field reads as
+       the same world as the landing's cream page instead of a cold starfield.
+       Tiled twice at different sizes in demo.css, which breaks the repeat. -->
   <g fill="#ffe9c4">
     <circle cx="34" cy="61" r="1.9" opacity="0.62" />
     <circle cx="128" cy="27" r="1.2" opacity="0.44" />
@@ -25,6 +28,7 @@
     <circle cx="9" cy="342" r="0.9" opacity="0.29" />
     <circle cx="243" cy="9" r="1.1" opacity="0.38" />
   </g>
+  <!-- A few sparkles in the shared accent, the one colour both pages carry. -->
   <g fill="#f4a259">
     <path d="M212 66 Q212 74 220 74 Q212 74 212 82 Q212 74 204 74 Q212 74 212 66 Z" opacity="0.5" />
     <path d="M106 216 Q106 223 113 223 Q106 223 106 230 Q106 223 99 223 Q106 223 106 216 Z" opacity="0.42" />
