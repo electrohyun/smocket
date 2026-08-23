@@ -1,9 +1,18 @@
+---
+unlisted: true
+---
+
 # Chat-room application case study
 
 > **TL;DR** Real Socket.IO 4.8.3, published Smocket 0.4.2, and a handwritten
 > mock produced the same observable result for one moderated chat workflow. Their
 > setup and owned code differ; this result applies only to that workflow and does
 > not replace Smocket's dual-run conformance guarantee.
+
+This is a historical case study for Smocket 0.4.2 and its recorded handwritten-mock
+comparison. It remains available as research context, while current user guidance starts
+from the [SharedWorker workflow](./shared-worker.md) and the generated
+[conformance report](./conformance.md).
 
 ## Method
 

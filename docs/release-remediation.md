@@ -40,10 +40,13 @@ misleading on its own, has incorrect package metadata or peer constraints, or ha
 security defect. The npm owner supplies a short replacement or incident reference and
 records the command result without exposing credentials.
 
+> [!CAUTION]
+> Never unpublish merely to reuse a version, overwrite a tarball, or describe the
+> response as a rollback.
+
 Otherwise, fix forward. Increase both package versions together, build a new immutable
 candidate, pass all pre-publication gates again, then publish `smocket` before
-`smocket-client`. Verify the new exact pair independently. Never unpublish merely to
-reuse a version, overwrite a tarball, or describe the response as a rollback.
+`smocket-client`. Verify the new exact pair independently.
 
 If only `smocket` was published before `smocket-client` failed, the pair is incomplete.
 The incident owner either completes the facade publication after resolving a pure

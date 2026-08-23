@@ -34,6 +34,8 @@
 
 <p align="center">
   <a href="https://smocket-site.vercel.app">smocket-site.vercel.app</a>
+  ·
+  <a href="docs/README.md">Documentation</a>
 </p>
 
 <p align="center">

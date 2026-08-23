@@ -36,10 +36,11 @@ emit, acknowledgement, connection, and lifecycle surface listed in
 [ADR 0038](./decisions/0038-shared-worker-is-an-explicit-narrow-facade.md); it is
 not the complete Socket.IO Client API.
 
-Create the worker with a bundled `new URL('./worker.ts', import.meta.url)`, module
-type, and a stable application-versioned name. Tabs share state only when origin,
-browser profile, script URL, and worker name all match. A different browser,
-device, profile, origin, URL, or name gets independent state.
+> [!IMPORTANT]
+> Create the worker with a bundled `new URL('./worker.ts', import.meta.url)`, module
+> type, and a stable application-versioned name. Tabs share state only when origin,
+> browser profile, script URL, and worker name all match. A different browser,
+> device, profile, origin, URL, or name gets independent state.
 
 Worker handlers cannot use the DOM, `window`, `localStorage`, or Node-only APIs.
 Payloads and auth must cross the structured-clone boundary. Feature-detect
@@ -59,10 +60,11 @@ inside a worker verifies in-memory delivery and routing only.
 
 ## Lifecycle limits
 
-`pagehide` sends a best-effort disconnect, and the Chromium page-close workflow is
-tested. An abrupt renderer crash need not clean up immediately because no heartbeat
-is invented. Worker termination or restart loses sockets, rooms, state, and pending
-acknowledgements.
+> [!WARNING]
+> `pagehide` sends a best-effort disconnect, and the Chromium page-close workflow is
+> tested. An abrupt renderer crash need not clean up immediately because no heartbeat
+> is invented. Worker termination or restart loses sockets, rooms, state, and pending
+> acknowledgements.
 
 During HMR, version the worker URL or name so new pages do not join an incompatible
 worker that survived the update. Existing pages can retain the old worker until

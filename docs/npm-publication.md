@@ -30,6 +30,10 @@ token, or package publishing-access settings.
 
 ## Release chain
 
+> [!CAUTION]
+> Publish `smocket` first and the same exact version of `smocket-client` second. Do not
+> start or repeat either package operation outside the authorized workflow sequence.
+
 Start **Publish release** from the Actions page on `main` and provide the exact package
 version. The workflow then:
 

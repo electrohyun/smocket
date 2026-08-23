@@ -91,11 +91,13 @@ and adding an extension point after the freeze is a breaking change, so landing 
 first is what keeps the routing layer from being pinned to a single in-memory
 implementation ([0008](./decisions/0008-adapter-api-before-v1.md)).
 
-A custom adapter written here does not run on real socket.io, whose adapter also
-delivers and needs a transport smocket has none of
-([0009](./decisions/0009-no-raw-websocket-mocking.md)). smocket guarantees its own
-delivery matches real socket.io; it does not promise your extension code is
-portable. That boundary is listed in [differences.md](./differences.md) §B and
+> [!IMPORTANT]
+> A custom adapter written here does not run on real socket.io, whose adapter also
+> delivers and needs a transport smocket has none of
+> ([0009](./decisions/0009-no-raw-websocket-mocking.md)). smocket guarantees its own
+> delivery matches real socket.io; it does not promise your extension code is portable.
+
+That boundary is listed in [differences.md](./differences.md) §B and
 [0031](./decisions/0031-adapter-registration-and-removal-lifecycle.md). Final routing
 observation is recorded in [0032](./decisions/0032-trace-final-broadcast-routing.md).
 Deterministic final-recipient dropping is recorded in

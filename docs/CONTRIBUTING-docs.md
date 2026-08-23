@@ -156,3 +156,29 @@ docs/
     ├── README.md        index (one-line TL;DR + related-issues column)
     └── 00NN-*.md
 ```
+
+---
+
+## 9. GitHub Alerts
+
+Use GitHub's blockquote Alert syntax so the same source stays readable on GitHub and the
+documentation site. Do not use Docusaurus-only `:::note` directives in source documents.
+
+```markdown
+> [!NOTE]
+> Supporting context that is useful but does not change the normal outcome.
+```
+
+- **NOTE** adds context that may be ignored without changing normal operation.
+- **TIP** gives a simpler setup, optional convenience, or recommended workflow.
+- **IMPORTANT** states a requirement without which the documented behavior does not hold.
+- **WARNING** covers recoverable failures such as failed tests, unexpected behavior, or
+  lost in-memory state.
+- **CAUTION** is reserved for hard-to-reverse or external-state changes such as npm
+  publication, deletion, or security configuration.
+
+Most documents need no Alert. When one is needed, prefer one and normally stop at two.
+Do not convert every TL;DR, ordinary emphasis, troubleshooting entry, or ADR into an
+Alert. Keep existing `> **TL;DR**` blocks as they are, avoid repeating the heading or
+surrounding prose, and keep code, links, and lists inside the Alert valid Markdown. When
+an English document has a Korean counterpart, keep the meaning and Alert type aligned.
