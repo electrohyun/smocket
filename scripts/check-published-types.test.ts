@@ -184,6 +184,21 @@ describe('published declaration compatibility', () => {
       ]),
     );
   });
+
+  it('does not use textual equality across external type dependencies', async () => {
+    const issues = await compareDeclarationFixture(
+      `${fixtureRoot}/external-previous/package/index.d.ts`,
+      `${fixtureRoot}/external-candidate/package/index.d.ts`,
+    );
+    expect(issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          shape: 'Socket.send',
+          reason: 'call signature changed incompatibly',
+        }),
+      ]),
+    );
+  });
 });
 
 describe('published type check result', () => {
