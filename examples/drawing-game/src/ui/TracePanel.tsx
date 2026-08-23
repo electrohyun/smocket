@@ -13,6 +13,32 @@ export type TraceRowInput =
   | { kind: 'ack'; value: unknown }
   | { kind: 'lifecycle'; text: string };
 
+interface FoldedRow {
+  row: TraceRow;
+  count: number;
+}
+
+function foldRows(rows: readonly TraceRow[]): FoldedRow[] {
+  const folded: FoldedRow[] = [];
+  for (const row of rows) {
+    const previous = folded.at(-1);
+    if (
+      previous?.row.kind === row.kind &&
+      (row.kind === 'inbound' || row.kind === 'received') &&
+      row.event === 'stroke' &&
+      previous.row.kind !== 'ack' &&
+      previous.row.kind !== 'lifecycle' &&
+      previous.row.event === row.event
+    ) {
+      previous.row = row;
+      previous.count += 1;
+    } else {
+      folded.push({ row, count: 1 });
+    }
+  }
+  return folded;
+}
+
 function formatValue(value: unknown): string {
   if (typeof value === 'string') return `'${value}'`;
   if (value === null || typeof value !== 'object') return String(value);
@@ -31,6 +57,7 @@ export default function TracePanel({ rows, scope }: { rows: TraceRow[]; scope: L
     const element = scrollRef.current;
     if (element) element.scrollTop = element.scrollHeight;
   }, [rows]);
+  const folded = foldRows(rows);
 
   return (
     <aside className={styles.panel} aria-label="Delivery record">
@@ -49,7 +76,7 @@ export default function TracePanel({ rows, scope }: { rows: TraceRow[]; scope: L
       </header>
 
       <div className={styles.log} ref={scrollRef}>
-        {rows.map((row) => {
+        {folded.map(({ row, count }) => {
           if (row.kind === 'lifecycle') {
             return (
               <div key={row.id} className={`${styles.row} ${styles.note}`} data-kind="lifecycle">
@@ -65,9 +92,10 @@ export default function TracePanel({ rows, scope }: { rows: TraceRow[]; scope: L
             );
           }
           return (
-            <div key={row.id} className={styles.row} data-event={row.event}>
+            <div key={row.id} className={styles.row} data-event={row.event} data-count={count}>
               <div className={styles.call}>
                 <EventCall code={formatCall(row, scope)} />
+                {count > 1 && <span className={styles.count}> ×{count}</span>}
               </div>
               <div className={styles.reach}>{row.kind === 'inbound' ? '→ server' : '← server'}</div>
             </div>

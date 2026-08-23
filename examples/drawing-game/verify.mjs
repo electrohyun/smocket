@@ -125,6 +125,19 @@ async function runRound(pages) {
     '0',
     'the drawer must not receive its own broadcast',
   );
+  const foldedStrokes = await Promise.all(
+    pages.map(async (page) => {
+      const row = page.locator('[data-event="stroke"]');
+      return {
+        count: Number(await row.getAttribute('data-count')),
+        text: await row.innerText(),
+      };
+    }),
+  );
+  assert.ok(
+    foldedStrokes.every(({ count, text }) => count > 1 && /×\d+/.test(text)),
+    'each page must fold its consecutive stroke events into a visible count',
+  );
 
   await guesserB.getByRole('textbox', { name: 'Guess' }).fill('zebra');
   await guesserB.getByRole('button', { name: 'Send' }).click();
