@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { dirname, relative, resolve, sep } from 'node:path';
 
 const exactVersionPattern = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z.-]+))?$/;
 
@@ -233,6 +233,18 @@ function normalizedText(value) {
     .replaceAll('\\', '/')
     .replaceAll(/import\("[^"]*\/previous\/node_modules\//g, 'import("<package>/')
     .replaceAll(/import\("[^"]*\/candidate\/node_modules\//g, 'import("<package>/');
+}
+
+function declarationText(ts, declaration) {
+  const printer = ts.createPrinter({ removeComments: true, newLine: ts.NewLineKind.LineFeed });
+  return normalizedText(
+    printer.printNode(ts.EmitHint.Unspecified, declaration, declaration.getSourceFile()),
+  );
+}
+
+function declarationsAreTextuallyEqual(ts, previous, candidate) {
+  const candidateTexts = new Set(candidate.map((declaration) => declarationText(ts, declaration)));
+  return previous.some((declaration) => candidateTexts.has(declarationText(ts, declaration)));
 }
 
 function signaturesAreTextuallyEqual(
@@ -534,6 +546,11 @@ function compareObjectType({
     const candidateCalls = candidatePropertyType.getCallSignatures();
     const isCallable = previousCalls.length > 0;
     const compatible =
+      declarationsAreTextuallyEqual(
+        ts,
+        previousProperty.declarations,
+        candidateProperty.declarations,
+      ) ||
       previousText === candidateText ||
       (isCallable
         ? everyPreviousSignatureIsAccepted({
@@ -672,17 +689,59 @@ function compareExportType({ ts, checker, previousSymbol, candidateSymbol, expor
   }
 }
 
-function namedSupportDeclarations(ts, sourceFile) {
+function declarationGraph(ts, program, entrySource) {
+  const root = dirname(entrySource.fileName);
+  const sources = [];
+  const pending = [entrySource];
+  const visited = new Set();
+
+  while (pending.length > 0) {
+    const source = pending.pop();
+    if (!source || visited.has(source.fileName)) continue;
+    visited.add(source.fileName);
+    sources.push(source);
+
+    for (const statement of source.statements) {
+      if (
+        (!ts.isImportDeclaration(statement) && !ts.isExportDeclaration(statement)) ||
+        !statement.moduleSpecifier ||
+        !ts.isStringLiteral(statement.moduleSpecifier) ||
+        !statement.moduleSpecifier.text.startsWith('.')
+      ) {
+        continue;
+      }
+      const resolved = ts.resolveModuleName(
+        statement.moduleSpecifier.text,
+        source.fileName,
+        program.getCompilerOptions(),
+        ts.sys,
+      ).resolvedModule?.resolvedFileName;
+      if (!resolved) continue;
+      const local = relative(root, resolved);
+      if (local === '..' || local.startsWith(`..${sep}`)) continue;
+      const dependency = program.getSourceFile(resolved);
+      if (dependency) pending.push(dependency);
+    }
+  }
+
+  return sources;
+}
+
+function namedSupportDeclarations(ts, sourceFiles) {
   const declarations = new Map();
-  for (const statement of sourceFile.statements) {
-    if (
-      (ts.isTypeAliasDeclaration(statement) ||
-        ts.isInterfaceDeclaration(statement) ||
-        ts.isClassDeclaration(statement) ||
-        ts.isEnumDeclaration(statement)) &&
-      statement.name
-    ) {
-      declarations.set(statement.name.text, statement);
+  for (const sourceFile of sourceFiles) {
+    for (const statement of sourceFile.statements) {
+      if (
+        (ts.isTypeAliasDeclaration(statement) ||
+          ts.isInterfaceDeclaration(statement) ||
+          ts.isClassDeclaration(statement) ||
+          ts.isEnumDeclaration(statement)) &&
+        statement.name
+      ) {
+        const named = declarations.get(statement.name.text) ?? [];
+        named.push(statement);
+        declarations.set(statement.name.text, named);
+      }
     }
   }
   return declarations;
@@ -691,56 +750,51 @@ function namedSupportDeclarations(ts, sourceFile) {
 function compareSupportDeclarations({
   ts,
   checker,
-  previousSource,
-  candidateSource,
+  previousSources,
+  candidateSources,
   previousExports,
   issues,
 }) {
   const exportedSymbols = new Set(previousExports.values());
-  const previousDeclarations = namedSupportDeclarations(ts, previousSource);
-  const candidateDeclarations = namedSupportDeclarations(ts, candidateSource);
-  const printer = ts.createPrinter({ removeComments: true, newLine: ts.NewLineKind.LineFeed });
+  const previousDeclarations = namedSupportDeclarations(ts, previousSources);
+  const candidateDeclarations = namedSupportDeclarations(ts, candidateSources);
 
-  for (const [name, previousDeclaration] of previousDeclarations) {
-    const previousSymbol = checker.getSymbolAtLocation(previousDeclaration.name);
-    if (!previousSymbol || exportedSymbols.has(previousSymbol)) continue;
-    const candidateDeclaration = candidateDeclarations.get(name);
-    if (!candidateDeclaration) {
-      issues.push({ shape: name, reason: 'reachable public type support was removed' });
-      continue;
-    }
-    const previousText = printer.printNode(
-      ts.EmitHint.Unspecified,
-      previousDeclaration,
-      previousSource,
-    );
-    const candidateText = printer.printNode(
-      ts.EmitHint.Unspecified,
-      candidateDeclaration,
-      candidateSource,
-    );
-    if (previousText === candidateText) continue;
-    const candidateSymbol = checker.getSymbolAtLocation(candidateDeclaration.name);
-    if (!candidateSymbol) {
-      issues.push({ shape: name, reason: 'reachable public type support was removed' });
-      continue;
-    }
-    const supportIssues = [];
-    compareExportType({
-      ts,
-      checker,
-      previousSymbol,
-      candidateSymbol,
-      exportName: name,
-      issues: supportIssues,
-    });
-    if (supportIssues.length > 0) {
-      issues.push({
-        shape: name,
-        reason: 'type changed incompatibly',
-        previous: normalizedText(previousText),
-        candidate: normalizedText(candidateText),
+  for (const [name, previousNamed] of previousDeclarations) {
+    for (const previousDeclaration of previousNamed) {
+      const previousSymbol = checker.getSymbolAtLocation(previousDeclaration.name);
+      if (!previousSymbol || exportedSymbols.has(previousSymbol)) continue;
+      const candidateNamed = candidateDeclarations.get(name) ?? [];
+      if (candidateNamed.length === 0) {
+        issues.push({ shape: name, reason: 'reachable public type support was removed' });
+        continue;
+      }
+      const previousText = declarationText(ts, previousDeclaration);
+      if (candidateNamed.some((candidate) => declarationText(ts, candidate) === previousText)) {
+        continue;
+      }
+
+      const compatible = candidateNamed.some((candidateDeclaration) => {
+        const candidateSymbol = checker.getSymbolAtLocation(candidateDeclaration.name);
+        if (!candidateSymbol) return false;
+        const supportIssues = [];
+        compareExportType({
+          ts,
+          checker,
+          previousSymbol,
+          candidateSymbol,
+          exportName: name,
+          issues: supportIssues,
+        });
+        return supportIssues.length === 0;
       });
+      if (!compatible) {
+        issues.push({
+          shape: name,
+          reason: 'type changed incompatibly',
+          previous: previousText,
+          candidate: declarationText(ts, candidateNamed[0]),
+        });
+      }
     }
   }
 }
@@ -799,8 +853,8 @@ export async function compareDeclarationEntries(previousEntry, candidateEntry) {
   compareSupportDeclarations({
     ts,
     checker,
-    previousSource,
-    candidateSource,
+    previousSources: declarationGraph(ts, program, previousSource),
+    candidateSources: declarationGraph(ts, program, candidateSource),
     previousExports: previousPublicExports,
     issues,
   });

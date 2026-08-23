@@ -162,6 +162,28 @@ describe('published declaration compatibility', () => {
       ]),
     );
   });
+
+  it('follows package-local declaration chunks without weakening support checks', async () => {
+    await expect(
+      compareDeclarationFixture(
+        `${fixtureRoot}/chunk-previous.d.ts`,
+        `${fixtureRoot}/chunk-compatible.d.ts`,
+      ),
+    ).resolves.toEqual([]);
+
+    const issues = await compareDeclarationFixture(
+      `${fixtureRoot}/chunk-previous.d.ts`,
+      `${fixtureRoot}/chunk-narrowed.d.ts`,
+    );
+    expect(issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          shape: 'MessageEventParams',
+          reason: 'type changed incompatibly',
+        }),
+      ]),
+    );
+  });
 });
 
 describe('published type check result', () => {
