@@ -58,6 +58,29 @@ async function openRound(context, origin, room) {
   return pages;
 }
 
+async function verifyGeneratedRecordingRoom(context, origin) {
+  const drawer = await context.newPage();
+  await drawer.goto(`${origin}?recording=1&label=A`);
+  await waitForState(drawer, '[data-connected="true"][data-admitted="true"]');
+  const room = await drawer.locator('main').getAttribute('data-room');
+  assert.match(room ?? '', /^recording-[a-f0-9]{12}$/);
+
+  const guesserB = await openPlayer(context, drawer, 'B');
+  const guesserC = await openPlayer(context, drawer, 'C');
+  const pages = [drawer, guesserB, guesserC];
+  await Promise.all(pages.map((page) => waitForState(page, '[data-player-count="3"]')));
+  assert.deepEqual(
+    await Promise.all(pages.map((page) => page.locator('main').getAttribute('data-room'))),
+    [room, room, room],
+    'recording player pages must inherit the generated room',
+  );
+  assert.ok(
+    pages.every((page) => new URL(page.url()).searchParams.get('recording') === '1'),
+    'recording player pages must preserve recording mode',
+  );
+  await Promise.all(pages.map((page) => page.close()));
+}
+
 async function verifyHandlerReload(vite, pages) {
   const previousIds = await Promise.all(
     pages.map((page) => page.locator('main').getAttribute('data-socket-id')),
@@ -199,6 +222,7 @@ async function runTarget(browser, target) {
     await vite.listen();
     const origin = vite.resolvedUrls?.local[0];
     if (!origin) throw new Error(`Vite did not expose the ${target} example URL`);
+    await verifyGeneratedRecordingRoom(context, origin);
     const room = `verify-${target}`;
     const pages = await openRound(context, origin, room);
     if (target === 'smocket') await verifyHandlerReload(vite, pages);
