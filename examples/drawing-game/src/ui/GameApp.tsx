@@ -11,6 +11,7 @@ import {
 } from '../game/events.js';
 import Canvas, { type CanvasHandle } from './Canvas.js';
 import Countdown from './Countdown.js';
+import Fanfare from './Fanfare.js';
 import PlayerCard from './PlayerCard.js';
 
 interface EventRow {
@@ -49,8 +50,9 @@ export default function GameApp({
   const [session, setSession] = useState<SessionState | null>(null);
   const [word, setWord] = useState<string>();
   const [winner, setWinner] = useState<RoundResult>();
+  const [showFanfare, setShowFanfare] = useState(false);
   const [guess, setGuess] = useState('');
-  const [guessAck, setGuessAck] = useState<'idle' | 'wrong' | 'correct'>('idle');
+  const [guessAck, setGuessAck] = useState<'idle' | 'wrong' | 'correct' | 'error'>('idle');
   const [bubbles, setBubbles] = useState<Partial<Record<Label, string>>>({});
   const [receivedStrokes, setReceivedStrokes] = useState(0);
   const [events, setEvents] = useState<EventRow[]>([]);
@@ -125,6 +127,7 @@ export default function GameApp({
     socket.on('correct', (result) => record('in', 'correct', result));
     socket.on('announce', (result) => {
       setWinner(result);
+      setShowFanfare(true);
       record('in', 'announce', `${result.winner} · ${result.word}`);
     });
     if (socket.connected) connectedNow();
@@ -158,9 +161,15 @@ export default function GameApp({
     if (!value || !socket || !canGuess) return;
     setGuess('');
     record('out', 'guess', value);
-    const correct = (await socket.emitWithAck('guess', value)) as boolean;
-    setGuessAck(correct ? 'correct' : 'wrong');
-    record('ack', 'guess', correct);
+    try {
+      const correct = (await socket.emitWithAck('guess', value)) as boolean;
+      setGuessAck(correct ? 'correct' : 'wrong');
+      record('ack', 'guess', correct);
+    } catch (reason) {
+      setGuess(value);
+      setGuessAck('error');
+      setError(reason instanceof Error ? reason.message : String(reason));
+    }
   };
 
   const openPlayer = (nextLabel: 'B' | 'C') => {
@@ -181,13 +190,22 @@ export default function GameApp({
     <>
       <header className="topbar">
         <a className="brand" href="/" aria-label="Start a new drawing game">
+          <span className="brand-mascot" aria-hidden="true">
+            😎
+          </span>
           smocket
         </a>
         <div className="target-badge" data-target={GAME_TARGET}>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="4" y="5" width="15" height="12" rx="2" />
+            <path d="M7 8h15v11a2 2 0 0 1-2 2H7" />
+          </svg>
           {GAME_TARGET === 'smocket' ? 'MOCK · SHAREDWORKER' : 'REAL · SOCKET.IO'}
         </div>
         <div className="player-badge" data-player={label}>
-          {label} · {isDrawer ? 'DRAWER' : 'GUESSER'}
+          <strong>{label}</strong>
+          <span aria-hidden="true">·</span>
+          <span>{isDrawer ? 'DRAWER' : 'GUESSER'}</span>
         </div>
       </header>
 
@@ -219,7 +237,9 @@ export default function GameApp({
             {phase === 'waiting' && !error && !admissionError && (
               <div className="overlay waiting">
                 <strong>{players.length} / 3 players connected</strong>
-                <span>Open the empty player desks below.</span>
+                <span>
+                  Open the empty player desks below. The round starts when A, B, and C are ready.
+                </span>
               </div>
             )}
             {phase === 'countdown' && session?.countdownEndsAt && (
@@ -231,7 +251,15 @@ export default function GameApp({
                 <span>{error ?? admissionError}</span>
               </div>
             )}
-            {winner && (
+            {showFanfare && winner && (
+              <Fanfare
+                word={winner.word}
+                winner={winner.winner}
+                eyebrow={winner.winner === label ? 'You got it' : `${winner.winner} guessed it`}
+                onDone={() => setShowFanfare(false)}
+              />
+            )}
+            {winner && !showFanfare && (
               <div className="round-result" role="status">
                 <strong data-player={winner.winner}>{winner.winner}</strong> guessed it —{' '}
                 <b>{winner.word}</b>
@@ -270,29 +298,35 @@ export default function GameApp({
                   ? 'Acknowledged — keep trying.'
                   : guessAck === 'correct'
                     ? 'Correct guess acknowledged.'
-                    : ''}
+                    : guessAck === 'error'
+                      ? 'Guess acknowledgement failed.'
+                      : ''}
               </output>
             </form>
           )}
 
           <footer>
-            {!recording && (
-              <p>
-                {phase === 'active'
+            <p>
+              {phase === 'ended'
+                ? 'Three browser pages reached the same result.'
+                : phase === 'active'
                   ? isDrawer
-                    ? 'Draw for the two guessers.'
-                    : 'Your guess is acknowledged by the same game handler.'
-                  : 'One game, three real browser pages.'}
-              </p>
-            )}
+                    ? 'Draw. The delivery record shows the real events observed by this page.'
+                    : 'Guess from the drawing. The delivery record shows the real events observed by this page.'
+                  : phase === 'countdown'
+                    ? 'Three players are ready. The round starts together.'
+                    : 'Build and preview a three-player realtime UI before the backend is ready.'}
+            </p>
             <code title={room}>SESSION ID: {room}</code>
           </footer>
         </section>
 
         <aside className="deliveries" aria-label={`Events received by Player ${label}`}>
           <div className="delivery-heading">
-            <h2>Delivery</h2>
-            <span data-player={label}>(ONLY {label})</span>
+            <h2>
+              Delivery <span data-player={label}>(ONLY {label})</span>
+            </h2>
+            <strong data-player={label}>{label}</strong>
           </div>
           <ol>
             {events.map((row) => (

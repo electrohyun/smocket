@@ -208,9 +208,9 @@ rots.
 
 [drawing-game](examples/drawing-game/) is a React drawing and guessing game for
 three browser pages. Run `pnpm example:drawing-game` to use one in-browser Smocket
-server, or switch to the documented Real Socket.IO command while keeping the same
-application handler and UI. Its automated checks also compare the compact Node
-scenario and the complete Chromium flow across both targets.
+server, or `pnpm example:drawing-game:dev:real` for Real Socket.IO, while keeping
+the same application handler and UI. Its automated checks also compare the compact
+Node scenario and the complete Chromium flow across both targets.
 
 [shared-worker-lobby](examples/shared-worker-lobby/) is a static Vite frontend in
 which three same-origin Chromium tabs share one caller-owned in-browser Smocket

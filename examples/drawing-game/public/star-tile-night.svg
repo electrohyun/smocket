@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400">
+  <g fill="#ffe9c4">
+    <circle cx="34" cy="61" r="1.9" opacity="0.62" />
+    <circle cx="128" cy="27" r="1.2" opacity="0.44" />
+    <circle cx="212" cy="74" r="2.1" opacity="0.7" />
+    <circle cx="297" cy="38" r="0.9" opacity="0.3" />
+    <circle cx="365" cy="96" r="1.5" opacity="0.5" />
+    <circle cx="71" cy="139" r="0.8" opacity="0.26" />
+    <circle cx="163" cy="118" r="1.7" opacity="0.55" />
+    <circle cx="252" cy="152" r="1.0" opacity="0.36" />
+    <circle cx="338" cy="176" r="1.9" opacity="0.6" />
+    <circle cx="19" cy="197" r="1.3" opacity="0.42" />
+    <circle cx="106" cy="223" r="2.0" opacity="0.66" />
+    <circle cx="188" cy="205" r="0.7" opacity="0.24" />
+    <circle cx="279" cy="241" r="1.4" opacity="0.47" />
+    <circle cx="356" cy="262" r="0.9" opacity="0.31" />
+    <circle cx="47" cy="287" r="1.6" opacity="0.53" />
+    <circle cx="141" cy="311" r="1.0" opacity="0.35" />
+    <circle cx="231" cy="296" r="1.8" opacity="0.58" />
+    <circle cx="311" cy="334" r="1.1" opacity="0.4" />
+    <circle cx="88" cy="366" r="1.4" opacity="0.48" />
+    <circle cx="196" cy="381" r="0.8" opacity="0.27" />
+    <circle cx="268" cy="358" r="0.7" opacity="0.23" />
+    <circle cx="381" cy="392" r="1.2" opacity="0.41" />
+    <circle cx="9" cy="342" r="0.9" opacity="0.29" />
+    <circle cx="243" cy="9" r="1.1" opacity="0.38" />
+  </g>
+  <g fill="#f4a259">
+    <path d="M212 66 Q212 74 220 74 Q212 74 212 82 Q212 74 204 74 Q212 74 212 66 Z" opacity="0.5" />
+    <path d="M106 216 Q106 223 113 223 Q106 223 106 230 Q106 223 99 223 Q106 223 106 216 Z" opacity="0.42" />
+    <path d="M338 170 Q338 176 344 176 Q338 176 338 182 Q338 176 332 176 Q338 176 338 170 Z" opacity="0.38" />
+  </g>
+</svg>

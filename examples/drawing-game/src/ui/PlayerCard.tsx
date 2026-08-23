@@ -18,16 +18,16 @@ export default function PlayerCard({
   const ready = Boolean(player);
   return (
     <article
-      className="player-card"
+      className={`player-card${winner === label ? ' winner' : ''}`}
       data-player={label}
       data-ready={ready}
       data-current={current === label}
     >
       {bubble && <div className="bubble">{bubble}</div>}
-      <div className={`person${winner === label ? ' winner' : ''}`} aria-hidden="true">
-        <span className="head" />
-        <span className="body" />
-      </div>
+      <svg className="person" viewBox="0 0 64 64" aria-hidden="true">
+        <circle cx="32" cy="19" r="11" />
+        <rect x="15" y="33" width="34" height="26" rx="11" />
+      </svg>
       <div className="desk" />
       <p>
         <span className="player-dot" /> {label} ·{' '}

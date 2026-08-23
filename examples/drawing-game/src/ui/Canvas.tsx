@@ -50,8 +50,8 @@ function DrawingCanvas(
       context.scale(scale, scale);
       context.lineCap = 'round';
       context.lineJoin = 'round';
-      context.lineWidth = 3;
-      context.strokeStyle = '#e9ebf4';
+      context.lineWidth = 2.5;
+      context.strokeStyle = getComputedStyle(canvas).getPropertyValue('--ink').trim() || '#e9ebf4';
       for (const segment of historyRef.current) paint(segment, false);
     };
     resize();
@@ -98,6 +98,7 @@ function DrawingCanvas(
       ref={canvasRef}
       className="drawing-surface"
       aria-label="Drawing surface"
+      aria-disabled={disabled}
       onPointerDown={down}
       onPointerMove={move}
       onPointerUp={up}
