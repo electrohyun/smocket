@@ -1,0 +1,21 @@
+.event {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.socket {
+  color: var(--socket);
+  font-weight: 700;
+}
+
+.socket[data-socket='A'] {
+  --socket: var(--sock-a);
+}
+
+.socket[data-socket='B'] {
+  --socket: var(--sock-b);
+}
+
+.socket[data-socket='C'] {
+  --socket: var(--sock-c);
+}

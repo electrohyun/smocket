@@ -13,13 +13,9 @@ import Canvas, { type CanvasHandle } from './Canvas.js';
 import Countdown from './Countdown.js';
 import Fanfare from './Fanfare.js';
 import PlayerCard from './PlayerCard.js';
+import TracePanel, { type TraceRow, type TraceRowInput } from './TracePanel.js';
 
-interface EventRow {
-  id: number;
-  event: string;
-  detail: string;
-  direction: 'in' | 'out' | 'ack';
-}
+const BUBBLE_MS = 3400;
 
 function createPresence(room: string, label: Label): string {
   const key = `drawing-game:${room}:${label}`;
@@ -30,9 +26,17 @@ function createPresence(room: string, label: Label): string {
   return value;
 }
 
-function summarize(value: unknown): string {
-  if (typeof value === 'string') return value;
-  return JSON.stringify(value).replaceAll('"', '');
+function hintFor(phase: SessionState['phase'] | 'waiting', isDrawer: boolean): string {
+  if (phase === 'ended') {
+    return 'One developer just reproduced a three-player realtime UI without a Socket.IO backend.';
+  }
+  if (phase === 'active') {
+    return isDrawer
+      ? 'Draw. The delivery record shows the real events observed by this tab.'
+      : 'Guess from the drawing. The delivery record shows the real events observed by this tab.';
+  }
+  if (phase === 'countdown') return 'Three players are ready. The round starts together.';
+  return 'Build and preview a three-player realtime UI before the backend is ready.';
 }
 
 export default function GameApp({
@@ -55,80 +59,98 @@ export default function GameApp({
   const [guessAck, setGuessAck] = useState<'idle' | 'wrong' | 'correct' | 'error'>('idle');
   const [bubbles, setBubbles] = useState<Partial<Record<Label, string>>>({});
   const [receivedStrokes, setReceivedStrokes] = useState(0);
-  const [events, setEvents] = useState<EventRow[]>([]);
+  const [events, setEvents] = useState<TraceRow[]>([]);
   const [error, setError] = useState<string>();
   const socketRef = useRef<GameClient | null>(null);
   const canvasRef = useRef<CanvasHandle>(null);
   const nextEventId = useRef(1);
+  const bubbleTimers = useRef<Partial<Record<Label, number>>>({});
 
-  const record = useCallback((direction: EventRow['direction'], event: string, detail: unknown) => {
-    setEvents((current) => [
-      ...current.slice(-24),
-      { id: nextEventId.current++, direction, event, detail: summarize(detail) },
-    ]);
+  const record = useCallback((row: TraceRowInput) => {
+    setEvents((current) => [...current.slice(-24), { ...row, id: nextEventId.current++ }]);
   }, []);
 
   const showChat = useCallback((message: ChatMessage) => {
     setBubbles((current) => ({ ...current, [message.from]: message.text }));
-    window.setTimeout(
+    window.clearTimeout(bubbleTimers.current[message.from]);
+    bubbleTimers.current[message.from] = window.setTimeout(
       () => setBubbles((current) => ({ ...current, [message.from]: undefined })),
-      3200,
+      BUBBLE_MS,
     );
   }, []);
+
+  useEffect(
+    () => () => {
+      for (const timer of Object.values(bubbleTimers.current)) window.clearTimeout(timer);
+    },
+    [],
+  );
 
   useEffect(() => {
     let live = true;
     const socket = connectPage(label, createPresence(room, label));
     socketRef.current = socket;
+    record({ kind: 'lifecycle', text: `${label} connecting` });
 
     const join = async () => {
-      record('out', 'join', room);
+      record({ kind: 'inbound', event: 'join', value: room });
       const result = (await socket.emitWithAck('join', room)) as JoinResult;
       if (!live) return;
-      record('ack', 'join', result);
+      record({ kind: 'ack', value: result });
       setAdmission(result);
     };
     const connectedNow = () => {
       if (!live) return;
       setConnected(true);
       setSocketId(socket.id ?? '');
-      record('in', 'connect', socket.id ?? 'socket');
+      record({
+        kind: 'lifecycle',
+        text: `${label} connected · ${socket.id?.slice(0, 8) ?? 'socket'}`,
+      });
       void join().catch((reason: unknown) => setError(String(reason)));
     };
 
     socket.on('connect', connectedNow);
-    socket.on('connect_error', (reason) => setError(reason.message));
-    socket.on('bridge_error', (reason) => setError(reason.message));
+    socket.on('connect_error', (reason) => {
+      record({ kind: 'lifecycle', text: `${label} connect error · ${reason.message}` });
+      setError(reason.message);
+    });
+    socket.on('bridge_error', (reason) => {
+      record({ kind: 'lifecycle', text: `${label} bridge error · ${reason.message}` });
+      setError(reason.message);
+    });
     socket.on('disconnect', (reason) => {
       setConnected(false);
-      record('in', 'disconnect', reason);
+      record({ kind: 'lifecycle', text: `${label} disconnected · ${reason}` });
     });
     socket.on('session-state', (state) => {
       setSession(state);
       if (state.phase === 'ended' && state.winner && state.word) {
         setWinner({ winner: state.winner, word: state.word });
       }
-      record('in', 'session-state', `${state.players.length} players · ${state.phase}`);
+      record({ kind: 'received', event: 'session-state', value: state });
     });
-    socket.on('round-started', (result) => record('in', 'round-started', result));
+    socket.on('round-started', (result) =>
+      record({ kind: 'received', event: 'round-started', value: result }),
+    );
     socket.on('word', (value) => {
       setWord(value);
-      record('in', 'word', value);
+      record({ kind: 'received', event: 'word', value });
     });
     socket.on('stroke', (segment) => {
       canvasRef.current?.draw(segment);
       setReceivedStrokes((count) => count + 1);
-      record('in', 'stroke', `#${segment.id}${segment.end ? ' end' : ''}`);
+      record({ kind: 'received', event: 'stroke', value: segment });
     });
     socket.on('chat', (message) => {
       showChat(message);
-      record('in', 'chat', `${message.from}: ${message.text}`);
+      record({ kind: 'received', event: 'chat', value: message });
     });
-    socket.on('correct', (result) => record('in', 'correct', result));
+    socket.on('correct', (result) => record({ kind: 'received', event: 'correct', value: result }));
     socket.on('announce', (result) => {
       setWinner(result);
       setShowFanfare(true);
-      record('in', 'announce', `${result.winner} · ${result.word}`);
+      record({ kind: 'received', event: 'announce', value: result });
     });
     if (socket.connected) connectedNow();
 
@@ -149,7 +171,7 @@ export default function GameApp({
   const sendStroke = useCallback(
     (stroke: StrokeSegment) => {
       socketRef.current?.emit('stroke', stroke);
-      record('out', 'stroke', `#${stroke.id}${stroke.end ? ' end' : ''}`);
+      record({ kind: 'inbound', event: 'stroke', value: stroke });
     },
     [record],
   );
@@ -160,11 +182,11 @@ export default function GameApp({
     const socket = socketRef.current;
     if (!value || !socket || !canGuess) return;
     setGuess('');
-    record('out', 'guess', value);
+    record({ kind: 'inbound', event: 'guess', value });
     try {
       const correct = (await socket.emitWithAck('guess', value)) as boolean;
       setGuessAck(correct ? 'correct' : 'wrong');
-      record('ack', 'guess', correct);
+      record({ kind: 'ack', value: correct });
     } catch (reason) {
       setGuess(value);
       setGuessAck('error');
@@ -176,6 +198,7 @@ export default function GameApp({
     const url = new URL(location.href);
     url.searchParams.set('room', room);
     url.searchParams.set('label', nextLabel);
+    record({ kind: 'lifecycle', text: `opening ${nextLabel}` });
     window.open(url, '_blank', 'noopener');
   };
 
@@ -188,26 +211,36 @@ export default function GameApp({
 
   return (
     <>
-      <header className="topbar">
-        <a className="brand" href="/" aria-label="Start a new drawing game">
-          <span className="brand-mascot" aria-hidden="true">
-            😎
-          </span>
-          smocket
-        </a>
-        <div className="target-badge" data-target={GAME_TARGET}>
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <rect x="4" y="5" width="15" height="12" rx="2" />
-            <path d="M7 8h15v11a2 2 0 0 1-2 2H7" />
-          </svg>
-          {GAME_TARGET === 'smocket' ? 'MOCK · SHAREDWORKER' : 'REAL · SOCKET.IO'}
-        </div>
-        <div className="player-badge" data-player={label}>
-          <strong>{label}</strong>
-          <span aria-hidden="true">·</span>
-          <span>{isDrawer ? 'DRAWER' : 'GUESSER'}</span>
-        </div>
+      <header className="brand">
+        <img
+          className="mascot"
+          src="/cat.webp"
+          alt="smocket mascot: a cool cat wearing sunglasses"
+          width="26"
+          height="26"
+        />
+        <span className="wordmark">smocket</span>
       </header>
+      <div className="target-badge" data-target={GAME_TARGET} aria-label="Current target">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          aria-hidden="true"
+        >
+          <path d="M8 4h11a2 2 0 0 1 2 2v10" />
+          <path d="M6 7h11a2 2 0 0 1 2 2v9" />
+          <rect x="3" y="10" width="14" height="10" rx="2" />
+          <path d="M3 13h14" />
+        </svg>
+        {GAME_TARGET === 'smocket' ? 'MOCK · SHAREDWORKER' : 'REAL · SOCKET.IO'}
+      </div>
+      <aside className="player-badge" data-player={label} aria-label="Current player">
+        <strong>{label}</strong>
+        <span aria-hidden="true">·</span>
+        <span>{isDrawer ? 'drawer' : 'guesser'}</span>
+      </aside>
 
       <main
         className={`game${recording ? ' recording' : ''}`}
@@ -225,7 +258,7 @@ export default function GameApp({
         data-ended={Boolean(winner)}
         data-winner={winner?.winner ?? ''}
       >
-        <section className="board" aria-label={`${label} game view`}>
+        <section className="board" aria-label={`${label} · ${isDrawer ? 'Drawer' : 'Guesser'}`}>
           {isDrawer && (
             <p className="secret">
               <span>word</span>
@@ -247,7 +280,7 @@ export default function GameApp({
             )}
             {(error || admissionError) && (
               <div className="overlay error" role="alert">
-                <strong>Could not connect Player {label}</strong>
+                <strong>Could not take {label}</strong>
                 <span>{error ?? admissionError}</span>
               </div>
             )}
@@ -286,7 +319,9 @@ export default function GameApp({
               <input
                 value={guess}
                 onChange={(event) => setGuess(event.target.value)}
-                placeholder="Guess from the drawing"
+                placeholder={
+                  winner ? `Round over · the word was ${winner.word}` : 'Guess from the drawing'
+                }
                 aria-label="Guess"
                 disabled={!canGuess}
               />
@@ -295,7 +330,7 @@ export default function GameApp({
               </button>
               <output aria-live="polite">
                 {guessAck === 'wrong'
-                  ? 'Acknowledged — keep trying.'
+                  ? 'Guess acknowledged — keep trying.'
                   : guessAck === 'correct'
                     ? 'Correct guess acknowledged.'
                     : guessAck === 'error'
@@ -306,38 +341,12 @@ export default function GameApp({
           )}
 
           <footer>
-            <p>
-              {phase === 'ended'
-                ? 'Three browser pages reached the same result.'
-                : phase === 'active'
-                  ? isDrawer
-                    ? 'Draw. The delivery record shows the real events observed by this page.'
-                    : 'Guess from the drawing. The delivery record shows the real events observed by this page.'
-                  : phase === 'countdown'
-                    ? 'Three players are ready. The round starts together.'
-                    : 'Build and preview a three-player realtime UI before the backend is ready.'}
-            </p>
+            <p>{hintFor(phase, isDrawer)}</p>
             <code title={room}>SESSION ID: {room}</code>
           </footer>
         </section>
 
-        <aside className="deliveries" aria-label={`Events received by Player ${label}`}>
-          <div className="delivery-heading">
-            <h2>
-              Delivery <span data-player={label}>(ONLY {label})</span>
-            </h2>
-            <strong data-player={label}>{label}</strong>
-          </div>
-          <ol>
-            {events.map((row) => (
-              <li key={row.id} data-direction={row.direction}>
-                <span>{row.direction}</span>
-                <strong>{row.event}</strong>
-                <code>{row.detail}</code>
-              </li>
-            ))}
-          </ol>
-        </aside>
+        <TracePanel rows={events} scope={label} />
       </main>
     </>
   );

@@ -13,7 +13,11 @@ export default function Countdown({ endsAt }: { endsAt: number }) {
   }, [endsAt]);
 
   return (
-    <div className="countdown" role="timer" aria-label={`Round starts in ${remaining}`}>
+    <div
+      className="countdown"
+      role="timer"
+      aria-label={`Round starts in ${remaining} ${remaining === 1 ? 'second' : 'seconds'}`}
+    >
       <strong>{remaining}</strong>
     </div>
   );

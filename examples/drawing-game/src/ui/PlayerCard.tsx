@@ -17,22 +17,24 @@ export default function PlayerCard({
 }) {
   const ready = Boolean(player);
   return (
-    <article
-      className={`player-card${winner === label ? ' winner' : ''}`}
+    <div
+      className="player-card"
       data-player={label}
       data-ready={ready}
       data-current={current === label}
     >
-      {bubble && <div className="bubble">{bubble}</div>}
-      <svg className="person" viewBox="0 0 64 64" aria-hidden="true">
-        <circle cx="32" cy="19" r="11" />
-        <rect x="15" y="33" width="34" height="26" rx="11" />
-      </svg>
-      <div className="desk" />
-      <p>
-        <span className="player-dot" /> {label} ·{' '}
-        {current === label ? 'you' : ready ? 'guesser' : 'waiting'}
-      </p>
+      <article className={`character${winner === label ? ' winner' : ''}`} data-socket={label}>
+        {bubble && <div className="bubble">{bubble}</div>}
+        <svg className="person" viewBox="0 0 64 64" aria-hidden="true">
+          <circle cx="32" cy="19" r="11" />
+          <rect x="15" y="33" width="34" height="26" rx="11" />
+        </svg>
+        <div className="desk" />
+        <p>
+          <span className="player-dot" />
+          {label} · {current === label ? 'you' : ready ? 'guesser' : 'waiting'}
+        </p>
+      </article>
       {ready ? (
         <span className="ready">ready</span>
       ) : current === 'A' ? (
@@ -42,6 +44,6 @@ export default function PlayerCard({
       ) : (
         <span className="waiting-player">Waiting for Player {label === 'B' ? '2' : '3'}</span>
       )}
-    </article>
+    </div>
   );
 }

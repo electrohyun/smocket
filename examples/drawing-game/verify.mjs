@@ -23,6 +23,32 @@ async function openRound(context, origin, room) {
   const drawer = await context.newPage();
   await drawer.goto(`${origin}?room=${room}&label=A`);
   await waitForState(drawer, '[data-connected="true"][data-admitted="true"]');
+  assert.equal(await drawer.locator('.mascot').getAttribute('src'), '/cat.webp');
+  assert.equal(
+    await drawer.locator('.mascot').evaluate((image) => image.complete && image.naturalWidth > 0),
+    true,
+    'the site mascot asset must load',
+  );
+  assert.equal(
+    await drawer.evaluate(
+      async () => (await document.fonts.load('12px "JetBrains Mono"')).length > 0,
+    ),
+    true,
+    'the demo mono font must load',
+  );
+  assert.match(
+    await drawer
+      .getByLabel('Delivery record')
+      .evaluate((element) => getComputedStyle(element).fontFamily),
+    /JetBrains Mono/,
+  );
+  assert.equal(
+    await drawer
+      .locator('.player-card[data-player="B"] > [data-socket="B"]')
+      .evaluate((element) => getComputedStyle(element).opacity),
+    '0.42',
+    'an unopened player must fade as one complete site character card',
+  );
   const guesserB = await openPlayer(context, drawer, 'B');
   const guesserC = await openPlayer(context, drawer, 'C');
   const pages = [drawer, guesserB, guesserC];
@@ -100,14 +126,12 @@ async function runRound(pages) {
     'the drawer must not receive its own broadcast',
   );
 
-  await guesserB.getByLabel('Guess').fill('zebra');
+  await guesserB.getByRole('textbox', { name: 'Guess' }).fill('zebra');
   await guesserB.getByRole('button', { name: 'Send' }).click();
   await waitForState(guesserB, '[data-guess-ack="wrong"]');
-  await Promise.all(
-    pages.map((page) => page.locator('.deliveries strong', { hasText: 'chat' }).waitFor()),
-  );
+  await Promise.all(pages.map((page) => page.locator('[data-event="chat"]').waitFor()));
 
-  await guesserC.getByLabel('Guess').fill('giraffe');
+  await guesserC.getByRole('textbox', { name: 'Guess' }).fill('giraffe');
   await guesserC.getByRole('button', { name: 'Send' }).click();
   await waitForState(guesserC, '[data-guess-ack="correct"]');
   await Promise.all(

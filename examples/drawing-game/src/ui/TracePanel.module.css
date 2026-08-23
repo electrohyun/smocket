@@ -1,0 +1,121 @@
+.panel {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--code-bg);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.title {
+  color: var(--text-dim);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.scope {
+  color: var(--scope);
+  font-weight: 700;
+}
+
+.scope[data-socket='A'] {
+  --scope: var(--sock-a);
+}
+
+.scope[data-socket='B'] {
+  --scope: var(--sock-b);
+}
+
+.scope[data-socket='C'] {
+  --scope: var(--sock-c);
+}
+
+.legend {
+  display: flex;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chip {
+  --socket: var(--text-dim);
+
+  display: grid;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  border-radius: 4px;
+  background: var(--socket);
+  color: var(--code-bg);
+  font-size: 0.66rem;
+  font-weight: 700;
+}
+
+.chip[data-socket='A'] {
+  --socket: var(--sock-a);
+}
+
+.chip[data-socket='B'] {
+  --socket: var(--sock-b);
+}
+
+.chip[data-socket='C'] {
+  --socket: var(--sock-c);
+}
+
+.log {
+  min-height: 0;
+  flex: 1;
+  padding: 10px 12px 14px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.row {
+  margin-top: 8px;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.row:first-child {
+  margin-top: 0;
+}
+
+.call {
+  color: var(--code-text);
+}
+
+.reach {
+  padding-left: 14px;
+  color: var(--text-dim);
+}
+
+.ack {
+  padding-left: 14px;
+  color: var(--text-dim);
+  opacity: 0.72;
+}
+
+.note {
+  color: var(--text-dim);
+}
+
+@media (max-width: 900px) {
+  .panel {
+    font-size: 0.68rem;
+  }
+}
