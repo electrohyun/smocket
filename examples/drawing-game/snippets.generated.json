@@ -3,20 +3,28 @@
   "regenerateWith": "pnpm example:drawing-game:snippets",
   "snippets": [
     {
+      "id": "live-game-handler",
+      "sourceFile": "examples/drawing-game/src/game/game-handler.ts",
+      "language": "typescript",
+      "purpose": "Register the room, stroke, guess acknowledgement, and round-end flow typed in the video.",
+      "stepIds": ["2-room-join", "3-sender-excluded-stroke", "4-wrong-guess", "5-correct-guess"],
+      "code": "  socket.on('join', async (room, acknowledge) => {\n    const joined = game.join(socket, room);\n    if (joined.accepted) await socket.join(joined.room);\n    acknowledge(joined.result);\n    game.joined(joined);\n  });\n  socket.on('stroke', (stroke) => {\n    const room = game.stroke(socket, stroke);\n    if (room) socket.to(room).emit('stroke', stroke);\n  });\n  socket.on('guess', (text, acknowledge) => {\n    const result = game.guess(socket, text);\n    acknowledge(result.correct);\n    if (result.chat) io.to(result.room).emit('chat', result.chat);\n    if (result.round) io.to(socket.id).emit('correct', { word: result.round.word });\n    if (result.round) io.to(result.room).emit('announce', result.round);\n    game.guessed(result);\n  });"
+    },
+    {
       "id": "room-join",
-      "sourceFile": "examples/drawing-game/application.ts",
+      "sourceFile": "examples/drawing-game/src/game/game-handler.ts",
       "language": "typescript",
       "purpose": "Join and acknowledge the shared room.",
       "stepIds": ["2-room-join"],
-      "code": "    socket.on('join', async (room, acknowledge) => {\n      if (room !== ROOM) {\n        acknowledge({ accepted: false, room });\n        return;\n      }\n      await socket.join(room);\n      acknowledge({ accepted: true, room });\n    });"
+      "code": "  socket.on('join', async (room, acknowledge) => {\n    const joined = game.join(socket, room);\n    if (joined.accepted) await socket.join(joined.room);\n    acknowledge(joined.result);\n    game.joined(joined);\n  });"
     },
     {
       "id": "drawing-server-handler",
-      "sourceFile": "examples/drawing-game/application.ts",
+      "sourceFile": "examples/drawing-game/src/game/game-handler.ts",
       "language": "typescript",
       "purpose": "Exclude the drawer while broadcasting a stroke to the room.",
       "stepIds": ["3-sender-excluded-stroke"],
-      "code": "    socket.on('stroke', (segment) => {\n      socket.to(ROOM).emit('stroke', segment);\n    });"
+      "code": "  socket.on('stroke', (stroke) => {\n    const room = game.stroke(socket, stroke);\n    if (room) socket.to(room).emit('stroke', stroke);\n  });"
     },
     {
       "id": "drawing-client",
@@ -28,11 +36,11 @@
     },
     {
       "id": "chat-guess-server-handler",
-      "sourceFile": "examples/drawing-game/application.ts",
+      "sourceFile": "examples/drawing-game/src/game/game-handler.ts",
       "language": "typescript",
       "purpose": "Handle chat and guesses, including acknowledgements and winner delivery.",
       "stepIds": ["4-wrong-guess", "5-correct-guess"],
-      "code": "    socket.on('chat', (text) => {\n      io.to(ROOM).emit('chat', { from: label, text });\n    });\n\n    socket.on('guess', (text, acknowledge) => {\n      const correct = text === WORD;\n      acknowledge(correct);\n\n      if (!correct) {\n        io.to(ROOM).emit('chat', { from: label, text });\n        return;\n      }\n\n      io.to(socket.id).emit('correct', { word: WORD });\n      io.to(ROOM).emit('announce', { winner: label, word: WORD });\n    });"
+      "code": "  socket.on('guess', (text, acknowledge) => {\n    const result = game.guess(socket, text);\n    acknowledge(result.correct);\n    if (result.chat) io.to(result.room).emit('chat', result.chat);\n    if (result.round) io.to(socket.id).emit('correct', { word: result.round.word });\n    if (result.round) io.to(result.room).emit('announce', result.round);\n    game.guessed(result);\n  });"
     },
     {
       "id": "chat-guess-client",
@@ -44,27 +52,27 @@
     },
     {
       "id": "acknowledgement",
-      "sourceFile": "examples/drawing-game/application.ts",
+      "sourceFile": "examples/drawing-game/src/game/game-handler.ts",
       "language": "typescript",
       "purpose": "Return the server-side boolean guess acknowledgement.",
       "stepIds": ["4-wrong-guess", "5-correct-guess"],
-      "code": "      const correct = text === WORD;\n      acknowledge(correct);"
+      "code": "    acknowledge(result.correct);"
     },
     {
       "id": "targeted-correct",
-      "sourceFile": "examples/drawing-game/application.ts",
+      "sourceFile": "examples/drawing-game/src/game/game-handler.ts",
       "language": "typescript",
       "purpose": "Emit the correct result only to the winning socket id.",
       "stepIds": ["5-correct-guess"],
-      "code": "      io.to(socket.id).emit('correct', { word: WORD });"
+      "code": "    if (result.round) io.to(socket.id).emit('correct', { word: result.round.word });"
     },
     {
       "id": "room-announce",
-      "sourceFile": "examples/drawing-game/application.ts",
+      "sourceFile": "examples/drawing-game/src/game/game-handler.ts",
       "language": "typescript",
       "purpose": "Announce the winner and word to every connected room member.",
       "stepIds": ["5-correct-guess"],
-      "code": "      io.to(ROOM).emit('announce', { winner: label, word: WORD });"
+      "code": "    if (result.round) io.to(result.room).emit('announce', result.round);"
     },
     {
       "id": "disconnect-behavior",

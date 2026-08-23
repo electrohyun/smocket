@@ -1,97 +1,115 @@
-# Drawing-game TypeScript example
+# Multi-tab drawing game
 
-> **TL;DR** One ordinary Socket.IO drawing and guessing application runs against
-> Real Socket.IO 4.8.3 and the workspace Smocket packages. Both targets execute the
-> same scenario and assertions, then compare complete normalized observations.
+> **TL;DR** Run one React drawing game in three Chromium pages. The default mode
+> hosts one in-browser Smocket server in a SharedWorker; the Real mode starts a
+> Node HTTP server with Socket.IO. Both modes register the same application
+> handler and show the same game screen.
 
-This is the golden source shared by future demo-site, interactive-report, and
-live-coding content. It reproduces the workflow verified in `smocket-site` commit
-`77bbcb9e5e13ba03eecab20316570f509aa4e990`; it contains no React, canvas, trace,
-delay, benchmark, or handwritten-mock code.
+The screen and round follow the multi-tab demo from `smocket-site` commit
+`a9c5122686dd4bc1cc8d3b450321cbf800dcd6f8`. This example brings over the
+drawing surface, guess UI, countdown, player pages, and visible game flow. It
+does not include Next.js, landing or case-study routes, marketing navigation,
+analytics, generated site files, snapshots, or the earlier handwritten mock
+comparison.
 
-## Install and run
+## Run with Smocket
 
 From the repository root:
 
 ```bash
 pnpm install
-pnpm example:drawing-game:real
-pnpm example:drawing-game:smocket
-pnpm example:drawing-game:test
-pnpm example:drawing-game:observe
+pnpm example:drawing-game
 ```
 
-The Real target uses an ephemeral loopback port. The Smocket target stays in memory.
-`example:drawing-game` is the short alias for the dual-target test. To reproduce the
-four package roles outside this workspace, install exact `socket.io@4.8.3` and
-`socket.io-client@4.8.3` versions and keep `smocket` and `smocket-client` on the same
-exact version.
+Open the printed URL in desktop Chromium. Player A opens first. Select **Open
+Player 2**, then select **Open Player 3**; each selection opens one new page.
+When A, B, and C are connected, the countdown starts. Draw in A, submit guesses
+in B or C, and use `giraffe` to end the round.
 
-## Follow the source
+The target badge reads `MOCK · SHAREDWORKER`. This path starts no separate
+Socket.IO backend process. One in-browser Smocket server owns the session while
+the several browser pages keep distinct socket ids.
 
-1. Start with [`application.ts`](./application.ts): event maps and one normal
-   `io.on('connection')` handler own join, stroke, chat, guess, ack, targeted emit,
-   and room announce behavior.
-2. Read [`client.ts`](./client.ts): it deliberately imports `io` from
-   `socket.io-client` and exposes the calls a UI would use.
-3. Run [`real.ts`](./real.ts): Node HTTP listens on port `0`, then the same handlers
-   serve three independent real clients.
-4. Read [`smocket-loader.mjs`](./smocket-loader.mjs): only modules compiled under the
-   Smocket target resolve `socket.io-client` as `smocket-client`.
-5. Run [`smocket.ts`](./smocket.ts): only server construction, URL registry, and close
-   lifecycle differ from the Real target.
-6. Follow [`scenario.ts`](./scenario.ts) and [`assertions.ts`](./assertions.ts): both
-   targets use the same A/B/C actions, disconnect check, and expected observation.
+## Run with Real Socket.IO
 
-The Smocket TypeScript config also maps the two Socket.IO type packages to the built
-workspace packages. Separate target compilation therefore keeps casts out of the
-golden application and client source. The only `as unknown as` casts are inside
-[`target.ts`](./target.ts), where target lifecycle code handles test-only barrier and
-marker events without adding them to the public application maps. They are not included
-in any public snippet.
+Stop the previous command, then run:
 
-## What the observation proves
+```bash
+pnpm example:drawing-game:dev:real
+```
 
-The scenario normalizes random socket ids to `sid_A`, `sid_B`, and `sid_C`, and omits
-ports and time. It records connections, acknowledged joins, per-client event order,
-payloads, recipients, sender exclusion, guess acknowledgements, targeted delivery,
-room announcement, and recipients after C disconnects.
+Follow the same A/B/C actions. The target badge reads `REAL · SOCKET.IO`. Vite's
+Node HTTP server now also hosts a real `socket.io@4.8.3` server, and the pages
+connect with `socket.io-client@4.8.3`. The application handler, event types,
+state rules, React UI, and user actions do not change.
 
-Non-receipt never depends on a short timeout. After each action, its initiating client
-sends a test-only barrier over the same client-to-server FIFO stream. The server handles
-that barrier only after the action, then broadcasts a marker behind the action's
-server-to-client deliveries. Once every connected client receives the marker, an absent
-earlier event is deterministically absent.
+## Source map
 
-## Generated content snippets
+| File                                                                                   | Responsibility                                                                 |
+| -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| [`src/game/events.ts`](./src/game/events.ts)                                           | Framework-independent events and shared game types                             |
+| [`src/game/game-state.ts`](./src/game/game-state.ts)                                   | Sessions, players, strokes, guesses, round state, and cleanup                  |
+| [`src/game/game-handler.ts`](./src/game/game-handler.ts)                               | Short Socket.IO-shaped join, broadcast, acknowledgement, and round-end flow    |
+| [`src/game/application.ts`](./src/game/application.ts)                                 | Connection registration, countdown, state publication, and handler composition |
+| [`src/shared-worker.ts`](./src/shared-worker.ts)                                       | `Server` plus `attachSharedWorker` worker bootstrap                            |
+| [`src/connections/shared-worker-client.ts`](./src/connections/shared-worker-client.ts) | Page-owned worker plus `connectSharedWorker` connection                        |
+| [`src/real-server.ts`](./src/real-server.ts)                                           | Real Socket.IO server attached to a Node HTTP server                           |
+| [`src/connections/socket-io-client.ts`](./src/connections/socket-io-client.ts)         | Real `socket.io-client` page connection                                        |
+| [`src/ui/GameApp.tsx`](./src/ui/GameApp.tsx)                                           | React game screen and page-specific event list                                 |
+| [`verify.mjs`](./verify.mjs)                                                           | The same user actions in three Chromium pages for both modes                   |
 
-Run `pnpm example:drawing-game:snippets` to regenerate
-[`snippets.generated.json`](./snippets.generated.json), and run
-`pnpm example:drawing-game:snippets:check` to fail when it is stale. Marker comments
-are excluded from extracted code.
+The top-level `real.ts`, `smocket.ts`, `scenario.ts`, and `dual-target.test.ts`
+keep the smaller Node comparison runnable. Their `application.ts` wrapper calls
+the same browser-safe application code with the visible countdown disabled.
 
-| Content use     | Snippet ids                                                                                              |
-| --------------- | -------------------------------------------------------------------------------------------------------- |
-| Drawing tab     | `room-join`, `drawing-server-handler`, `drawing-client`                                                  |
-| Chat tab        | `chat-guess-server-handler`, `chat-guess-client`, `acknowledgement`, `targeted-correct`, `room-announce` |
-| Disconnect step | `disconnect-behavior`                                                                                    |
-| Real setup      | `real-bootstrap`                                                                                         |
-| Smocket setup   | `smocket-bootstrap`, `smocket-client-substitution`                                                       |
+## SharedWorker rules
 
-The report should use the same ids in workflow order: `room-join`, drawing pair,
-chat/guess pair, acknowledgement, targeted correct, room announce, disconnect, then
-the two bootstrap snippets. Consumers should read the generated JSON rather than copy
-source text by hand.
+The worker imports `Server` from `smocket` and `attachSharedWorker` from
+`smocket/shared-worker`. Each page imports `connectSharedWorker` from
+`smocket-client/shared-worker`. No private `src` or `dist` package path is used.
 
-## Live-coding plan
+Pages share the in-browser server only when they use the same origin, browser
+profile, worker script URL, and worker name. A different origin, profile, URL,
+or name creates separate state. Closing or restarting the worker loses its
+in-memory sockets, rooms, strokes, and pending acknowledgements.
 
-Prepare the imports, event maps, constants, `registerDrawingGameHandlers` shell,
-client factory, scenario, and assertions from the completed files. During recording,
-write `drawing-server-handler` and then `chat-guess-server-handler`, whose inner order
-is acknowledgement, wrong-guess chat, targeted correct, and room announce. Together
-they are 19 source lines after marker comments are excluded. Then run the Real target,
-enable the Smocket resolution hook, and run the unchanged scenario again.
+The application files do not use React, the DOM, `window`, `localStorage`, or
+Node-only APIs, so the same functions run inside the worker and the real Node
+server. Browser-specific code is limited to the page connections and React UI.
 
-This skeleton is not a second codebase: it is the surrounding code in the same golden
-files. The completed source is always the executable version tested by the commands
-above, and the live-written regions are extracted directly from it.
+## Record the live-coding scene
+
+Open the Smocket URL with `?recording=1`. It enters the same game and handler but
+keeps the target and player badges prominent and removes the extra footer hint.
+Open B and C with the two buttons in A.
+
+The actual file to type is
+[`src/game/game-handler.ts`](./src/game/game-handler.ts), between the
+`live-game-handler` markers. That completed region is also generated into
+[`snippets.generated.json`](./snippets.generated.json). When the file changes in
+development, Vite reloads every open page with a new worker name so the new
+handler is used instead of a worker that survived the edit.
+
+For recording only, remove that marked region in the local working tree, type
+the same completed code back into the same file, and save. Do not commit the
+temporary incomplete state or create another answer file or branch. After the
+recording, confirm the tracked file is back to the completed version.
+
+## Automated checks
+
+```bash
+pnpm example:drawing-game:test
+pnpm example:drawing-game:verify
+```
+
+The first command runs the compact game scenario against Real Socket.IO and
+Smocket and compares the complete result. The second opens real Chromium pages
+A, B, and C for each browser mode. It checks distinct socket ids, the shared
+session, countdown, sender-excluded strokes, chat, both guess acknowledgements,
+the common end result, a closed page, a refreshed page, and a repeated run with
+no previous players left behind.
+
+This example checks in-memory delivery and routing in one desktop Chromium
+profile. A real backend must still be tested for network transport,
+authentication, reconnection, database access, persistence, cross-device use,
+and scaling. Smocket does not replace those checks.

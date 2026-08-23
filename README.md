@@ -206,11 +206,11 @@ moderated announcement, and a disconnect. From a clean checkout, `pnpm install`
 then `pnpm example:chat-room`. CI runs it on every push, so it fails rather than
 rots.
 
-[drawing-game](examples/drawing-game/) is the TypeScript golden example for a
-three-client drawing and guessing room. Its unchanged application source runs through
-Real Socket.IO 4.8.3 and the workspace Smocket packages, and its generated snippet
-artifact is the source for later site, report, and live-coding content. Run
-`pnpm example:drawing-game` for the dual-target check.
+[drawing-game](examples/drawing-game/) is a React drawing and guessing game for
+three browser pages. Run `pnpm example:drawing-game` to use one in-browser Smocket
+server, or switch to the documented Real Socket.IO command while keeping the same
+application handler and UI. Its automated checks also compare the compact Node
+scenario and the complete Chromium flow across both targets.
 
 [shared-worker-lobby](examples/shared-worker-lobby/) is a static Vite frontend in
 which three same-origin Chromium tabs share one caller-owned in-browser Smocket

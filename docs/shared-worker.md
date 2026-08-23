@@ -22,6 +22,11 @@ Smocket server and registers the caller's handlers, while
 worker and connects its port. The application event and handler contract stays in
 [`application.ts`](../examples/shared-worker-lobby/src/application.ts).
 
+For a complete React game with drawing, guesses, a countdown, page-close cleanup,
+and a matching Real Socket.IO mode, run `pnpm example:drawing-game` and follow the
+[multi-tab drawing game](../examples/drawing-game/README.md). Its worker and real
+server register the same application handler.
+
 ## Own the worker boundary
 
 The worker imports `Server` from `smocket` and `attachSharedWorker` from

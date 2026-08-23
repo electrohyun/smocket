@@ -82,6 +82,8 @@ jobs:
       # the example stops working against the package it demonstrates.
       - name: Run the chat room example
         run: pnpm example:chat-room
+      - name: Compare the drawing game against both Node targets
+        run: pnpm example:drawing-game:test
 
   browser:
     name: browser (chromium)
@@ -119,6 +121,8 @@ jobs:
         run: pnpm test:shared-worker:parity
       - name: Run the documented SharedWorker lobby
         run: pnpm example:shared-worker
+      - name: Run the drawing game across three pages and both targets
+        run: pnpm example:drawing-game:verify
       - name: Run candidate packages in Chromium
         run: pnpm consumer:client:candidate -- --manifest .release-candidate/release-candidate.json --browser
 
