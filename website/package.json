@@ -1,0 +1,27 @@
+{
+  "name": "@smocket/docs",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start": "docusaurus start --host 127.0.0.1",
+    "build": "docusaurus build",
+    "serve": "docusaurus serve --host 127.0.0.1",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "@docusaurus/core": "3.10.2",
+    "@docusaurus/preset-classic": "3.10.2",
+    "@mdx-js/react": "^3.1.1",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "remark-github-admonitions-to-directives": "2.1.0"
+  },
+  "devDependencies": {
+    "@docusaurus/tsconfig": "3.10.2",
+    "@docusaurus/types": "3.10.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
