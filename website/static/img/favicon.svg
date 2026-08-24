@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Smocket">
-  <rect width="64" height="64" rx="16" fill="#151217"/>
-  <path d="M17 39c0-7 5-11 13-11h4c4 0 7-2 8-6 4 4 6 9 5 14-1 9-8 15-18 15H17V39Z" fill="#ff8aa4"/>
-  <circle cx="36" cy="34" r="3" fill="#151217"/>
-  <path d="m18 44-7 7 11-2" fill="#f5c451"/>
-</svg>
