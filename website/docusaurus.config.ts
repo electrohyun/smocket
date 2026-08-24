@@ -18,7 +18,7 @@ function siteUrl(): string {
 const config: Config = {
   title: 'Smocket documentation',
   tagline: 'Test Socket.IO delivery and routing without a server.',
-  favicon: 'img/favicon.svg',
+  favicon: 'img/smocket-icon.png',
   url: siteUrl(),
   baseUrl: '/docs/',
   trailingSlash: true,
@@ -67,6 +67,12 @@ const config: Config = {
     },
     navbar: {
       title: 'smocket',
+      logo: {
+        alt: 'smocket mascot: a cool cat wearing sunglasses',
+        src: 'img/smocket-icon.png',
+        width: 32,
+        height: 32,
+      },
       hideOnScroll: false,
       items: [
         { type: 'docSidebar', sidebarId: 'docs', label: 'Documentation', position: 'left' },

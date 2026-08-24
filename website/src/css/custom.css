@@ -1,32 +1,77 @@
 :root {
-  --ifm-color-primary: #d94668;
-  --ifm-color-primary-dark: #cf2d53;
-  --ifm-color-primary-darker: #c42b4f;
-  --ifm-color-primary-darkest: #a12341;
-  --ifm-color-primary-light: #df5f7d;
-  --ifm-color-primary-lighter: #e36d88;
-  --ifm-color-primary-lightest: #eb91a6;
-  --ifm-background-color: #fffdfd;
+  --smocket-bg: #f5ecdb;
+  --smocket-bg-tint: #efe3ce;
+  --smocket-panel: #fffdf8;
+  --smocket-border: #ddcdb0;
+  --smocket-text: #241608;
+  --smocket-text-dim: #55442f;
+  --smocket-accent: #f4a259;
+  --smocket-accent-ink: #b45f18;
+  --smocket-code-bg: #2e2016;
+  --smocket-code-text: #f2e8d6;
+  --smocket-code-border: #3f2c1d;
+  --smocket-shadow-sm: 0 1px 2px rgb(58 42 28 / 6%);
+  --smocket-shadow-md: 0 2px 4px rgb(58 42 28 / 5%), 0 12px 28px rgb(58 42 28 / 8%);
+  --ifm-color-primary: #b45f18;
+  --ifm-color-primary-dark: #a25616;
+  --ifm-color-primary-darker: #994f14;
+  --ifm-color-primary-darkest: #7e4111;
+  --ifm-color-primary-light: #c66a1b;
+  --ifm-color-primary-lighter: #d0701c;
+  --ifm-color-primary-lightest: #e58b3c;
+  --ifm-background-color: var(--smocket-bg);
+  --ifm-background-surface-color: var(--smocket-panel);
+  --ifm-font-color-base: var(--smocket-text);
+  --ifm-font-color-secondary: var(--smocket-text-dim);
+  --ifm-heading-color: var(--smocket-text);
+  --ifm-navbar-background-color: rgb(255 253 248 / 92%);
+  --ifm-toc-border-color: var(--smocket-border);
+  --ifm-hr-background-color: var(--smocket-border);
+  --ifm-menu-color-background-active: rgb(244 162 89 / 18%);
+  --ifm-menu-color-background-hover: rgb(244 162 89 / 11%);
+  --ifm-code-background: rgb(46 32 22 / 8%);
   --ifm-code-font-size: 92%;
   --ifm-font-family-base:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --ifm-heading-font-family: var(--ifm-font-family-base);
-  --ifm-navbar-shadow: 0 1px 0 rgb(56 31 39 / 10%);
-  --docusaurus-highlighted-code-line-bg: rgb(217 70 104 / 10%);
+  --ifm-navbar-shadow: var(--smocket-shadow-sm);
+  --prism-background-color: var(--smocket-code-bg);
+  --docusaurus-highlighted-code-line-bg: rgb(244 162 89 / 18%);
 }
 
-[data-theme='dark'] {
-  --ifm-color-primary: #ff8aa4;
-  --ifm-color-primary-dark: #ff6588;
-  --ifm-color-primary-darker: #ff537b;
-  --ifm-color-primary-darkest: #ff1b52;
-  --ifm-color-primary-light: #ffafc0;
-  --ifm-color-primary-lighter: #ffc1ce;
-  --ifm-color-primary-lightest: #ffe8ed;
-  --ifm-background-color: #151217;
-  --ifm-background-surface-color: #201a21;
-  --ifm-navbar-background-color: #19151b;
-  --docusaurus-highlighted-code-line-bg: rgb(255 138 164 / 14%);
+html[data-theme='dark'] {
+  --smocket-bg: #232043;
+  --smocket-bg-tint: #1e1b39;
+  --smocket-panel: #2c2954;
+  --smocket-border: #423e6b;
+  --smocket-text: #e9ebf4;
+  --smocket-text-dim: #aeaac9;
+  --smocket-accent-ink: #f4a259;
+  --smocket-code-bg: #191635;
+  --smocket-code-text: #e6e2f5;
+  --smocket-code-border: #2b2652;
+  --smocket-shadow-sm: 0 1px 2px rgb(6 5 22 / 18%);
+  --smocket-shadow-md: 0 2px 4px rgb(6 5 22 / 14%), 0 12px 28px rgb(6 5 22 / 22%);
+  --ifm-color-primary: #f4a259;
+  --ifm-color-primary-dark: #f18f32;
+  --ifm-color-primary-darker: #ef8521;
+  --ifm-color-primary-darkest: #c9670e;
+  --ifm-color-primary-light: #f7b780;
+  --ifm-color-primary-lighter: #f8c191;
+  --ifm-color-primary-lightest: #fce2ca;
+  --ifm-background-color: var(--smocket-bg);
+  --ifm-background-surface-color: var(--smocket-panel);
+  --ifm-font-color-base: var(--smocket-text);
+  --ifm-font-color-secondary: var(--smocket-text-dim);
+  --ifm-heading-color: var(--smocket-text);
+  --ifm-navbar-background-color: rgb(30 27 58 / 94%);
+  --ifm-toc-border-color: var(--smocket-border);
+  --ifm-hr-background-color: var(--smocket-border);
+  --ifm-menu-color-background-active: rgb(244 162 89 / 16%);
+  --ifm-menu-color-background-hover: rgb(244 162 89 / 10%);
+  --ifm-code-background: rgb(244 162 89 / 13%);
+  --prism-background-color: var(--smocket-code-bg);
+  --docusaurus-highlighted-code-line-bg: rgb(244 162 89 / 16%);
 }
 
 html {
@@ -34,12 +79,55 @@ html {
 }
 
 body {
+  background:
+    radial-gradient(
+      125% 55% at 50% 106%,
+      rgb(244 162 89 / 20%),
+      rgb(244 162 89 / 6%) 44%,
+      transparent 72%
+    ),
+    radial-gradient(80% 55% at 82% -12%, rgb(206 152 96 / 14%), transparent 62%),
+    linear-gradient(180deg, #f9f1e2 0%, var(--smocket-bg) 46%, #f0e3cd 100%);
+  background-attachment: fixed;
   text-rendering: optimizeLegibility;
 }
 
+[data-theme='dark'] body {
+  background:
+    radial-gradient(
+      125% 55% at 50% 106%,
+      rgb(244 162 89 / 22%),
+      rgb(244 162 89 / 7%) 44%,
+      transparent 72%
+    ),
+    radial-gradient(80% 55% at 82% -12%, rgb(150 130 224 / 18%), transparent 62%),
+    linear-gradient(180deg, #1e1b3a 0%, var(--smocket-bg) 46%, #2a2450 100%);
+}
+
+.main-wrapper {
+  background: transparent;
+}
+
+.navbar {
+  border-bottom: 1px solid var(--smocket-border);
+  backdrop-filter: blur(14px);
+}
+
+.navbar__logo {
+  height: 2rem;
+  margin-right: 0.6rem;
+}
+
+.navbar__logo img {
+  border-radius: 50%;
+  box-shadow: var(--smocket-shadow-sm);
+}
+
 .navbar__title {
-  font-weight: 800;
-  letter-spacing: -0.035em;
+  color: var(--smocket-text);
+  font-family: var(--ifm-font-family-monospace);
+  font-weight: 700;
+  letter-spacing: -0.025em;
 }
 
 .theme-doc-markdown {
@@ -60,9 +148,33 @@ body {
   width: 100%;
 }
 
+.theme-doc-markdown table,
+.theme-doc-markdown th,
+.theme-doc-markdown td {
+  border-color: var(--smocket-border);
+}
+
+.theme-doc-markdown th {
+  background: rgb(244 162 89 / 12%);
+}
+
+.theme-code-block,
+.theme-doc-markdown pre {
+  border: 1px solid var(--smocket-code-border);
+  box-shadow: var(--smocket-shadow-sm);
+}
+
+.theme-doc-markdown :not(pre) > code {
+  border-color: rgb(180 95 24 / 22%);
+}
+
+[data-theme='dark'] .theme-doc-markdown :not(pre) > code {
+  border-color: rgb(244 162 89 / 24%);
+}
+
 .theme-admonition {
   border-radius: 0.75rem;
-  box-shadow: none;
+  box-shadow: var(--smocket-shadow-sm);
 }
 
 .theme-admonition [class*='admonitionHeading'] {
@@ -74,12 +186,17 @@ body {
   line-height: 1.4;
 }
 
+.theme-doc-sidebar-container {
+  background: color-mix(in srgb, var(--smocket-panel) 68%, transparent);
+}
+
 .footer--dark {
-  --ifm-footer-background-color: #151217;
+  --ifm-footer-background-color: var(--smocket-code-bg);
+  border-top: 1px solid var(--smocket-code-border);
 }
 
 *:focus-visible {
-  outline: 3px solid var(--ifm-color-primary);
+  outline: 2px solid var(--smocket-accent-ink);
   outline-offset: 2px;
 }
 
