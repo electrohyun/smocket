@@ -76,8 +76,9 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
   readonly handshake: Handshake;
   /** The first teardown owns the lifecycle; later disconnect paths await the same work. */
   private teardownPromise: Promise<void> | undefined;
-  /** One connection-owned acknowledgement generation, invalidated by every teardown path. */
-  private readonly acknowledgementState = { active: true };
+  /** Directional ACK ids have distinct Socket.IO consumption timing. */
+  private readonly serverAcknowledgementState = { active: true };
+  private readonly clientAcknowledgementState = { active: true };
   /** Queued inbound packets retain this generation and recheck it before dispatch. */
   private readonly deliveryState = { active: true };
   private active = true;
@@ -252,7 +253,10 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
    */
   private teardown(reason: string, drainQueuedDelivery = false): Promise<void> {
     if (this.teardownPromise) return this.teardownPromise;
-    if (!drainQueuedDelivery) this.invalidateDelivery();
+    if (!drainQueuedDelivery) {
+      this.invalidateDelivery();
+      this.invalidateClientAcknowledgements();
+    }
     this.teardownPromise = new Promise((resolve) => {
       defer(() => {
         this.invalidateDelivery();
@@ -277,7 +281,12 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
   }
 
   invalidateAcknowledgements(): void {
-    this.acknowledgementState.active = false;
+    this.serverAcknowledgementState.active = false;
+    this.clientAcknowledgementState.active = false;
+  }
+
+  private invalidateClientAcknowledgements(): void {
+    this.clientAcknowledgementState.active = false;
   }
 
   private invalidateDelivery(): void {
@@ -369,8 +378,17 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
   }
 
   acknowledgementGuard(): () => boolean {
-    const state = this.acknowledgementState;
+    const state = this.serverAcknowledgementState;
     return () => state.active;
+  }
+
+  clientAcknowledgementGuard(): () => boolean {
+    const state = this.clientAcknowledgementState;
+    return () => state.active;
+  }
+
+  consumeAcknowledgementBeforeEncoding(): boolean {
+    return false;
   }
 
   emit(event: string, ...args: unknown[]): boolean {
@@ -646,7 +664,12 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
 
   acknowledgementGuard(): () => boolean {
     const serverSocket = this.connectionAttempt?.serverSocket ?? this.serverSocket;
-    return serverSocket.acknowledgementGuard();
+    const active = serverSocket.clientAcknowledgementGuard();
+    return () => active() || serverSocket.isDrainingAdapterDelivery();
+  }
+
+  consumeAcknowledgementBeforeEncoding(): boolean {
+    return true;
   }
 
   /**
