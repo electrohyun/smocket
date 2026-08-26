@@ -119,6 +119,8 @@ jobs:
         run: pnpm test:shared-worker
       - name: Verify production SharedWorker tab lifecycle
         run: pnpm test:shared-worker:lifecycle
+      - name: Reject unexpected SharedWorker page errors
+        run: pnpm test:shared-worker:errors
       - name: Compare SharedWorker with a real Socket.IO sidecar
         run: pnpm test:shared-worker:parity
       - name: Run the documented SharedWorker lobby
@@ -172,6 +174,7 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 20.13.0
+      - run: node scripts/check-shared-worker-dist-gate.mjs
       - run: node node_modules/vitest/vitest.mjs run --config vitest.dist.config.ts
 
   compat:
