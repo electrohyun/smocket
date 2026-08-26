@@ -52,7 +52,5 @@ export function setupMockServer(): ServerContext {
 
   ctx.connectClients = makeConnectClients(ctx);
 
-  ctx.flushClientWrites = async () => {};
-
   return ctx;
 }

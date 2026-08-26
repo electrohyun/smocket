@@ -89,6 +89,10 @@ it.each(packetMiddlewareCases)(
     const terminateFinished = new Promise<void>((resolve) => {
       finishTerminate = resolve;
     });
+    let markQueuedEntered!: () => void;
+    const queuedEntered = new Promise<void>((resolve) => {
+      markQueuedEntered = resolve;
+    });
     if (withMiddleware) {
       serverSocket.use((event, next) => {
         if (event[0] === 'terminate') {
@@ -96,6 +100,7 @@ it.each(packetMiddlewareCases)(
           return;
         }
         if (event[0] === 'queued') {
+          markQueuedEntered();
           void terminateFinished.then(() => next());
           return;
         }
@@ -118,7 +123,7 @@ it.each(packetMiddlewareCases)(
     client.emit('terminate');
     client.emit('queued');
     if (withMiddleware) {
-      await ctx.flushClientWrites(client);
+      await queuedEntered;
       releaseTerminate();
     }
     await queued;
