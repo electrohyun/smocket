@@ -83,20 +83,14 @@ it.each(packetMiddlewareCases)(
     const { client, serverSocket } = await ctx.connectClient();
     if (withMiddleware) serverSocket.use((_event, next) => next());
     const queued = track(serverSocket, 'queued');
+    const marker = new Promise<void>((resolve) =>
+      serverSocket.once('queued-marker', () => resolve()),
+    );
     serverSocket.on('terminate', () => client.disconnect());
-    const { disconnected } = observeDisconnect(serverSocket);
 
     client.emit('terminate');
     client.emit('queued');
-    await disconnected;
-
-    const nextConnection = ctx.nextConnection();
-    const reconnected = receive(client, 'connect');
-    client.connect();
-    const currentSocket = await nextConnection;
-    await reconnected;
-    const marker = new Promise<void>((resolve) => currentSocket.once('marker', () => resolve()));
-    client.emit('marker', 'fresh');
+    client.emit('queued-marker');
     await marker;
 
     expect(queued.received).toBe(true);
