@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
 import { setupServer } from './setup-server';
-import { observeDisconnect, receive, track } from './test-events';
+import { receive, track } from './test-events';
 
 const ctx = setupServer();
 
