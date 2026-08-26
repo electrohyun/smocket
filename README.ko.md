@@ -8,7 +8,7 @@
   <img
     src="https://ik.imagekit.io/electrohyun/smocket.png?tr=w-1280"
     width="100%"
-    alt="smocket. Test socket.io without a server. Sweet setup, rocket speed."
+    alt="smocket. Mock Socket.IO without a server. Sweet setup, rocket speed."
   />
 </p>
 

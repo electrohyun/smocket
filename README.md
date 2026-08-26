@@ -5,7 +5,7 @@
   <img
     src="https://ik.imagekit.io/electrohyun/smocket.png?tr=w-1280"
     width="100%"
-    alt="smocket. Test socket.io without a server. Sweet setup, rocket speed."
+    alt="smocket. Mock Socket.IO without a server. Sweet setup, rocket speed."
   />
 </p>
 
@@ -444,4 +444,5 @@ commit conventions, and how pull requests are merged. The
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE). Third-party font and project asset provenance is
+recorded in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
