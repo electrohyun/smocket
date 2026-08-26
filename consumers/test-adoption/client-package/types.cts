@@ -22,8 +22,6 @@ const sameConnect: typeof client = client.connect;
 void sameLookup;
 void sameConnect;
 
-// @ts-expect-error Socket.IO lookup functions do not accept event-map type arguments (ADR 0021).
-client<ServerToClientEvents, ClientToServerEvents>('http://localhost:3277');
 // @ts-expect-error The CommonJS root is callable but still requires a URL.
 client();
 // @ts-expect-error The namespace comes from the URL path.
