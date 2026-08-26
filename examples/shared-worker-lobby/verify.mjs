@@ -3,6 +3,7 @@ import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { createServer } from 'vite';
+import { createBrowserErrorMonitor } from '../../scripts/browser-error-monitor.mjs';
 
 const exampleRoot = dirname(fileURLToPath(import.meta.url));
 const vite = await createServer({
@@ -11,6 +12,7 @@ const vite = await createServer({
   server: { host: '127.0.0.1', port: 0 },
 });
 let browser;
+const browserErrors = createBrowserErrorMonitor();
 
 try {
   await vite.listen();
@@ -21,6 +23,7 @@ try {
   const pages = [];
   for (const label of ['A', 'B', 'C']) {
     const page = await context.newPage();
+    browserErrors.observe(page, `lobby:${label}`);
     await page.goto(`${origin}?label=${label}`);
     await page.locator('body[data-connected="true"]').waitFor();
     pages.push(page);
@@ -47,8 +50,10 @@ try {
       .slice(0, 2)
       .map((page) => page.waitForFunction(() => document.body.dataset.playerCount === '2')),
   );
+  browserErrors.assertNoUnexpectedErrors();
   await context.close();
   process.stdout.write('SharedWorker lobby example passed across pages A, B, and C.\n');
 } finally {
+  browserErrors.stop();
   await Promise.allSettled([browser?.close(), vite.close()]);
 }

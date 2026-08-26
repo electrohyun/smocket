@@ -6,15 +6,21 @@ import { defineConfig } from 'vitest/config';
 // suite exercises. `scripts/smoke.mjs` is the lower tier and covers the exact
 // version `engines.node` declares, which this config cannot reach (see ci.yml).
 //
-// Only the specifiers change. Both entry points the tests reach the library
-// through resolve to `dist/`, and no test file or source file is edited.
-const dist = path.resolve(import.meta.dirname, 'dist/index.js');
+// Only public entry specifiers change. Root tests resolve through dist/index.js,
+// SharedWorker facade tests resolve through dist/shared-worker.js, and internal
+// protocol helpers remain source-only implementation tests.
+const distDirectory = process.env.SMOCKET_DIST_DIR
+  ? path.resolve(process.env.SMOCKET_DIST_DIR)
+  : path.resolve(import.meta.dirname, 'dist');
+const dist = path.resolve(distDirectory, 'index.js');
+const sharedWorkerDist = path.resolve(distDirectory, 'shared-worker.js');
 
 export default defineConfig({
   resolve: {
     alias: [
       { find: /^\.\/index$/, replacement: dist },
       { find: /^\.\/mock-server$/, replacement: dist },
+      { find: /^\.\/shared-worker$/, replacement: sharedWorkerDist },
     ],
   },
   test: {
