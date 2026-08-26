@@ -527,8 +527,8 @@ that owns the connection lifecycle.
 - [drops client packets queued behind Server.close() with packet middleware](../src/queued-delivery-lifecycle.test.ts#L60)
 - [drains client packets queued before client.disconnect() without packet middleware](../src/queued-delivery-lifecycle.test.ts#L80)
 - [drains client packets queued before client.disconnect() with packet middleware](../src/queued-delivery-lifecycle.test.ts#L80)
-- [drains server packets queued before Server.close()](../src/queued-delivery-lifecycle.test.ts#L97)
-- [preserves FIFO in both directions while the connection remains active](../src/queued-delivery-lifecycle.test.ts#L113)
+- [drains server packets queued before Server.close()](../src/queued-delivery-lifecycle.test.ts#L106)
+- [preserves FIFO in both directions while the connection remains active](../src/queued-delivery-lifecycle.test.ts#L122)
 
 ### Shared Manager disconnect
 
@@ -543,7 +543,7 @@ cleanup.
 - [reentrant client disconnects do not duplicate shared Manager teardown](../src/manager-disconnect.test.ts#L195)
 - [disconnect(true) leaves duplicate and opted-out Managers connected](../src/manager-disconnect.test.ts#L222)
 - [shared Manager teardown rejects client acks and permits explicit reconnect](../src/manager-disconnect.test.ts#L248)
-- [disconnect(true) from a stale server socket leaves the reconnect connected](../src/manager-disconnect.test.ts#L284)
+- [disconnect(true) from a stale server socket leaves the reconnect connected](../src/manager-disconnect.test.ts#L285)
 
 ### Server close
 

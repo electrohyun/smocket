@@ -90,6 +90,15 @@ it.each(packetMiddlewareCases)(
     client.emit('queued');
     await disconnected;
 
+    const nextConnection = ctx.nextConnection();
+    const reconnected = receive(client, 'connect');
+    client.connect();
+    const currentSocket = await nextConnection;
+    await reconnected;
+    const marker = new Promise<void>((resolve) => currentSocket.once('marker', () => resolve()));
+    client.emit('marker', 'fresh');
+    await marker;
+
     expect(queued.received).toBe(true);
   },
 );
