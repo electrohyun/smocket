@@ -78,10 +78,14 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
   private teardownPromise: Promise<void> | undefined;
   /** One connection-owned acknowledgement generation, invalidated by every teardown path. */
   private readonly acknowledgementState = { active: true };
+  /** Queued inbound packets retain this generation and recheck it before dispatch. */
+  private readonly deliveryState = { active: true };
   private active = true;
   /** Cleared by whole-socket cleanup so a disconnected socket cannot recreate membership. */
   private acceptsRoomJoins = true;
   private membershipCleaned = false;
+  /** Adapter teardown may synchronously drain packets it already owns (0018). */
+  private drainingAdapterDelivery = false;
   /** Per-socket store; reconnect creates a fresh object with the fresh socket (#108, 0013). */
   readonly data: Record<string, unknown> = {};
   private peer!: ClientSocket;
@@ -220,7 +224,7 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
       const middleware = chain[index];
       if (!middleware) {
         defer(() => {
-          if (!this.connected) return;
+          if (!this.deliveryState.active) return;
           const [nextEvent, ...nextArgs] = packet;
           this.dispatchNamed(nextEvent, nextArgs);
         });
@@ -246,10 +250,12 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
    * `disconnecting` with rooms intact, then clean membership and emit `disconnect`;
    * both receive socket.io's measured server-side reason.
    */
-  private teardown(reason: string): Promise<void> {
+  private teardown(reason: string, drainQueuedDelivery = false): Promise<void> {
     if (this.teardownPromise) return this.teardownPromise;
+    if (!drainQueuedDelivery) this.invalidateDelivery();
     this.teardownPromise = new Promise((resolve) => {
       defer(() => {
+        this.invalidateDelivery();
         this.invalidateAcknowledgements();
         this.active = false;
         this.dispatch('disconnecting', [reason]);
@@ -264,6 +270,7 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
 
   /** Idempotently discard a pre-admission socket without lifecycle events. */
   cleanupConnectionAttempt(): void {
+    this.invalidateDelivery();
     this.invalidateAcknowledgements();
     this.active = false;
     this.cleanupMembership();
@@ -271,6 +278,10 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
 
   invalidateAcknowledgements(): void {
     this.acknowledgementState.active = false;
+  }
+
+  private invalidateDelivery(): void {
+    this.deliveryState.active = false;
   }
 
   /** A middleware error after admission closes only the orphaned server Socket. */
@@ -286,7 +297,12 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
     for (const room of this.rooms) this.nsp.adapter.del(this.id, room);
     // Whole-socket cleanup owns reverse-index deletion without exposing `delAll` (#238).
     this.nsp.adapter.sids.delete(this.id);
-    this.nsp.adapter.removeSocket?.(this.id);
+    this.drainingAdapterDelivery = true;
+    try {
+      this.nsp.adapter.removeSocket?.(this.id);
+    } finally {
+      this.drainingAdapterDelivery = false;
+    }
     // Preserve the live `rooms` Set identity while emptying it.
     this.rooms.clear();
     this.nsp.sockets.delete(this.id);
@@ -294,7 +310,7 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
 
   /** Client initiation maps to socket.io's server-side disconnect reason. */
   handleDisconnect(): void {
-    void this.teardown('client namespace disconnect');
+    void this.teardown('client namespace disconnect', true);
   }
 
   /** Server-wide close: transport loss on the client, shutdown lifecycle here. */
@@ -324,6 +340,7 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
 
   private teardownSynchronously(reason: string): boolean {
     if (this.teardownPromise) return false;
+    this.invalidateDelivery();
     this.invalidateAcknowledgements();
     this.teardownPromise = Promise.resolve();
     this.active = false;
@@ -342,6 +359,15 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
     return this.active;
   }
 
+  deliveryGuard(): () => boolean {
+    const state = this.deliveryState;
+    return () => state.active;
+  }
+
+  isDrainingAdapterDelivery(): boolean {
+    return this.drainingAdapterDelivery;
+  }
+
   acknowledgementGuard(): () => boolean {
     const state = this.acknowledgementState;
     return () => state.active;
@@ -352,9 +378,20 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
     const flags = this.consumeFlags();
     const { args: deliveredArgs } = withAckTimeout(args, flags.timeout);
     if (flags.volatile && !this.peer.connected) return true;
+    const peerWasConnected = this.peer.connected;
     this.emitOutgoing(event, args);
     if (!this.active) return true;
-    send(this.peer, event, deliveredArgs);
+    // A teardown initiated by this packet's outgoing observer does not retract the
+    // packet already being sent; later queued packets still use the generation guard.
+    const currentSendSurvivedOutgoingTeardown = peerWasConnected && !this.peer.connected;
+    send(
+      this.peer,
+      event,
+      deliveredArgs,
+      currentSendSurvivedOutgoingTeardown
+        ? () => this.peer.ownsDeliveryGeneration(this)
+        : undefined,
+    );
     return true;
   }
   send(...args: unknown[]): this {
@@ -385,8 +422,19 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
     payload: EncodedPayload,
     ack?: (...answer: unknown[]) => void,
   ): void {
+    const peerWasConnected = this.peer.connected;
     this.emitOutgoing(event, sourceArgs);
-    sendEncoded(this.peer, event, payload, ack);
+    // Preserve the same current-packet boundary for direct and broadcast sends.
+    const currentSendSurvivedOutgoingTeardown = peerWasConnected && !this.peer.connected;
+    sendEncoded(
+      this.peer,
+      event,
+      payload,
+      ack,
+      currentSendSurvivedOutgoingTeardown
+        ? () => this.peer.ownsDeliveryGeneration(this)
+        : undefined,
+    );
   }
   /** The next direct emit or broadcast operator consumes this timeout (#112). */
   timeout(ms: number): ServerSocket {
@@ -579,6 +627,21 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
     const paired: ServerSocket | undefined = this.serverSocket;
     if (paired) scheduleDelivery(paired.nsp.adapter, paired.id, deliver);
     else defer(deliver);
+  }
+
+  deliveryGuard(): () => boolean {
+    const serverSocket = this.connectionAttempt?.serverSocket ?? this.serverSocket;
+    return () => {
+      const current = this.connectionAttempt?.serverSocket ?? this.serverSocket;
+      return (
+        (this.connected && current === serverSocket) || serverSocket.isDrainingAdapterDelivery()
+      );
+    };
+  }
+
+  ownsDeliveryGeneration(serverSocket: ServerSocket): boolean {
+    const current = this.connectionAttempt?.serverSocket ?? this.serverSocket;
+    return current === serverSocket;
   }
 
   acknowledgementGuard(): () => boolean {
