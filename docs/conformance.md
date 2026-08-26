@@ -508,12 +508,12 @@ Room cleanup, the reason each side reports, and what happens to a pending ack.
 - [a disconnect from an outgoing observer clears the current emitWithAck timeout](../src/disconnect.test.ts#L296)
 - [client disconnect settles a sent timed callback once and clears its timer](../src/disconnect.test.ts#L323)
 - [server Socket disconnect settles a sent client timed callback once](../src/disconnect.test.ts#L349)
-- [an outgoing observer disconnect settles the timed callback being sent](../src/disconnect.test.ts#L376)
-- [a trailing-callback ack is silently discarded when the connection drops](../src/disconnect.test.ts#L401)
-- [a pending server.emitWithAck stays pending when the client disconnects](../src/disconnect.test.ts#L420)
-- [client.disconnect() reports io client disconnect to the client and client namespace disconnect to the server](../src/disconnect.test.ts#L446)
-- [serverSocket.disconnect() reports io server disconnect to the client and server namespace disconnect to the server](../src/disconnect.test.ts#L462)
-- [disconnecting carries the same reason and fires before disconnect](../src/disconnect.test.ts#L478)
+- [an outgoing observer disconnect settles the timed callback being sent](../src/disconnect.test.ts#L375)
+- [a trailing-callback ack is silently discarded when the connection drops](../src/disconnect.test.ts#L400)
+- [a pending server.emitWithAck stays pending when the client disconnects](../src/disconnect.test.ts#L419)
+- [client.disconnect() reports io client disconnect to the client and client namespace disconnect to the server](../src/disconnect.test.ts#L445)
+- [serverSocket.disconnect() reports io server disconnect to the client and server namespace disconnect to the server](../src/disconnect.test.ts#L461)
+- [disconnecting carries the same reason and fires before disconnect](../src/disconnect.test.ts#L477)
 
 ### Queued delivery lifecycle
 
@@ -527,8 +527,8 @@ that owns the connection lifecycle.
 - [drops client packets queued behind Server.close() with packet middleware](../src/queued-delivery-lifecycle.test.ts#L60)
 - [drains client packets queued before client.disconnect() without packet middleware](../src/queued-delivery-lifecycle.test.ts#L80)
 - [drains client packets queued before client.disconnect() with packet middleware](../src/queued-delivery-lifecycle.test.ts#L80)
-- [drains server packets queued before Server.close()](../src/queued-delivery-lifecycle.test.ts#L106)
-- [preserves FIFO in both directions while the connection remains active](../src/queued-delivery-lifecycle.test.ts#L122)
+- [drains server packets queued before Server.close()](../src/queued-delivery-lifecycle.test.ts#L100)
+- [preserves FIFO in both directions while the connection remains active](../src/queued-delivery-lifecycle.test.ts#L116)
 
 ### Shared Manager disconnect
 
