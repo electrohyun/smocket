@@ -18,7 +18,8 @@ import { assertCandidatePackageIdentities } from './chat-room-consumer-validatio
 import { detectExternalImports } from './detect-external-imports.js';
 import { loadReleaseCandidate } from './release-candidate.mjs';
 
-const emptyManifest = { name: 'smocket', version: '0.0.0' };
+const publishConfig = { access: 'public', registry: 'https://registry.npmjs.org/' };
+const emptyManifest = { name: 'smocket', version: '0.0.0', publishConfig };
 
 function inspect({
   sourceManifest = emptyManifest,
@@ -55,6 +56,7 @@ describe('root package manifest policy', () => {
           {
             location: 'source manifest',
             fields: {
+              publishConfig: 'canonical',
               dependencies: 'empty',
               optionalDependencies: 'empty',
               peerDependencies: 'empty',
@@ -66,6 +68,7 @@ describe('root package manifest policy', () => {
           {
             location: 'packed manifest',
             fields: {
+              publishConfig: 'canonical',
               dependencies: 'absent',
               optionalDependencies: 'absent',
               peerDependencies: 'absent',
@@ -98,6 +101,32 @@ describe('root package manifest policy', () => {
           },
         ]);
       }
+    },
+  );
+
+  it.each(['sourceManifest', 'packedManifest'] as const)(
+    'rejects a missing or non-canonical publishConfig in %s',
+    (location) => {
+      const missing = inspect({ [location]: { name: 'smocket', version: '0.0.0' } });
+      const wrongRegistry = inspect({
+        [location]: {
+          ...emptyManifest,
+          publishConfig: { access: 'restricted', registry: 'https://registry.example/' },
+        },
+      });
+
+      expect(missing.violations).toContainEqual({
+        code: 'publish-config',
+        location: location === 'sourceManifest' ? 'source manifest' : 'packed manifest',
+        field: 'publishConfig',
+        detail: 'must select public access on https://registry.npmjs.org/',
+      });
+      expect(wrongRegistry.violations).toContainEqual({
+        code: 'publish-config',
+        location: location === 'sourceManifest' ? 'source manifest' : 'packed manifest',
+        field: 'publishConfig',
+        detail: 'must select public access on https://registry.npmjs.org/',
+      });
     },
   );
 
@@ -178,6 +207,7 @@ describe('client facade package policy', () => {
   const clientManifest = {
     name: 'smocket-client',
     version: '1.2.3',
+    publishConfig,
     peerDependencies: { smocket: '1.2.3' },
   };
   const clientTarEntries = [
@@ -215,6 +245,25 @@ describe('client facade package policy', () => {
     expect(
       inspectClient(clientManifest, { ...clientManifest, version: '1.2.4' }).violations,
     ).toContain('packed manifest version must equal smocket 1.2.3');
+  });
+
+  it('rejects a missing or non-canonical client publishConfig', () => {
+    const missing = {
+      name: clientManifest.name,
+      version: clientManifest.version,
+      peerDependencies: clientManifest.peerDependencies,
+    };
+    const wrong = {
+      ...clientManifest,
+      publishConfig: { access: 'restricted', registry: 'https://registry.example/' },
+    };
+
+    expect(inspectClient(missing).violations).toContain(
+      'source manifest publishConfig must select public access on https://registry.npmjs.org/',
+    );
+    expect(inspectClient(clientManifest, wrong).violations).toContain(
+      'packed manifest publishConfig must select public access on https://registry.npmjs.org/',
+    );
   });
 
   it('rejects a range, an extra peer, and a runtime dependency', () => {
