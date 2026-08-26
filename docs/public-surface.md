@@ -31,6 +31,17 @@ valid classification; the inventory does not require every upstream member to be
 implemented. [`conformance.md`](./conformance.md) remains case evidence and is
 never used to generate the upstream inventory.
 
+## Upstream attribution and package boundary
+
+The inventory uses the declarations and package metadata from `socket.io` and
+`socket.io-client` 4.7.5 and 4.8.3 and their resolved `socket.io-adapter` 2.5.8.
+Runtime-only client emitter entries reference `@socket.io/component-emitter`
+3.1.2. The upstream repositories, copyright notices, and MIT license references
+are recorded in [`THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md).
+
+This inventory is generated compatibility evidence for the repository. It is not
+part of Smocket's runtime and is excluded from both npm packages.
+
 ## Regenerate and review
 
 1. Run `pnpm install --frozen-lockfile` so all exact aliases resolve.

@@ -1,8 +1,8 @@
 # Third-party and project asset notices
 
-This file records the provenance and licensing of non-code assets used by this
-repository. It does not change the MIT license that applies to Smocket's source
-code.
+This file records the provenance and licensing of non-code assets and upstream
+compatibility references used by this repository. It does not change the MIT
+license that applies to Smocket's source code.
 
 ## JetBrains Mono
 
@@ -33,3 +33,41 @@ The project owner's ImageKit account hosts the Smocket image at
 <https://ik.imagekit.io/electrohyun/smocket.png>. It is referenced by `README.md`,
 `README.ko.md`, and `website/docusaurus.config.ts` for the README banner and
 website social preview.
+
+## `@socket.io/component-emitter` compatibility reference
+
+Smocket implements the observable client emitter behavior needed by its supported
+Socket.IO Client surface, including the `.fn` identity on `once` wrappers and
+first-matching listener removal. The compatibility reference is
+[`@socket.io/component-emitter` 3.1.2](https://github.com/socketio/emitter/tree/3.1.2),
+licensed under the MIT License:
+
+- Copyright: Copyright (c) 2014 Component contributors <dev@component.io>
+- License: MIT; see
+  [`third-party/component-emitter-MIT.txt`](third-party/component-emitter-MIT.txt)
+
+Smocket does not import or bundle `@socket.io/component-emitter` in its published
+runtime. The package is present only through development-time Socket.IO fixtures.
+
+## Generated Socket.IO public-surface inventory
+
+`docs/public-surface.generated.json` and its reviewed
+`docs/public-surface-ledger.json` are repository-only compatibility evidence. The
+generator reads declarations and package metadata from these exact upstream
+packages:
+
+- [`socket.io` 4.7.5 and 4.8.3](https://github.com/socketio/socket.io)
+- [`socket.io-client` 4.7.5 and 4.8.3](https://github.com/socketio/socket.io-client)
+- [`socket.io-adapter` 2.5.8](https://github.com/socketio/socket.io/tree/main/packages/socket.io-adapter)
+- [`@socket.io/component-emitter` 3.1.2](https://github.com/socketio/emitter)
+
+The Socket.IO packages are MIT-licensed. Their installed license notices identify
+the 4.7 server package as Copyright (c) 2014-2018 Automattic, the 4.7 client as
+Copyright (c) 2014 Guillermo Rauch, and the 4.8 server, client, and adapter as
+Copyright (c) 2014-present Guillermo Rauch and Socket.IO contributors.
+
+The inventory records package exports and normalized public signatures so CI can
+detect drift across the two supported lines. Regenerate and review it with the
+steps in [`docs/public-surface.md`](docs/public-surface.md). These JSON and Markdown
+files are not included in either npm package and none of the upstream packages is
+a Smocket runtime dependency.
