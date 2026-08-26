@@ -89,11 +89,13 @@ async function verifyHandlerReload(vite, pages) {
   const reloads = pages.map((page) =>
     page.waitForURL((url) => url.searchParams.get('workerVersion') === version),
   );
-  vite.ws.send({
+  const update = {
     type: 'custom',
     event: 'drawing-game:handler-changed',
     data: { version },
-  });
+  };
+  vite.ws.send(update);
+  vite.ws.send(update);
   await Promise.all(reloads);
   await Promise.all(
     pages.map((page) =>

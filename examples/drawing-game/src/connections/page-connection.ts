@@ -6,6 +6,7 @@ export type GameTarget = 'smocket' | 'real';
 
 export const GAME_TARGET: GameTarget = __DRAWING_GAME_TARGET__;
 const WORKER_VERSION_KEY = 'drawing-game-worker-version';
+let pendingWorkerVersion: string | undefined;
 
 function workerVersion(): string {
   return (
@@ -16,8 +17,10 @@ function workerVersion(): string {
 }
 
 function reloadWithWorkerVersion(version: string): void {
+  if (pendingWorkerVersion === version) return;
   const url = new URL(location.href);
   if (url.searchParams.get('workerVersion') === version) return;
+  pendingWorkerVersion = version;
   url.searchParams.set('workerVersion', version);
   location.replace(url);
 }
