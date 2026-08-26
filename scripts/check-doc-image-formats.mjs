@@ -4,6 +4,8 @@ import { fileURLToPath } from 'node:url';
 
 const repositoryRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const defaultRoots = [join(repositoryRoot, 'docs'), join(repositoryRoot, 'website', 'static')];
+const initialReadBytes = 64;
+const maximumFtypBoxBytes = 1024 * 1024;
 const heifBrands = new Set([
   'heic',
   'heix',
@@ -24,6 +26,30 @@ function ascii(buffer, offset) {
   return buffer.subarray(offset, offset + 4).toString('ascii');
 }
 
+function ftypLayout(buffer) {
+  if (buffer.length < 12 || ascii(buffer, 4) !== 'ftyp') {
+    return undefined;
+  }
+
+  const size32 = buffer.readUInt32BE(0);
+  if (size32 === 1) {
+    if (buffer.length < 24) {
+      return undefined;
+    }
+    const size64 = buffer.readBigUInt64BE(8);
+    if (size64 > BigInt(Number.MAX_SAFE_INTEGER)) {
+      return undefined;
+    }
+    return { boxSize: Number(size64), majorBrandOffset: 16, compatibleBrandsOffset: 24 };
+  }
+
+  return {
+    boxSize: size32 === 0 ? buffer.length : size32,
+    majorBrandOffset: 8,
+    compatibleBrandsOffset: 16,
+  };
+}
+
 export function blockedImageFormat(buffer) {
   if (buffer.length >= 4 && ascii(buffer, 0) === 'icns') {
     return 'ICNS';
@@ -35,9 +61,11 @@ export function blockedImageFormat(buffer) {
   ) {
     return 'JPEG XL';
   }
-  if (buffer.length >= 12 && ascii(buffer, 4) === 'ftyp') {
-    const brands = [ascii(buffer, 8)];
-    for (let offset = 16; offset + 4 <= buffer.length; offset += 4) {
+  const layout = ftypLayout(buffer);
+  if (layout && layout.boxSize >= layout.compatibleBrandsOffset) {
+    const boxEnd = Math.min(layout.boxSize, buffer.length);
+    const brands = [ascii(buffer, layout.majorBrandOffset)];
+    for (let offset = layout.compatibleBrandsOffset; offset + 4 <= boxEnd; offset += 4) {
       brands.push(ascii(buffer, offset));
     }
     if (brands.some((brand) => heifBrands.has(brand))) {
@@ -50,9 +78,20 @@ export function blockedImageFormat(buffer) {
 async function header(path) {
   const handle = await open(path, 'r');
   try {
-    const buffer = Buffer.alloc(64);
+    const buffer = Buffer.alloc(initialReadBytes);
     const { bytesRead } = await handle.read(buffer, 0, buffer.length, 0);
-    return buffer.subarray(0, bytesRead);
+    const initial = buffer.subarray(0, bytesRead);
+    const layout = ftypLayout(initial);
+    if (!layout || layout.boxSize <= initial.length) {
+      return initial;
+    }
+    if (layout.boxSize > maximumFtypBoxBytes) {
+      throw new Error(`ISO BMFF ftyp box exceeds ${maximumFtypBoxBytes} bytes`);
+    }
+
+    const complete = Buffer.alloc(layout.boxSize);
+    const result = await handle.read(complete, 0, complete.length, 0);
+    return complete.subarray(0, result.bytesRead);
   } finally {
     await handle.close();
   }
