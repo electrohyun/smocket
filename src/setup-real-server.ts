@@ -5,9 +5,10 @@ import { io, type Socket as ClientSocket } from 'socket.io-client';
 import { afterEach, beforeEach } from 'vitest';
 import type {
   ClientSocketContract,
-  ConnectOptions,
+  FixtureConnectOptions,
   ServerContext,
   ServerContract,
+  ServerSocketContract,
 } from './contract';
 import { makeConnectClients } from './connect-clients';
 
@@ -21,6 +22,8 @@ export function setupRealServer(): ServerContext {
 
   const asClientContract = (client: ClientSocket): ClientSocketContract =>
     client as unknown as ClientSocketContract;
+  const asServerContract = (socket: ServerSocket): ServerSocketContract =>
+    socket as unknown as ServerSocketContract;
 
   const namespacePath = (namespace: string): string => {
     if (namespace === '' || namespace === '/') return '/';
@@ -52,8 +55,8 @@ export function setupRealServer(): ServerContext {
   // Going through of() rather than ioServer.once('connection') also creates the
   // namespace, which a client cannot attach to until the server knows it.
   ctx.nextConnection = (namespace = '/') =>
-    new Promise<ServerSocket>((resolve) => {
-      ioServer.of(namespace).once('connection', (socket) => resolve(socket));
+    new Promise<ServerSocketContract>((resolve) => {
+      ioServer.of(namespace).once('connection', (socket) => resolve(asServerContract(socket)));
     });
 
   ctx.connectClient = async ({
@@ -62,7 +65,7 @@ export function setupRealServer(): ServerContext {
     query,
     forceNew,
     multiplex,
-  }: ConnectOptions = {}) => {
+  }: FixtureConnectOptions = {}) => {
     // Register before opening the client. This ordering is the fixture's static-
     // namespace contract; the dedicated unregistered path below deliberately skips it.
     const serverConnection = ctx.nextConnection(namespace);
@@ -85,7 +88,13 @@ export function setupRealServer(): ServerContext {
   };
 
   // A rejected middleware connection emits `connect_error`, never `connect`.
-  ctx.openClient = ({ namespace = '/', auth, query, forceNew, multiplex }: ConnectOptions = {}) => {
+  ctx.openClient = ({
+    namespace = '/',
+    auth,
+    query,
+    forceNew,
+    multiplex,
+  }: FixtureConnectOptions = {}) => {
     const client = io(`http://localhost:${port}${namespacePath(namespace)}`, {
       transports: ['websocket'],
       auth,

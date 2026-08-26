@@ -6,6 +6,11 @@ import type {
   ServerSocketContract,
 } from './api';
 
+/** Test-fixture routing input; public connect options derive this value from their URL. */
+export interface FixtureConnectOptions extends ConnectOptions {
+  namespace?: string;
+}
+
 export interface ConnectedClient<
   ListenEvents extends EventsMap = DefaultEventsMap,
   EmitEvents extends EventsMap = ListenEvents,
@@ -29,7 +34,7 @@ export interface ServerContext<
   io: ServerContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>;
   /** Connect one more client and return it paired with its server-side socket. */
   connectClient: (
-    options?: ConnectOptions,
+    options?: FixtureConnectOptions,
   ) => Promise<ConnectedClient<ListenEvents, EmitEvents, ServerSideEvents, SocketData>>;
   /**
    * Open a connection and return the client immediately, without waiting for it to
@@ -37,7 +42,7 @@ export interface ServerContext<
    * `connect` never fires, so `connectClient` would hang, whereas a test drives this
    * and awaits the client's `connect_error` instead.
    */
-  openClient: (options?: ConnectOptions) => ClientSocketContract<EmitEvents, ListenEvents>;
+  openClient: (options?: FixtureConnectOptions) => ClientSocketContract<EmitEvents, ListenEvents>;
   /**
    * Open a client on a namespace without observing `nextConnection` first. The real
    * fixture keeps this separate because `ioServer.of(namespace)` would register the
@@ -53,7 +58,7 @@ export interface ServerContext<
    */
   connectClients: (
     count: number,
-    options?: ConnectOptions,
+    options?: FixtureConnectOptions,
   ) => Promise<ConnectedClient<ListenEvents, EmitEvents, ServerSideEvents, SocketData>[]>;
   /**
    * Resolve with the server-side socket of the next client to connect on

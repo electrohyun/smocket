@@ -2,4 +2,3 @@
 export type * from './contracts/events';
 export type * from './contracts/api';
 export type * from './contracts/testing';
-export type * from './contracts/parity';

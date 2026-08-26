@@ -1,5 +1,3 @@
-import type { Server, Socket as IoServerSocket } from 'socket.io';
-import type { Socket as IoClientSocket } from 'socket.io-client';
 import type {
   AllButLast,
   AnyListener,
@@ -24,13 +22,6 @@ import type {
   SocketMiddleware,
   SupportedServerListenerEvents,
 } from './events';
-
-type IoNamespace<
-  ListenEvents extends EventsMap,
-  EmitEvents extends EventsMap,
-  ServerSideEvents extends EventsMap,
-  SocketData,
-> = ReturnType<Server<ListenEvents, EmitEvents, ServerSideEvents, SocketData>['of']>;
 
 /**
  * The slice of the socket.io / socket.io-client API that the test suite actually
@@ -401,7 +392,18 @@ export interface NamespaceContract<
   removeListener(event: string | symbol, listener: AnyListener): this;
   off(event: string | symbol, listener: AnyListener): this;
   removeAllListeners(event?: string | symbol): this;
-  listeners: IoNamespace<ListenEvents, EmitEvents, ServerSideEvents, SocketData>['listeners'];
+  listeners<
+    Event extends ReservedOrUserEventName<
+      NamespaceReservedEvents<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
+      ServerSideEvents
+    >,
+  >(
+    event: Event,
+  ): ReservedOrUserListener<
+    NamespaceReservedEvents<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
+    ServerSideEvents,
+    Event
+  >[];
   rawListeners(event: string | symbol): AnyListener[];
   listenerCount(event: string | symbol, listener?: AnyListener): number;
   eventNames(): (string | symbol)[];
@@ -608,7 +610,18 @@ export interface ServerContract<
   removeListener(event: string | symbol, listener: AnyListener): this;
   off(event: string | symbol, listener: AnyListener): this;
   removeAllListeners(event?: string | symbol): this;
-  listeners: Server<ListenEvents, EmitEvents, ServerSideEvents, SocketData>['listeners'];
+  listeners<
+    Event extends ReservedOrUserEventName<
+      ServerReservedEvents<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
+      ServerSideEvents
+    >,
+  >(
+    event: Event,
+  ): ReservedOrUserListener<
+    ServerReservedEvents<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
+    ServerSideEvents,
+    Event
+  >[];
   rawListeners(event: string | symbol): AnyListener[];
   listenerCount(event: string | symbol, listener?: AnyListener): number;
   eventNames(): (string | symbol)[];
@@ -776,14 +789,11 @@ export interface ServerSocketContract<
   prependListener(event: string | symbol, listener: AnyListener): this;
   prependOnceListener(event: string | symbol, listener: AnyListener): this;
   /** Return a fresh snapshot, with `once` wrappers exposed as their original listeners. */
-  listeners: IoServerSocket<ListenEvents, EmitEvents, ServerSideEvents, SocketData>['listeners'];
+  listeners<Event extends ReservedOrUserEventName<ServerSocketReservedEvents, ListenEvents>>(
+    event: Event,
+  ): ReservedOrUserListener<ServerSocketReservedEvents, ListenEvents, Event>[];
   /** Count all registrations, or only those matching a direct or original `once` listener. */
-  listenerCount: IoServerSocket<
-    ListenEvents,
-    EmitEvents,
-    ServerSideEvents,
-    SocketData
-  >['listenerCount'];
+  listenerCount(event: string | symbol, listener?: AnyListener): number;
   /** Return a fresh snapshot that keeps Node's `once` wrappers visible. */
   rawListeners(event: string | symbol): AnyListener[];
   /** Names with at least one ordinary listener, in registry insertion order. */
@@ -888,9 +898,13 @@ export interface ClientSocketContract<
     listener: ReservedOrUserListener<ClientSocketReservedEvents, ListenEvents, Event>,
   ): this;
   /** Return component-emitter's live backing array for this event. */
-  listeners: IoClientSocket<ListenEvents, EmitEvents>['listeners'];
+  listeners<Event extends ReservedOrUserEventName<ClientSocketReservedEvents, ListenEvents>>(
+    event: Event,
+  ): ReservedOrUserListener<ClientSocketReservedEvents, ListenEvents, Event>[];
   /** Whether the event's current live backing array is non-empty. */
-  hasListeners: IoClientSocket<ListenEvents, EmitEvents>['hasListeners'];
+  hasListeners<Event extends ReservedOrUserEventName<ClientSocketReservedEvents, ListenEvents>>(
+    event: Event,
+  ): boolean;
   /**
    * The client is component-emitter's: `off()` clears every listener, `off(event)`
    * clears that event, and `off(event, listener)` removes one. No form throws (0017).
@@ -964,20 +978,14 @@ export type AuthCallback = (cb: (data: object) => void) => void;
 
 /**
  * Options for opening a connection: the caller's `auth` / `query`, carried onto
- * `socket.handshake` (0006). Shared by the public `connect(url, opts)` and the test
- * fixture's `connectClient`, so both forward the same fields; `connect` takes the
- * namespace from the url path, so it reads only `auth` and `query`.
+ * `socket.handshake` (0006). Shared by the public `connect(url, opts)` lookup and
+ * `SmocketServer.connect`. The free lookup derives its namespace from the URL pathname.
  */
 export interface ConnectOptions {
   /**
-   * Namespace to attach to, `/` by default. Used by the fixture `connectClient`;
-   * `connect(url)` derives the namespace from the url path and ignores this.
-   */
-  namespace?: string;
-  /**
-   * Client-supplied handshake auth, read on the server as `socket.handshake.auth`. An
-   * object is carried through as-is; a function is the callback form (see
-   * {@link AuthCallback}), resolved at connect time.
+   * Client-supplied handshake auth, read on the server as `socket.handshake.auth`. The
+   * resolved object crosses the JSON packet boundary; a function is the callback form
+   * (see {@link AuthCallback}), resolved at connect time.
    */
   auth?: Record<string, unknown> | AuthCallback;
   /** Client-supplied handshake query, read on the server as `socket.handshake.query`. */
