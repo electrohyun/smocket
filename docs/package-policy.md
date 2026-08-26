@@ -24,5 +24,7 @@ applies the same policy plus Publint and Are The Types Wrong to the manifest's e
 facade tarball.
 
 A release bumps both manifests to one version. Publish `smocket` first, then publish
-`smocket-client`. The facade's `prepublishOnly` check reads the registry and rejects the
-second publication until that exact root version exists.
+`smocket-client`. The authoritative candidate publisher reads the registry and rejects
+the client publication until that exact root version exists, including its
+`--ignore-scripts` tarball path. The facade's `prepublishOnly` check mirrors the same
+ordering rule for direct source-package publication.

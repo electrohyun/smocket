@@ -19,10 +19,10 @@ Wrong, the independent chat-room consumer, and every clean-adoption fixture to
 the manifest's exact files. CI uploads that verified set under the commit SHA;
 the browser job downloads the same set rather than packing again.
 
-The candidate is disposable and may be rebuilt before publication authority is
-enabled. The [npm publication workflow](./npm-publication.md) accepts the manifest's
-exact paths and reverifies both digests immediately before publishing `smocket` and
-then `smocket-client`, following
+The [npm publication workflow](./npm-publication.md) first requires the complete CI
+workflow to have succeeded for its exact dispatch SHA. It downloads that CI run's
+SHA-named candidate instead of rebuilding one, then reverifies the manifest immediately
+before publishing `smocket` and `smocket-client`, following
 [ADR 0023](./decisions/0023-client-package-is-a-thin-facade.md).
 
 The authorized trigger, OIDC relationship, and environment boundary are defined in the

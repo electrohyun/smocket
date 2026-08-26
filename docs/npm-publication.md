@@ -37,11 +37,11 @@ token, or package publishing-access settings.
 Start **Publish release** from the Actions page on `main` and provide the exact package
 version. The workflow then:
 
-1. runs quality, dual-target, conformance, public-surface, Socket.IO 4.7 and 4.8,
-   package, clean-consumer, and Chromium candidate checks;
-2. records and uploads one manifest with both tarball sizes and SHA-256 digests;
-3. downloads and reverifies that manifest before publishing `smocket`;
-4. repeats the download and digest verification before publishing `smocket-client`;
+1. requires a successful complete `main` CI run for the exact dispatch SHA;
+2. promotes that run's SHA-named candidate instead of rebuilding or repeating its suites;
+3. reverifies the candidate version and both tarball SHA-256 digests;
+4. publishes `smocket`, then requires that exact registry version before publishing
+   `smocket-client`, even though tarball publication ignores lifecycle scripts;
 5. waits for both exact registry versions and exercises their shared registry outside
    the checkout.
 
@@ -51,4 +51,6 @@ only the failed jobs after recording the incident. Do not rerun a successful pub
 job or rebuild its artifact set.
 
 A successful exact-version verification job is the certification signal. GitHub tags
-and Releases neither trigger this workflow nor replace that signal.
+and Releases neither trigger this workflow nor replace that signal. After certification,
+follow the [release completion procedure](./release-completion.md) to create both at the
+same dispatch SHA and record the CI run, publication run, and candidate digests.
