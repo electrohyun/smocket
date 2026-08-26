@@ -47,6 +47,7 @@ From there, choose the path that matches the code you have:
 - [Package policy](./package-policy.md)
 - [Release candidates](./release-candidates.md),
   [npm publication](./npm-publication.md), and
+  [release completion](./release-completion.md), and
   [release remediation](./release-remediation.md)
 - [Published consumer policy](./published-consumer-policy.md)
 - [Issue and pull request labels](./labels.md)

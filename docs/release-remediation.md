@@ -14,7 +14,8 @@ no such authority.
 The successful conclusion of exact-version verification in the authoritative
 [npm publication workflow](./npm-publication.md) is the certification signal. Until
 then, do not announce the version as verified, create a success marker, or treat a
-GitHub tag or Release as proof.
+GitHub tag or Release as proof. The post-certification procedure is defined in
+[completing a certified release](./release-completion.md).
 
 ## On failure
 
