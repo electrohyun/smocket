@@ -5,6 +5,7 @@ export interface DeliveryTarget {
   dispatch(event: string, args: unknown[]): void;
   deliveryGuard(): () => boolean;
   acknowledgementGuard(): () => boolean;
+  consumeAcknowledgementBeforeEncoding(): boolean;
 }
 
 /** The shared microtask primitive keeps connection and delivery asynchronous and FIFO (0004, 0010). */
@@ -204,19 +205,19 @@ export function sendEncoded(
   deliveryGuard?: () => boolean,
 ): void {
   let acked = false;
-  let dispatching = false;
   const deliveryActive = deliveryGuard ?? target.deliveryGuard();
   const data = decodePayload(payload);
   let finalArgs = data;
   if (ack) {
     const acknowledgementActive = target.acknowledgementGuard();
+    const consumeBeforeEncoding = target.consumeAcknowledgementBeforeEncoding();
     finalArgs = [
       ...data,
       (...answer: unknown[]) => {
-        // Teardown may drain an already-queued delivery (0018); its listener may
-        // still answer synchronously, but a callback retained beyond dispatch
-        // belongs to the connection generation that has now ended (0012).
-        if (acked || (!dispatching && !acknowledgementActive())) return;
+        if (acked || !acknowledgementActive()) return;
+        // The client consumes its generated ACK id before packet encoding, while
+        // the server leaves its generated ACK callable when encoding throws.
+        if (consumeBeforeEncoding) acked = true;
         // Ack responses cross the same boundary when the receiver invokes the
         // callback, not when the request was sent (0026).
         const response = encodePayload(answer);
@@ -227,12 +228,7 @@ export function sendEncoded(
   }
   target.scheduleReceive(() => {
     if (!deliveryActive()) return;
-    dispatching = true;
-    try {
-      target.dispatch(event, finalArgs);
-    } finally {
-      dispatching = false;
-    }
+    target.dispatch(event, finalArgs);
   });
 }
 
