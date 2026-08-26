@@ -3,6 +3,7 @@ import type { ConnectOptions, Handshake, SmocketAdapter } from '../contract';
 export interface DeliveryTarget {
   scheduleReceive(deliver: () => void): void;
   dispatch(event: string, args: unknown[]): void;
+  deliveryGuard(): () => boolean;
   acknowledgementGuard(): () => boolean;
 }
 
@@ -182,11 +183,16 @@ export function withAckTimeout(
  * Deliver asynchronously. A trailing ack also returns asynchronously and is one-shot,
  * matching the measured Socket.IO round trip.
  */
-export function send(target: DeliveryTarget, event: string, args: unknown[]): void {
+export function send(
+  target: DeliveryTarget,
+  event: string,
+  args: unknown[],
+  deliveryGuard?: () => boolean,
+): void {
   const last = args.at(-1);
   const ack = typeof last === 'function' ? (last as (...a: unknown[]) => void) : undefined;
   const data = ack ? args.slice(0, -1) : args;
-  sendEncoded(target, event, encodePayload(data), ack);
+  sendEncoded(target, event, encodePayload(data), ack, deliveryGuard);
 }
 
 /** Deliver one captured payload, decoding a fresh graph for this receiver. */
@@ -195,9 +201,11 @@ export function sendEncoded(
   event: string,
   payload: EncodedPayload,
   ack?: (...answer: unknown[]) => void,
+  deliveryGuard?: () => boolean,
 ): void {
   let acked = false;
   let dispatching = false;
+  const deliveryActive = deliveryGuard ?? target.deliveryGuard();
   const data = decodePayload(payload);
   let finalArgs = data;
   if (ack) {
@@ -218,6 +226,7 @@ export function sendEncoded(
     ];
   }
   target.scheduleReceive(() => {
+    if (!deliveryActive()) return;
     dispatching = true;
     try {
       target.dispatch(event, finalArgs);
