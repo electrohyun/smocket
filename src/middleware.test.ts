@@ -97,6 +97,54 @@ it("the rejecting error's data passes through to the client", async () => {
   expect(error.data).toEqual({ code: 401 });
 });
 
+it('connect_error exposes a JSON snapshot instead of the server Error', async () => {
+  const shared = { count: 1 };
+  const data = {
+    first: shared,
+    second: shared,
+    date: new Date('2026-08-26T00:00:00.000Z'),
+    omitted: undefined,
+    method: () => 'not encoded',
+    list: [undefined, () => 'not encoded'],
+  };
+  const serverError = Object.assign(new Error('unauthorized'), {
+    data,
+    privateCode: 'SERVER_ONLY',
+  });
+
+  ctx.io.use((_socket, next) => {
+    next(serverError);
+  });
+
+  const client = ctx.openClient();
+  const error = (await receive(client, 'connect_error')) as MiddlewareError & {
+    privateCode?: string;
+  };
+  const observed = error.data as {
+    first: { count: number };
+    second: { count: number };
+    date: string;
+    list: unknown[];
+  };
+
+  serverError.message = 'mutated after delivery';
+  shared.count = 2;
+
+  expect(error).toBeInstanceOf(Error);
+  expect(error).not.toBe(serverError);
+  expect(error.message).toBe('unauthorized');
+  expect(error.privateCode).toBeUndefined();
+  expect(observed).not.toBe(data);
+  expect(observed.first).not.toBe(shared);
+  expect(observed.first).not.toBe(observed.second);
+  expect(observed).toEqual({
+    first: { count: 1 },
+    second: { count: 1 },
+    date: '2026-08-26T00:00:00.000Z',
+    list: [null, null],
+  });
+});
+
 it('a rejected connection cleans temporary membership and stays out of the roster', async () => {
   // Admit only a connection carrying a token, so the rejected client and a later
   // accepted one differ by auth alone.

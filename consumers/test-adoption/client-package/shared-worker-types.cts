@@ -24,5 +24,8 @@ workerSocket.on('ready', (room) => room.toUpperCase());
 workerSocket.emit('join', 'general');
 workerHost.close();
 
+// @ts-expect-error The raw bridge protocol is internal to the narrow facade (ADR 0038).
+void sharedWorkerHost.SHARED_WORKER_PROTOCOL_VERSION;
+
 // @ts-expect-error The narrow SharedWorker facade does not expose a Manager.
 void workerSocket.io;
