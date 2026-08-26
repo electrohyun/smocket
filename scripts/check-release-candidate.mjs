@@ -63,6 +63,17 @@ await run(process.execPath, [
   join(repositoryRoot, 'scripts', 'check-self-contained-types.mjs'),
   '--tarball',
   candidate.rootTarball,
+  '--client-tarball',
+  candidate.clientTarball,
+  '--minimum',
+]);
+candidate = await verifiedCandidate(manifestPath);
+await run(process.execPath, [
+  join(repositoryRoot, 'scripts', 'check-self-contained-types.mjs'),
+  '--tarball',
+  candidate.rootTarball,
+  '--client-tarball',
+  candidate.clientTarball,
 ]);
 candidate = await verifiedCandidate(manifestPath);
 await run(process.execPath, [

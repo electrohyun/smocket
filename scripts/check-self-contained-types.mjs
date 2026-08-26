@@ -6,7 +6,25 @@ import { basename, dirname, isAbsolute, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const repositoryRoot = dirname(dirname(fileURLToPath(import.meta.url)));
-const typescriptVersion = '6.0.3';
+const currentTypescriptVersion = '6.0.3';
+const minimumTypescriptVersion = '5.0.2';
+
+function typescriptVersionOption() {
+  const usesMinimum = process.argv.includes('--minimum');
+  const index = process.argv.indexOf('--typescript-version');
+  if (usesMinimum && index !== -1) {
+    throw new Error('--minimum and --typescript-version cannot be used together');
+  }
+  if (usesMinimum) return minimumTypescriptVersion;
+  if (index === -1) return currentTypescriptVersion;
+  const value = process.argv[index + 1];
+  if (value === undefined || value.startsWith('--')) {
+    throw new Error('--typescript-version requires a version');
+  }
+  return value;
+}
+
+const typescriptVersion = typescriptVersionOption();
 
 function run(command, args, cwd, capture = false) {
   return new Promise((resolveRun, reject) => {
@@ -46,11 +64,11 @@ function run(command, args, cwd, capture = false) {
   });
 }
 
-function tarballOption() {
-  const index = process.argv.indexOf('--tarball');
+function pathOption(name) {
+  const index = process.argv.indexOf(name);
   if (index === -1) return undefined;
   const value = process.argv[index + 1];
-  if (value === undefined || value.startsWith('--')) throw new Error('--tarball requires a path');
+  if (value === undefined || value.startsWith('--')) throw new Error(`${name} requires a path`);
   return resolve(value);
 }
 
@@ -72,17 +90,26 @@ const temporaryRoot = await mkdtemp(join(tmpdir(), 'smocket-self-contained-types
 const projectRoot = join(temporaryRoot, 'consumer');
 
 try {
-  const suppliedTarball = tarballOption();
+  const suppliedTarball = pathOption('--tarball');
+  const suppliedClientTarball = pathOption('--client-tarball');
   if (suppliedTarball !== undefined) {
     assert.equal(isAbsolute(suppliedTarball), true);
     await access(suppliedTarball);
   }
+  if (suppliedClientTarball !== undefined) {
+    assert.equal(isAbsolute(suppliedClientTarball), true);
+    await access(suppliedClientTarball);
+  }
   const archivePath = suppliedTarball ?? (await packRoot(temporaryRoot));
+  const dependencies = { smocket: `file:${archivePath}` };
+  if (suppliedClientTarball !== undefined) {
+    dependencies['smocket-client'] = `file:${suppliedClientTarball}`;
+  }
   const manifest = {
     name: 'smocket-self-contained-types',
     private: true,
     type: 'module',
-    dependencies: { smocket: `file:${archivePath}` },
+    dependencies,
     devDependencies: { typescript: typescriptVersion },
   };
   const compilerOptions = {
@@ -100,6 +127,16 @@ try {
     'void values;',
     '// @ts-expect-error Public connect derives its namespace from the URL pathname.',
     "connect('http://localhost:3012', { namespace: '/ignored' });",
+    ...(suppliedClientTarball === undefined
+      ? []
+      : [
+          "import { connect as clientConnect, type Socket as ClientSocket } from 'smocket-client';",
+          "import { connectSharedWorker as connectClientSharedWorker } from 'smocket-client/shared-worker';",
+          'declare const clientSocket: ClientSocket;',
+          'void clientConnect;',
+          'void connectClientSharedWorker;',
+          'void clientSocket;',
+        ]),
     '',
   ].join('\n');
 
@@ -142,7 +179,7 @@ try {
     await readFile(join(projectRoot, 'node_modules', 'smocket', 'package.json'), 'utf8'),
   );
   console.log(
-    `Self-contained TypeScript consumers passed for smocket@${installed.version} under NodeNext and Bundler without Socket.IO packages.`,
+    `Self-contained TypeScript ${typescriptVersion} consumers passed for smocket@${installed.version}${suppliedClientTarball === undefined ? '' : ' and smocket-client'} under NodeNext and Bundler without Socket.IO packages.`,
   );
 } finally {
   await rm(temporaryRoot, { recursive: true, force: true });
