@@ -184,6 +184,12 @@ const AREAS = [
     blurb: 'Room cleanup, the reason each side reports, and what happens to a pending ack.',
   },
   {
+    file: 'src/queued-delivery-lifecycle.test.ts',
+    title: 'Queued delivery lifecycle',
+    blurb:
+      'Dropping or draining already-queued packets according to the receiver and teardown path that owns the connection lifecycle.',
+  },
+  {
     file: 'src/manager-disconnect.test.ts',
     title: 'Shared Manager disconnect',
     blurb:

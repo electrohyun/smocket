@@ -498,6 +498,21 @@ Room cleanup, the reason each side reports, and what happens to a pending ack.
 - [serverSocket.disconnect() reports io server disconnect to the client and server namespace disconnect to the server](../src/disconnect.test.ts#L462)
 - [disconnecting carries the same reason and fires before disconnect](../src/disconnect.test.ts#L478)
 
+### Queued delivery lifecycle
+
+Dropping or draining already-queued packets according to the receiver and teardown path
+that owns the connection lifecycle.
+
+- [drops client packets queued behind a server Socket disconnect without packet middleware](../src/queued-delivery-lifecycle.test.ts#L12)
+- [drops client packets queued behind a server Socket disconnect with packet middleware](../src/queued-delivery-lifecycle.test.ts#L12)
+- [drops server packets queued behind a client disconnect](../src/queued-delivery-lifecycle.test.ts#L38)
+- [drops client packets queued behind Server.close() without packet middleware](../src/queued-delivery-lifecycle.test.ts#L60)
+- [drops client packets queued behind Server.close() with packet middleware](../src/queued-delivery-lifecycle.test.ts#L60)
+- [drains client packets queued before client.disconnect() without packet middleware](../src/queued-delivery-lifecycle.test.ts#L80)
+- [drains client packets queued before client.disconnect() with packet middleware](../src/queued-delivery-lifecycle.test.ts#L80)
+- [drains server packets queued before Server.close()](../src/queued-delivery-lifecycle.test.ts#L97)
+- [preserves FIFO in both directions while the connection remains active](../src/queued-delivery-lifecycle.test.ts#L113)
+
 ### Shared Manager disconnect
 
 Namespace grouping, connection-wide teardown order, independent Managers, and reconnect
