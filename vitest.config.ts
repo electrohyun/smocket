@@ -21,6 +21,11 @@ export default defineConfig({
         test: {
           name: 'real',
           include: targetFiles,
+          // Real-target files each own a live Socket.IO server and exercise teardown
+          // timing against the host network stack. Serializing files keeps those
+          // observations independent across slower hosted runners; the mock project
+          // remains parallel.
+          fileParallelism: false,
           env: { SMOCKET_TARGET: 'real' },
         },
       },
