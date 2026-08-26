@@ -9,11 +9,8 @@ interface EventsMap {
 type LookupOptions = Pick<smocket.ConnectOptions, 'auth' | 'query' | 'forceNew' | 'multiplex'>;
 
 /** Open a client against a server registered by the exact-version smocket peer. */
-function lookup<
-  ListenEvents extends EventsMap = smocket.DefaultEventsMap,
-  EmitEvents extends EventsMap = ListenEvents,
->(url: string, options?: LookupOptions): lookup.Socket<ListenEvents, EmitEvents> {
-  return smocket.connect(url, options) as lookup.Socket<ListenEvents, EmitEvents>;
+function lookup(url: string, options?: LookupOptions): lookup.Socket {
+  return smocket.connect(url, options);
 }
 
 namespace lookup {

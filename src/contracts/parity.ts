@@ -224,40 +224,12 @@ type IoNamespace<
 type IoBroadcast = ReturnType<Server['to']>;
 type IoAdapter = IoNamespace['adapter'];
 
-type InheritedNodeEmitterMember =
-  | 'addListener'
-  | 'eventNames'
-  | 'getMaxListeners'
-  | 'listenerCount'
-  | 'listeners'
-  | 'off'
-  | 'on'
-  | 'once'
-  | 'prependListener'
-  | 'prependOnceListener'
-  | 'rawListeners'
-  | 'removeAllListeners'
-  | 'removeListener'
-  | 'setMaxListeners';
-
 // Exported only so `noUnusedLocals` treats them as used (an unused local type
 // alias is TS6196); they are compile-time guards, not meant to be imported.
 export type AssertServerContract = Ensure<ServerParityContract, Server>;
 export type AssertServerSocketContract = Ensure<ServerSocketParityContract, IoServerSocket>;
 export type AssertClientSocketContract = Ensure<ClientSocketParityContract, IoClientSocket>;
 export type AssertNamespaceContract = Ensure<NamespaceParityContract, IoNamespace>;
-export type AssertServerInheritedEmitterContract = Ensure<
-  Pick<ServerContract, InheritedNodeEmitterMember>,
-  Server
->;
-export type AssertServerSocketInheritedEmitterContract = Ensure<
-  Pick<ServerSocketContract, InheritedNodeEmitterMember>,
-  IoServerSocket
->;
-export type AssertNamespaceInheritedEmitterContract = Ensure<
-  Pick<NamespaceContract, InheritedNodeEmitterMember>,
-  IoNamespace
->;
 export type AssertBroadcastContract = Ensure<BroadcastContract, IoBroadcast>;
 export type AssertAdapterContract = Ensure<AdapterContract, IoAdapter>;
 

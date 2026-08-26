@@ -23,11 +23,8 @@ export type SocketOptions = Pick<SmocketConnectOptions, 'auth'>;
 type LookupOptions = Pick<SmocketConnectOptions, 'auth' | 'query' | 'forceNew' | 'multiplex'>;
 
 /** Open a client against a server registered by the exact-version smocket peer. */
-function lookup<
-  ListenEvents extends EventsMap = DefaultEventsMap,
-  EmitEvents extends EventsMap = ListenEvents,
->(url: string, options?: LookupOptions): Socket<ListenEvents, EmitEvents> {
-  return smocketConnect(url, options) as Socket<ListenEvents, EmitEvents>;
+function lookup(url: string, options?: LookupOptions): Socket {
+  return smocketConnect(url, options);
 }
 
 const io = lookup;

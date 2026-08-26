@@ -165,16 +165,22 @@ export type ReservedOrUserEventName<
   ReservedEvents extends EventsMap,
   UserEvents extends EventsMap,
 > = EventName<ReservedEvents> | EventName<UserEvents>;
+type FallbackToUntypedListener<Listener> = [Listener] extends [never]
+  ? // Socket.IO uses this fallback to keep a still-generic event name callable.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (...args: any[]) => void | Promise<void>
+  : Listener;
 export type ReservedOrUserListener<
   ReservedEvents extends EventsMap,
   UserEvents extends EventsMap,
   Event extends ReservedOrUserEventName<ReservedEvents, UserEvents>,
-> =
+> = FallbackToUntypedListener<
   Event extends EventName<ReservedEvents>
     ? ReservedEvents[Event]
     : Event extends EventName<UserEvents>
       ? UserEvents[Event]
-      : never;
+      : never
+>;
 
 export type SupportedServerListenerEvents<Map extends EventsMap> = string extends keyof Map
   ? DefaultEventsMap

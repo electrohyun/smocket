@@ -1,5 +1,5 @@
 import { afterEach, beforeEach } from 'vitest';
-import type { ClientSocketContract, ConnectOptions, ServerContext } from './contract';
+import type { ClientSocketContract, FixtureConnectOptions, ServerContext } from './contract';
 import { makeConnectClients } from './connect-clients';
 import { Server } from './mock-server';
 
@@ -23,7 +23,7 @@ export function setupMockServer(): ServerContext {
 
   ctx.nextConnection = (namespace = '/') => server.nextConnection(namespace);
 
-  ctx.connectClient = async (options: ConnectOptions = {}) => {
+  ctx.connectClient = async (options: FixtureConnectOptions = {}) => {
     const { namespace = '/' } = options;
     // Observing the namespace first intentionally registers it, matching the real
     // helper's `ioServer.of(namespace)`. The separate unregistered fixture below
@@ -36,7 +36,7 @@ export function setupMockServer(): ServerContext {
   };
 
   // A rejected middleware connection emits `connect_error`, never `connect`.
-  ctx.openClient = (options: ConnectOptions = {}) => {
+  ctx.openClient = (options: FixtureConnectOptions = {}) => {
     const { namespace = '/' } = options;
     const client = server.connect(namespace, options);
     clients.push(client);

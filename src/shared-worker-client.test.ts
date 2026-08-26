@@ -2,13 +2,15 @@ import { afterEach, describe, expect, it } from 'vitest';
 import type { ServerSocketContract } from './contract';
 import { Server } from './mock-server';
 import {
-  SHARED_WORKER_MESSAGE_TYPES,
-  SHARED_WORKER_PROTOCOL_VERSION,
   attachSharedWorker,
   connectSharedWorker,
   type SharedWorkerHost,
   type SharedWorkerSocket,
 } from './shared-worker';
+import {
+  SHARED_WORKER_MESSAGE_TYPES,
+  SHARED_WORKER_PROTOCOL_VERSION,
+} from './shared-worker-protocol';
 
 let nextOrigin = 0;
 const harnesses: ClientHarness[] = [];
