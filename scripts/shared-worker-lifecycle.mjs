@@ -6,6 +6,7 @@ import { extname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { build } from 'tsup';
+import { createBrowserErrorMonitor } from './browser-error-monitor.mjs';
 
 const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const FIXTURE = resolve(ROOT, 'browser-tests/shared-worker-lifecycle');
@@ -14,6 +15,16 @@ const CONTENT_TYPES = new Map([
   ['.html', 'text/html; charset=utf-8'],
   ['.js', 'text/javascript; charset=utf-8'],
 ]);
+const browserErrorProbe = process.argv
+  .find((argument) => argument.startsWith('--browser-error-probe='))
+  ?.slice('--browser-error-probe='.length);
+const ALLOWED_PAGE_ERROR = 'SharedWorker browser error allowlist probe';
+const browserErrors = createBrowserErrorMonitor({
+  allowed:
+    browserErrorProbe === 'allowed-pageerror'
+      ? [{ type: 'pageerror', message: ALLOWED_PAGE_ERROR }]
+      : [],
+});
 
 async function bundleFixture(output) {
   await build({
@@ -79,11 +90,37 @@ async function closeServer(server) {
 
 async function openProbe(context, origin, label, version = 'v1') {
   const page = await context.newPage();
-  page.on('pageerror', (error) => process.stderr.write(`[${label}:${version}] ${error.stack}\n`));
+  browserErrors.observe(page, `${label}:${version}`);
   await page.goto(`${origin}/?label=${label}&version=${version}`);
   await page.waitForFunction(() => globalThis.sharedWorkerLifecycleProbe !== undefined);
   await page.evaluate(() => globalThis.sharedWorkerLifecycleProbe.connected);
   return page;
+}
+
+async function injectBrowserErrorProbe(page) {
+  if (!browserErrorProbe) return;
+  if (browserErrorProbe === 'console-error') {
+    const message = 'SharedWorker unexpected console error probe';
+    const observed = browserErrors.waitFor('console.error', message);
+    await page.evaluate((value) => console.error(value), message);
+    await observed;
+    return;
+  }
+  if (browserErrorProbe === 'pageerror' || browserErrorProbe === 'allowed-pageerror') {
+    const message =
+      browserErrorProbe === 'allowed-pageerror'
+        ? ALLOWED_PAGE_ERROR
+        : 'SharedWorker unexpected page error probe';
+    const observed = browserErrors.waitFor('pageerror', message);
+    await page.evaluate((value) => {
+      queueMicrotask(() => {
+        throw new Error(value);
+      });
+    }, message);
+    await observed;
+    return;
+  }
+  throw new Error(`unknown browser error probe: ${browserErrorProbe}`);
 }
 
 async function emit(page, event, ...args) {
@@ -139,6 +176,7 @@ try {
   const [pageA, pageB, pageC] = await Promise.all(
     ['A', 'B', 'C'].map((label) => openProbe(context, started.origin, label)),
   );
+  await injectBrowserErrorProbe(pageA);
 
   await Promise.all([
     emitWithAck(pageA, 'join', ROOM),
@@ -182,10 +220,12 @@ try {
     sockets: 2,
   });
 
+  browserErrors.assertNoUnexpectedErrors();
   await Promise.all([pageA.close(), pageB.close(), replacement.close()]);
   await context.close();
   process.stdout.write('Production SharedWorker lifecycle passed in Chromium.\n');
 } finally {
+  browserErrors.stop();
   await browser?.close();
   if (server) await closeServer(server);
   await rm(output, { recursive: true, force: true });

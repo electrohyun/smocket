@@ -5,6 +5,7 @@ import { extname, join, resolve, sep } from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { build } from 'tsup';
+import { createBrowserErrorMonitor } from './browser-error-monitor.mjs';
 
 const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const FIXTURE = resolve(ROOT, 'browser-tests/shared-worker-parity');
@@ -123,9 +124,9 @@ async function closeServer(server) {
   });
 }
 
-async function openPage(context, origin, target, label, sidecarUrl) {
+async function openPage(context, origin, target, label, sidecarUrl, browserErrors) {
   const page = await context.newPage();
-  page.on('pageerror', (error) => process.stderr.write(`[${target}:${label}] ${error.stack}\n`));
+  browserErrors.observe(page, `${target}:${label}`);
   const url = new URL(origin);
   url.searchParams.set('target', target);
   url.searchParams.set('label', label);
@@ -186,10 +187,11 @@ async function runTarget(browser, origin, target, sidecarUrl) {
   const context = await browser.newContext();
   context.setDefaultTimeout(10_000);
   const pages = [];
+  const browserErrors = createBrowserErrorMonitor();
 
   try {
     for (const label of LABELS) {
-      pages.push(await openPage(context, origin, target, label, sidecarUrl));
+      pages.push(await openPage(context, origin, target, label, sidecarUrl, browserErrors));
     }
     const [pageA, pageB, pageC] = pages;
     const ids = await Promise.all(pages.map(async (page) => (await snapshot(page)).id));
@@ -290,8 +292,10 @@ async function runTarget(browser, origin, target, sidecarUrl) {
     };
 
     assert.deepEqual(observation, EXPECTED, `${target} did not match the accepted workflow`);
+    browserErrors.assertNoUnexpectedErrors();
     return observation;
   } finally {
+    browserErrors.stop();
     await Promise.all(pages.filter((page) => !page.isClosed()).map((page) => page.close()));
     await context.close();
   }
