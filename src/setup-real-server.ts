@@ -12,6 +12,25 @@ import type {
 } from './contract';
 import { makeConnectClients } from './connect-clients';
 
+export const REAL_ORACLE_HOST = '127.0.0.1';
+
+export async function listenRealOracle(httpServer: HttpServer): Promise<AddressInfo> {
+  await new Promise<void>((resolve, reject) => {
+    const onError = (error: Error) => reject(error);
+    httpServer.once('error', onError);
+    httpServer.listen(0, REAL_ORACLE_HOST, () => {
+      httpServer.off('error', onError);
+      resolve();
+    });
+  });
+
+  const address = httpServer.address();
+  if (!address || typeof address === 'string') {
+    throw new Error('Socket.IO oracle did not bind to a TCP address');
+  }
+  return address;
+}
+
 /** Build the `real` half of the shared dual-run `ServerContext`. */
 export function setupRealServer(): ServerContext {
   const ctx = {} as ServerContext;
@@ -34,8 +53,7 @@ export function setupRealServer(): ServerContext {
     httpServer = createServer();
     ioServer = new Server(httpServer);
 
-    await new Promise<void>((resolve) => httpServer.listen(0, resolve));
-    port = (httpServer.address() as AddressInfo).port;
+    port = (await listenRealOracle(httpServer)).port;
 
     clients = [];
     // Socket.IO's internal listener fallback cannot be compared structurally with
@@ -69,7 +87,7 @@ export function setupRealServer(): ServerContext {
     // Register before opening the client. This ordering is the fixture's static-
     // namespace contract; the dedicated unregistered path below deliberately skips it.
     const serverConnection = ctx.nextConnection(namespace);
-    const client = io(`http://localhost:${port}${namespacePath(namespace)}`, {
+    const client = io(`http://${REAL_ORACLE_HOST}:${port}${namespacePath(namespace)}`, {
       transports: ['websocket'],
       auth,
       query,
@@ -95,7 +113,7 @@ export function setupRealServer(): ServerContext {
     forceNew,
     multiplex,
   }: FixtureConnectOptions = {}) => {
-    const client = io(`http://localhost:${port}${namespacePath(namespace)}`, {
+    const client = io(`http://${REAL_ORACLE_HOST}:${port}${namespacePath(namespace)}`, {
       transports: ['websocket'],
       auth,
       query,
@@ -110,7 +128,7 @@ export function setupRealServer(): ServerContext {
   // either would register the namespace and turn the rejection fixture into an
   // admission fixture before the client sends its namespace connect packet.
   ctx.openUnregisteredClient = (namespace: string) => {
-    const client = io(`http://localhost:${port}${namespacePath(namespace)}`, {
+    const client = io(`http://${REAL_ORACLE_HOST}:${port}${namespacePath(namespace)}`, {
       transports: ['websocket'],
     });
     clients.push(client);
