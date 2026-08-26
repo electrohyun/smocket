@@ -2,6 +2,22 @@ function describeEntry(entry) {
   return `${entry.label} ${entry.type}: ${entry.message}`;
 }
 
+function validateAllowed(allowed) {
+  for (const candidate of allowed) {
+    if (typeof candidate.message === 'string') continue;
+    if (
+      !candidate.message.source.startsWith('^') ||
+      !candidate.message.source.endsWith('$') ||
+      candidate.message.global ||
+      candidate.message.sticky
+    ) {
+      throw new Error(
+        'browser error allowlist regular expressions must be anchored with ^ and $ and must not use global or sticky flags',
+      );
+    }
+  }
+}
+
 function matchesAllowed(entry, allowed) {
   return allowed.some(
     (candidate) =>
@@ -13,6 +29,7 @@ function matchesAllowed(entry, allowed) {
 }
 
 export function createBrowserErrorMonitor({ allowed = [] } = {}) {
+  validateAllowed(allowed);
   const entries = [];
   const unexpected = [];
   const registrations = [];

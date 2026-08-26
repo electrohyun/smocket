@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createBrowserErrorMonitor } from './browser-error-monitor.mjs';
 
 const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const RUNNER = resolve(ROOT, 'scripts/shared-worker-lifecycle.mjs');
@@ -13,6 +14,21 @@ function run(mode) {
     env: process.env,
   });
 }
+
+assert.throws(
+  () =>
+    createBrowserErrorMonitor({
+      allowed: [{ type: 'pageerror', message: /partial/ }],
+    }),
+  /must be anchored with \^ and \$/,
+);
+assert.throws(
+  () =>
+    createBrowserErrorMonitor({
+      allowed: [{ type: 'pageerror', message: /^exact$/g }],
+    }),
+  /must not use global or sticky flags/,
+);
 
 for (const mode of ['pageerror', 'console-error']) {
   const result = run(mode);
