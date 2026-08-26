@@ -20,6 +20,7 @@ import {
   scheduleDelivery,
   send,
   sendEncoded,
+  snapshotPayload,
   RESERVED_EVENTS,
   withAckTimeout,
 } from './delivery';
@@ -352,6 +353,7 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
     const { args: deliveredArgs } = withAckTimeout(args, flags.timeout);
     if (flags.volatile && !this.peer.connected) return true;
     this.emitOutgoing(event, args);
+    if (!this.active) return true;
     send(this.peer, event, deliveredArgs);
     return true;
   }
@@ -457,6 +459,15 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
   }
 }
 
+function snapshotMiddlewareError(source: MiddlewareError): MiddlewareError {
+  const [packet] = snapshotPayload([{ message: source.message, data: source.data }]) as [
+    { message: string; data?: unknown },
+  ];
+  const error: MiddlewareError = new Error(packet.message);
+  error.data = packet.data;
+  return error;
+}
+
 export class ClientSocket extends ClientEmitter implements ClientSocketContract {
   connected = false;
   recovered = false;
@@ -556,7 +567,8 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
   }
 
   reportRepeatedConnectionError(err: MiddlewareError): void {
-    defer(() => this.dispatch('connect_error', [err]));
+    const snapshot = snapshotMiddlewareError(err);
+    defer(() => this.dispatch('connect_error', [snapshot]));
   }
 
   /**
@@ -584,7 +596,8 @@ export class ClientSocket extends ClientEmitter implements ClientSocketContract 
     attempt.serverSocket?.cleanupConnectionAttempt();
     this.connectionAttempt = undefined;
     this.io.settlePending(this);
-    defer(() => this.dispatch('connect_error', [err]));
+    const snapshot = snapshotMiddlewareError(err);
+    defer(() => this.dispatch('connect_error', [snapshot]));
   }
 
   failInvalidNamespace(): void {

@@ -40,8 +40,9 @@ export function buildHandshake(
   auth: Record<string, unknown>,
   query?: Record<string, unknown>,
 ): Handshake {
+  const [authSnapshot] = snapshotPayload([auth]);
   return {
-    auth,
+    auth: authSnapshot as Record<string, unknown>,
     query: stringifyValues(query ?? {}),
     url,
     time: new Date().toString(),
@@ -106,6 +107,11 @@ function decodePayload(payload: EncodedPayload): unknown[] {
   return payload.kind === 'json' ? (JSON.parse(payload.value) as unknown[]) : payload.value;
 }
 
+/** Capture and decode one value graph through the selected Socket.IO packet boundary. */
+export function snapshotPayload(args: unknown[]): unknown[] {
+  return decodePayload(encodePayload(args));
+}
+
 export function serverClosedError(): Error {
   return new Error('server is closed');
 }
@@ -128,7 +134,7 @@ export function assertNotReservedEvent(event: string): void {
 
 /**
  * Race the next acknowledgement against a timer without bypassing the ordinary send path.
- * The measured result is single-shot: `(null, response)` on success, one Error on timeout,
+ * The measured result is single-shot: `(null, ...response)` on success, one Error on timeout,
  * and no second callback for a late answer.
  */
 export function withAckTimeout(
@@ -164,7 +170,7 @@ export function withAckTimeout(
         settled = true;
         clearTimeout(timer);
         onSettled?.(cancel);
-        callback(null, answer[0]);
+        callback(null, ...answer);
       },
     ],
     cancel,
