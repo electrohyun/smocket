@@ -389,6 +389,30 @@ async function runClientPackageFixtures(projectRoot) {
     projectRoot,
     fixtureContext('TypeScript', 'bundler ESM', clientPackageInput, 'client-package types'),
   );
+  if (mode === 'candidate') {
+    await run(
+      process.execPath,
+      [tsc, '-p', 'client-package/tsconfig.candidate.node16.json'],
+      projectRoot,
+      fixtureContext(
+        'TypeScript',
+        'Node16 candidate-only public contract',
+        clientPackageInput,
+        'client-package candidate types',
+      ),
+    );
+    await run(
+      process.execPath,
+      [tsc, '-p', 'client-package/tsconfig.candidate.bundler.json'],
+      projectRoot,
+      fixtureContext(
+        'TypeScript',
+        'bundler candidate-only public contract',
+        clientPackageInput,
+        'client-package candidate types',
+      ),
+    );
+  }
 }
 
 async function runSharedWorkerPackageFixtures(projectRoot) {

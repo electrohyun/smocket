@@ -94,10 +94,12 @@ try {
     lib: ['ES2022', 'WebWorker'],
   };
   const source = [
-    "import type { ConnectOptions, ServerContract } from 'smocket';",
+    "import { connect, type ConnectOptions, type ServerContract } from 'smocket';",
     "import type { SharedWorkerHost, SharedWorkerSocket } from 'smocket/shared-worker';",
     'declare const values: [ConnectOptions, ServerContract, SharedWorkerHost, SharedWorkerSocket];',
     'void values;',
+    '// @ts-expect-error Public connect derives its namespace from the URL pathname.',
+    "connect('http://localhost:3012', { namespace: '/ignored' });",
     '',
   ].join('\n');
 

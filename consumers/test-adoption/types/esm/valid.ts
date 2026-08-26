@@ -1,4 +1,4 @@
-import { connect, Server, type DefaultEventsMap, type ServerSocketContract } from 'smocket';
+import { Server, type DefaultEventsMap, type ServerSocketContract } from 'smocket';
 
 interface ClientToServerEvents {
   join: (room: string) => void;
@@ -28,6 +28,3 @@ io.on('connection', (socket) => {
 });
 
 await io.close();
-
-// @ts-expect-error Public connect derives its namespace from the URL pathname.
-connect('http://localhost:3012', { namespace: '/ignored' });

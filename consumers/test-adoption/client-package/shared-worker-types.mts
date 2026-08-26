@@ -1,8 +1,6 @@
 import { Server } from 'smocket';
 import { attachSharedWorker } from 'smocket/shared-worker';
 import { connectSharedWorker, type SharedWorkerSocket } from 'smocket-client/shared-worker';
-// @ts-expect-error The raw bridge protocol is internal to the narrow facade (ADR 0038).
-import { SHARED_WORKER_PROTOCOL_VERSION } from 'smocket/shared-worker';
 
 interface ServerToClientEvents {
   ready: (room: string) => void;
@@ -23,7 +21,6 @@ const workerSocket: SharedWorkerSocket<ServerToClientEvents, ClientToServerEvent
 workerSocket.on('ready', (room) => room.toUpperCase());
 workerSocket.emit('join', 'general');
 workerHost.close();
-void SHARED_WORKER_PROTOCOL_VERSION;
 
 // @ts-expect-error The narrow SharedWorker facade does not expose a Manager.
 void workerSocket.io;
