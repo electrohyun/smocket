@@ -86,6 +86,20 @@ async function verifyHandlerReload(vite, pages) {
     pages.map((page) => page.locator('main').getAttribute('data-socket-id')),
   );
   const version = `verify-${Date.now()}`;
+  const navigationCounts = pages.map(() => 0);
+  const navigationListeners = pages.map((page, index) => {
+    const listener = (request) => {
+      if (
+        request.isNavigationRequest() &&
+        request.frame() === page.mainFrame() &&
+        new URL(request.url()).searchParams.get('workerVersion') === version
+      ) {
+        navigationCounts[index] += 1;
+      }
+    };
+    page.on('request', listener);
+    return listener;
+  });
   const reloads = pages.map((page) =>
     page.waitForURL((url) => url.searchParams.get('workerVersion') === version),
   );
@@ -105,13 +119,15 @@ async function verifyHandlerReload(vite, pages) {
       ),
     ),
   );
+  pages.forEach((page, index) => page.off('request', navigationListeners[index]));
+  assert.deepEqual(navigationCounts, [1, 1, 1], 'each page must start exactly one handler reload');
   const replacementIds = await Promise.all(
     pages.map((page) => page.locator('main').getAttribute('data-socket-id')),
   );
   assert.equal(new Set(replacementIds).size, 3, 'handler reload must create three current sockets');
   assert.ok(
     replacementIds.every((id, index) => id && id !== previousIds[index]),
-    'handler reload must replace the SharedWorker socket identities',
+    'handler reload must replace the socket identities',
   );
   assert.equal(
     await pages[0].evaluate(() => localStorage.getItem('drawing-game-worker-version')),
@@ -227,7 +243,7 @@ async function runTarget(browser, target) {
     await verifyGeneratedRecordingRoom(context, origin);
     const room = `verify-${target}`;
     const pages = await openRound(context, origin, room);
-    if (target === 'smocket') await verifyHandlerReload(vite, pages);
+    await verifyHandlerReload(vite, pages);
     const observation = await runRound(pages);
 
     await pages[2].close();
