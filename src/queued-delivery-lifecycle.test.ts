@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
 import { setupServer } from './setup-server';
-import { observeDisconnect, receive, track } from './test-events';
+import { receive, track } from './test-events';
 
 const ctx = setupServer();
 
@@ -81,25 +81,48 @@ it.each(packetMiddlewareCases)(
   'drains client packets queued before client.disconnect() %s',
   async (_label, withMiddleware) => {
     const { client, serverSocket } = await ctx.connectClient();
-    if (withMiddleware) serverSocket.use((_event, next) => next());
-    const queued = track(serverSocket, 'queued');
-    serverSocket.on('terminate', () => client.disconnect());
-    const { disconnected } = observeDisconnect(serverSocket);
+    let releaseTerminate!: () => void;
+    const writesFlushed = new Promise<void>((resolve) => {
+      releaseTerminate = resolve;
+    });
+    let finishTerminate!: () => void;
+    const terminateFinished = new Promise<void>((resolve) => {
+      finishTerminate = resolve;
+    });
+    if (withMiddleware) {
+      serverSocket.use((event, next) => {
+        if (event[0] === 'terminate') {
+          void writesFlushed.then(() => next());
+          return;
+        }
+        if (event[0] === 'queued') {
+          void terminateFinished.then(() => next());
+          return;
+        }
+        next();
+      });
+    }
+    const order: string[] = [];
+    const queued = new Promise<void>((resolve) =>
+      serverSocket.once('queued', () => {
+        order.push('queued');
+        resolve();
+      }),
+    );
+    serverSocket.on('terminate', () => {
+      order.push('terminate');
+      client.disconnect();
+      if (withMiddleware) finishTerminate();
+    });
 
     client.emit('terminate');
     client.emit('queued');
-    await disconnected;
-
-    const nextConnection = ctx.nextConnection();
-    const reconnected = receive(client, 'connect');
-    client.connect();
-    const currentSocket = await nextConnection;
-    await reconnected;
-    const marker = new Promise<void>((resolve) => currentSocket.once('marker', () => resolve()));
-    client.emit('marker', 'fresh');
-    await marker;
-
-    expect(queued.received).toBe(true);
+    if (withMiddleware) {
+      await ctx.flushClientWrites(client);
+      releaseTerminate();
+    }
+    await queued;
+    expect(order).toEqual(['terminate', 'queued']);
   },
 );
 

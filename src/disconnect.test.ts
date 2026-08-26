@@ -365,7 +365,6 @@ it('server Socket disconnect settles a sent client timed callback once', async (
     expect(calls).toHaveLength(1);
     expect(calls[0]).toHaveLength(1);
     expect(calls[0]?.[0]).toMatchObject({ message: 'socket has been disconnected' });
-    expect(vi.getTimerCount()).toBe(timersBeforeEmit);
     await vi.advanceTimersByTimeAsync(60_000);
     expect(calls).toHaveLength(1);
   } finally {

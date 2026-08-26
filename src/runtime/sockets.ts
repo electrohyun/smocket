@@ -80,7 +80,9 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
   private readonly serverAcknowledgementState = { active: true };
   private readonly clientAcknowledgementState = { active: true };
   /** Queued inbound packets retain this generation and recheck it before dispatch. */
-  private readonly deliveryState = { active: true };
+  private readonly deliveryState = { active: true, clientDrain: false };
+  /** Re-entrant client teardown may drain packets that already entered this generation. */
+  private dispatchDepth = 0;
   private active = true;
   /** Cleared by whole-socket cleanup so a disconnected socket cannot recreate membership. */
   private acceptsRoomJoins = true;
@@ -214,20 +216,22 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
 
   override dispatch(event: string, args: unknown[]): void {
     if (RESERVED_EVENTS.has(event) || this.packetMiddleware.length === 0) {
-      super.dispatch(event, args);
+      this.withDispatchOwnership(() => super.dispatch(event, args));
       return;
     }
 
-    this.dispatchCatchAll(event, args);
+    const enteredWhileActive = this.deliveryState.active;
+    this.withDispatchOwnership(() => this.dispatchCatchAll(event, args));
     const packet = [event, ...args] as [string, ...unknown[]];
     const chain = [...this.packetMiddleware];
     const run = (index: number): void => {
       const middleware = chain[index];
       if (!middleware) {
         defer(() => {
-          if (!this.deliveryState.active) return;
+          if (!this.deliveryState.active && !(enteredWhileActive && this.deliveryState.clientDrain))
+            return;
           const [nextEvent, ...nextArgs] = packet;
-          this.dispatchNamed(nextEvent, nextArgs);
+          this.withDispatchOwnership(() => this.dispatchNamed(nextEvent, nextArgs));
         });
         return;
       }
@@ -242,6 +246,15 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
     run(0);
   }
 
+  private withDispatchOwnership(dispatch: () => void): void {
+    this.dispatchDepth += 1;
+    try {
+      dispatch();
+    } finally {
+      this.dispatchDepth -= 1;
+    }
+  }
+
   attachPeer(client: ClientSocket): void {
     this.peer = client;
   }
@@ -253,13 +266,14 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
    */
   private teardown(reason: string, drainQueuedDelivery = false): Promise<void> {
     if (this.teardownPromise) return this.teardownPromise;
-    if (!drainQueuedDelivery) {
+    const drainDispatchedDelivery = drainQueuedDelivery && this.dispatchDepth > 0;
+    if (!drainDispatchedDelivery) {
       this.invalidateDelivery();
       this.invalidateClientAcknowledgements();
     }
     this.teardownPromise = new Promise((resolve) => {
       defer(() => {
-        this.invalidateDelivery();
+        this.invalidateDelivery(drainDispatchedDelivery);
         this.invalidateAcknowledgements();
         this.active = false;
         this.dispatch('disconnecting', [reason]);
@@ -289,8 +303,9 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
     this.clientAcknowledgementState.active = false;
   }
 
-  private invalidateDelivery(): void {
+  private invalidateDelivery(clientDrain = false): void {
     this.deliveryState.active = false;
+    this.deliveryState.clientDrain = clientDrain;
   }
 
   /** A middleware error after admission closes only the orphaned server Socket. */
