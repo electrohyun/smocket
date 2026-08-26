@@ -527,8 +527,8 @@ that owns the connection lifecycle.
 - [drops client packets queued behind Server.close() with packet middleware](../src/queued-delivery-lifecycle.test.ts#L60)
 - [drains client packets queued before client.disconnect() without packet middleware](../src/queued-delivery-lifecycle.test.ts#L80)
 - [drains client packets queued before client.disconnect() with packet middleware](../src/queued-delivery-lifecycle.test.ts#L80)
-- [drains server packets queued before Server.close()](../src/queued-delivery-lifecycle.test.ts#L129)
-- [preserves FIFO in both directions while the connection remains active](../src/queued-delivery-lifecycle.test.ts#L145)
+- [drains server packets queued before Server.close()](../src/queued-delivery-lifecycle.test.ts#L135)
+- [preserves FIFO in both directions while the connection remains active](../src/queued-delivery-lifecycle.test.ts#L151)
 
 ### Shared Manager disconnect
 
