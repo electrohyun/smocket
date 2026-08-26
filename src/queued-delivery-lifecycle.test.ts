@@ -123,6 +123,7 @@ it.each(packetMiddlewareCases)(
     client.emit('terminate');
     client.emit('queued');
     if (withMiddleware) {
+      // A drained client write buffer does not prove the server parsed both packets.
       await queuedEntered;
       releaseTerminate();
     }
