@@ -82,18 +82,12 @@ it.each(packetMiddlewareCases)(
   async (_label, withMiddleware) => {
     const { client, serverSocket } = await ctx.connectClient();
     if (withMiddleware) serverSocket.use((_event, next) => next());
-    const queued = track(serverSocket, 'queued');
-    const marker = new Promise<void>((resolve) =>
-      serverSocket.once('queued-marker', () => resolve()),
-    );
+    const queued = new Promise<void>((resolve) => serverSocket.once('queued', () => resolve()));
     serverSocket.on('terminate', () => client.disconnect());
 
     client.emit('terminate');
     client.emit('queued');
-    client.emit('queued-marker');
-    await marker;
-
-    expect(queued.received).toBe(true);
+    await queued;
   },
 );
 
