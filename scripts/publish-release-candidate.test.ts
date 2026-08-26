@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+  assertExactRootVersion,
   executePublication,
   parsePublicationOptions,
   publicationPlan,
+  rootVersionLookupPlan,
 } from './publish-release-candidate.mjs';
 
 const candidate = {
@@ -74,7 +76,7 @@ describe('release candidate publication', () => {
 
   it('publishes only the exact tarball selected from the verified candidate', async () => {
     const loadCandidate = vi.fn(async () => candidate);
-    const run = vi.fn(async () => {});
+    const run = vi.fn().mockResolvedValueOnce('"1.2.3"\n').mockResolvedValueOnce(undefined);
     const options = parsePublicationOptions([
       'publish',
       '--manifest',
@@ -90,9 +92,58 @@ describe('release candidate publication', () => {
       published: 'smocket-client',
     });
     expect(loadCandidate).toHaveBeenCalledOnce();
-    expect(run).toHaveBeenCalledWith('npm', [
+    expect(run).toHaveBeenNthCalledWith(
+      1,
+      'npm',
+      ['view', 'smocket@1.2.3', 'version', '--json', '--registry', 'https://registry.npmjs.org/'],
+      { capture: true },
+    );
+    expect(run).toHaveBeenNthCalledWith(2, 'npm', [
       'publish',
       candidate.clientTarball,
+      '--ignore-scripts',
+      '--registry',
+      'https://registry.npmjs.org/',
+    ]);
+  });
+
+  it('stops before the client publish when the exact root is unavailable', async () => {
+    const run = vi.fn(async () => '"1.2.2"');
+    const options = parsePublicationOptions([
+      'publish',
+      '--manifest',
+      'candidate.json',
+      '--version',
+      '1.2.3',
+      '--package',
+      'smocket-client',
+    ]);
+
+    await expect(
+      executePublication(options, { loadCandidate: async () => candidate, run }),
+    ).rejects.toThrow('Registry must contain exact smocket@1.2.3');
+    expect(run).toHaveBeenCalledOnce();
+  });
+
+  it('publishes the root candidate without a registry-order lookup', async () => {
+    const run = vi.fn(async () => {});
+    const options = parsePublicationOptions([
+      'publish',
+      '--manifest',
+      'candidate.json',
+      '--version',
+      '1.2.3',
+      '--package',
+      'smocket',
+    ]);
+
+    await expect(
+      executePublication(options, { loadCandidate: async () => candidate, run }),
+    ).resolves.toEqual({ version: '1.2.3', published: 'smocket' });
+    expect(run).toHaveBeenCalledOnce();
+    expect(run).toHaveBeenCalledWith('npm', [
+      'publish',
+      candidate.rootTarball,
       '--ignore-scripts',
       '--registry',
       'https://registry.npmjs.org/',
@@ -124,5 +175,25 @@ describe('release candidate publication', () => {
     expect(
       publicationPlan(candidate, 'smocket-client', 'https://registry.npmjs.org/').arguments[1],
     ).toBe(candidate.clientTarball);
+  });
+
+  it('builds and validates the exact root registry lookup', () => {
+    expect(rootVersionLookupPlan('1.2.3', 'https://registry.npmjs.org/')).toEqual({
+      command: 'npm',
+      arguments: [
+        'view',
+        'smocket@1.2.3',
+        'version',
+        '--json',
+        '--registry',
+        'https://registry.npmjs.org/',
+      ],
+    });
+    expect(() => assertExactRootVersion('"1.2.2"', '1.2.3')).toThrow(
+      'Registry must contain exact smocket@1.2.3',
+    );
+    expect(() => assertExactRootVersion('not json', '1.2.3')).toThrow(
+      'Registry returned invalid JSON',
+    );
   });
 });
