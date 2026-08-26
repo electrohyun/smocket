@@ -4,6 +4,111 @@ import { observeDisconnect, receive, track } from './test-events';
 
 const ctx = setupServer();
 
+async function expectInactiveServerSocketToDropDirectSends(
+  boundary: 'client disconnect' | 'server disconnect',
+): Promise<void> {
+  const { client, serverSocket: oldSocket } = await ctx.connectClient();
+  const received = {
+    event: false,
+    message: false,
+    callbackRequest: false,
+    promiseRequest: false,
+    timedCallbackRequest: false,
+    timedPromiseRequest: false,
+  };
+  client.on('stale-event', () => (received.event = true));
+  client.on('message', () => (received.message = true));
+  client.on('stale-callback', (ack: (value: string) => void) => {
+    received.callbackRequest = true;
+    ack('answered');
+  });
+  client.on('stale-promise', (ack: (value: string) => void) => {
+    received.promiseRequest = true;
+    ack('answered');
+  });
+  client.on('stale-timed-callback', (ack: (value: string) => void) => {
+    received.timedCallbackRequest = true;
+    ack('answered');
+  });
+  client.on('stale-timed-promise', (ack: (value: string) => void) => {
+    received.timedPromiseRequest = true;
+    ack('answered');
+  });
+
+  if (boundary === 'client disconnect') {
+    const { disconnected } = observeDisconnect(oldSocket);
+    client.disconnect();
+    await disconnected;
+  } else {
+    const disconnected = receive(client, 'disconnect');
+    oldSocket.disconnect();
+    await disconnected;
+  }
+
+  oldSocket.emit('stale-event', 'ignored');
+  oldSocket.send('ignored');
+  oldSocket.write('ignored');
+  let callbackCalled = false;
+  oldSocket.emit('stale-callback', () => {
+    callbackCalled = true;
+  });
+  let promiseSettled = false;
+  void oldSocket.emitWithAck('stale-promise').then(
+    () => (promiseSettled = true),
+    () => (promiseSettled = true),
+  );
+  const timedCallback = new Promise<unknown[]>((resolve) => {
+    oldSocket.timeout(0).emit('stale-timed-callback', (...args: unknown[]) => resolve(args));
+  });
+  const timedPromise = oldSocket
+    .timeout(0)
+    .emitWithAck('stale-timed-promise')
+    .then(
+      (value) => ({ status: 'resolved' as const, value }),
+      (error: unknown) => ({ status: 'rejected' as const, error }),
+    );
+
+  const nextConnection = ctx.nextConnection();
+  const reconnected = receive(client, 'connect');
+  client.connect();
+  const currentSocket = await nextConnection;
+  await reconnected;
+
+  const marker = receive(client, 'fresh-marker');
+  currentSocket.emit('fresh-marker', 'done');
+  await marker;
+
+  expect(received).toEqual({
+    event: false,
+    message: false,
+    callbackRequest: false,
+    promiseRequest: false,
+    timedCallbackRequest: false,
+    timedPromiseRequest: false,
+  });
+  expect(callbackCalled).toBe(false);
+  expect(promiseSettled).toBe(false);
+  await expect(timedCallback).resolves.toEqual([expect.any(Error)]);
+  await expect(timedPromise).resolves.toMatchObject({
+    status: 'rejected',
+    error: { message: 'operation has timed out' },
+  });
+
+  const freshEvent = receive(client, 'fresh-event');
+  currentSocket.emit('fresh-event', 'delivered');
+  await expect(freshEvent).resolves.toBe('delivered');
+  client.on('fresh-ack', (ack: (value: string) => void) => ack('fresh'));
+  await expect(currentSocket.emitWithAck('fresh-ack')).resolves.toBe('fresh');
+}
+
+it('drops direct sends from the old server Socket after a client disconnect', async () => {
+  await expectInactiveServerSocketToDropDirectSends('client disconnect');
+});
+
+it('drops direct sends from the old server Socket after a server disconnect', async () => {
+  await expectInactiveServerSocketToDropDirectSends('server disconnect');
+});
+
 it('a disconnected socket no longer receives emits for that room', async () => {
   const { client: client1, serverSocket: socket1 } = await ctx.connectClient();
   const { client: client2, serverSocket: socket2 } = await ctx.connectClient();

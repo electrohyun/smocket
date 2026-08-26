@@ -23,11 +23,44 @@ it('handshake.auth defaults to an empty object when the client passes none', asy
   expect(serverSocket.handshake.auth).toEqual({});
 });
 
-it('handshake.auth carries the client-supplied auth object through unchanged', async () => {
-  // auth travels as a packet payload, not on the url, so it reaches the server as the
-  // object the caller passed, with no stringifying.
+it('handshake.auth carries the client-supplied auth values', async () => {
+  // Auth travels as a CONNECT packet payload rather than on the URL.
   const { serverSocket } = await ctx.connectClient({ auth: { token: 'abc' } });
   expect(serverSocket.handshake.auth).toEqual({ token: 'abc' });
+});
+
+it('handshake.auth is a JSON snapshot of the CONNECT packet', async () => {
+  const shared = { count: 1 };
+  const auth = {
+    first: shared,
+    second: shared,
+    date: new Date('2026-08-26T00:00:00.000Z'),
+    omitted: undefined,
+    method: () => 'not encoded',
+    list: [undefined, () => 'not encoded'],
+  };
+
+  const { serverSocket } = await ctx.connectClient({ auth });
+  const observed = serverSocket.handshake.auth as {
+    first: { count: number };
+    second: { count: number };
+    date: string;
+    list: unknown[];
+  };
+
+  expect(observed).not.toBe(auth);
+  expect(observed.first).not.toBe(shared);
+  expect(observed.first).not.toBe(observed.second);
+  expect(observed).toEqual({
+    first: { count: 1 },
+    second: { count: 1 },
+    date: '2026-08-26T00:00:00.000Z',
+    list: [null, null],
+  });
+
+  shared.count = 2;
+  expect(observed.first.count).toBe(1);
+  expect(observed.second.count).toBe(1);
 });
 
 it('handshake.query stringifies the client-supplied query values', async () => {

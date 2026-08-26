@@ -9,10 +9,7 @@ interface ClientToServerEvents {
 }
 
 const options: SocketOptions = { auth: { userId: 'esm' } };
-const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io<
-  ServerToClientEvents,
-  ClientToServerEvents
->('http://localhost:3276', {
+const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io('http://localhost:3276', {
   ...options,
   query: { source: 'types' },
   forceNew: true,
@@ -27,6 +24,8 @@ const sameConnect: typeof io = connect;
 void sameLookup;
 void sameConnect;
 
+// @ts-expect-error Socket.IO lookup functions do not accept event-map type arguments (ADR 0021).
+io<ServerToClientEvents, ClientToServerEvents>('http://localhost:3276');
 // @ts-expect-error The facade keeps smocket's required URL.
 io();
 // @ts-expect-error The namespace comes from the URL path.

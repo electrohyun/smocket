@@ -57,6 +57,37 @@ it('the trailing callback receives the sender-side ack', async () => {
   expect(result).toBe(50);
 });
 
+it('a client timeout callback preserves every acknowledgement argument', async () => {
+  const { client, serverSocket } = await ctx.connectClient();
+  serverSocket.on('client-timeout-multi', (ack: (...values: number[]) => void) => ack(1, 2, 3));
+
+  const result = await new Promise<unknown[]>((resolve) => {
+    client.timeout(100).emit('client-timeout-multi', (...args: unknown[]) => resolve(args));
+  });
+
+  expect(result).toEqual([null, 1, 2, 3]);
+});
+
+it('a server timeout callback preserves every acknowledgement argument', async () => {
+  const { client, serverSocket } = await ctx.connectClient();
+  client.on('server-timeout-multi', (ack: (...values: number[]) => void) => ack(1, 2, 3));
+
+  const result = await new Promise<unknown[]>((resolve) => {
+    serverSocket.timeout(100).emit('server-timeout-multi', (...args: unknown[]) => resolve(args));
+  });
+
+  expect(result).toEqual([null, 1, 2, 3]);
+});
+
+it('timeout emitWithAck keeps the first-value Promise policy in both directions', async () => {
+  const { client, serverSocket } = await ctx.connectClient();
+  serverSocket.on('client-timeout-promise', (ack: (...values: number[]) => void) => ack(1, 2, 3));
+  client.on('server-timeout-promise', (ack: (...values: number[]) => void) => ack(4, 5, 6));
+
+  await expect(client.timeout(100).emitWithAck('client-timeout-promise')).resolves.toBe(1);
+  await expect(serverSocket.timeout(100).emitWithAck('server-timeout-promise')).resolves.toBe(4);
+});
+
 it('calling ack twice runs the sender callback only once', async () => {
   const { client, serverSocket } = await ctx.connectClient();
   serverSocket.on('double', (ack: (n: number) => void) => {
