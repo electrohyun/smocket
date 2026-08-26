@@ -625,7 +625,8 @@ Resolving a url to a server, and what the url contributes to the handshake.
 Keeping out-of-scope binary-containing packets on the existing in-memory path without an
 encoding claim.
 
-- [keeps binary-containing packets on the existing in-memory path](../src/binary-passthrough.test.ts#L5)
+- [keeps binary-containing direct packets on the existing in-memory path in both directions](../src/binary-passthrough.test.ts#L5)
+- [keeps binary-containing acknowledgement payloads on the existing in-memory path](../src/binary-passthrough.test.ts#L40)
 
 ### Adapter API
 
@@ -828,6 +829,7 @@ Each row is answered by a CI job rather than by a claim, so the evidence is in
 | ------------------------------------- | ---------------------------------------------------- | --------------------- |
 | Which Node runs the suite             | 22 and 24 on Linux, current LTS on Windows and macOS | `test`                |
 | Which Node runs the published package | 20 and up, the floor `engines.node` declares         | `declared node floor` |
+| Which TypeScript consumes the types   | 5.0.2 and up, under NodeNext and Bundler             | `package`             |
 | Which socket.io the cases hold for    | 4.7 and 4.8                                          | `real target`         |
 | Which browser the mock runs in        | Chromium, mock target only                           | `browser`             |
 
