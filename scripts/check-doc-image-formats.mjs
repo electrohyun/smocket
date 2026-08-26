@@ -44,7 +44,7 @@ function ftypLayout(buffer) {
   }
 
   return {
-    boxSize: size32 === 0 ? buffer.length : size32,
+    boxSize: size32 === 0 ? undefined : size32,
     majorBrandOffset: 8,
     compatibleBrandsOffset: 16,
   };
@@ -62,8 +62,9 @@ export function blockedImageFormat(buffer) {
     return 'JPEG XL';
   }
   const layout = ftypLayout(buffer);
-  if (layout && layout.boxSize >= layout.compatibleBrandsOffset) {
-    const boxEnd = Math.min(layout.boxSize, buffer.length);
+  const boxSize = layout?.boxSize ?? buffer.length;
+  if (layout && boxSize >= layout.compatibleBrandsOffset) {
+    const boxEnd = Math.min(boxSize, buffer.length);
     const brands = [ascii(buffer, layout.majorBrandOffset)];
     for (let offset = layout.compatibleBrandsOffset; offset + 4 <= boxEnd; offset += 4) {
       brands.push(ascii(buffer, offset));
@@ -82,14 +83,19 @@ async function header(path) {
     const { bytesRead } = await handle.read(buffer, 0, buffer.length, 0);
     const initial = buffer.subarray(0, bytesRead);
     const layout = ftypLayout(initial);
-    if (!layout || layout.boxSize <= initial.length) {
+    if (!layout) {
       return initial;
     }
-    if (layout.boxSize > maximumFtypBoxBytes) {
+
+    const boxSize = layout.boxSize ?? (await handle.stat()).size;
+    if (boxSize <= initial.length) {
+      return initial;
+    }
+    if (boxSize > maximumFtypBoxBytes) {
       throw new Error(`ISO BMFF ftyp box exceeds ${maximumFtypBoxBytes} bytes`);
     }
 
-    const complete = Buffer.alloc(layout.boxSize);
+    const complete = Buffer.alloc(boxSize);
     const result = await handle.read(complete, 0, complete.length, 0);
     return complete.subarray(0, result.bytesRead);
   } finally {

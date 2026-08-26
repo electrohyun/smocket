@@ -6,9 +6,9 @@ import { blockedImageFormat, findBlockedDocImages } from './check-doc-image-form
 
 const temporaryRoots: string[] = [];
 
-function ftypBox(majorBrand: string, compatibleBrands: string[]) {
+function ftypBox(majorBrand: string, compatibleBrands: string[], extendsToEof = false) {
   const box = Buffer.alloc(16 + compatibleBrands.length * 4);
-  box.writeUInt32BE(box.length, 0);
+  box.writeUInt32BE(extendsToEof ? 0 : box.length, 0);
   box.write('ftyp', 4, 'ascii');
   box.write(majorBrand, 8, 'ascii');
   for (const [index, brand] of compatibleBrands.entries()) {
@@ -57,6 +57,15 @@ describe('documentation image format gate', () => {
     temporaryRoots.push(root);
     const path = join(root, 'late-brand.png');
     await writeFile(path, ftypBox('isom', [...Array(13).fill('isom'), 'heic']));
+
+    await expect(findBlockedDocImages([root])).resolves.toEqual([{ format: 'HEIF', path }]);
+  });
+
+  it('reads a zero-sized ftyp box through EOF to find a compatible brand after byte 64', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'smocket-doc-images-'));
+    temporaryRoots.push(root);
+    const path = join(root, 'zero-sized.png');
+    await writeFile(path, ftypBox('isom', [...Array(13).fill('isom'), 'mif1'], true));
 
     await expect(findBlockedDocImages([root])).resolves.toEqual([{ format: 'HEIF', path }]);
   });
