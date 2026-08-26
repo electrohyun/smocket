@@ -42,4 +42,8 @@ None of these can exist in a mock, because a mock never opens a real connection:
 - **multi-server scaling** (the Redis [adapter](./glossary.md#adapter),
   `serverSideEmit`): one in-memory process has no second server to reach.
 - **binary encoding / engine framing**: nothing is serialised onto a wire, so
-  there are no frames to encode.
+  there are no frames to encode. On Smocket's direct in-memory event and
+  acknowledgement paths, packets containing `ArrayBuffer`, an `ArrayBuffer` view
+  such as a typed array or `DataView`, or `Blob` bypass the JSON snapshot and retain
+  their existing values and references. This passthrough does not clone, detach,
+  encode, frame, or claim per-recipient isolation for binary data.

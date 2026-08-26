@@ -38,4 +38,7 @@
 - **멀티서버 확장**(Redis [adapter](./glossary.ko.md#adapter), `serverSideEmit`): 인메모리
   프로세스 하나에는 도달할 둘째 서버가 없습니다.
 - **바이너리 인코딩 / 엔진 프레이밍**: 와이어로 직렬화되는 것이 없으므로 인코딩할 프레임도
-  없습니다.
+  없습니다. Smocket의 직접 인메모리 이벤트와 ACK 경로에서는 `ArrayBuffer`, typed array나
+  `DataView` 같은 `ArrayBuffer` view 또는 `Blob`을 포함한 패킷이 JSON 스냅샷을 거치지 않고
+  기존 값과 참조를 유지합니다. 이 패스스루는 바이너리 데이터의 복제, detach, 인코딩,
+  framing 또는 수신자별 격리를 보장하지 않습니다.

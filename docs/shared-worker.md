@@ -58,13 +58,26 @@ That real-server path is required to verify network transport, reconnection,
 authentication, database access, persistence, and cross-device behavior. Smocket
 inside a worker verifies in-memory delivery and routing only.
 
+## Normal shutdown
+
+Call the facade's `socket.disconnect()` (or its `socket.close()` alias) while the
+`MessagePort` is still usable. That request owns normal teardown of the active
+generation, including its server socket and room membership. Do not close the raw
+port first or use `worker.port.close()` as a substitute for facade disconnect.
+
+Worker code that deliberately detaches an accepted port should retain the
+`SharedWorkerHost` returned by `attachSharedWorker` and call `host.close()`. That
+disconnects the port's active server socket and removes the host listeners; it does
+not close the `MessagePort` or the caller-owned `Server`.
+
 ## Lifecycle limits
 
 > [!WARNING]
-> `pagehide` sends a best-effort disconnect, and the Chromium page-close workflow is
-> tested. An abrupt renderer crash need not clean up immediately because no heartbeat
-> is invented. Worker termination or restart loses sockets, rooms, state, and pending
-> acknowledgements.
+> `pagehide` sends a best-effort facade disconnect, and the Chromium page-close workflow
+> is tested. A raw port close, abrupt renderer or worker crash, forced browser
+> termination, and OS process loss do not provide the same cleanup guarantee because no
+> heartbeat or reliable port-close signal is invented. Worker termination or restart
+> loses sockets, rooms, state, and pending acknowledgements.
 
 During HMR, version the worker URL or name so new pages do not join an incompatible
 worker that survived the update. Existing pages can retain the old worker until
