@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { loadReleaseCandidate } from './release-candidate.mjs';
+import { sanitizeRegistryResponse } from './verify-published-release.mjs';
 
 const exactVersionPattern = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
 const packageNames = new Set(['smocket', 'smocket-client']);
@@ -68,6 +69,25 @@ export function publicationPlan(candidate, packageName, registry) {
   };
 }
 
+export function rootVersionLookupPlan(version, registry) {
+  return {
+    command: 'npm',
+    arguments: ['view', `smocket@${version}`, 'version', '--json', '--registry', registry],
+  };
+}
+
+export function assertExactRootVersion(response, expected) {
+  let published;
+  try {
+    published = JSON.parse(response);
+  } catch (error) {
+    throw new Error(
+      `Registry returned invalid JSON for smocket@${expected}: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+  assert.equal(published, expected, `Registry must contain exact smocket@${expected}`);
+}
+
 export async function executePublication(
   options,
   { loadCandidate = loadReleaseCandidate, run = runCommand } = {},
@@ -79,26 +99,42 @@ export async function executePublication(
     return { version: candidate.version, published: undefined };
   }
 
+  if (options.packageName === 'smocket-client') {
+    const lookup = rootVersionLookupPlan(candidate.version, options.registry);
+    const response = await run(lookup.command, lookup.arguments, { capture: true });
+    assertExactRootVersion(response, candidate.version);
+  }
+
   const plan = publicationPlan(candidate, options.packageName, options.registry);
   await run(plan.command, plan.arguments);
   return { version: candidate.version, published: options.packageName };
 }
 
-function runCommand(command, arguments_) {
+function runCommand(command, arguments_, { capture = false } = {}) {
   return new Promise((resolveRun, reject) => {
     const executable = process.platform === 'win32' ? (process.env.ComSpec ?? 'cmd.exe') : command;
     const executableArguments =
       process.platform === 'win32' ? ['/d', '/s', '/c', command, ...arguments_] : arguments_;
     const child = spawn(executable, executableArguments, {
       env: { ...process.env, npm_config_update_notifier: 'false' },
-      stdio: 'inherit',
+      stdio: capture ? ['ignore', 'pipe', 'pipe'] : 'inherit',
     });
+    let stdout = '';
+    let stderr = '';
+    child.stdout?.setEncoding('utf8');
+    child.stderr?.setEncoding('utf8');
+    child.stdout?.on('data', (chunk) => (stdout += chunk));
+    child.stderr?.on('data', (chunk) => (stderr += chunk));
     child.on('error', reject);
     child.on('close', (code, signal) => {
-      if (code === 0) resolveRun();
+      if (code === 0) resolveRun(capture ? stdout : undefined);
       else
         reject(
-          new Error(signal ? `${command} ended with ${signal}` : `${command} exited with ${code}`),
+          new Error(
+            signal
+              ? `${command} ended with ${signal}`
+              : `${command} exited with ${code}${stderr ? `: ${sanitizeRegistryResponse(stderr)}` : ''}`,
+          ),
         );
     });
   });
