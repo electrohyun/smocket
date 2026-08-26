@@ -274,11 +274,14 @@ the [report](docs/conformance.md#supported-versions).
 | ------------------------------------- | ---------------------------------------------------- | --------------------- |
 | Which Node runs the suite             | 22 and 24 on Linux, current LTS on Windows and macOS | `test`                |
 | Which Node runs the published package | 20 and up, the floor `engines.node` declares         | `declared node floor` |
+| Which TypeScript consumes the types   | 5.0.2 and up, under NodeNext and Bundler             | `package`             |
 | Which socket.io the cases hold for    | 4.7 and 4.8                                          | `real target`         |
 | Which browser the mock runs in        | Chromium, mock target only                           | `browser`             |
 
-The package ships ESM and CJS builds with type declarations for both, verified on
-every run by `publint` and `arethetypeswrong`.
+Both packages ship ESM and CJS builds with matching type declarations. Their packed
+declarations are checked with TypeScript 5.0.2 and the current compiler under NodeNext
+and Bundler, with `strict: true` and `skipLibCheck: false`; `publint` and
+`arethetypeswrong` verify the package layouts on every run.
 
 ## Out of scope
 
@@ -297,7 +300,9 @@ with no source to check it against.
 - **Multi-server scaling.** One in-memory process has no second server for the
   Redis adapter to reach.
 - **Binary encoding.** Nothing is serialised onto a wire, so there are no frames to
-  encode.
+  encode. Binary-containing direct event and acknowledgement payloads stay on the
+  [in-memory passthrough path](docs/scope.md#not-reproduced-reliability--network-layer)
+  with their existing values and references; this is not binary protocol support.
 
 The full boundary, with the layer split it follows, is in
 [scope.md](docs/scope.md).

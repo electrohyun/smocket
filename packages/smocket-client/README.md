@@ -13,6 +13,9 @@ npm install -D smocket smocket-client
 Keep both packages at the same exact version. `smocket` provides the server and
 `smocket-client` provides the client connection facade.
 
+The published declarations support TypeScript 5.0.2 and newer under NodeNext and
+Bundler module resolution.
+
 ## Use
 
 ```ts

@@ -254,10 +254,13 @@ CI job이 아래 표의 각 답을 검증합니다. 각 job은 [`ci.yml`](.githu
 | -------------------------------------- | ------------------------------------------- | --------------------- |
 | 어떤 Node에서 테스트를 실행하는가      | Linux의 22와 24, Windows와 macOS의 현재 LTS | `test`                |
 | 어떤 Node에서 배포 패키지가 실행되는가 | `engines.node`가 선언한 하한인 20 이상      | `declared node floor` |
+| 어떤 TypeScript가 타입을 소비하는가    | NodeNext와 Bundler에서 5.0.2 이상           | `package`             |
 | 어떤 socket.io 버전에 사례가 유효한가  | 4.7과 4.8                                   | `real target`         |
 | 어떤 브라우저에서 mock이 실행되는가    | Chromium, mock 대상만                       | `browser`             |
 
-패키지는 ESM과 CJS 빌드에 맞는 타입 선언을 각각 제공하며, CI를 실행할 때마다 `publint`와
+두 패키지는 ESM과 CJS 빌드에 맞는 타입 선언을 각각 제공합니다. 실제 패키지의 선언을
+TypeScript 5.0.2와 현재 컴파일러에서 NodeNext 및 Bundler 설정, `strict: true`,
+`skipLibCheck: false`로 검사하며, CI를 실행할 때마다 `publint`와
 `arethetypeswrong`으로 패키지 구성을 검증합니다.
 
 ## 범위 밖
@@ -274,6 +277,8 @@ mock에서 그대로 재현할 수 없어 현재 지원 범위에서 제외합�
 - **멀티 서버 확장.** 하나의 인메모리 프로세스에는 Redis adapter가 연결할 두 번째 서버가
   없습니다.
 - **바이너리 인코딩.** 네트워크로 직렬화되는 데이터가 없으므로 인코딩할 프레임도 없습니다.
+  바이너리를 포함한 직접 이벤트와 ACK 페이로드는 기존 값과 참조를 유지한 채 인메모리
+  경로를 지나지만, 이는 바이너리 프로토콜 지원을 의미하지 않습니다.
 
 계층 구분을 포함한 전체 경계는 [scope.md](docs/scope.md)에 있습니다.
 
