@@ -6,8 +6,8 @@
        heading or tagline repeats them here. The alt text is what a reader gets
        when the image does not load, so it says the same thing in words. -->
   <img
-    src="https://ik.imagekit.io/electrohyun/smocket.png?tr=w-1280"
-    width="100%"
+    src="https://ik.imagekit.io/electrohyun/smocket.png"
+    width="1280"
     alt="smocket. Mock Socket.IO without a server. Sweet setup, rocket speed."
   />
 </p>
