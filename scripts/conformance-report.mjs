@@ -101,6 +101,12 @@ const AREAS = [
     blurb: 'The trailing callback and `emitWithAck`, in both directions.',
   },
   {
+    file: 'src/ack-lifecycle.test.ts',
+    title: 'Acknowledgement lifecycle',
+    blurb:
+      'Connection-owned teardown guards, broadcast partial responses, and direction-specific one-shot consumption when response encoding fails.',
+  },
+  {
     file: 'src/ack-native.test.ts',
     title: 'Native acknowledgement teardown race',
     blurb:

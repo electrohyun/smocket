@@ -213,6 +213,23 @@ The trailing callback and `emitWithAck`, in both directions.
 - [server-to-client emitWithAck works without a timeout](../src/ack.test.ts#L195)
 - [emitWithAck buffers while disconnected and settles after reconnect](../src/ack.test.ts#L201)
 
+### Acknowledgement lifecycle
+
+Connection-owned teardown guards, broadcast partial responses, and direction-specific
+one-shot consumption when response encoding fails.
+
+- [drops a client-to-server ack invoked after the server Socket disconnects](../src/ack-lifecycle.test.ts#L30)
+- [drops a server-to-client ack invoked after the client disconnects](../src/ack-lifecycle.test.ts#L48)
+- [drops a server-to-client ack invoked after Server.close()](../src/ack-lifecycle.test.ts#L66)
+- [keeps acknowledgements invoked before teardown in both directions](../src/ack-lifecycle.test.ts#L85)
+- [times out a broadcast with only the connected recipient response](../src/ack-lifecycle.test.ts#L111)
+- [consumes a client-generated ack when its first BigInt response cannot be encoded](../src/ack-lifecycle.test.ts#L131)
+- [consumes a client-generated ack when its first circular value response cannot be encoded](../src/ack-lifecycle.test.ts#L131)
+- [keeps a server-generated ack callable after a failed BigInt response](../src/ack-lifecycle.test.ts#L158)
+- [keeps a server-generated ack callable after a failed circular value response](../src/ack-lifecycle.test.ts#L158)
+- [does not collect a broadcast retry after a client BigInt response fails](../src/ack-lifecycle.test.ts#L179)
+- [does not collect a broadcast retry after a client circular value response fails](../src/ack-lifecycle.test.ts#L179)
+
 ### Payload serialization
 
 JSON results, snapshot timing, invalid data, and reference isolation.
