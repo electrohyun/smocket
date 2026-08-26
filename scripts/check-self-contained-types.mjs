@@ -118,16 +118,22 @@ try {
   );
 
   await run('npm', ['install', '--ignore-scripts', '--no-audit', '--no-fund'], projectRoot);
-  await Promise.all([
-    access(join(projectRoot, 'node_modules', 'socket.io')).then(
-      () => assert.fail('socket.io must not be installed'),
-      () => undefined,
-    ),
-    access(join(projectRoot, 'node_modules', 'socket.io-client')).then(
-      () => assert.fail('socket.io-client must not be installed'),
-      () => undefined,
-    ),
-  ]);
+  const { stdout: dependencyQuery } = await run(
+    'npm',
+    ['query', '[name=socket.io], [name=socket.io-client]'],
+    projectRoot,
+    true,
+  );
+  const unexpectedDependencies = JSON.parse(dependencyQuery).map(({ name, version, location }) => ({
+    name,
+    version,
+    location,
+  }));
+  assert.deepEqual(
+    unexpectedDependencies,
+    [],
+    'socket.io and socket.io-client must not appear anywhere in the installed dependency tree',
+  );
   const tsc = join(projectRoot, 'node_modules', 'typescript', 'bin', 'tsc');
   await run(process.execPath, [tsc, '-p', 'tsconfig.nodenext.json'], projectRoot);
   await run(process.execPath, [tsc, '-p', 'tsconfig.bundler.json'], projectRoot);
