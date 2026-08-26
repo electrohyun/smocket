@@ -11,6 +11,7 @@ on:
         type: string
 
 permissions:
+  actions: read
   contents: read
 
 concurrency:
@@ -36,35 +37,61 @@ jobs:
           test "$RELEASE_REPOSITORY" = "electrohyun/smocket"
           test "$RELEASE_REF" = "refs/heads/main"
 
-  preflight:
-    name: build and verify release candidate
+  certify-ci:
+    name: certify exact SHA CI
     needs: authorize
+    runs-on: ubuntu-latest
+    outputs:
+      run-id: ${{ steps.ci.outputs.run-id }}
+    steps:
+      - name: Require a successful main CI run for this SHA
+        id: ci
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        with:
+          script: |
+            const response = await github.rest.actions.listWorkflowRuns({
+              ...context.repo,
+              workflow_id: 'ci.yml',
+              branch: 'main',
+              event: 'push',
+              head_sha: context.sha,
+              status: 'completed',
+              per_page: 100,
+            });
+            const run = response.data.workflow_runs.find(
+              (candidate) =>
+                candidate.head_sha === context.sha &&
+                candidate.head_branch === 'main' &&
+                candidate.event === 'push' &&
+                candidate.conclusion === 'success',
+            );
+            if (!run) {
+              core.setFailed(`No successful main CI run exists for ${context.sha}`);
+              return;
+            }
+            core.setOutput('run-id', String(run.id));
+            core.info(`Certified ${context.sha} with ${run.html_url}`);
+
+  preflight:
+    name: promote the certified release candidate
+    needs: certify-ci
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
+          ref: ${{ github.sha }}
           persist-credentials: false
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 24
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - name: Install the release npm runner
-        run: npm install --global "npm@$RELEASE_NPM_VERSION"
-      - run: pnpm typecheck
-      - run: pnpm lint
-      - run: pnpm format:check
-      - name: Run both conformance targets
-        run: |
-          pnpm test:real
-          pnpm test:mock
-      - run: pnpm check:conformance
-      - run: pnpm check:public-surface
-      - name: Build one immutable two-package candidate
-        run: pnpm release:candidate
-      - name: Verify packages and candidate consumers
-        run: pnpm check:release-candidate
+      - name: Download the candidate verified by exact-SHA CI
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: release-candidate-${{ github.sha }}
+          path: .release-candidate
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ needs.certify-ci.outputs.run-id }}
       - name: Match the requested version to the candidate
         env:
           RELEASE_VERSION: ${{ inputs.version }}
@@ -81,55 +108,9 @@ jobs:
           include-hidden-files: true
           retention-days: 7
 
-  compatibility:
-    name: socket.io ${{ matrix.socketio }} compatibility
-    needs: authorize
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        socketio: ['4.7', '4.8']
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          persist-credentials: false
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
-        with:
-          node-version: 24
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm add --workspace-root -D socket.io@${{ matrix.socketio }} socket.io-client@${{ matrix.socketio }}
-      - run: pnpm typecheck
-      - run: pnpm test:real
-
-  candidate-browser:
-    name: candidate package in Chromium
-    needs: preflight
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          persist-credentials: false
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
-        with:
-          node-version: 24
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - name: Install the release npm runner
-        run: npm install --global "npm@$RELEASE_NPM_VERSION"
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
-        with:
-          name: npm-release-candidate-${{ github.run_id }}
-          path: .release-candidate
-      - run: pnpm exec playwright install --with-deps chromium
-      - name: Run the candidate package in Chromium
-        run: pnpm consumer:client:candidate -- --manifest .release-candidate/release-candidate.json --browser
-
   publish-root:
     name: publish smocket
-    needs: [preflight, compatibility, candidate-browser]
+    needs: preflight
     runs-on: ubuntu-latest
     environment: npm
     permissions:
@@ -138,6 +119,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
+          ref: ${{ github.sha }}
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
@@ -169,6 +151,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
+          ref: ${{ github.sha }}
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
@@ -196,6 +179,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
+          ref: ${{ github.sha }}
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
