@@ -254,6 +254,8 @@ it('shared Manager teardown rejects client acks and permits explicit reconnect',
   game.serverSocket.on('slow', () => undefined);
   const rootAck = root.client.emitWithAck('slow');
   const gameAck = game.client.emitWithAck('slow');
+  const rootAckRejected = expect(rootAck).rejects.toThrow('disconnected');
+  const gameAckRejected = expect(gameAck).rejects.toThrow('disconnected');
   const rootId = root.serverSocket.id;
   const gameId = game.serverSocket.id;
   const rootDisconnected = recordClientDisconnect(root.client, 'root', []);
@@ -262,8 +264,7 @@ it('shared Manager teardown rejects client acks and permits explicit reconnect',
   root.serverSocket.disconnect(true);
   await Promise.all([rootDisconnected, gameDisconnected]);
 
-  await expect(rootAck).rejects.toThrow('disconnected');
-  await expect(gameAck).rejects.toThrow('disconnected');
+  await Promise.all([rootAckRejected, gameAckRejected]);
   expect(root.serverSocket.rooms.size).toBe(0);
   expect(game.serverSocket.rooms.size).toBe(0);
 
