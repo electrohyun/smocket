@@ -8,6 +8,8 @@ slug: /
 > SharedWorker workflow that matches your application, then use the scope,
 > differences, conformance, and troubleshooting pages to answer exact questions.
 
+This page is published at [smocket-site.vercel.app/docs](https://smocket-site.vercel.app/docs).
+
 ## Start with Smocket
 
 Smocket reproduces Socket.IO's in-memory delivery and routing rules so frontend and
@@ -19,12 +21,14 @@ From there, choose the path that matches the code you have:
 
 1. Keep an application's `socket.io-client` import with the
    [test-runner integration guide](./test-runner-integration.md).
-2. Share one caller-owned mock server across same-origin browser tabs with the
+2. Choose among the four supported imports in the
+   [package entry-point guide](./package-entry-points.md).
+3. Share one caller-owned mock server across same-origin browser tabs with the
    [SharedWorker workflow](./shared-worker.md).
-3. Check the [scope boundary](./scope.md) and
+4. Check the [scope boundary](./scope.md) and
    [differences from real Socket.IO](./differences.md) before relying on an unverified
    surface.
-4. Use the [troubleshooting guide](./troubleshooting.md) when setup fails before the
+5. Use the [troubleshooting guide](./troubleshooting.md) when setup fails before the
    first application event.
 
 ## Understand the guarantees

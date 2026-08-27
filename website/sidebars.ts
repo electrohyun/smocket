@@ -13,6 +13,7 @@ const sidebars: SidebarsConfig = {
           label: 'Quick Start',
           href: 'https://github.com/electrohyun/smocket#quick-start',
         },
+        { type: 'doc', id: 'package-entry-points', label: 'Package entry points' },
         {
           type: 'doc',
           id: 'shared-worker',
