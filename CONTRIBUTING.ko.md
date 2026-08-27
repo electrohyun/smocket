@@ -17,7 +17,7 @@
 > [v1.0.0 마일스톤](https://github.com/electrohyun/smocket/milestone/3)에서 확인할 수 있습니다.
 
 smocket은 [Socket.IO](https://socket.io/)의
-[전달(delivery)·라우팅 계층](docs/scope.ko.md)을 최대한 그대로 재현하는 것을 목표로
+[전달(delivery)·라우팅 계층](docs/scope.md)을 최대한 그대로 재현하는 것을 목표로
 합니다. 변경을 제안하실 때는 해당 상황에서 실제 Socket.IO가 어떻게 동작하는지도 함께
 알려주시면 큰 도움이 됩니다. smocket과 Socket.IO의 동작이 다르다면, 항상 Socket.IO 쪽을
 기준으로 삼습니다.
@@ -49,7 +49,7 @@ Vitest는 어디까지나 개발 의존성일 뿐입니다. `src/` 어디에서�
 
 ## 다루는 범위
 
-[범위 문서](docs/scope.ko.md)는 smocket이 Socket.IO의 어느 부분을 재현하는지와 네트워크
+[범위 문서](docs/scope.md)는 smocket이 Socket.IO의 어느 부분을 재현하는지와 네트워크
 신뢰성 동작이 프로젝트 범위 밖에 머무는 이유를 설명합니다. 이 경계 안에서는 Socket.IO
 동작과 어긋나지 않는 기능과 확장 지점이 계속 추가될 수 있습니다.
 
@@ -131,7 +131,7 @@ PR은 rebase 방식으로 머지되니, 리뷰를 요청하기 전에 커밋 히
 [Bug report 템플릿](https://github.com/electrohyun/smocket/issues/new?template=bug_report.yml)을 이용해 주세요.
 재현 가능한 코드 스니펫만큼 빠른 해결책은 없습니다. 전달 관련 버그는 설명만으로 파악하기가
 특히 어렵습니다. 결국 어떤 소켓이 무엇을 받았는지, 어느
-[room](docs/glossary.ko.md#room)이나 [namespace](docs/glossary.ko.md#namespace)에서
+[room](docs/glossary.md#room)이나 [namespace](docs/glossary.md#namespace)에서
 그랬는지가 관건이기 때문입니다.
 
 소켓을 설정하고, emit을 실행한 다음, 어떤 소켓이 이벤트를 받을 거라 예상했는지와 실제로 어떤 소켓이 받았는지만 적어 주셔도 충분합니다.
