@@ -200,25 +200,12 @@ import { io } from 'socket.io-client';
 `pnpm example:chat-room`을 실행하면 됩니다. CI에서도 push마다 같은 예제를 실행하므로
 예제가 깨지면 바로 드러납니다.
 
-[chat room package consumer](consumers/chat-room/)는 npm에서 배포 버전을 설치하거나 pull
-request에서 만든 tarball을 설치한 뒤 같은 애플리케이션을 실행합니다.
-[저장소 기반 StackBlitz 프로젝트](https://stackblitz.com/github/electrohyun/smocket)에서도
-실행할 수 있습니다.
-
 ## 다른 방식과의 비교
 
-**직접 작성한 mock과 비교.** [단일 워크플로 사례 연구](docs/application-case-study.md)에서
-handwritten mock은 실제 Socket.IO 및 배포된 smocket과 같은 워크플로와 assertion을
-통과했습니다. handwritten mock은 패키지 의존성과 포트가 필요하지 않았습니다. smocket은
-패키지 의존성 하나가 필요했지만 포트는 필요하지 않았고, 실제 Socket.IO는 로컬 서버와
-포트 설정을 직접 소유했습니다. 따라서 의존성과 포트 설정은 실제 Socket.IO보다 smocket이
-단순했고, smocket보다 handwritten 대상이 더 단순했습니다. 별도의 소유권 차이는
-애플리케이션이 handwritten mock의 동작 구현을 소유하고, smocket fixture는 더 작은
-bootstrap 뒤에서 패키지가 제공하는 동작을 사용했다는 점입니다.
-
-검증한 이벤트나 room 의미가 바뀌면 애플리케이션이 handwritten 구현을 유지보수해야 할 수
-있다는 점은 합리적인 추론입니다. 사례 연구는 그런 미래 변경을 관찰하지 않았으며, 하나의
-워크플로만으로 보편적인 생산성 결과나 모든 handwritten mock의 특성을 말할 수 없습니다.
+**직접 작성한 mock과 비교.** drawing-game의
+[유지보수 표면 사례 연구](case-studies/drawing-game/maintenance.md)는 같은 6단계 워크플로를
+8단계로 구현하고 각 동작이 추가한 소스를 기록합니다. 이 측정은 해당 워크플로에만
+적용되며 보편적인 생산성 결과나 모든 handwritten mock의 특성을 말하지 않습니다.
 
 **HTTP mocking과 비교.** 두 도구는 서로 다른 계층을 다룹니다. HTTP mocking은 트랜스포트
 계층에서 요청에 어떤 응답을 돌려줄지 정합니다. socket.io의 전달 규칙은 그 위에서 어떤

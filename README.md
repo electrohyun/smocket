@@ -197,7 +197,7 @@ complete Vitest and Jest setups.
 | Wanting a typed drawing and chat workflow      | [examples/drawing-game](examples/drawing-game/)                                       |
 | Wanting several tabs to share one browser mock | [the SharedWorker workflow](docs/shared-worker.md)                                    |
 | Wanting an executable compatibility case study | [case-studies/drawing-game](case-studies/drawing-game/)                               |
-| Wanting to compare real and mock runs          | [the dual-target consumer walkthrough](consumers/chat-room/)                          |
+| Wanting to compare real and mock runs          | [the drawing-game compatibility case study](case-studies/drawing-game/)               |
 | Wanting the exact guarantees                   | [the conformance report](docs/conformance.md)                                         |
 
 ## Examples
@@ -220,26 +220,12 @@ server. Run `pnpm example:shared-worker` for the automated lobby workflow, or re
 the [SharedWorker guide](docs/shared-worker.md) before adopting its explicit worker
 and client subpaths.
 
-The [dual-target chat room consumer](consumers/chat-room/) runs the same handlers and
-scenario against real Socket.IO and Smocket after npm installs the released packages
-or tarballs built from a pull request. It is also available as a
-[repository-backed StackBlitz project](https://stackblitz.com/github/electrohyun/smocket).
-
 ## How it compares
 
-**Against a hand-written mock.** In the
-[one-workflow case study](docs/application-case-study.md), the handwritten mock passed
-the same workflow and assertions as real Socket.IO and published Smocket. It had no
-package dependency and needed no port; Smocket needed one package dependency and also
-needed no port, while real Socket.IO owned the local server and port setup. The
-dependency and port setup was therefore simpler for Smocket than for real Socket.IO,
-and simpler still for the handwritten target than for Smocket. The separate ownership
-tradeoff was that the application owned the handwritten mock's behavior implementation,
-while the Smocket package supplied that behavior behind a smaller fixture bootstrap.
-
-It is reasonable to infer that a change to the exercised event or room semantics may
-require the application to maintain its handwritten implementation. The study did not
-observe such a future change, and its single workflow does not establish a universal
+**Against a hand-written mock.** The drawing-game
+[maintenance-surface case study](case-studies/drawing-game/maintenance.md) builds the
+same six-step workflow in eight stages and records the source each added behavior owns.
+Its measurements apply only to that workflow; they do not establish a universal
 productivity result or describe every handwritten mock.
 
 **Against HTTP mocking.** A different layer, not a different tool for the same job.

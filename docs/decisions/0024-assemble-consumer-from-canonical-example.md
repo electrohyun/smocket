@@ -1,6 +1,6 @@
 # 0024. Assemble the consumer from the canonical example
 
-**Status:** Accepted · 2026-08-12 · #208
+**Status:** Superseded by [0039](./0039-retire-legacy-chat-room-evaluation.md) · 2026-08-27 · #451
 
 > **TL;DR** Keep the chat application in `examples/chat-room` and its independent
 > package boundary in `consumers/chat-room`. CI assembles both outside the checkout,

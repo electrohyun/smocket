@@ -6,9 +6,8 @@ disconnect notification. It uses the workspace copy of Smocket, so CI exercises
 the source under review rather than an installed public release.
 
 The workspace bootstrap deliberately uses the retained root `connect` export. The
-[dual-target package consumer](../../consumers/chat-room/) reuses this application's
-handlers and scenario with the published `smocket-client` facade and with real
-Socket.IO.
+dual-target test reuses this application's handlers and scenario with workspace
+Smocket and real Socket.IO.
 
 ## Participants and channels
 
@@ -58,10 +57,8 @@ To run only the transcript-producing application:
 pnpm --filter chat-room-example start
 ```
 
-This workspace-backed command exercises the source under review. The
-[package consumer](../../consumers/chat-room/) assembles the same application outside
-the workspace and installs either a released package or a candidate tarball. It can also
-be opened through its [StackBlitz entry point](https://stackblitz.com/github/electrohyun/smocket).
+This workspace-backed command exercises the source under review. Independent package
+installation is covered by the repository's clean-adoption fixtures.
 
 The transcript is deterministic:
 
