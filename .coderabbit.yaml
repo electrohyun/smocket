@@ -55,8 +55,9 @@ reviews:
         those cases.
     - path: 'docs/**/*.md'
       instructions: >-
-        Files with a .ko.md twin are translation pairs; flag a change to
-        the English file that does not update its Korean counterpart.
+        Documentation under docs is English-only and authoritative. Do not
+        request a .ko.md counterpart; maintained Korean entry points are
+        limited to the root README and contribution guide.
         Entries in differences.md follow the existing format: bold lead
         sentence, short explanation, link to the governing decision.
         Do not comment on the length of files in docs/decisions/.
