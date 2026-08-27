@@ -1110,7 +1110,7 @@
   "sourceInputs": [
     {
       "sourceFile": "package.json",
-      "sha256": "bb49edec147585b585ad7409919a267fbc3b3b6defc7934f9e508b7ad638b2ab"
+      "sha256": "6ba1421d9e696dc3ccd90901682483cfdfb5b37ed01c5e6c96b3681e2a0b6925"
     },
     {
       "sourceFile": "pnpm-lock.yaml",
@@ -1122,7 +1122,7 @@
     },
     {
       "sourceFile": "packages/smocket-client/package.json",
-      "sha256": "72928bd143f2963f6f93709c9b9eb77afde0720bead797e219433e3c44ebf05b"
+      "sha256": "757f4d8dd550ce0b34be4e83e34e3473733ff12068fad65ca4f2d8e7a2a370a1"
     },
     {
       "sourceFile": "examples/drawing-game/application.ts",

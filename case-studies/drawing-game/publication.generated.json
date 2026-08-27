@@ -20,7 +20,7 @@
       "path": "case-studies/drawing-game/observations.generated.json",
       "purpose": "Real oracle and Smocket or competitor step results.",
       "schemaVersion": 1,
-      "sha256": "e1dcb95b538782727747bfeb9ed49d969d542c3363535328bc7d989120dbfcd5"
+      "sha256": "6d8a74cfbd56f75a68c1c07887eb6be017b3c1101aec5dc33570a0e8e5929497"
     },
     {
       "id": "comparison-snippets",
@@ -34,7 +34,7 @@
       "path": "case-studies/drawing-game/maintenance.generated.json",
       "purpose": "Staged handwritten LOC, diffs, source closures, and assertions.",
       "schemaVersion": 2,
-      "sha256": "d7633f114c9509ba412a8a7568f6954fad1c7059d0178bd8cd8aab24af31687a"
+      "sha256": "b3a87f410ff17784a78e7ef02011eb377a9762ce4753d733b7abb8b9ea0460a8"
     },
     {
       "id": "maintenance-snippets",
@@ -237,7 +237,7 @@
         "id": "smocket",
         "label": "Smocket workspace source",
         "role": "subject",
-        "packages": { "smocket": "workspace:0.5.1", "smocket-client": "workspace:0.5.1" },
+        "packages": { "smocket": "workspace:1.0.0", "smocket-client": "workspace:1.0.0" },
         "result": { "artifactId": "comparison-observations", "jsonPointer": "/cards/0" },
         "packageSources": {
           "artifactId": "comparison-observations",
