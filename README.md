@@ -95,36 +95,40 @@ requires a test runner.
 import { Server } from 'smocket';
 import { connect } from 'smocket-client';
 
-const URL = 'http://localhost:3000';
-const io = new Server(URL);
+async function main() {
+  const URL = 'http://localhost:3000';
+  const io = new Server(URL);
 
-io.on('connection', (socket) => {
-  socket.on('join', async (room: string, done: () => void) => {
-    await socket.join(room);
-    done();
+  io.on('connection', (socket) => {
+    socket.on('join', async (room: string, done: () => void) => {
+      await socket.join(room);
+      done();
+    });
+
+    socket.on('say', (room: string, text: string) => {
+      socket.to(room).emit('said', text);
+    });
   });
 
-  socket.on('say', (room: string, text: string) => {
-    socket.to(room).emit('said', text);
-  });
-});
+  const alice = connect(URL);
+  const bob = connect(URL);
 
-const alice = connect(URL);
-const bob = connect(URL);
+  const joinLobby = (client: ReturnType<typeof connect>) =>
+    new Promise<void>((done) => client.emit('join', 'lobby', done));
 
-const joinLobby = (client: ReturnType<typeof connect>) =>
-  new Promise<void>((done) => client.emit('join', 'lobby', done));
+  try {
+    await Promise.all([joinLobby(alice), joinLobby(bob)]);
 
-try {
-  await Promise.all([joinLobby(alice), joinLobby(bob)]);
+    const bobHeard = new Promise<string>((done) => bob.once('said', done));
+    alice.emit('say', 'lobby', 'hello');
 
-  const bobHeard = new Promise<string>((done) => bob.once('said', done));
-  alice.emit('say', 'lobby', 'hello');
-
-  console.log(`Bob heard: ${await bobHeard}`);
-} finally {
-  await io.close();
+    console.log(`Bob heard: ${await bobHeard}`);
+  } finally {
+    await io.close();
+  }
 }
+
+void main();
 ```
 
 Save the file and run it with the TypeScript runner already used by your project,
@@ -155,7 +159,7 @@ The smocket path hosts the session in a SharedWorker. The real path starts a Nod
 Socket.IO server. Both use the same application event handler, event types, domain
 state, React UI, and user actions; only the connection bootstrap changes.
 
-- [Open the browser demo](https://smocket-site.vercel.app/demo)
+- [Try the live browser demo — no setup required](https://smocket-site.vercel.app/demo)
 - Run the source with `pnpm example:drawing-game`
 - Read the [interactive report](https://smocket-site.vercel.app/case-study) or the
   [reproducible case study](case-studies/drawing-game/)

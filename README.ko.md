@@ -88,41 +88,45 @@ npm install -D smocket smocket-client
 import { Server } from 'smocket';
 import { connect } from 'smocket-client';
 
-const URL = 'http://localhost:3000';
-const io = new Server(URL);
+async function main() {
+  const URL = 'http://localhost:3000';
+  const io = new Server(URL);
 
-io.on('connection', (socket) => {
-  socket.on('join', async (room: string, done: () => void) => {
-    await socket.join(room);
-    done();
+  io.on('connection', (socket) => {
+    socket.on('join', async (room: string, done: () => void) => {
+      await socket.join(room);
+      done();
+    });
+
+    socket.on('say', (room: string, text: string) => {
+      socket.to(room).emit('said', text);
+    });
   });
 
-  socket.on('say', (room: string, text: string) => {
-    socket.to(room).emit('said', text);
-  });
-});
+  const alice = connect(URL);
+  const bob = connect(URL);
 
-const alice = connect(URL);
-const bob = connect(URL);
+  const joinLobby = (client: ReturnType<typeof connect>) =>
+    new Promise<void>((done) => client.emit('join', 'lobby', done));
 
-const joinLobby = (client: ReturnType<typeof connect>) =>
-  new Promise<void>((done) => client.emit('join', 'lobby', done));
+  try {
+    await Promise.all([joinLobby(alice), joinLobby(bob)]);
 
-try {
-  await Promise.all([joinLobby(alice), joinLobby(bob)]);
+    const bobHeard = new Promise<string>((done) => bob.once('said', done));
+    alice.emit('say', 'lobby', 'hello');
 
-  const bobHeard = new Promise<string>((done) => bob.once('said', done));
-  alice.emit('say', 'lobby', 'hello');
-
-  console.log(`Bob heard: ${await bobHeard}`);
-} finally {
-  await io.close();
+    console.log(`Bob heard: ${await bobHeard}`);
+  } finally {
+    await io.close();
+  }
 }
+
+void main();
 ```
 
 파일을 프로젝트에서 쓰는 TypeScript runner로 실행하거나, 별도 파일이라면
 `npx tsx quick-start.ts`를 사용하세요. `Bob heard: hello`를 출력한 뒤 `close()`가
-두 client의 연결을 끊고 서버 등록을 해제합니다. 저장소에서 실행되는 room·
+두 client의 연결을 끊고 서버 등록을 해제합니다. 저장소에서 실행되는 room과
 acknowledgement 예제는 [`examples/chat-room`](examples/chat-room/)에 있으며
 `pnpm example:chat-room`으로 실행할 수 있습니다.
 
@@ -148,7 +152,7 @@ smocket 경로는 SharedWorker에서 세션을 실행하고, 실제 경로는 No
 시작합니다. 두 경로는 같은 애플리케이션 event handler, event type, 도메인 상태,
 React UI, 사용자 동작을 공유하며 연결 bootstrap만 달라집니다.
 
-- [브라우저 데모 열기](https://smocket-site.vercel.app/demo)
+- [설치 없이 바로 실행되는 브라우저 데모 열기](https://smocket-site.vercel.app/demo)
 - `pnpm example:drawing-game`으로 소스 실행하기
 - [인터랙티브 결과](https://smocket-site.vercel.app/case-study) 또는
   [재현 가능한 case study](case-studies/drawing-game/) 읽기
