@@ -137,5 +137,17 @@ export function setupRealServer(): ServerContext {
 
   ctx.connectClients = makeConnectClients(ctx);
 
+  ctx.disconnectPendingClient = async (clientContract, serverSocketContract) => {
+    const client = clientContract as unknown as ClientSocket;
+    const serverSocket = serverSocketContract as unknown as ServerSocket;
+    const transportClosed =
+      serverSocket.conn.readyState === 'closed'
+        ? Promise.resolve()
+        : new Promise<void>((resolve) => serverSocket.conn.once('close', () => resolve()));
+
+    client.disconnect();
+    await transportClosed;
+  };
+
   return ctx;
 }
