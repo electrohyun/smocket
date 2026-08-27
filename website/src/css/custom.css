@@ -79,6 +79,14 @@ html {
 }
 
 body {
+  background: var(--smocket-bg);
+  text-rendering: optimizeLegibility;
+}
+
+/* Docusaurus keeps body at one viewport while this root grows with the full
+   document. Paint the sky here so its lower amber glow cannot end at the first
+   viewport boundary on long pages. */
+#__docusaurus {
   background:
     radial-gradient(
       125% 55% at 50% 106%,
@@ -88,11 +96,9 @@ body {
     ),
     radial-gradient(80% 55% at 82% -12%, rgb(206 152 96 / 14%), transparent 62%),
     linear-gradient(180deg, #f9f1e2 0%, var(--smocket-bg) 46%, #f0e3cd 100%);
-  background-attachment: fixed;
-  text-rendering: optimizeLegibility;
 }
 
-[data-theme='dark'] body {
+[data-theme='dark'] #__docusaurus {
   background:
     radial-gradient(
       125% 55% at 50% 106%,
