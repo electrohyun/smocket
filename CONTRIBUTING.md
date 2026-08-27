@@ -37,11 +37,15 @@ Push your working branch to your fork, then open a pull request against `main` i
 
 `pnpm test` runs [Vitest](https://vitest.dev/) in watch mode, and it is handy to leave open while you work. There is no dev server to look at, so the test output is the feedback loop.
 
-| Command           | What it does                       |
-| ----------------- | ---------------------------------- |
-| `pnpm test`       | Run tests in watch mode            |
-| `pnpm test --run` | Run tests once                     |
-| `pnpm typecheck`  | Type-check without emitting output |
+| Command             | What it does                            |
+| ------------------- | --------------------------------------- |
+| `pnpm test`         | Run tests in watch mode                 |
+| `pnpm vitest run`   | Run both test projects once             |
+| `pnpm typecheck`    | Type-check without emitting output      |
+| `pnpm lint`         | Check code and documentation style      |
+| `pnpm format`       | Apply the repository formatting         |
+| `pnpm format:check` | Check formatting without changing files |
+| `pnpm docs:check`   | Build and test the documentation site   |
 
 Vitest is a development dependency only. It is not imported from `src/`, and installing smocket does not pull it in. If you add a helper that needs a spy or a fake timer, implementing it directly rather than importing from `vitest` keeps that boundary intact.
 
@@ -117,14 +121,22 @@ Please open pull requests against `main`. Linking the issue in the body with `Cl
 
 A few things worth checking before you ask for review:
 
-- Tests pass (`pnpm test --run`)
+- Both test projects pass (`pnpm vitest run`)
 - Types check (`pnpm typecheck`)
+- Lint passes (`pnpm lint`)
+- Formatting is current (`pnpm format:check`)
+- Documentation changes build and pass their integration checks (`pnpm docs:check`)
 - New behavior has a test that would fail without your change
 - Behavior matches real Socket.IO, and you can say where you verified that
 
+If `pnpm format:check` fails, run `pnpm format`, review the resulting changes,
+and run the check again before pushing.
+
 The last one matters most here. A test asserting that smocket does what smocket already does does not tell us much, so tests that encode what Socket.IO does are the most useful kind. [docs/conformance.md](docs/conformance.md) lists what is already encoded, what is not yet, and the steps a new case goes through; if you added or renamed one, run `pnpm conformance` so that page keeps matching the suite.
 
-Pull requests are rebase merged, so please tidy up your commit history before asking for review. Every commit lands on `main` as-is, so following the commit conventions above helps.
+Pull requests are squash merged. Use a conventional PR title because it becomes the
+single commit title on `main`. Branch commits should remain understandable during review,
+but you do not need to rewrite them solely to imitate the final one-commit history.
 
 ## Reporting bugs
 

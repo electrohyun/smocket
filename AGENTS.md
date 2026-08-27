@@ -45,13 +45,12 @@ multi-server scaling (Redis adapter), and binary encoding.
 ## Checks and merge
 
 - `pnpm typecheck`, `pnpm lint`, and `pnpm format:check` must pass.
-- Merges are rebase, and `main` is branch-protected, so land every change via a PR.
+- Merges are squash-only, and `main` is branch-protected, so land every change via a PR.
 
 ## Commits and PRs
 
-Follow the Commits and Pull requests sections of
-[CONTRIBUTING.md](CONTRIBUTING.md). In short: Conventional Commits
-(`type: description`), no issue number in the branch or subject line, commits
-split by type (`feat` apart from `docs`) with a tidy history before review, since
-PRs are rebase merged and every commit lands on `main` as-is, and `Closes #N` in
-the PR body. Write commits, PRs, and issues in English.
+Follow the Commits and Pull requests sections of [CONTRIBUTING.md](CONTRIBUTING.md).
+Use Conventional Commits (`type: description`) for commits and PR titles, with no
+issue number in the branch or title. Branch commits must stay reviewable; the PR title
+becomes the single squash commit on `main`. Put `Closes #N` in the PR body, and write
+commits, PRs, and issues in English.
