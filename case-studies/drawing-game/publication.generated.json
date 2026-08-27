@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "publication": "drawing-game",
-  "sourceRevision": "6afc76aa6b9531e26454c09200627dba1b626640",
+  "sourceRevision": "16ebb798708737a18a35227778b9a44ac06c79a2",
   "commands": {
     "record": "pnpm case-study:drawing-game:publication:record",
     "check": "pnpm case-study:drawing-game:publication:check",
@@ -13,35 +13,35 @@
       "path": "examples/drawing-game/snippets.generated.json",
       "purpose": "Executable TypeScript application and target-bootstrap snippets.",
       "schemaVersion": 1,
-      "sha256": "b34391543f1b9b12a6776b58e80fec33b63eec4dc589812c3763324129923c65"
+      "sha256": "528a7ec02e4096d863eb9195c08b14d742f14e83c5bcce023901ad41ca47774c"
     },
     {
       "id": "comparison-observations",
       "path": "case-studies/drawing-game/observations.generated.json",
       "purpose": "Real oracle and Smocket or competitor step results.",
       "schemaVersion": 1,
-      "sha256": "87ed7244e42edae96268ece1bcd196c603f62eaa91db50f4343594ef266f037f"
+      "sha256": "e1dcb95b538782727747bfeb9ed49d969d542c3363535328bc7d989120dbfcd5"
     },
     {
       "id": "comparison-snippets",
       "path": "case-studies/drawing-game/snippets.generated.json",
       "purpose": "Executable source snippets indexed by target and workflow step.",
       "schemaVersion": 1,
-      "sha256": "461f5f1c4ca874d3a4b22b24e941389d3ecbf5626056a614f814dd9cb0908866"
+      "sha256": "63fec30e73a4a4364d846d825d809c259f5d65e4cc451f723267565e4b204fc8"
     },
     {
       "id": "maintenance-measurement",
       "path": "case-studies/drawing-game/maintenance.generated.json",
       "purpose": "Staged handwritten LOC, diffs, source closures, and assertions.",
       "schemaVersion": 2,
-      "sha256": "735b2bdd2e6a2153a44c49243a1cc05fd6830e2bdbeb3bba630c83a917ceb209"
+      "sha256": "d7633f114c9509ba412a8a7568f6954fad1c7059d0178bd8cd8aab24af31687a"
     },
     {
       "id": "maintenance-snippets",
       "path": "case-studies/drawing-game/maintenance-snippets.generated.json",
       "purpose": "Executable handwritten stage and Smocket integration snippets.",
       "schemaVersion": 2,
-      "sha256": "5002eae5be52af231b99f45fdf4c2b141ea5aacf076dec64f5d1fcf58e6badba"
+      "sha256": "b868babc7693f103ce386a6bddfec43f8c93eea19278ef8f99068963e31da178"
     }
   ],
   "workflow": {
@@ -79,7 +79,7 @@
           "artifactId": "comparison-observations",
           "jsonPointer": "/oracle/steps/2-room-join"
         },
-        "goldenSnippetIds": ["room-join"],
+        "goldenSnippetIds": ["live-game-handler", "room-join"],
         "comparisonSnippetIds": [
           "real.2-room-join",
           "smocket.2-room-join",
@@ -95,7 +95,7 @@
           "artifactId": "comparison-observations",
           "jsonPointer": "/oracle/steps/3-sender-excluded-stroke"
         },
-        "goldenSnippetIds": ["drawing-server-handler", "drawing-client"],
+        "goldenSnippetIds": ["live-game-handler", "drawing-server-handler", "drawing-client"],
         "comparisonSnippetIds": [
           "real.3-sender-excluded-stroke",
           "smocket.3-sender-excluded-stroke",
@@ -111,7 +111,12 @@
           "artifactId": "comparison-observations",
           "jsonPointer": "/oracle/steps/4-wrong-guess"
         },
-        "goldenSnippetIds": ["chat-guess-server-handler", "chat-guess-client", "acknowledgement"],
+        "goldenSnippetIds": [
+          "live-game-handler",
+          "chat-guess-server-handler",
+          "chat-guess-client",
+          "acknowledgement"
+        ],
         "comparisonSnippetIds": [
           "real.4-wrong-guess",
           "smocket.4-wrong-guess",
@@ -128,6 +133,7 @@
           "jsonPointer": "/oracle/steps/5-correct-guess"
         },
         "goldenSnippetIds": [
+          "live-game-handler",
           "chat-guess-server-handler",
           "chat-guess-client",
           "acknowledgement",
@@ -231,7 +237,7 @@
         "id": "smocket",
         "label": "Smocket workspace source",
         "role": "subject",
-        "packages": { "smocket": "workspace:0.5.0", "smocket-client": "workspace:0.5.0" },
+        "packages": { "smocket": "workspace:0.5.1", "smocket-client": "workspace:0.5.1" },
         "result": { "artifactId": "comparison-observations", "jsonPointer": "/cards/0" },
         "packageSources": {
           "artifactId": "comparison-observations",
@@ -549,7 +555,7 @@
       "transitionDiff": "Additions and deletions are an LCS diff over counted code lines grouped by stable source role.",
       "invariant": "previous total + additions - deletions = current total"
     },
-    "sharedApplicationLoc": 103,
+    "sharedApplicationLoc": 53,
     "smocketIntegrationLoc": 18,
     "smocketSnippetIds": [
       "smocket.integration.smocket-bootstrap",
@@ -726,6 +732,7 @@
         "id": "golden",
         "artifactId": "golden-snippets",
         "snippetIds": [
+          "live-game-handler",
           "room-join",
           "drawing-server-handler",
           "drawing-client",
@@ -811,7 +818,7 @@
     ]
   },
   "provenance": {
-    "sourceRevision": "6afc76aa6b9531e26454c09200627dba1b626640",
+    "sourceRevision": "16ebb798708737a18a35227778b9a44ac06c79a2",
     "sourceFiles": [
       { "artifactId": "comparison-observations", "jsonPointer": "/sources" },
       { "artifactId": "maintenance-measurement", "jsonPointer": "/sourceInputs" }

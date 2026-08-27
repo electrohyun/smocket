@@ -199,15 +199,7 @@ try {
       npm: await run('npm', ['--version'], repositoryRoot, true),
       smocketSourceCommit: await run(
         'git',
-        [
-          '-c',
-          'safe.directory=C:/Users/jkh83/Desktop/smocket',
-          'log',
-          '-1',
-          '--format=%H',
-          '--',
-          'examples/drawing-game',
-        ],
+        ['log', '-1', '--format=%H', '--', 'examples/drawing-game'],
         repositoryRoot,
         true,
       ),

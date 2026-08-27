@@ -9,7 +9,8 @@
 
 Real Socket.IO is the oracle, not a score card. The four cards use these exact inputs:
 
-- workspace `smocket@0.5.0` and `smocket-client@0.5.0` from the recorded source commit;
+- workspace `smocket` and `smocket-client` at the exact versions in the recorded
+  observation;
 - [`mock-socket@9.3.1`](https://www.npmjs.com/package/mock-socket/v/9.3.1);
 - [`@mswjs/socket.io-binding@0.2.0`](https://www.npmjs.com/package/@mswjs/socket.io-binding/v/0.2.0)
   with compatible latest `msw@2.15.0` and `socket.io-client@4.8.3`;
