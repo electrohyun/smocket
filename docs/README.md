@@ -41,8 +41,7 @@ From there, choose the path that matches the code you have:
 - [Contributing](../CONTRIBUTING.md) · [한국어](../CONTRIBUTING.ko.md)
 - [Documentation guide](./CONTRIBUTING-docs.md)
 - [Repository structure](./repository-structure.md) and [script guide](../scripts/README.md)
-- [Development lenses](./development-lenses.md) ·
-  [한국어](./development-lenses.ko.md)
+- [Development lenses](./development-lenses.md)
 - [Decisions index](./decisions/README.md)
 - [Public surface ledger](./public-surface.md)
 - [Package policy](./package-policy.md)
@@ -54,5 +53,6 @@ From there, choose the path that matches the code you have:
 - [Issue and pull request labels](./labels.md)
 - [Version compatibility decision](./decisions/0019-what-counts-as-a-breaking-change.md)
 
-A Korean version of a document, where one exists, sits beside it as
-`<name>.ko.md`, with the English version authoritative on any divergence.
+English documentation is authoritative. Maintained Korean entry points are limited to
+the repository [README](../README.ko.md) and [contribution guide](../CONTRIBUTING.ko.md)
+so the project does not promise to synchronize every page.

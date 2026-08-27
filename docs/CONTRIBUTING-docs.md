@@ -125,21 +125,15 @@ Context and Consequences for later.
 
 ---
 
-## 7. Korean versions
+## 7. Korean entry points
 
-- The filename is the original plus `.ko`. (`0005-missing-server-behavior.ko.md`)
-- Do not split into a `ko/` directory; the pair is lost when a number changes.
-- State the original and the base commit at the top.
-
-```markdown
-> This is the Korean version of
-> [decisions/0005](./0005-missing-server-behavior.md).
-> Base: `6a8d0bc`. If the two diverge, the English version is authoritative.
-```
-
-- A Korean document is never required. It is written to help Korean readers, and if
-  you would like to contribute one, an AI-written version is fine. It may be revised
-  in review; contributions are welcome.
+- English documentation is authoritative.
+- Maintained Korean documents are limited to `README.ko.md` and
+  `CONTRIBUTING.ko.md` at the repository root.
+- Those files guide Korean readers to the English pages that own detailed behavior,
+  scope, and maintenance procedures. They do not mirror every English document.
+- Do not add another `.ko.md` copy. Improve the English source, or update one of the
+  two entry points when Korean navigation itself is incomplete.
 
 ---
 
@@ -180,5 +174,4 @@ documentation site. Do not use Docusaurus-only `:::note` directives in source do
 Most documents need no Alert. When one is needed, prefer one and normally stop at two.
 Do not convert every TL;DR, ordinary emphasis, troubleshooting entry, or ADR into an
 Alert. Keep existing `> **TL;DR**` blocks as they are, avoid repeating the heading or
-surrounding prose, and keep code, links, and lists inside the Alert valid Markdown. When
-an English document has a Korean counterpart, keep the meaning and Alert type aligned.
+surrounding prose, and keep code, links, and lists inside the Alert valid Markdown.

@@ -368,8 +368,9 @@ mock은 네트워크를 오간 바이트를 확인하고, smocket은 emit, join,
 | [CONTRIBUTING-docs.md](docs/CONTRIBUTING-docs.md)             | 이 저장소에서 문서를 작성하는 방법                                |
 | [labels.md](docs/labels.md)                                   | Issue와 Pull Request 라벨의 의미                                  |
 
-한국어판이 있는 문서는 원문 옆에 `<name>.ko.md`로 있으며, 두 문서가 다르면 영어판이
-정본입니다.
+지속적으로 관리하는 한국어 진입 문서는 이 README와
+[CONTRIBUTING.ko.md](CONTRIBUTING.ko.md)입니다. 영어 문서가 정본이며, 두 한국어 문서는
+모든 영어 페이지를 복제하지 않고 필요한 정본 링크를 안내합니다.
 
 ## 기여
 

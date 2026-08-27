@@ -400,8 +400,9 @@ already cover the first question well. See
 | [CONTRIBUTING-docs.md](docs/CONTRIBUTING-docs.md)             | how documents here are written                                           |
 | [labels.md](docs/labels.md)                                   | what the issue and pull request labels mean                              |
 
-Korean versions sit beside the originals as `<name>.ko.md`, with the English
-version authoritative where the two diverge.
+The maintained Korean entry points are [README.ko.md](README.ko.md) and
+[CONTRIBUTING.ko.md](CONTRIBUTING.ko.md). English documentation is authoritative;
+the two Korean guides link to it instead of mirroring every page.
 
 ## Contributing
 
