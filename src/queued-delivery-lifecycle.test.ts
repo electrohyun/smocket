@@ -77,54 +77,54 @@ it.each(packetMiddlewareCases)(
   },
 );
 
-it.each(packetMiddlewareCases)(
-  'drains client packets queued before client.disconnect() %s',
-  async (_label, withMiddleware) => {
-    const { client, serverSocket } = await ctx.connectClient();
-    let releaseTerminate!: () => void;
-    const writesFlushed = new Promise<void>((resolve) => {
-      releaseTerminate = resolve;
-    });
-    let finishTerminate!: () => void;
-    const terminateFinished = new Promise<void>((resolve) => {
-      finishTerminate = resolve;
-    });
-    if (withMiddleware) {
-      serverSocket.use((event, next) => {
-        if (event[0] === 'terminate') {
-          void writesFlushed.then(() => next());
-          return;
-        }
-        if (event[0] === 'queued') {
-          void terminateFinished.then(() => next());
-          return;
-        }
-        next();
-      });
+it('drains client packets admitted before client.disconnect()', async () => {
+  const { client, serverSocket } = await ctx.connectClient();
+  let releaseTerminate!: () => void;
+  const writesFlushed = new Promise<void>((resolve) => {
+    releaseTerminate = resolve;
+  });
+  let finishTerminate!: () => void;
+  const terminateFinished = new Promise<void>((resolve) => {
+    finishTerminate = resolve;
+  });
+  let markQueuedEntered!: () => void;
+  const queuedEntered = new Promise<void>((resolve) => {
+    markQueuedEntered = resolve;
+  });
+  serverSocket.use((event, next) => {
+    if (event[0] === 'terminate') {
+      void writesFlushed.then(() => next());
+      return;
     }
-    const order: string[] = [];
-    const queued = new Promise<void>((resolve) =>
-      serverSocket.once('queued', () => {
-        order.push('queued');
-        resolve();
-      }),
-    );
-    serverSocket.on('terminate', () => {
-      order.push('terminate');
-      client.disconnect();
-      if (withMiddleware) finishTerminate();
-    });
+    if (event[0] === 'queued') {
+      markQueuedEntered();
+      void terminateFinished.then(() => next());
+      return;
+    }
+    next();
+  });
+  const order: string[] = [];
+  const queued = new Promise<void>((resolve) =>
+    serverSocket.once('queued', () => {
+      order.push('queued');
+      resolve();
+    }),
+  );
+  serverSocket.on('terminate', () => {
+    order.push('terminate');
+    client.disconnect();
+    finishTerminate();
+  });
 
-    client.emit('terminate');
-    client.emit('queued');
-    if (withMiddleware) {
-      await ctx.flushClientWrites(client);
-      releaseTerminate();
-    }
-    await queued;
-    expect(order).toEqual(['terminate', 'queued']);
-  },
-);
+  client.emit('terminate');
+  client.emit('queued');
+  // Middleware entry proves the server parsed both packets before the first
+  // handler starts teardown. A transport write alone cannot establish that.
+  await queuedEntered;
+  releaseTerminate();
+  await queued;
+  expect(order).toEqual(['terminate', 'queued']);
+});
 
 it('drains server packets queued before Server.close()', async () => {
   const { client, serverSocket } = await ctx.connectClient();

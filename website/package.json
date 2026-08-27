@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "start": "docusaurus start --host 127.0.0.1",
-    "build": "docusaurus build",
+    "build": "node ../scripts/check-doc-image-formats.mjs && docusaurus build",
     "serve": "docusaurus serve --host 127.0.0.1",
     "typecheck": "tsc --noEmit",
     "test": "node --test test/*.test.mjs"
