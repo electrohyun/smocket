@@ -61,12 +61,6 @@ export interface ServerContext<
     options?: FixtureConnectOptions,
   ) => Promise<ConnectedClient<ListenEvents, EmitEvents, ServerSideEvents, SocketData>[]>;
   /**
-   * Resolve after writes already issued by `client` have left the fixture's
-   * client-side queue. Lifecycle tests use this to distinguish packets that
-   * were queued before teardown from packets started after teardown.
-   */
-  flushClientWrites: (client: ClientSocketContract<EmitEvents, ListenEvents>) => Promise<void>;
-  /**
    * Resolve with the server-side socket of the next client to connect on
    * `namespace`. Needed when the connection is not started by `connectClient`,
    * as with a reconnect of a client already known to the test.

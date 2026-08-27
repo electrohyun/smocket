@@ -119,12 +119,5 @@ export function setupRealServer(): ServerContext {
 
   ctx.connectClients = makeConnectClients(ctx);
 
-  ctx.flushClientWrites = async (clientContract) => {
-    const client = clientContract as unknown as ClientSocket;
-    const engine = client.io.engine;
-    if (engine.writeBuffer.length === 0) return;
-    await new Promise<void>((resolve) => engine.once('drain', () => resolve()));
-  };
-
   return ctx;
 }
