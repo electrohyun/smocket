@@ -80,7 +80,7 @@ html {
 
 body {
   background: var(--smocket-bg);
-  text-rendering: optimizeLegibility;
+  text-rendering: optimizelegibility;
 }
 
 /* Docusaurus keeps body at one viewport while this root grows with the full
