@@ -40,6 +40,7 @@ From there, choose the path that matches the code you have:
 
 - [Contributing](../CONTRIBUTING.md) · [한국어](../CONTRIBUTING.ko.md)
 - [Documentation guide](./CONTRIBUTING-docs.md)
+- [Repository structure](./repository-structure.md) and [script guide](../scripts/README.md)
 - [Development lenses](./development-lenses.md) ·
   [한국어](./development-lenses.ko.md)
 - [Decisions index](./decisions/README.md)

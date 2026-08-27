@@ -1,6 +1,10 @@
 import { defineConfig } from 'vitest/config';
 
-const targetFiles = ['src/**/*.test.ts', 'examples/shared-worker-lobby/src/**/*.test.ts'];
+const targetFiles = [
+  'src/**/*.test.ts',
+  'test/shared-worker/**/*.test.ts',
+  'examples/shared-worker-lobby/src/**/*.test.ts',
+];
 const toolingFiles = ['scripts/**/*.test.ts'];
 
 export default defineConfig({

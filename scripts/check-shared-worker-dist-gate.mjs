@@ -19,8 +19,8 @@ try {
       'run',
       '--config',
       resolve(ROOT, 'vitest.dist.config.ts'),
-      'src/shared-worker.test.ts',
-      'src/shared-worker-client.test.ts',
+      'test/shared-worker/host.test.ts',
+      'test/shared-worker/client.test.ts',
     ],
     {
       cwd: ROOT,
@@ -35,7 +35,7 @@ try {
   );
   assert.match(
     `${result.stdout}${result.stderr}`,
-    /Cannot find module '\.\/shared-worker'/,
+    /Cannot find module '(?:\.\/|\.\.\/\.\.\/src\/)shared-worker'/,
     'SharedWorker dist tests failed for an unrelated reason',
   );
   process.stdout.write('SharedWorker dist gate rejected a missing public artifact.\n');

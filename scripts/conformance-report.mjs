@@ -272,13 +272,13 @@ const AREAS = [
       'Pairing direct clients with server sockets, namespace queue order, admission outcomes, and close settlement.',
   },
   {
-    file: 'src/shared-worker.test.ts',
+    file: 'test/shared-worker/host.test.ts',
     title: 'SharedWorker host bridge',
     blurb:
       'Validating port messages, generations, acknowledgements, ordering, errors, and explicit teardown around the existing in-process server.',
   },
   {
-    file: 'src/shared-worker-client.test.ts',
+    file: 'test/shared-worker/client.test.ts',
     title: 'SharedWorker client facade',
     blurb:
       'Connecting through the narrow page API, listener behavior, acknowledgements, stale-generation suppression, and bridge errors.',
