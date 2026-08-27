@@ -16,8 +16,8 @@ function siteUrl(): string {
 }
 
 const config: Config = {
-  title: 'Smocket documentation',
-  tagline: 'Test Socket.IO delivery and routing without a server.',
+  title: 'smocket documentation',
+  tagline: 'Mock Socket.IO without a server.',
   favicon: 'img/smocket-icon.png',
   url: siteUrl(),
   baseUrl: '/docs/',

@@ -5,7 +5,7 @@
   <img
     src="https://ik.imagekit.io/electrohyun/smocket.png"
     width="1280"
-    alt="smocket. Mock Socket.IO without a server. Sweet setup, rocket speed."
+    alt="smocket. Mock Socket.IO without a server. Sweet as a s’more, fast as a rocket."
   />
 </p>
 
@@ -42,50 +42,43 @@
   <a href="README.ko.md">🇰🇷 한국어</a>
 </p>
 
-> **Status: working toward 1.0.0.** The delivery core is complete and checked against real
-> socket.io by a dual-run conformance suite. The public API can still change before
-> 1.0.0. See the [roadmap to v1.0.0](docs/roadmap.md) and
-> [what a version number promises](docs/conformance.md#what-a-version-number-promises).
+## Why smocket?
 
-## The problem
+When developing a Socket.IO frontend, you need to see several clients connect, join
+rooms, and receive different events. Before the backend event API is ready, there is
+nowhere in the frontend to run that flow, so work on the multi-client UI has to wait
+too.
 
-A test needs a socket, so it writes one.
+A hand-written socket object can call a listener, but it usually has one handler map.
+It cannot choose recipients from room membership, namespace, a broadcast target, or
+the lifetime of an acknowledgement. An HTTP mock can define requests and responses,
+but it does not own that long-lived connection state or Socket.IO routing.
 
-```ts
-const socket = {
-  handlers: {} as Record<string, (...args: unknown[]) => void>,
-  on(event: string, handler: (...args: unknown[]) => void) {
-    this.handlers[event] = handler;
-  },
-  emit(event: string, ...args: unknown[]) {
-    this.handlers[event]?.(...args);
-  },
-};
-```
+A separate local Socket.IO server is accurate, but it also needs another process,
+configuration, and a reachable host. That makes it awkward for isolated component
+development and static previews, especially when the frontend only needs the
+application event layer.
 
-This carries a component through its first few tests. Then the feature it was
-written for arrives: someone else is in the room, and the test has to assert that
-they received the message and the sender did not.
+## Run Socket.IO application events in memory
 
-There is nowhere for that assertion to go. The object above has one `handlers` map,
-so `emit` can only reach the sender's own listener. Adding a second one does not
-help either, because who receives an event is not a property of a socket. It is
-decided by room membership, by namespace, and by which broadcast variant was used,
-and none of those exist here. The mock stops at the point the feature starts.
-
-## The solution
-
-Room membership and the broadcast rules are the thing being mocked, rather than
-something layered on afterwards.
+smocket creates distinct client and server sockets without opening a network server.
+It runs the supported Socket.IO connection handlers, room and namespace membership,
+targeted and broadcast delivery, acknowledgements, and socket lifecycle in the same
+JavaScript environment as the frontend.
 
 ```ts
 io.on('connection', (socket) => {
   socket.on('say', (room: string, text: string) => {
-    // Everyone in the room except the sender, which is what `socket.to` means.
     socket.to(room).emit('said', text);
   });
 });
 ```
+
+The event handlers and domain logic inside the supported surface can be shared with
+a real Socket.IO server. For several same-origin browser tabs, the explicit
+[SharedWorker path](docs/shared-worker.md) lets those pages use one in-browser server
+and one in-memory state. smocket does not reproduce network transport or replace a
+production backend.
 
 ## Quick start
 
@@ -93,312 +86,197 @@ io.on('connection', (socket) => {
 npm install -D smocket smocket-client
 ```
 
-Install both packages at the same version. `smocket` provides the in-process server
-and `smocket-client` provides the client-facing connection API. Neither package
-provides assertions, test discovery, or runner lifecycle hooks.
-
-When your code owns its client connections, import the client facade directly. The
-example uses Vitest for its hooks and assertions, but the mock itself is the `Server`
-and the clients created by `connect`:
+Install both packages at the same version. `smocket` owns the in-process server;
+`smocket-client` provides the application-facing connection. Neither package
+requires a test runner.
 
 ```ts
-// chat.test.ts
-import { connect } from 'smocket-client';
+// quick-start.ts
 import { Server } from 'smocket';
-import { afterEach, beforeEach, expect, test } from 'vitest';
+import { connect } from 'smocket-client';
 
-const URL = 'http://localhost:3000';
-let io: Server;
-
-beforeEach(() => {
-  // The server your app talks to, wired exactly as in socket.io.
-  io = new Server(URL);
+async function main() {
+  const URL = 'http://localhost:3000';
+  const io = new Server(URL);
 
   io.on('connection', (socket) => {
-    socket.on('join', async (room: string, ack: () => void) => {
+    socket.on('join', async (room: string, done: () => void) => {
       await socket.join(room);
-      ack();
+      done();
     });
+
     socket.on('say', (room: string, text: string) => {
       socket.to(room).emit('said', text);
     });
   });
-});
 
-afterEach(async () => {
-  await io.close();
-});
-
-test('a broadcast reaches the other member of the room', async () => {
   const alice = connect(URL);
   const bob = connect(URL);
 
-  await new Promise<void>((done) => alice.emit('join', 'lobby', done));
-  await new Promise<void>((done) => bob.emit('join', 'lobby', done));
+  const joinLobby = (client: ReturnType<typeof connect>) =>
+    new Promise<void>((done) => client.emit('join', 'lobby', done));
 
-  const heard = new Promise((resolve) => bob.on('said', resolve));
-  alice.emit('say', 'lobby', 'hello');
+  try {
+    await Promise.all([joinLobby(alice), joinLobby(bob)]);
 
-  await expect(heard).resolves.toBe('hello');
-});
+    const bobHeard = new Promise<string>((done) => bob.once('said', done));
+    alice.emit('say', 'lobby', 'hello');
+
+    console.log(`Bob heard: ${await bobHeard}`);
+  } finally {
+    await io.close();
+  }
+}
+
+void main();
 ```
 
-```bash
-npx vitest run
-```
+Save the file and run it with the TypeScript runner already used by your project,
+or use `npx tsx quick-start.ts` for a standalone copy. It prints
+`Bob heard: hello`, then `close()` disconnects both clients and unregisters the
+server. The repository's executable room and acknowledgement workflow is in
+[`examples/chat-room`](examples/chat-room/); run it with `pnpm example:chat-room`.
 
-The `afterEach` waits for `close()` to disconnect both clients and remove the
-server from smocket's [origin registry](docs/glossary.md#origin-registry), so the
-next test starts without this server or its room state.
-
-That run is green. The file above is a Vitest test because the suite here uses
-Vitest. Smocket has no runtime dependency on a test runner: runner packages appear
-only in the [development dependencies](package.json). Package validation installs
-release artifacts outside the checkout, so a workspace resolution cannot hide a
-packaging problem. The details live in the
-[release-candidate guide](docs/release-candidates.md).
-
-`connect(url)` and `io.on('connection')` are socket.io-client's and socket.io's own
-entry points, so the code above keeps the same split between client and server APIs
-while changing only their package names.
-
-Bob receives what Alice sent, and Alice does not, because `socket.to` excludes the
-sender. The test above asserts only the first half, since proving a socket did not
-receive something takes the marker pattern rather than a wait, and that is a
-[conformance case](docs/conformance.md#broadcast) rather than a first example.
-
-### Keep an existing application import
-
-An existing application does not have to be rewritten. Keep its
-`socket.io-client` import and map that package name to `smocket-client` in the
-environment that runs it:
+An existing application can keep its `socket.io-client` import and map that package
+name to `smocket-client` in the environment that uses the mock:
 
 ```ts
-// application code, unchanged
+// application code
 import { io } from 'socket.io-client';
 ```
 
-`smocket-client` preserves the supported default, named, ESM, and CommonJS client
-imports. Load it and `smocket` through the same module format so both packages use
-one in-process registry. The
-[test-runner integration guide](docs/test-runner-integration.md) contains the
-complete Vitest and Jest setups.
+See [test-runner integration](docs/test-runner-integration.md) for Vitest and Jest
+mapping, or [package entry points](docs/package-entry-points.md) when the application
+owns its imports directly.
 
-### Where to start from here
+## See it in a React drawing game
 
-| Coming from                                    | Start at                                                                              |
-| ---------------------------------------------- | ------------------------------------------------------------------------------------- |
-| Vitest                                         | the quick start above, which is a vitest file                                         |
-| Jest, or another CJS runner                    | [the documented, executable Jest setup](docs/test-runner-integration.md#jest)         |
-| An app that imports `socket.io-client`         | [test-runner integration](docs/test-runner-integration.md), which swaps the specifier |
-| A setup that fails before the first event      | [troubleshooting by actual signal](docs/troubleshooting.md)                           |
-| A hand-written socket mock                     | [the problem](#the-problem)                                                           |
-| Wanting to read a program rather than a test   | [examples/chat-room](examples/chat-room/)                                             |
-| Wanting a typed drawing and chat workflow      | [examples/drawing-game](examples/drawing-game/)                                       |
-| Wanting several tabs to share one browser mock | [the SharedWorker workflow](docs/shared-worker.md)                                    |
-| Wanting an executable compatibility case study | [case-studies/drawing-game](case-studies/drawing-game/)                               |
-| Wanting to compare real and mock runs          | [the drawing-game compatibility case study](case-studies/drawing-game/)               |
-| Wanting the exact guarantees                   | [the conformance report](docs/conformance.md)                                         |
+The [drawing game](examples/drawing-game/) is a React multi-user application that
+runs in three browser pages. Its automated flow covers drawing, chat, answer
+acknowledgements, the end of a round, page closure, refresh, and connection cleanup.
 
-## Examples
+The smocket path hosts the session in a SharedWorker. The real path starts a Node
+Socket.IO server. Both use the same application event handler, event types, domain
+state, React UI, and user actions; only the connection bootstrap changes.
 
-Runnable programs live in [examples/](examples/), outside the published package.
-[chat-room](examples/chat-room/) follows three participants through two rooms, a
-moderated announcement, and a disconnect. From a clean checkout, `pnpm install`
-then `pnpm example:chat-room`. CI runs it on every push, so it fails rather than
-rots.
+- [Try the live browser demo — no setup required](https://smocket-site.vercel.app/demo)
+- Run the source with `pnpm example:drawing-game`
+- Read the [interactive report](https://smocket-site.vercel.app/case-study) or the
+  [reproducible case study](case-studies/drawing-game/)
 
-[drawing-game](examples/drawing-game/) is a React drawing and guessing game for
-three browser pages. Run `pnpm example:drawing-game` to use one in-browser Smocket
-server, or `pnpm example:drawing-game:dev:real` for Real Socket.IO, while keeping
-the same application handler and UI. Its automated checks also compare the compact
-Node scenario and the complete Chromium flow across both targets.
+## How the supported boundary stays checked
 
-[shared-worker-lobby](examples/shared-worker-lobby/) is a static Vite frontend in
-which three same-origin Chromium tabs share one caller-owned in-browser Smocket
-server. Run `pnpm example:shared-worker` for the automated lobby workflow, or read
-the [SharedWorker guide](docs/shared-worker.md) before adopting its explicit worker
-and client subpaths.
+The project links each public claim to a maintained workflow rather than copying
+test counts into this page.
 
-## How it compares
+| Question                                         | Maintained path                                                |
+| ------------------------------------------------ | -------------------------------------------------------------- |
+| Does delivery and routing match Socket.IO?       | [dual-run conformance](docs/conformance.md)                    |
+| Can several browser tabs share one mock server?  | [Chromium and SharedWorker workflow](.github/workflows/ci.yml) |
+| Does the event layer work in a real frontend?    | [React drawing game](examples/drawing-game/)                   |
+| Can applications consume the published packages? | [clean consumer checks](consumers/test-adoption/)              |
 
-**Against a hand-written mock.** The drawing-game
-[maintenance-surface case study](case-studies/drawing-game/maintenance.md) builds the
-same six-step workflow in eight stages and records the source each added behavior owns.
-Its measurements apply only to that workflow; they do not establish a universal
-productivity result or describe every handwritten mock.
+The conformance report also names the surface not yet compared and every deliberate
+difference. Package checks install release artifacts outside the workspace across
+supported module, type, test-runner, browser, and SharedWorker entry paths.
 
-**Against HTTP mocking.** A different layer, not a different tool for the same job.
-HTTP mocking answers what a request returns, at the transport. socket.io's delivery
-rules sit above the transport and answer which socket receives an event. A suite
-usually wants both, and they do not overlap, so smocket stays off the transport
-rather than reaching down into it. See
-[decision 0009](docs/decisions/0009-no-raw-websocket-mocking.md).
+## Move to a real Socket.IO server
 
-## Conformance
+When an application keeps `socket.io-client` as its import, remove the mock-only
+mapping and point it at the real server. Start the network server and move the shared
+application handler into that server's bootstrap. Event names, supported handler
+shapes, and framework-independent domain logic can stay the same.
 
-The [conformance report](docs/conformance.md) is generated from that run. It lists
-every verified case linked to the test that pins it, the surface not yet measured,
-and where the two deliberately differ. Reading it is the fastest way to see how
-wide the reproduced surface is, from
-[rooms](docs/conformance.md#rooms) and
-[broadcast chaining](docs/conformance.md#broadcast-chaining) through
-[connection middleware](docs/conformance.md#connection-middleware),
-[acknowledgement timeouts](docs/conformance.md#acknowledgement-timeouts),
-[volatile emits](docs/conformance.md#volatile-emits),
-[catch-all listeners](docs/conformance.md#catch-all-listeners),
-[socket.data](docs/conformance.md#socketdata), and
-[disconnect](docs/conformance.md#disconnect).
-
-## Compatibility
-
-Each row is answered by a CI job rather than by a claim. The jobs are in
-[`ci.yml`](.github/workflows/ci.yml), and the same table with its reasoning is in
-the [report](docs/conformance.md#supported-versions).
-
-| Question                              | Answer                                               | Job                   |
-| ------------------------------------- | ---------------------------------------------------- | --------------------- |
-| Which Node runs the suite             | 22 and 24 on Linux, current LTS on Windows and macOS | `test`                |
-| Which Node runs the published package | 20 and up, the floor `engines.node` declares         | `declared node floor` |
-| Which TypeScript consumes the types   | 5.0.2 and up, under NodeNext and Bundler             | `package`             |
-| Which socket.io the cases hold for    | 4.7 and 4.8                                          | `real target`         |
-| Which browser the mock runs in        | Chromium, mock target only                           | `browser`             |
-
-Both packages ship ESM and CJS builds with matching type declarations. Their packed
-declarations are checked with TypeScript 5.0.2 and the current compiler under NodeNext
-and Bundler, with `strict: true` and `skipLibCheck: false`; `publint` and
-`arethetypeswrong` verify the package layouts on every run.
+The parts that should change are the parts smocket deliberately does not provide:
+transport configuration, authentication against real infrastructure, persistence,
+cross-device access, reconnection, and scaling. Keep integration and end-to-end tests
+for those boundaries.
 
 ## Out of scope
 
-These are not unbuilt features. A mock never opens a real connection, so there is
-nothing for them to act on, and implementing them would mean inventing behaviour
-with no source to check it against.
+These are not unfinished transport features. A mock does not open a network
+connection, so reproducing them would require behaviour with no live transport to
+act on.
 
-- **Reconnection behaviour reproduction.** There is no dropped connection to
-  re-establish. A trigger that forces a disconnected state, so your own reconnect
-  handlers can be exercised, is a separate planned feature.
+- **Reconnection behaviour reproduction.** There is no dropped network connection
+  to re-establish. Application responses to a disconnected state can still be
+  exercised directly.
 - **Transport fallback.** There is no WebSocket or HTTP long-polling transport to
-  fall back between.
-- **Heartbeat.** There is no live connection to ping, so none can time out. The
-  disconnect a timeout would cause is still observable through
-  `socket.disconnect()`.
-- **Multi-server scaling.** One in-memory process has no second server for the
-  Redis adapter to reach.
+  switch between.
+- **Heartbeat.** There is no live connection to ping or time out. The resulting
+  disconnect state remains observable through `socket.disconnect()`.
+- **Multi-server scaling.** One in-memory process has no second server for a Redis
+  adapter to reach.
 - **Binary encoding.** Nothing is serialised onto a wire, so there are no frames to
-  encode. Binary-containing direct event and acknowledgement payloads stay on the
-  [in-memory passthrough path](docs/scope.md#not-reproduced-reliability--network-layer)
-  with their existing values and references; this is not binary protocol support.
+  encode. Binary-containing direct payloads stay on the documented
+  [in-memory passthrough path](docs/scope.md#not-reproduced-reliability--network-layer);
+  this is not binary protocol support.
 
-The full boundary, with the layer split it follows, is in
-[scope.md](docs/scope.md).
+See the complete [scope boundary](docs/scope.md) and
+[deliberate differences](docs/differences.md) before relying on an API outside the
+documented surface.
 
 ## FAQ
 
 <details>
-<summary>I already mock HTTP. Where does smocket fit?</summary>
+<summary>Does smocket replace a real Socket.IO server?</summary>
 
-HTTP mocking works at the transport, on requests and responses. socket.io's
-delivery rules sit above the transport, so getting them out of a transport-level
-tool would mean hand-assembling socket.io's wire protocol and then writing rooms,
-namespaces, and the broadcast variants on top of it. That is a separate job, and
-smocket does that one. See
-[decision 0009](docs/decisions/0009-no-raw-websocket-mocking.md).
+No. It runs the application event layer in memory for frontend development and
+testing. A real backend is still required for transport, security, persistence,
+cross-device use, and production operation.
 
 </details>
 
 <details>
-<summary>Can I keep my HTTP mock and add smocket?</summary>
+<summary>Do I need Vitest, Jest, or another test runner?</summary>
 
-Yes, and that is the intended arrangement. HTTP stays with whatever already answers
-it, and sockets come here. Neither patches the other's surface, so a suite runs
-both.
-
-</details>
-
-<details>
-<summary>Why is there no reconnection?</summary>
-
-Reconnection is a retry over time after a real connection drops. A mock has no
-connection to drop and no later to wait for, so any delay it reported would be a
-number invented for the occasion. What tests actually want from reconnection is
-their own handlers running, and that is reachable by triggering the disconnected
-state directly. See [scope.md](docs/scope.md).
+No. The quick start is plain TypeScript, and the drawing game runs as a browser
+application. Test runners are optional integration paths for projects that already
+use them.
 
 </details>
 
 <details>
-<summary>Does testing without a real server drift from the backend contract?</summary>
+<summary>Can several browser tabs share the same state?</summary>
 
-That risk is what the dual run exists to answer, and it is answered for socket.io's
-half of the contract. Each case runs against a real socket.io server first, so what
-it asserts is socket.io's behaviour, and the same file then runs against smocket. A
-divergence fails CI. What smocket cannot check is your own server's handlers, which
-is the same thing any mock leaves to a contract or integration test.
+Yes, through `smocket/shared-worker` and `smocket-client/shared-worker`. Pages must
+share the same origin, browser profile, worker URL, and worker name. The
+[SharedWorker guide](docs/shared-worker.md) covers the lifecycle and storage boundary.
 
 </details>
 
 <details>
-<summary>What happens when socket.io releases a new version?</summary>
+<summary>Will I rewrite the application when I switch to real Socket.IO?</summary>
 
-The suite runs against more than one. A CI job typechecks and runs the real target
-on socket.io 4.7 and 4.8, so a case or shared contract that does not hold for both
-fails before it can be published as settled. Where the versions differ, the
-contract admits the measured alternatives and the difference is recorded. Widening
-that range is how a new version is taken on, and it is a change to a matrix rather
-than to the mock.
+The supported application event handlers, event names, and domain logic can be
+shared. The connection bootstrap and real infrastructure still change, and code
+outside smocket's documented scope needs its own integration checks.
 
 </details>
 
 <details>
-<summary>Does smocket mock my domain logic?</summary>
+<summary>How much has been compared with real Socket.IO?</summary>
 
-No. It reproduces delivery, meaning which socket receives which event, in which
-room and namespace, and in what order. Your handlers stay yours, and they run
-unchanged. That is why the quick start above is ordinary application code with one
-import swapped.
-
-</details>
-
-<details>
-<summary>Does it work in Jest, or another CJS runner?</summary>
-
-The package ships both ESM and CJS builds with type declarations for each, and CI
-verifies that both resolve. The clean adoption fixture also runs the documented
-`moduleNameMapper` setup through a named CommonJS `socket.io-client` import after
-installing either a candidate tarball or the exact published package. See
-[test-runner integration](docs/test-runner-integration.md#jest).
-
-</details>
-
-<details>
-<summary>Why is raw WebSocket out of scope?</summary>
-
-It sits at the transport, and it answers a different question. A raw WebSocket mock
-answers what bytes crossed the wire. smocket answers which sockets receive what,
-given a set of emits, joins, and broadcasts. Tools that intercept the transport
-already cover the first question well. See
-[decision 0009](docs/decisions/0009-no-raw-websocket-mocking.md).
+The [generated conformance report](docs/conformance.md) is the exact boundary. Each
+listed case runs against real Socket.IO and smocket from the same test file; the
+report also lists unmeasured APIs and deliberate differences.
 
 </details>
 
 ## Documentation
 
-| Document                                                      | What it holds                                                            |
-| ------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| [docs/README.md](docs/README.md)                              | the documentation map, by the question you arrived with                  |
-| [roadmap.md](docs/roadmap.md)                                 | the guarantees, dependencies, and release path toward v1.0.0             |
-| [test-runner-integration.md](docs/test-runner-integration.md) | running smocket inside Vitest or Jest, and what keeps its types          |
-| [shared-worker.md](docs/shared-worker.md)                     | sharing one in-browser Smocket server across same-origin browser tabs    |
-| [troubleshooting.md](docs/troubleshooting.md)                 | reproductions, signals, causes, and corrections for adoption failures    |
-| [conformance.md](docs/conformance.md)                         | every behaviour verified against real socket.io, generated from the run  |
-| [scope.md](docs/scope.md)                                     | the boundary, and the layer split it follows                             |
-| [differences.md](docs/differences.md)                         | where smocket diverges on purpose, and what it adds that socket.io lacks |
-| [glossary.md](docs/glossary.md)                               | the socket.io terms the other documents use                              |
-| [decisions/](docs/decisions/README.md)                        | one record per design decision, with the alternatives rejected           |
-| [adapter-registration.md](docs/adapter-registration.md)       | supplying your own adapter to change the routing decision                |
-| [CONTRIBUTING-docs.md](docs/CONTRIBUTING-docs.md)             | how documents here are written                                           |
-| [labels.md](docs/labels.md)                                   | what the issue and pull request labels mean                              |
+| Document or path                                             | What it answers                                                   |
+| ------------------------------------------------------------ | ----------------------------------------------------------------- |
+| [Public documentation](https://smocket-site.vercel.app/docs) | the deployed documentation entry point                            |
+| [Documentation map](docs/README.md)                          | where to go for adoption, guarantees, and maintenance             |
+| [Package entry points](docs/package-entry-points.md)         | which server, client, and SharedWorker import to use              |
+| [Drawing-game workflow](examples/drawing-game/)              | React development with smocket and real Socket.IO                 |
+| [SharedWorker](docs/shared-worker.md)                        | sharing one in-browser server across same-origin tabs             |
+| [Test-runner integration](docs/test-runner-integration.md)   | mapping `socket.io-client` in Vitest and Jest                     |
+| [Conformance](docs/conformance.md)                           | behaviour compared with real Socket.IO and the unmeasured surface |
+| [Scope and differences](docs/scope.md)                       | the supported layer; see also [differences](docs/differences.md)  |
+| [Troubleshooting](docs/troubleshooting.md)                   | adoption failures by observed signal                              |
+| [Roadmap](docs/roadmap.md)                                   | durable gates and the path toward v1.0.0                          |
 
 The maintained Korean entry points are [README.ko.md](README.ko.md) and
 [CONTRIBUTING.ko.md](CONTRIBUTING.ko.md). English documentation is authoritative;
@@ -406,15 +284,12 @@ the two Korean guides link to it instead of mirroring every page.
 
 ## Contributing
 
-Contributions are welcome, and the most useful ones encode how socket.io actually
+Contributions are welcome, and the most useful ones encode how Socket.IO actually
 behaves.
 
-The shortest route in is a conformance case, because it is judged mechanically
-rather than by taste. The report lists the
-[surface no case covers yet](docs/conformance.md#not-covered-yet), and
-[how to add a case](docs/conformance.md#how-to-add-a-case) is the procedure. A case
-that passes on real socket.io and fails on smocket is a divergence located, and it
-arrives with its reproduction already written.
+The shortest route in is a conformance case, because it has a mechanical comparison.
+Read the [current compared surface](docs/conformance.md) and
+[how to add a case](docs/conformance.md#how-to-add-a-case) before starting.
 
 The [milestones](https://github.com/electrohyun/smocket/milestones) show what each
 release is aiming for, and the
