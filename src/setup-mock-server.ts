@@ -52,5 +52,10 @@ export function setupMockServer(): ServerContext {
 
   ctx.connectClients = makeConnectClients(ctx);
 
+  ctx.disconnectPendingClient = async (client) => {
+    client.disconnect();
+    await Promise.resolve();
+  };
+
   return ctx;
 }
