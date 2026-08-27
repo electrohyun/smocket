@@ -25,9 +25,11 @@ passes `worker.port` to `smocket-client/shared-worker`. The worker creates `Serv
 registers application handlers, and passes each accepted port to
 `smocket/shared-worker`. Neither package chooses the worker URL or lifecycle policy.
 
-The root `smocket` entry retains the bridge exports for compatibility. New multi-tab
-setups should use the explicit subpaths so worker-host and page-client ownership remains
-visible, as recorded in [ADR 0038](./decisions/0038-shared-worker-is-an-explicit-narrow-facade.md).
+The root `smocket` entry does not re-export the SharedWorker bridge. Multi-tab setups
+use `smocket/shared-worker` for `attachSharedWorker` and
+`smocket-client/shared-worker` for `connectSharedWorker`, keeping worker-host and
+page-client ownership visible as recorded in
+[ADR 0038](./decisions/0038-shared-worker-is-an-explicit-narrow-facade.md).
 
 See the [SharedWorker workflow](./shared-worker.md) for lifecycle and storage-partition
 limits, or the [test-runner guide](./test-runner-integration.md) for Vitest and Jest
