@@ -31,6 +31,7 @@ export default defineConfig({
     // processes and the filesystem, so they stay in the Node projects.
     include: [
       'src/**/*.test.ts',
+      'test/shared-worker/**/*.test.ts',
       'scripts/detect-external-imports.test.ts',
       'packages/smocket-client/test/browser.test.ts',
     ],

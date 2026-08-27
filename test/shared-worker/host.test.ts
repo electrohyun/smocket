@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import type { ServerSocketContract } from './contract';
-import { Server } from './mock-server';
-import { attachSharedWorker, type SharedWorkerHost } from './shared-worker';
+import type { ServerSocketContract } from '../../src/contract';
+import { Server } from '../../src/mock-server';
+import { attachSharedWorker, type SharedWorkerHost } from '../../src/shared-worker';
 import {
   SHARED_WORKER_MESSAGE_TYPES,
   SHARED_WORKER_PROTOCOL_VERSION,
@@ -9,7 +9,7 @@ import {
   readSharedWorkerPageMessage,
   type SharedWorkerHostMessage,
   type SharedWorkerPageMessage,
-} from './shared-worker-protocol';
+} from '../../src/shared-worker-protocol';
 
 let nextOrigin = 0;
 const servers: Server[] = [];

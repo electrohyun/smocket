@@ -19,14 +19,14 @@ export default defineConfig({
   resolve: {
     alias: [
       { find: /^\.\/index$/, replacement: dist },
-      { find: /^\.\/mock-server$/, replacement: dist },
-      { find: /^\.\/shared-worker$/, replacement: sharedWorkerDist },
+      { find: /^(?:\.\/|\.\.\/\.\.\/src\/)mock-server$/, replacement: dist },
+      { find: /^(?:\.\/|\.\.\/\.\.\/src\/)shared-worker$/, replacement: sharedWorkerDist },
     ],
   },
   test: {
     name: 'mock-dist',
     env: { SMOCKET_TARGET: 'mock' },
-    include: ['src/**/*.test.ts'],
+    include: ['src/**/*.test.ts', 'test/shared-worker/**/*.test.ts'],
     // This run is 148 tests where `pnpm test:mock` is 174, and the 26 missing
     // ones are two separate things rather than one. Read this before concluding
     // that 148 means "the whole suite passes against dist".

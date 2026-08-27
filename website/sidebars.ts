@@ -60,6 +60,7 @@ const sidebars: SidebarsConfig = {
           href: 'https://github.com/electrohyun/smocket/blob/main/CONTRIBUTING.md',
         },
         { type: 'doc', id: 'CONTRIBUTING-docs', label: 'Documentation guide' },
+        { type: 'doc', id: 'repository-structure', label: 'Repository structure' },
         { type: 'doc', id: 'package-policy', label: 'Package policy' },
         { type: 'doc', id: 'release-candidates', label: 'Release candidates' },
         { type: 'doc', id: 'npm-publication', label: 'npm publication' },
