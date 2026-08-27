@@ -240,6 +240,10 @@ jobs:
       # manifest, dependency policy, and import scanner remain in `package`.
       - name: Check the reviewed upstream public surface
         run: pnpm check:public-surface
+      - name: Reject classifications that reference closed issues
+        run: pnpm check:public-surface-issues
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
 
   published-type-version:
     name: published type version
