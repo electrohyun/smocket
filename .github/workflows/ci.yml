@@ -245,6 +245,34 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
+  drawing-game-case-study:
+    name: drawing game case-study artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Check the recorded comparison and snippets
+        run: |
+          pnpm case-study:drawing-game:check
+          pnpm case-study:drawing-game:snippets:check
+      - name: Check the maintenance evidence
+        run: |
+          pnpm case-study:drawing-game:maintenance:check
+          pnpm case-study:drawing-game:maintenance:snippets:check
+      - name: Validate the publication entry point
+        run: |
+          pnpm case-study:drawing-game:test
+          pnpm case-study:drawing-game:publication:check
+          pnpm case-study:drawing-game:publication:validate
+
   published-type-version:
     name: published type version
     if: github.event_name == 'pull_request'

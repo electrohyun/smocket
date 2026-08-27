@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "caseStudy": "drawing-game-maintenance-surface",
-  "sourceRevision": "6afc76aa6b9531e26454c09200627dba1b626640",
+  "sourceRevision": "16ebb798708737a18a35227778b9a44ac06c79a2",
   "stageIds": [
     "base-single-client",
     "multiple-clients",
