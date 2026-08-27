@@ -50,6 +50,8 @@ part of Smocket's runtime and is excluded from both npm packages.
 4. Add one ledger disposition and its issue, ADR, scope, or implementation
    reference for every new inventory id; remove classifications that became stale.
 5. Run `pnpm check:public-surface`.
+6. Run `pnpm check:public-surface-issues` with network access before release; CI uses
+   its GitHub token to reject `tracked-issue` references after they close.
 
 Do not edit generated entries to hide upstream drift. Update the extractor only
 when the declaration normalization itself is wrong, then regenerate and review

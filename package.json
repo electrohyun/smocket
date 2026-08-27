@@ -136,7 +136,8 @@
     "conformance": "node scripts/conformance-report.mjs",
     "check:conformance": "node scripts/conformance-report.mjs --check",
     "public-surface": "node scripts/check-public-surface.mjs --write",
-    "check:public-surface": "node scripts/check-public-surface.mjs --check && node --test scripts/check-public-surface.test.mjs",
+    "check:public-surface": "node scripts/check-public-surface.mjs --check && node --test scripts/check-public-surface.test.mjs scripts/check-public-surface-issues.test.mjs",
+    "check:public-surface-issues": "node scripts/check-public-surface-issues.mjs",
     "check:published-types": "node scripts/check-published-types.mjs"
   },
   "devDependencies": {
