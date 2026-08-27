@@ -316,15 +316,15 @@ composition.
 - [connect_error exposes a JSON snapshot instead of the server Error](../src/middleware.test.ts#L100)
 - [a rejected connection cleans temporary membership and stays out of the roster](../src/middleware.test.ts#L148)
 - [a cancelled connection attempt cannot be admitted by a late middleware callback](../src/middleware.test.ts#L186)
-- [ignores duplicate connect calls while static namespace middleware is pending](../src/middleware.test.ts#L237)
-- [io.of(nsp).use() runs only for connections on that namespace](../src/middleware.test.ts#L261)
-- [two middlewares run in registration order](../src/middleware.test.ts#L279)
-- [an error in the first middleware short-circuits the second](../src/middleware.test.ts#L294)
-- [completes once per synchronous next call with one server Socket](../src/middleware.test.ts#L312)
-- [completes again when a retained next runs after the first connection](../src/middleware.test.ts#L344)
-- [ignores a retained next released while the server closes](../src/middleware.test.ts#L369)
-- [ignores a retained middleware error after the client disconnects](../src/middleware.test.ts#L394)
-- [reports a later middleware error after connection and removes the server Socket](../src/middleware.test.ts#L422)
+- [ignores duplicate connect calls while static namespace middleware is pending](../src/middleware.test.ts#L236)
+- [io.of(nsp).use() runs only for connections on that namespace](../src/middleware.test.ts#L260)
+- [two middlewares run in registration order](../src/middleware.test.ts#L278)
+- [an error in the first middleware short-circuits the second](../src/middleware.test.ts#L293)
+- [completes once per synchronous next call with one server Socket](../src/middleware.test.ts#L311)
+- [completes again when a retained next runs after the first connection](../src/middleware.test.ts#L343)
+- [ignores a retained next released while the server closes](../src/middleware.test.ts#L368)
+- [ignores a retained middleware error after the client disconnects](../src/middleware.test.ts#L393)
+- [reports a later middleware error after connection and removes the server Socket](../src/middleware.test.ts#L421)
 
 ### Server Socket packet middleware
 
@@ -525,10 +525,9 @@ that owns the connection lifecycle.
 - [drops server packets queued behind a client disconnect](../src/queued-delivery-lifecycle.test.ts#L38)
 - [drops client packets queued behind Server.close() without packet middleware](../src/queued-delivery-lifecycle.test.ts#L60)
 - [drops client packets queued behind Server.close() with packet middleware](../src/queued-delivery-lifecycle.test.ts#L60)
-- [drains client packets queued before client.disconnect() without packet middleware](../src/queued-delivery-lifecycle.test.ts#L80)
-- [drains client packets queued before client.disconnect() with packet middleware](../src/queued-delivery-lifecycle.test.ts#L80)
-- [drains server packets queued before Server.close()](../src/queued-delivery-lifecycle.test.ts#L135)
-- [preserves FIFO in both directions while the connection remains active](../src/queued-delivery-lifecycle.test.ts#L151)
+- [drains client packets admitted before client.disconnect()](../src/queued-delivery-lifecycle.test.ts#L80)
+- [drains server packets queued before Server.close()](../src/queued-delivery-lifecycle.test.ts#L129)
+- [preserves FIFO in both directions while the connection remains active](../src/queued-delivery-lifecycle.test.ts#L145)
 
 ### Shared Manager disconnect
 
