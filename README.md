@@ -42,22 +42,17 @@
   <a href="README.ko.md">🇰🇷 한국어</a>
 </p>
 
-> **Status: working toward 1.0.0.** The in-memory delivery and routing core is
-> checked against real Socket.IO by a dual-run conformance suite. Public APIs may
-> still change before 1.0.0. See the [roadmap](docs/roadmap.md) and
-> [version promise](docs/conformance.md#what-a-version-number-promises).
+## Why smocket?
 
-## Develop the event flow before the backend
+When developing a Socket.IO frontend, you need to see several clients connect, join
+rooms, and receive different events. Before the backend event API is ready, there is
+nowhere in the frontend to run that flow, so work on the multi-client UI has to wait
+too.
 
-A frontend can render a chat panel before its backend event API is ready, but it
-cannot make several clients connect, join a room, and receive different events by
-rendering more components. Waiting for the backend blocks the interaction work that
-would reveal those assumptions.
-
-A hand-written socket object helps with the first listener and emit. It usually has
-one handler map, so it cannot decide recipients from room membership, namespace, a
-broadcast target, or the lifetime of an acknowledgement. Adding more socket-shaped
-objects moves those delivery rules into application fixtures that must be maintained.
+A hand-written socket object can call a listener, but it usually has one handler map.
+It cannot choose recipients from room membership, namespace, a broadcast target, or
+the lifetime of an acknowledgement. An HTTP mock can define requests and responses,
+but it does not own that long-lived connection state or Socket.IO routing.
 
 A separate local Socket.IO server is accurate, but it also needs another process,
 configuration, and a reachable host. That makes it awkward for isolated component
