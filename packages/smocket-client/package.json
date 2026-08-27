@@ -1,6 +1,6 @@
 {
   "name": "smocket-client",
-  "version": "0.5.1",
+  "version": "1.0.0",
   "description": "Socket.IO Client-compatible facade for smocket's supported in-process test surface.",
   "type": "module",
   "license": "MIT",
@@ -76,7 +76,7 @@
     "attw": "node ../../scripts/run-client-attw.mjs"
   },
   "peerDependencies": {
-    "smocket": "0.5.1"
+    "smocket": "1.0.0"
   },
   "devDependencies": {
     "smocket": "workspace:*"
