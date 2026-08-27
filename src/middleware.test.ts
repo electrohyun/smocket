@@ -210,11 +210,10 @@ it('a cancelled connection attempt cannot be admitted by a late middleware callb
   const first = await nextAttempt();
   await first.socket.join('temporary-cancellation');
 
-  client.disconnect();
+  await ctx.disconnectPendingClient(client, first.socket);
   client.connect();
-  // Reaching the middleware for a fresh attempt proves that the cancellation has
-  // propagated. Releasing the old callback only after this marker avoids a timeout
-  // while pinning the late-callback race itself.
+  // The server-side transport close above proves cancellation before this fresh
+  // attempt starts. Reaching middleware then identifies the replacement attempt.
   const second = await nextAttempt();
   const connected = receive(client, 'connect');
   const freshConnection = ctx.nextConnection();

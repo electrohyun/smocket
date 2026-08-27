@@ -2,6 +2,9 @@ packages:
   - examples/*
   - packages/*
   - website
+overrides:
+  'nanoid@<3.3.18': 3.3.18
+  'postcss@<=8.5.22': 8.5.26
 allowBuilds:
   core-js: false
   esbuild: true

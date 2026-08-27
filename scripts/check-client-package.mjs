@@ -3,7 +3,11 @@ import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { normalizeTarEntryPath, readPackedPackage } from './check-packed-package.mjs';
+import {
+  hasPublicNpmPublishConfig,
+  normalizeTarEntryPath,
+  readPackedPackage,
+} from './check-packed-package.mjs';
 
 const repositoryRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const clientRoot = join(repositoryRoot, 'packages', 'smocket-client');
@@ -69,6 +73,11 @@ export function inspectClientPackagePolicy({
   for (const [location, manifest] of manifests) {
     if (manifest.name !== 'smocket-client') {
       violations.push(`${location} must be named smocket-client`);
+    }
+    if (!hasPublicNpmPublishConfig(manifest)) {
+      violations.push(
+        `${location} publishConfig must select public access on https://registry.npmjs.org/`,
+      );
     }
     if (manifest.version !== rootManifest.version) {
       violations.push(`${location} version must equal smocket ${rootManifest.version}`);

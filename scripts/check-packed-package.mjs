@@ -12,6 +12,22 @@ const EMPTY_OBJECT_FIELDS = [
   'peerDependenciesMeta',
 ];
 const BUNDLE_FIELDS = ['bundleDependencies', 'bundledDependencies'];
+export const PUBLIC_NPM_PUBLISH_CONFIG = Object.freeze({
+  access: 'public',
+  registry: 'https://registry.npmjs.org/',
+});
+
+export function hasPublicNpmPublishConfig(manifest) {
+  const config = manifest.publishConfig;
+  return (
+    typeof config === 'object' &&
+    config !== null &&
+    !Array.isArray(config) &&
+    Object.keys(config).length === 2 &&
+    config.access === PUBLIC_NPM_PUBLISH_CONFIG.access &&
+    config.registry === PUBLIC_NPM_PUBLISH_CONFIG.registry
+  );
+}
 
 function run(command, args, cwd, environmentOverrides = {}) {
   return new Promise((resolvePromise, reject) => {
@@ -229,6 +245,15 @@ export function inspectRootPackagePolicy({ sourceManifest, packedManifest, tarEn
 
   for (const [location, manifest] of manifests) {
     const fields = {};
+    fields.publishConfig = hasPublicNpmPublishConfig(manifest) ? 'canonical' : 'invalid';
+    if (fields.publishConfig === 'invalid') {
+      violations.push({
+        code: 'publish-config',
+        location,
+        field: 'publishConfig',
+        detail: 'must select public access on https://registry.npmjs.org/',
+      });
+    }
     for (const field of EMPTY_OBJECT_FIELDS) {
       const state = fieldState(manifest, field, false);
       fields[field] = state;
