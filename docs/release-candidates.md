@@ -15,8 +15,8 @@ versions and the facade's exact `smocket` peer. A changed or substituted file is
 rejected before another check receives its path.
 
 Run `pnpm check:release-candidate` to apply package policy, Publint, Are The Types
-Wrong, the independent chat-room consumer, and every clean-adoption fixture to
-the manifest's exact files. CI uploads that verified set under the commit SHA;
+Wrong, and every clean-adoption fixture to the manifest's exact files. CI uploads
+that verified set under the commit SHA;
 the browser job downloads the same set rather than packing again.
 
 The [npm publication workflow](./npm-publication.md) first requires the complete CI

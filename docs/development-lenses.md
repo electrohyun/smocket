@@ -50,12 +50,10 @@ a claim that work under a lens is complete.
   makes a user's testing workflow easier.
 - **Current example.** The [test-runner integration guide](./test-runner-integration.md)
   documents how a test can substitute `smocket-client` while the application keeps its
-  `socket.io-client` import. The completed
-  [application case study](./application-case-study.md) directly observes one workflow:
-  all three targets passed; the handwritten target had no dependency or port and owned
-  its behavior implementation, while Smocket used one dependency, no port, and
-  package-owned behavior. Future maintenance is an inference from those owned surfaces,
-  not an observed result, and one workflow is not a universal productivity measure.
+  `socket.io-client` import. The drawing-game
+  [maintenance study](../case-studies/drawing-game/maintenance.md) records the source
+  needed at each stage of one handwritten workflow. Those measurements apply only to
+  that workflow and are not a universal productivity measure.
 
 ## Sustainability
 

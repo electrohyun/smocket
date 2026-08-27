@@ -1,6 +1,6 @@
 # 0027. One workflow drives three case-study targets
 
-**Status:** Accepted · 2026-08-12 · #218
+**Status:** Superseded by [0039](./0039-retire-legacy-chat-room-evaluation.md) · 2026-08-27 · #451
 **Governed by:** [0000](./0000-do-not-invent-what-has-no-source.md),
 [0019](./0019-what-counts-as-a-breaking-change.md),
 [0024](./0024-assemble-consumer-from-canonical-example.md)

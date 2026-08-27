@@ -52,7 +52,7 @@ test('remark rewrites repository assets before Docusaurus bundles them', () => {
   const tree = {
     type: 'root',
     children: [
-      { type: 'link', url: '../case-studies/chat-room/observe.js', children: [] },
+      { type: 'link', url: '../case-studies/drawing-game/evaluate.mjs', children: [] },
       {
         type: 'definition',
         identifier: 'source',
@@ -64,12 +64,12 @@ test('remark rewrites repository assets before Docusaurus bundles them', () => {
   };
 
   remarkRepositoryLinks()(tree, {
-    path: '../docs/application-case-study.md',
+    path: '../docs/README.md',
   });
 
   assert.equal(
     tree.children[0].url,
-    'https://github.com/electrohyun/smocket/blob/main/case-studies/chat-room/observe.js',
+    'https://github.com/electrohyun/smocket/blob/main/case-studies/drawing-game/evaluate.mjs',
   );
   assert.equal(
     tree.children[1].url,

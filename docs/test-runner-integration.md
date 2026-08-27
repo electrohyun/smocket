@@ -8,7 +8,7 @@ If setup fails before the first application event, start with the
 [troubleshooting guide](./troubleshooting.md). It separates URL, namespace, lifecycle,
 runner alias, package-format, and event-map failures by their actual signals.
 For a complete application that runs unchanged against real Socket.IO and Smocket,
-follow the [dual-target chat-room consumer](../consumers/chat-room/).
+follow the [drawing-game example](../examples/drawing-game/).
 
 ## Choose the client import path
 

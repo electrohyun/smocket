@@ -96,16 +96,6 @@ for (const packageName of ['smocket', 'smocket-client']) {
 
 candidate = await verifiedCandidate(manifestPath);
 await run(process.execPath, [
-  join(repositoryRoot, 'scripts', 'run-chat-room-consumer.mjs'),
-  'candidate',
-  '--tarball',
-  candidate.rootTarball,
-  '--client-tarball',
-  candidate.clientTarball,
-]);
-
-candidate = await verifiedCandidate(manifestPath);
-await run(process.execPath, [
   join(repositoryRoot, 'scripts', 'run-clean-adoption.mjs'),
   'candidate',
   '--version',

@@ -1,4 +1,0 @@
-{
-  "installDependencies": false,
-  "startCommand": "npm run consumer:chat-room:published"
-}

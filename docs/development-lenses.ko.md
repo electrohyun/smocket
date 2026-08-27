@@ -53,12 +53,10 @@
   사실이 입증되지 않습니다.
 - **현재 사례.** [테스트 러너 통합 가이드](./test-runner-integration.md)는 애플리케이션 코드가
   `socket.io-client` import를 유지한 채 테스트에서 `smocket-client`로 대체하는 방법을
-  문서화합니다.
-  완료된 [애플리케이션 사례 연구](./application-case-study.md)는 하나의 워크플로를 직접
-  관찰했습니다. 세 대상은 모두 통과했고, handwritten 대상은 의존성과 포트가 없으며 자체
-  동작 구현을 소유했습니다. smocket은 의존성 하나와 패키지가 소유한 동작을 사용했고 포트는
-  필요하지 않았습니다. 미래 유지보수는 이렇게 관찰된 소유 범위에서 나온 추론이지 관찰된
-  결과가 아니며, 하나의 워크플로는 보편적인 생산성 척도가 아닙니다.
+  문서화합니다. drawing-game의
+  [유지보수 연구](../case-studies/drawing-game/maintenance.md)는 하나의 handwritten
+  워크플로를 단계별로 구현하는 데 필요한 소스를 기록합니다. 이 측정은 해당 워크플로에만
+  적용되며 보편적인 생산성 척도가 아닙니다.
 
 ## 지속 가능성 (Sustainability)
 

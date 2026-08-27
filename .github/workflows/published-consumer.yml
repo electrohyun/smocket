@@ -5,12 +5,10 @@ on:
     branches: [main]
     paths:
       - .github/workflows/published-consumer.yml
-      - .stackblitzrc
-      - consumers/chat-room/**
       - examples/chat-room/**
       - package.json
+      - consumers/published-release.json
       - consumers/test-adoption/**
-      - scripts/run-chat-room-consumer.mjs
       - scripts/run-clean-adoption.mjs
       - scripts/published-consumer-version.mjs
       - scripts/published-consumer-version.test.ts
@@ -18,12 +16,10 @@ on:
   pull_request:
     paths:
       - .github/workflows/published-consumer.yml
-      - .stackblitzrc
-      - consumers/chat-room/**
       - examples/chat-room/**
       - package.json
+      - consumers/published-release.json
       - consumers/test-adoption/**
-      - scripts/run-chat-room-consumer.mjs
       - scripts/run-clean-adoption.mjs
       - scripts/published-consumer-version.mjs
       - scripts/published-consumer-version.test.ts
@@ -55,14 +51,9 @@ jobs:
         id: supported-release
         shell: bash
         run: node scripts/published-consumer-version.mjs >> "$GITHUB_OUTPUT"
-      - name: Install and run the published-package consumer
-        shell: bash
-        run: |
-          node scripts/run-chat-room-consumer.mjs published \
-            --version "${{ steps.supported-release.outputs.version }}"
       - name: Install the clean-adoption npm runner
         run: npm install --global "npm@$CLEAN_ADOPTION_NPM_VERSION"
-      - name: Run representative clean-adoption fixtures
+      - name: Run the published packages in clean-adoption fixtures
         shell: bash
         run: |
           args=(published --version "${{ steps.supported-release.outputs.version }}")
