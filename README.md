@@ -425,6 +425,13 @@ commit conventions, and how pull requests are merged. The
 [Korean guide](CONTRIBUTING.ko.md) covers the same path. See
 [AGENTS.md](AGENTS.md) for how to run the two test targets.
 
+<a id="coc-ov-file"></a>
+
+## Code of Conduct
+
+Participation in smocket is governed by the
+[Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md).
+
 ## Contributors
 
 [![Contributors](https://contrib.rocks/image?repo=electrohyun/smocket)](https://github.com/electrohyun/smocket/graphs/contributors)
