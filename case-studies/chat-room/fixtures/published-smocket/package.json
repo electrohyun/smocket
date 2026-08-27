@@ -9,6 +9,6 @@
     "observe": "node observe.js"
   },
   "dependencies": {
-    "smocket": "0.4.2"
+    "smocket": "0.5.1"
   }
 }
