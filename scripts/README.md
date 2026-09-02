@@ -6,16 +6,11 @@
 
 ## Generated reports and application records
 
-| Script                                  | Normal entry point                                                 | Mode, output, and source of truth                                                                                                                   |
-| --------------------------------------- | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `conformance-report.mjs`                | `pnpm conformance`, CI: `pnpm check:conformance`                   | The default writes the marked region in `docs/conformance.md`; `--check` compares. Test names plus the area table in this script are the inputs.    |
-| `check-public-surface.mjs`              | `pnpm public-surface`, CI: `pnpm check:public-surface`             | `--write` regenerates `docs/public-surface.generated.json`; `--check` compares it and the reviewed ledger against installed Socket.IO declarations. |
-| `drawing-game-snippets.mjs`             | `pnpm example:drawing-game:snippets[:check]`                       | Extracts display snippets from the executable example; `--write` changes the generated JSON and `--check` is read-only.                             |
-| `run-drawing-game-case-study.mjs`       | `pnpm case-study:drawing-game:{record,check}`                      | Runs the Real oracle and comparison targets; `--write` records observations and `--check` compares with the generated record.                       |
-| `drawing-game-case-study-snippets.mjs`  | `pnpm case-study:drawing-game:snippets[:check]`                    | Extracts snippets from the case-study sources; source files, not the JSON, are authoritative.                                                       |
-| `run-drawing-game-maintenance.mjs`      | `pnpm case-study:drawing-game:maintenance:{record,check}`          | Runs the staged handwritten study and writes or compares `maintenance.generated.json`.                                                              |
-| `drawing-game-maintenance-snippets.mjs` | `pnpm case-study:drawing-game:maintenance:snippets[:check]`        | Writes or compares snippets extracted from the staged source files.                                                                                 |
-| `drawing-game-publication.mjs`          | `pnpm case-study:drawing-game:publication:{record,check,validate}` | Builds or validates the generated downstream manifest from the canonical drawing-game records.                                                      |
+| Script                      | Normal entry point                                     | Mode, output, and source of truth                                                                                                                   |
+| --------------------------- | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `conformance-report.mjs`    | `pnpm conformance`, CI: `pnpm check:conformance`       | The default writes the marked region in `docs/conformance.md`; `--check` compares. Test names plus the area table in this script are the inputs.    |
+| `check-public-surface.mjs`  | `pnpm public-surface`, CI: `pnpm check:public-surface` | `--write` regenerates `docs/public-surface.generated.json`; `--check` compares it and the reviewed ledger against installed Socket.IO declarations. |
+| `drawing-game-snippets.mjs` | `pnpm example:drawing-game:snippets[:check]`           | Extracts display snippets from the executable example; `--write` changes the generated JSON and `--check` is read-only.                             |
 
 ## Package and release gates
 
@@ -45,8 +40,8 @@
 
 Files named `scripts/*.test.ts` are collected only by the mock Vitest project because
 they test repository tooling rather than Socket.IO behavior. `check-public-surface.test.mjs`
-is run by its package command, while website and case-study `.test.mjs` files use the
-Node test runner declared by their owning command.
+is run by its package command, while website `.test.mjs` files use the Node test runner
+declared by their owning command.
 
 Run raw scripts only when their package command cannot express the needed target or mode.
 The package command also supplies required builds, exact arguments, and CI parity.

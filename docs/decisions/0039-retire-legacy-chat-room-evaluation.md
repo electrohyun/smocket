@@ -1,6 +1,6 @@
 # 0039. Retire legacy chat-room evaluation paths
 
-**Status:** Accepted · 2026-08-27 · #451
+**Status:** Superseded by [0040](./0040-keep-drawing-game-executable.md) · 2026-09-02 · #476
 **Supersedes:** [0024](./0024-assemble-consumer-from-canonical-example.md),
 [0027](./0027-one-workflow-drives-three-case-study-targets.md)
 

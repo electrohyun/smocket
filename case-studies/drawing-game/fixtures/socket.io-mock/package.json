@@ -1,8 +1,0 @@
-{
-  "name": "drawing-game-socket-io-mock-fixture",
-  "private": true,
-  "type": "module",
-  "dependencies": {
-    "socket.io-mock": "1.3.2"
-  }
-}

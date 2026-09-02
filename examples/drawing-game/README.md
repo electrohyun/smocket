@@ -10,7 +10,7 @@ The screen and round follow the multi-tab demo from `smocket-site` commit
 drawing surface, guess UI, countdown, player pages, delivery record, mascot,
 night-sky asset, mono font, and visible game flow. It does not include Next.js,
 landing or case-study routes, marketing navigation, analytics, generated site
-files, snapshots, or the earlier handwritten mock comparison.
+files, or snapshots.
 
 ## Run with Smocket
 

@@ -99,7 +99,7 @@ and verifies that a repeated run does not depend on state left by the previous r
   executes the workflow, returns structured results, formats the transcript, and
   cleans up every client and the server in `finally`.
 - `assertions.js` selects the observable result and owns the expected values shared
-  by the application test and case-study targets.
+  by the application and dual-target tests.
 - `index.js` prints the transcript returned by the shared scenario.
 - `scenario.test.js` asserts the structured result with `node:test` and
   `node:assert`.

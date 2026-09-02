@@ -1,8 +1,8 @@
 # Repository structure
 
 > **TL;DR** Production packages live in `src/` and `packages/`; executable workflows
-> live in `examples/`, `consumers/`, and `case-studies/`; tests and browser fixtures sit
-> beside the boundary they own. Generated files are changed through `scripts/`, not by hand.
+> live in `examples/` and `consumers/`; tests and browser fixtures sit beside the boundary
+> they own. Generated files are changed through `scripts/`, not by hand.
 
 ## Top-level areas
 
@@ -14,7 +14,6 @@
 | `browser-tests/` | Browser runner fixtures used by lifecycle and parity scripts.            |
 | `examples/`      | Runnable applications that use workspace packages.                       |
 | `consumers/`     | Projects assembled outside the checkout to verify package adoption.      |
-| `case-studies/`  | Reproducible application comparisons and their generated records.        |
 | `experiments/`   | Narrow prototypes retained as automated compatibility checks.            |
 | `docs/`          | User, maintainer, scope, and decision documentation.                     |
 | `website/`       | Docusaurus wrapper, navigation, Markdown integrations, and site tests.   |
@@ -40,8 +39,8 @@ without workspace resolution.
   the dual run; `pnpm check:conformance` only compares.
 - `docs/public-surface.generated.json` comes from `pnpm public-surface`; its companion
   ledger remains reviewed prose and classifications.
-- Drawing-game files named `*.generated.json` come from the matching `:record` or snippet
-  command documented in the [case study](../case-studies/drawing-game/README.md).
+- `examples/drawing-game/snippets.generated.json` comes from
+  `pnpm example:drawing-game:snippets` and supports the live-coding example.
 - `dist/`, `coverage/`, `website/build/`, `.release-candidate/`, and runner-specific
   temporary directories are outputs. They are not source files to commit.
 

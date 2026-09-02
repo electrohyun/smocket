@@ -33,9 +33,10 @@ test counts, completion percentages, or duplicated issue status.
 
 ## Maintained application paths
 
-The [drawing-game case study](../case-studies/drawing-game/README.md) owns the shared
-Real Socket.IO, Smocket, competing-tool, and handwritten application comparisons. The
-workspace chat room remains a compact executable example, not a second recorded study.
+The [drawing-game example](../examples/drawing-game/) runs one application with Real
+Socket.IO and Smocket in Node and across browser pages. The workspace chat room remains
+a compact executable example. Neither application owns a separate recorded comparison;
+the [conformance report](./conformance.md) owns the supported compatibility boundary.
 
 Clean-adoption fixtures install candidate or reviewed published packages outside the
 checkout. They own the independent package boundary across test runners, module formats,
