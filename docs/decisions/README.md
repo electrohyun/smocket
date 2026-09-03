@@ -50,4 +50,5 @@ these are written.
 | [0036](./0036-drop-final-broadcast-recipients-by-sid.md)                | Drop final broadcast recipients by sid                                                  | Accepted           | #263                 |
 | [0037](./0037-keep-broadcast-management-local-and-canonical.md)         | Keep local broadcast management canonical                                               | Accepted           | #265                 |
 | [0038](./0038-shared-worker-is-an-explicit-narrow-facade.md)            | SharedWorker uses explicit host and client subpaths with a narrow facade                | Accepted           | #376, #377, #379     |
-| [0039](./0039-retire-legacy-chat-room-evaluation.md)                    | Retire chat-room evaluation paths after maintained replacements exist                   | Accepted           | #451                 |
+| [0039](./0039-retire-legacy-chat-room-evaluation.md)                    | Retire chat-room evaluation paths after maintained replacements exist                   | Superseded by 0040 | #451, #476           |
+| [0040](./0040-keep-drawing-game-executable.md)                          | Keep drawing game executable and retire its recorded comparison reports                 | Accepted           | #476                 |

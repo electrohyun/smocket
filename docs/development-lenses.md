@@ -50,10 +50,9 @@ a claim that work under a lens is complete.
   makes a user's testing workflow easier.
 - **Current example.** The [test-runner integration guide](./test-runner-integration.md)
   documents how a test can substitute `smocket-client` while the application keeps its
-  `socket.io-client` import. The drawing-game
-  [maintenance study](../case-studies/drawing-game/maintenance.md) records the source
-  needed at each stage of one handwritten workflow. Those measurements apply only to
-  that workflow and are not a universal productivity measure.
+  `socket.io-client` import. The [drawing-game example](../examples/drawing-game/) keeps
+  its application handler and browser UI while changing the Node or SharedWorker
+  connection bootstrap.
 
 ## Sustainability
 

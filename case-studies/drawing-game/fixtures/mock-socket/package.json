@@ -1,8 +1,0 @@
-{
-  "name": "drawing-game-mock-socket-fixture",
-  "private": true,
-  "type": "module",
-  "dependencies": {
-    "mock-socket": "9.3.1"
-  }
-}
