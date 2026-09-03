@@ -50,7 +50,16 @@ function startStaticServer(output) {
       const url = new URL(request.url ?? '/', 'http://127.0.0.1');
       if (url.pathname === '/') {
         response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-        response.end('<!doctype html><script type="module" src="/page.js"></script>');
+        response.end(
+          '<!doctype html><link rel="icon" href="data:," /><script type="module" src="/page.js"></script>',
+        );
+        return;
+      }
+      if (url.pathname === '/neutral') {
+        response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        response.end(
+          '<!doctype html><link rel="icon" href="data:," /><title>SharedWorker lifecycle navigation target</title>',
+        );
         return;
       }
       const filename = resolve(output, url.pathname.replace(/^\/+/, ''));
@@ -162,6 +171,10 @@ async function observedEvents(page, event) {
   );
 }
 
+async function lifecycleState(page) {
+  return page.evaluate(() => globalThis.sharedWorkerLifecycleProbe.state());
+}
+
 const output = await mkdtemp(join(tmpdir(), 'smocket-shared-worker-lifecycle-'));
 let browser;
 let server;
@@ -170,7 +183,12 @@ try {
   await bundleFixture(output);
   const started = await startStaticServer(output);
   server = started.server;
-  browser = await chromium.launch({ headless: true });
+  browser = await chromium.launch({
+    // Playwright disables BFCache by default, and Chromium's headless delegate rejects it.
+    headless: false,
+    args: ['--enable-features=BFCacheWithSharedWorker,FreezeSharedWorker'],
+    ignoreDefaultArgs: ['--disable-back-forward-cache'],
+  });
   const context = await browser.newContext();
   context.setDefaultTimeout(10_000);
   const [pageA, pageB, pageC] = await Promise.all(
@@ -195,8 +213,13 @@ try {
   await emit(pageC, 'request-server-ack', 'unanswered');
   await waitForEvent(pageC, 'server-pending', 'unanswered');
 
+  const pageCdp = await context.newCDPSession(pageC);
+  await pageCdp.send('Page.enable');
+  const backForwardCacheFailures = [];
+  pageCdp.on('Page.backForwardCacheNotUsed', (event) => backForwardCacheFailures.push(event));
+  const beforeNavigation = await lifecycleState(pageC);
   const left = waitForEvent(pageA, 'player-left', 'C');
-  await pageC.close();
+  await pageC.goto(`${started.origin}/neutral`);
   await left;
   const closeMarker = waitForEvent(pageB, 'marker', 'after-close');
   await emit(pageA, 'marker', 'after-close');
@@ -207,6 +230,52 @@ try {
     sockets: 2,
   });
 
+  await pageC.goBack({ waitUntil: 'commit' });
+  await pageC.waitForFunction(() => {
+    const state = globalThis.sharedWorkerLifecycleProbe?.state();
+    return state?.pageshowPersisted.at(-1) === true || state?.navigationType === 'back_forward';
+  });
+  const restored = await lifecycleState(pageC);
+  const notRestoredReasons = [
+    ...restored.notRestoredReasons,
+    ...backForwardCacheFailures.flatMap(({ notRestoredExplanations }) =>
+      notRestoredExplanations.map(({ reason }) => reason),
+    ),
+  ];
+  assert.equal(
+    restored.pageshowPersisted.at(-1),
+    true,
+    `Chromium did not restore the lifecycle page from BFCache: ${notRestoredReasons.join(', ') || 'no reason reported'}`,
+  );
+  assert.equal(restored.instanceId, beforeNavigation.instanceId);
+  assert.deepEqual(restored.pagehidePersisted, [true]);
+  assert.deepEqual(restored.pageshowPersisted, [false, true]);
+  assert.equal(restored.connected, false);
+  assert.equal(restored.socketId, undefined);
+
+  const orderedBeforeReconnect = await observedEvents(pageC, 'ordered');
+  const disconnectedMarker = waitForEvent(pageB, 'marker', 'after-bfcache-disconnect');
+  await emit(pageA, 'ordered', 3);
+  await emit(pageA, 'marker', 'after-bfcache-disconnect');
+  await disconnectedMarker;
+  assert.deepEqual(await observedEvents(pageC, 'ordered'), orderedBeforeReconnect);
+
+  await pageC.evaluate(() => globalThis.sharedWorkerLifecycleProbe.connect());
+  await pageC.waitForFunction(() => globalThis.sharedWorkerLifecycleProbe.state().connected);
+  const reconnected = await lifecycleState(pageC);
+  assert.notEqual(reconnected.socketId, beforeNavigation.socketId);
+  await emitWithAck(pageC, 'join', ROOM);
+  assert.deepEqual(await emitWithAck(pageA, 'inspect', ROOM), {
+    players: 3,
+    roomMembers: 3,
+    sockets: 3,
+  });
+  const reconnectedMarker = waitForEvent(pageC, 'marker', 'after-bfcache-reconnect');
+  await emit(pageA, 'ordered', 4);
+  await emit(pageA, 'marker', 'after-bfcache-reconnect');
+  await reconnectedMarker;
+  assert.deepEqual((await observedEvents(pageC, 'ordered')).at(-1), [4]);
+
   const replacement = await openProbe(context, started.origin, 'C', 'v2');
   await emitWithAck(replacement, 'join', ROOM);
   assert.deepEqual(await emitWithAck(replacement, 'inspect', ROOM), {
@@ -215,15 +284,17 @@ try {
     sockets: 1,
   });
   assert.deepEqual(await emitWithAck(pageA, 'inspect', ROOM), {
-    players: 2,
-    roomMembers: 2,
-    sockets: 2,
+    players: 3,
+    roomMembers: 3,
+    sockets: 3,
   });
 
   browserErrors.assertNoUnexpectedErrors();
-  await Promise.all([pageA.close(), pageB.close(), replacement.close()]);
+  await Promise.all([pageA.close(), pageB.close(), pageC.close(), replacement.close()]);
   await context.close();
-  process.stdout.write('Production SharedWorker lifecycle passed in Chromium.\n');
+  process.stdout.write(
+    'Production SharedWorker lifecycle passed in Chromium, including BFCache restoration.\n',
+  );
 } finally {
   browserErrors.stop();
   await browser?.close();

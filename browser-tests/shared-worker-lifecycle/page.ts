@@ -10,11 +10,21 @@ interface EventWaiter {
 
 export interface SharedWorkerLifecycleProbe {
   readonly connected: Promise<void>;
+  state(): {
+    readonly instanceId: string;
+    readonly connected: boolean;
+    readonly socketId: string | undefined;
+    readonly pagehidePersisted: boolean[];
+    readonly pageshowPersisted: boolean[];
+    readonly navigationType: string | undefined;
+    readonly notRestoredReasons: string[];
+  };
   emit(event: string, ...args: unknown[]): void;
   emitPending(event: string, ...args: unknown[]): void;
   emitWithAck(event: string, ...args: unknown[]): Promise<unknown>;
   events(event: string): EventArguments[];
   waitFor(event: string, expected?: unknown): Promise<EventArguments>;
+  connect(): void;
   disconnect(): void;
 }
 
@@ -27,6 +37,28 @@ declare global {
 const parameters = new URLSearchParams(location.search);
 const label = parameters.get('label') ?? 'A';
 const version = parameters.get('version') ?? 'v1';
+const lifecycleStorageKey = `smocket-lifecycle-pagehide-${label}-${version}`;
+const navigation = performance.getEntriesByType('navigation')[0] as
+  | (PerformanceNavigationTiming & {
+      readonly notRestoredReasons?: {
+        readonly reasons?: ReadonlyArray<{ readonly reason?: string }>;
+        readonly children?: ReadonlyArray<unknown>;
+      } | null;
+    })
+  | undefined;
+if (navigation?.type !== 'back_forward') sessionStorage.removeItem(lifecycleStorageKey);
+const pagehidePersisted = JSON.parse(
+  sessionStorage.getItem(lifecycleStorageKey) ?? '[]',
+) as boolean[];
+const pageshowPersisted: boolean[] = [];
+const instanceId = crypto.randomUUID();
+
+window.addEventListener('pagehide', (event) => {
+  pagehidePersisted.push(event.persisted);
+  sessionStorage.setItem(lifecycleStorageKey, JSON.stringify(pagehidePersisted));
+});
+window.addEventListener('pageshow', (event) => pageshowPersisted.push(event.persisted));
+
 const worker = new SharedWorker(new URL('./worker.js', location.href), {
   name: `smocket-lifecycle-${version}`,
   type: 'module',
@@ -37,6 +69,18 @@ const socket = connectSharedWorker(worker.port, {
 });
 const observed = new Map<string, EventArguments[]>();
 const waiters: EventWaiter[] = [];
+
+function collectNotRestoredReasons(value: unknown): string[] {
+  if (!value || typeof value !== 'object') return [];
+  const record = value as {
+    readonly reasons?: ReadonlyArray<{ readonly reason?: string }>;
+    readonly children?: ReadonlyArray<unknown>;
+  };
+  return [
+    ...(record.reasons ?? []).flatMap(({ reason }) => (reason ? [reason] : [])),
+    ...(record.children ?? []).flatMap(collectNotRestoredReasons),
+  ];
+}
 
 function matches(args: EventArguments, expected: unknown): boolean {
   if (expected === undefined) return true;
@@ -68,6 +112,17 @@ socket.on('server-pending', () => undefined);
 
 window.sharedWorkerLifecycleProbe = {
   connected,
+  state() {
+    return {
+      instanceId,
+      connected: socket.connected,
+      socketId: socket.id,
+      pagehidePersisted: [...pagehidePersisted],
+      pageshowPersisted: [...pageshowPersisted],
+      navigationType: navigation?.type,
+      notRestoredReasons: collectNotRestoredReasons(navigation?.notRestoredReasons),
+    };
+  },
   emit(event, ...args) {
     socket.emit(event, ...args);
   },
@@ -84,6 +139,9 @@ window.sharedWorkerLifecycleProbe = {
     const existing = observed.get(event)?.find((args) => matches(args, expected));
     if (existing) return Promise.resolve(existing);
     return new Promise((resolve) => waiters.push({ event, expected, resolve }));
+  },
+  connect() {
+    socket.connect();
   },
   disconnect() {
     socket.disconnect();

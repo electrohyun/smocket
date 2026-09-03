@@ -120,9 +120,9 @@ jobs:
       - name: Prove one SharedWorker lobby across three Chromium tabs
         run: pnpm test:shared-worker
       - name: Verify production SharedWorker tab lifecycle
-        run: pnpm test:shared-worker:lifecycle
+        run: xvfb-run --auto-servernum pnpm test:shared-worker:lifecycle
       - name: Reject unexpected SharedWorker page errors
-        run: pnpm test:shared-worker:errors
+        run: xvfb-run --auto-servernum pnpm test:shared-worker:errors
       - name: Compare SharedWorker with a real Socket.IO sidecar
         run: pnpm test:shared-worker:parity
       - name: Run the documented SharedWorker lobby
