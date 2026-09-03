@@ -79,6 +79,17 @@ not close the `MessagePort` or the caller-owned `Server`.
 > heartbeat or reliable port-close signal is invented. Worker termination or restart
 > loses sockets, rooms, state, and pending acknowledgements.
 
+The maintained Chromium workflow also covers same-origin navigation into the
+[back-forward cache](https://developer.chrome.com/docs/web-platform/bfcache-notrestoredreasons/).
+Both `pagehide.persisted` and the restored `pageshow.persisted` are true, and the same
+page JavaScript instance returns. The facade is nevertheless disconnected because the
+`pagehide` handler already requested teardown; it does not reconnect on `pageshow`.
+
+After a BFCache restoration, call `socket.connect()` (or `socket.open()`) explicitly,
+then repeat application admission such as joining rooms. That creates a fresh socket id
+and connection generation. Automatic retry remains outside the facade under
+[ADR 0038](./decisions/0038-shared-worker-is-an-explicit-narrow-facade.md).
+
 During HMR, version the worker URL or name so new pages do not join an incompatible
 worker that survived the update. Existing pages can retain the old worker until
 they close; state is not migrated between versions.
