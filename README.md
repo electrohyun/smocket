@@ -276,7 +276,7 @@ report also lists unmeasured APIs and deliberate differences.
 | [Conformance](docs/conformance.md)                           | behaviour compared with real Socket.IO and the unmeasured surface |
 | [Scope and differences](docs/scope.md)                       | the supported layer; see also [differences](docs/differences.md)  |
 | [Troubleshooting](docs/troubleshooting.md)                   | adoption failures by observed signal                              |
-| [Roadmap](docs/roadmap.md)                                   | durable gates and the path toward v1.0.0                          |
+| [Roadmap](docs/roadmap.md)                                   | stable boundary, release gates, and maintained validation paths   |
 
 The maintained Korean entry points are [README.ko.md](README.ko.md) and
 [CONTRIBUTING.ko.md](CONTRIBUTING.ko.md). English documentation is authoritative;

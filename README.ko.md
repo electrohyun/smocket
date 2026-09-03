@@ -264,7 +264,7 @@ API와 의도적인 차이도 보고서에 포함됩니다.
 | [적합성](docs/conformance.md)                       | 실제 Socket.IO와 비교한 동작 및 아직 측정하지 않은 범위 |
 | [범위와 차이](docs/scope.md)                        | 지원 계층 및 [의도적인 차이](docs/differences.md)       |
 | [문제 해결](docs/troubleshooting.md)                | 관찰한 신호에 따른 도입 실패 해결                       |
-| [로드맵](docs/roadmap.md)                           | 유지되는 gate와 v1.0.0까지의 경로                       |
+| [로드맵](docs/roadmap.md)                           | 안정 버전의 범위, 릴리스 gate, 유지되는 검증 경로       |
 
 계속 관리되는 한국어 시작 문서는 [README.ko.md](README.ko.md)와
 [CONTRIBUTING.ko.md](CONTRIBUTING.ko.md)입니다. 영문 문서가 정본이며, 두 한국어

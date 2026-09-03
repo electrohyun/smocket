@@ -3,17 +3,16 @@
 Thanks for taking the time to contribute.
 
 > [!NOTE]
-> smocket is working toward a v1.0.0 release by the end of August 2026.
-> During this stabilization period, public APIs, documentation, and work priorities may change as
-> decisions are made. Small documentation changes and clear bug fixes can go straight to a pull
-> request. For a new feature or a larger change, please align on direction in a related
+> smocket reached v1.0.0 in August 2026. Public APIs and documented behaviour now follow the
+> compatibility rules in [decision 0019](docs/decisions/0019-what-counts-as-a-breaking-change.md).
+> Small documentation changes and clear bug fixes can go straight to a pull request. For a new
+> feature or a larger change, please align on direction in a related
 > [issue](https://github.com/electrohyun/smocket/issues/new/choose) or
 > [Discussion](https://github.com/electrohyun/smocket/discussions) first to avoid duplicate work.
 >
-> For the direction and priorities toward v1.0.0, see
-> [Discussion #219](https://github.com/electrohyun/smocket/discussions/219). Concrete decisions and
-> work in progress are tracked in [Issue #213](https://github.com/electrohyun/smocket/issues/213)
-> and the [v1.0.0 milestone](https://github.com/electrohyun/smocket/milestone/3).
+> The [roadmap](docs/roadmap.md) records the stable release boundary and recurring gates. Current
+> work is tracked in the [issue tracker](https://github.com/electrohyun/smocket/issues) and
+> [milestones](https://github.com/electrohyun/smocket/milestones).
 
 smocket aims to reproduce the [delivery and routing layer](docs/scope.md) of
 [Socket.IO](https://socket.io/). When you propose a change, it helps a lot if you can also say how

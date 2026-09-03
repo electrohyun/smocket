@@ -86,10 +86,10 @@ lifecycle are unchanged. Wrap another adapter to combine behaviors, for example
 
 ## Why now, and why smocket-only
 
-The seam lands before v1.0.0 on purpose. That release freezes the public surface,
-and adding an extension point after the freeze is a breaking change, so landing it
-first is what keeps the routing layer from being pinned to a single in-memory
-implementation ([0008](./decisions/0008-adapter-api-before-v1.md)).
+The seam landed before v1.0.0 on purpose, so its contract became part of the stable
+public surface instead of arriving as a later addition. Landing it first kept the
+routing layer from being pinned to a single in-memory implementation
+([0008](./decisions/0008-adapter-api-before-v1.md)).
 
 > [!IMPORTANT]
 > A custom adapter written here does not run on real socket.io, whose adapter also

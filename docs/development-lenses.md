@@ -2,7 +2,7 @@
 
 > **TL;DR** Fidelity, Extensibility, Reliability, Productivity, and Sustainability
 > are questions for examining smocket's direction, not scores or work labels. Each
-> lens highlights one part of reaching v1.0.0 without replacing the documents that
+> lens highlights one part of maintaining the stable release guarantees without replacing the documents that
 > own the project's scope, evidence, differences, and decisions.
 
 The examples below illustrate current practice. They are not a feature inventory or

@@ -3,18 +3,16 @@
 시간을 내어 기여해 주셔서 감사합니다.
 
 > [!NOTE]
-> smocket은 2026년 8월 말 v1.0.0 릴리즈를 목표로 안정화 작업을 진행하고 있습니다.
-> 이 기간에는 공개 API와 문서, 작업 우선순위가 논의 결과에 따라 조정될 수 있습니다.
-> 작은 문서 수정이나 명확한 버그 수정은 바로 PR로 제안해도 괜찮습니다. 새로운 기능이나
-> 범위가 큰 변경은 중복 작업을 막기 위해 먼저 관련
+> smocket은 2026년 8월 v1.0.0에 도달했습니다. 공개 API와 문서화된 동작에는 이제
+> [결정 0019](docs/decisions/0019-what-counts-as-a-breaking-change.md)의 호환성 규칙이
+> 적용됩니다. 작은 문서 수정이나 명확한 버그 수정은 바로 PR로 제안해도 괜찮습니다.
+> 새로운 기능이나 범위가 큰 변경은 중복 작업을 막기 위해 먼저 관련
 > [Issue](https://github.com/electrohyun/smocket/issues/new/choose)나
 > [Discussion](https://github.com/electrohyun/smocket/discussions)에서 방향을 맞춰 주세요.
 >
-> smocket이 v1.0.0까지 어떤 방향과 우선순위를 두고 있는지 궁금하다면
-> [Discussion #219](https://github.com/electrohyun/smocket/discussions/219)을 참고해 주세요.
-> 구체적인 결정과 진행 중인 작업은
-> [Issue #213](https://github.com/electrohyun/smocket/issues/213)과
-> [v1.0.0 마일스톤](https://github.com/electrohyun/smocket/milestone/3)에서 확인할 수 있습니다.
+> [로드맵](docs/roadmap.md)은 안정 버전의 범위와 반복되는 릴리스 gate를 기록합니다.
+> 현재 작업은 [이슈 트래커](https://github.com/electrohyun/smocket/issues)와
+> [마일스톤](https://github.com/electrohyun/smocket/milestones)에서 확인할 수 있습니다.
 
 smocket은 [Socket.IO](https://socket.io/)의
 [전달(delivery)·라우팅 계층](docs/scope.md)을 최대한 그대로 재현하는 것을 목표로
