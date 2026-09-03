@@ -6,8 +6,9 @@
 
 [`public-surface.generated.json`](./public-surface.generated.json) is derived from
 exact `socket.io` and `socket.io-client` 4.7.5 and 4.8.3 aliases. Each server
-package resolves its own `socket.io-adapter` 2.5.8. `package.json` and the
-lockfile also pin the extractor's TypeScript version and pnpm toolchain.
+package resolves its own `socket.io-adapter` 2.5.8. The inventory records the
+extractor's pinned TypeScript version because it can change declaration parsing.
+It omits pnpm because package-manager updates do not change the extracted surface.
 
 The inventory covers package export maps and root declarations, `Server`,
 `Namespace`, reachable `ParentNamespace`, `BroadcastOperator`, both Socket

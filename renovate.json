@@ -25,8 +25,8 @@
       "allowedVersions": "/^4\\.8\\./"
     },
     {
-      "description": "All build and test tooling in one weekly PR, with the patch stream separated so patches can be told apart from minors. separateMinorPatch was originally added to give the patch auto-merge rule something to match, and it is kept after that rule was dropped because a patch bundle is readable at a glance while a minor bundle is worth reading.",
-      "matchDepTypes": ["devDependencies"],
+      "description": "All build, test, and package-manager tooling in one weekly PR, with the patch stream separated so patches can be told apart from minors. separateMinorPatch was originally added to give the patch auto-merge rule something to match, and it is kept after that rule was dropped because a patch bundle is readable at a glance while a minor bundle is worth reading.",
+      "matchDepTypes": ["devDependencies", "packageManager"],
       "matchPackageNames": ["!socket.io", "!socket.io-client"],
       "groupName": "dev tooling",
       "separateMinorPatch": true,

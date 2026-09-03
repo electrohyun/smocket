@@ -727,7 +727,6 @@ export function generateInventory() {
     schemaVersion: 1,
     generatedBy: 'scripts/check-public-surface.mjs',
     toolchain: {
-      packageManager: readJson(packageJsonPath).packageManager,
       typescript: ts.version,
     },
     resolutions,
