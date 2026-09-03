@@ -253,6 +253,29 @@ async function runRound(pages) {
       return fanfare.isVisible();
     }),
   );
+  const reducedMotionStyles = await Promise.all(
+    pages.map((page) =>
+      page.locator('.fanfare').evaluate((fanfare) => {
+        const board = fanfare.querySelector('.fanfare-board');
+        const fireworks = fanfare.querySelector('.fireworks');
+        if (!(board instanceof HTMLElement) || !(fireworks instanceof HTMLElement)) {
+          throw new Error('the fanfare must include its board and fireworks');
+        }
+        return {
+          animationName: getComputedStyle(board).animationName,
+          fireworksDisplay: getComputedStyle(fireworks).display,
+        };
+      }),
+    ),
+  );
+  assert.ok(
+    reducedMotionStyles.every(({ animationName }) => animationName === 'none'),
+    'the fanfare board must not animate when reduced motion is requested',
+  );
+  assert.ok(
+    reducedMotionStyles.every(({ fireworksDisplay }) => fireworksDisplay === 'none'),
+    'fireworks must stay hidden when reduced motion is requested',
+  );
   const resultVisibility = await Promise.all(
     pages.map(async (page) => {
       const result = page.locator('.round-result');
@@ -290,7 +313,7 @@ async function runTarget(browser, target) {
     logLevel: 'error',
     server: { host: '127.0.0.1', port: 0 },
   });
-  const context = await browser.newContext();
+  const context = await browser.newContext({ reducedMotion: 'reduce' });
   try {
     await vite.listen();
     const origin = vite.resolvedUrls?.local[0];

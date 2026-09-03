@@ -760,13 +760,10 @@ h2 {
 @media (prefers-reduced-motion: reduce) {
   body::before,
   .countdown strong,
-  .player-card > [data-socket] {
+  .player-card > [data-socket],
+  .fanfare-board {
     animation: none;
     transition: none;
-  }
-
-  .fanfare-board {
-    animation: fanfare-out 0.3s ease-in 2.5s both;
   }
 
   .fireworks {
