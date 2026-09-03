@@ -64,7 +64,7 @@
     "access": "public",
     "registry": "https://registry.npmjs.org/"
   },
-  "packageManager": "pnpm@11.23.0",
+  "packageManager": "pnpm@11.25.0",
   "scripts": {
     "build": "tsup",
     "docs:dev": "pnpm --filter @smocket/docs start",
