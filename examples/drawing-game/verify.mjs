@@ -81,6 +81,61 @@ async function verifyGeneratedRecordingRoom(context, origin) {
   await Promise.all(pages.map((page) => page.close()));
 }
 
+async function verifyResponsiveLayout(context, origin, target) {
+  const page = await context.newPage();
+  await page.setViewportSize({ width: 375, height: 667 });
+  await page.goto(`${origin}?room=verify-${target}-responsive&label=A`);
+  await waitForState(page, '[data-connected="true"][data-admitted="true"]');
+
+  const layout = await page.evaluate(() => {
+    const bounds = (selector) => {
+      const element = document.querySelector(selector);
+      if (!(element instanceof HTMLElement)) throw new Error(`Missing ${selector}`);
+      const rect = element.getBoundingClientRect();
+      return {
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+        left: rect.left,
+        width: rect.width,
+        height: rect.height,
+        clientHeight: element.clientHeight,
+        scrollHeight: element.scrollHeight,
+      };
+    };
+    return {
+      viewportHeight: window.innerHeight,
+      documentHeight: document.documentElement.scrollHeight,
+      board: bounds('.board'),
+      canvas: bounds('.canvas-wrap'),
+      footer: bounds('.board footer'),
+      brand: bounds('.brand'),
+      target: bounds('.target-badge'),
+    };
+  });
+
+  assert.ok(layout.canvas.height >= 120, 'the narrow layout must keep a usable canvas height');
+  assert.ok(
+    layout.board.scrollHeight <= layout.board.clientHeight,
+    'board content must stay inside its grid row',
+  );
+  assert.ok(
+    layout.footer.bottom <= layout.board.bottom,
+    'the board footer must not overflow below the board',
+  );
+  assert.ok(
+    layout.brand.bottom <= layout.target.top || layout.target.bottom <= layout.brand.top,
+    'the brand and target badge must not overlap',
+  );
+  assert.ok(
+    layout.documentHeight > layout.viewportHeight,
+    'a short narrow viewport must scroll instead of clipping the layout',
+  );
+  await page.getByLabel('Delivery record').scrollIntoViewIfNeeded();
+  assert.equal(await page.getByLabel('Delivery record').isVisible(), true);
+  await page.close();
+}
+
 async function verifyHandlerReload(vite, pages) {
   const previousIds = await Promise.all(
     pages.map((page) => page.locator('main').getAttribute('data-socket-id')),
@@ -240,6 +295,7 @@ async function runTarget(browser, target) {
     await vite.listen();
     const origin = vite.resolvedUrls?.local[0];
     if (!origin) throw new Error(`Vite did not expose the ${target} example URL`);
+    await verifyResponsiveLayout(context, origin, target);
     await verifyGeneratedRecordingRoom(context, origin);
     const room = `verify-${target}`;
     const pages = await openRound(context, origin, room);

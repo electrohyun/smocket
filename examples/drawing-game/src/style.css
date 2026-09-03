@@ -714,9 +714,15 @@ h2 {
     --stage-bottom: 88px;
   }
 
+  body {
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
   .game {
     grid-template-columns: 1fr;
     grid-template-rows: minmax(0, 1fr) 40dvh;
+    min-height: 960px;
   }
 
   .player-badge {
@@ -727,6 +733,14 @@ h2 {
 }
 
 @media (max-width: 560px) {
+  .brand {
+    top: 68px;
+  }
+
+  .target-label {
+    white-space: nowrap;
+  }
+
   .player-card > [data-socket] {
     padding-right: 8px;
     padding-left: 8px;
