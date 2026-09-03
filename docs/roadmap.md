@@ -1,12 +1,12 @@
-# Roadmap to v1.0.0
+# Stable release roadmap
 
-> **TL;DR** v1.0.0 stabilizes the documented in-memory delivery and routing subset,
-> its public types, and the two-package substitution path. The milestone owns release
-> status; this page owns the durable gates, maintained validation paths, and non-goals.
+> **TL;DR** v1.0.0 stabilized the documented in-memory delivery and routing subset,
+> its public types, and the two-package substitution path. Milestones own live release
+> status; this page owns the durable boundary, gates, validation paths, and non-goals.
 
 ## Release boundary
 
-The v1 guarantee is observable behaviour and public types inside the documented
+Since v1.0.0, the compatibility guarantee is observable behaviour and public types inside the documented
 [scope](./scope.md). The [conformance report](./conformance.md) owns behaviour compared
 with Real Socket.IO, [differences](./differences.md) owns deliberate divergences and
 Smocket-only APIs, and [ADR 0019](./decisions/0019-what-counts-as-a-breaking-change.md)
@@ -16,9 +16,9 @@ The root and client packages release as one exact-version pair. Their supported 
 are listed in the [package entry-point guide](./package-entry-points.md); a release does
 not add another public path merely to make an internal test convenient.
 
-## Gates before v1
+## Release gates
 
-- One immutable release candidate must pass the dual Node run, supported platforms,
+- Each immutable release candidate must pass the dual Node run, supported platforms,
   Chromium, package policy, clean adoption, documentation, conformance, and public-surface
   drift checks for the same commit.
 - Required defects inside the published scope must be resolved or explicitly removed
@@ -28,8 +28,8 @@ not add another public path merely to make an internal test convenient.
 - Publication follows the root-before-client order and exact registry verification in
   the [npm runbook](./npm-publication.md).
 
-The [v1.0.0 milestone] is the live release gate. This document deliberately carries no
-test counts, completion percentages, or duplicated issue status.
+Milestones carry live release status; this document deliberately carries no test counts,
+completion percentages, or duplicated issue status.
 
 ## Maintained application paths
 
@@ -48,16 +48,17 @@ Network transport and fallback, heartbeat, automatic network reconnection, multi
 scaling, and binary framing remain outside Smocket's in-memory layer. A test hook may
 simulate an application condition without claiming to reproduce those systems.
 
-After v1, additions still start from measured Socket.IO behaviour and follow ADR 0019.
+Additions after v1.0.0 still start from measured Socket.IO behaviour and follow ADR 0019.
 Compatible improvements do not become release commitments until an issue or decision
 places them in a milestone.
 
 ## Direction and tracking
 
-- Direction and priorities: [#213]
-- Release gate: [v1.0.0 milestone]
+- Current work: [issue tracker]
+- Release history and active gates: [milestones] and [releases]
 - Development lenses: [Fidelity, Extensibility, Reliability, Productivity, and Sustainability](./development-lenses.md)
 - Technical decisions: [decision index](./decisions/README.md)
 
-[#213]: https://github.com/electrohyun/smocket/issues/213
-[v1.0.0 milestone]: https://github.com/electrohyun/smocket/milestone/3
+[issue tracker]: https://github.com/electrohyun/smocket/issues
+[milestones]: https://github.com/electrohyun/smocket/milestones
+[releases]: https://github.com/electrohyun/smocket/releases

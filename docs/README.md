@@ -36,7 +36,7 @@ From there, choose the path that matches the code you have:
 - [Conformance report](./conformance.md): behaviours compared by the dual run.
 - [Adapter registration](./adapter-registration.md): Smocket-only routing extensions.
 - [Glossary](./glossary.md): Socket.IO and Smocket terms used by these guides.
-- [Roadmap](./roadmap.md): the boundary and release path toward v1.0.0.
+- [Roadmap](./roadmap.md): the stable boundary, release gates, and maintained paths.
 - [Drawing-game example](../examples/drawing-game/): the same application running
   with Real Socket.IO and Smocket in Node and across browser pages.
 
