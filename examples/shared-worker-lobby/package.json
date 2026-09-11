@@ -15,6 +15,6 @@
   "devDependencies": {
     "playwright": "catalog:",
     "typescript": "6.0.3",
-    "vite": "8.1.5"
+    "vite": "8.2.2"
   }
 }
