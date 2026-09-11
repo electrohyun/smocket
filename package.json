@@ -128,7 +128,7 @@
     "@vitest/coverage-v8": "^4.1.10",
     "eslint": "^10.7.0",
     "eslint-config-prettier": "^10.1.8",
-    "playwright": "^1.62.1",
+    "playwright": "catalog:",
     "prettier": "^3.9.5",
     "publint": "^0.3.23",
     "socket.io": "^4.8.3",

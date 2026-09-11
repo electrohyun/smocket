@@ -9,15 +9,6 @@ import { fileURLToPath } from 'node:url';
 const repositoryRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const fixtureRoot = join(repositoryRoot, 'consumers', 'test-adoption');
 const exampleRoot = join(repositoryRoot, 'examples', 'chat-room');
-const fixtureToolVersions = {
-  '@vitest/browser': '4.1.10',
-  '@vitest/browser-playwright': '4.1.10',
-  jest: '30.2.0',
-  playwright: '1.62.1',
-  'socket.io-client': '4.8.3',
-  typescript: '6.0.3',
-  vitest: '4.1.10',
-};
 const applicationFiles = ['app.js', 'assertions.js', 'scenario.js'];
 const [mode, ...arguments_] = process.argv.slice(2);
 const options = new Map();
@@ -189,13 +180,10 @@ async function assembleProject(projectRoot, packageInput) {
   const dependencies = { smocket: packageInput };
   if (clientPackageInput !== undefined) dependencies['smocket-client'] = clientPackageInput;
 
+  const fixtureManifest = await readJson(join(fixtureRoot, 'package.json'));
   const manifest = {
-    name: 'smocket-clean-adoption',
-    private: true,
-    type: 'module',
-    engines: { node: '>=20' },
+    ...fixtureManifest,
     dependencies,
-    devDependencies: fixtureToolVersions,
   };
 
   await writeFile(join(projectRoot, 'package.json'), `${JSON.stringify(manifest, null, 2)}\n`);
@@ -519,6 +507,13 @@ async function runPublishedFixtures(projectRoot, packageInput) {
 
 async function runBrowserFixture(projectRoot, packageInput) {
   const vitest = join(projectRoot, 'node_modules', 'vitest', 'vitest.mjs');
+  const playwright = join(projectRoot, 'node_modules', 'playwright', 'cli.js');
+  await run(
+    process.execPath,
+    [playwright, 'install', 'chromium'],
+    projectRoot,
+    fixtureContext('Playwright', 'Chromium installation', packageInput, 'clean adoption project'),
+  );
   await run(
     process.execPath,
     [vitest, 'run', 'browser/adoption.test.js', '--config', 'browser/vitest.config.js'],
