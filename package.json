@@ -64,7 +64,7 @@
     "access": "public",
     "registry": "https://registry.npmjs.org/"
   },
-  "packageManager": "pnpm@11.25.0",
+  "packageManager": "pnpm@12.3.4",
   "scripts": {
     "build": "tsup",
     "docs:dev": "pnpm --filter @smocket/docs start",
@@ -123,9 +123,9 @@
     "@arethetypeswrong/cli": "^0.18.5",
     "@eslint/js": "^10.0.1",
     "@types/node": "^26.1.1",
-    "@vitest/browser": "^4.1.10",
-    "@vitest/browser-playwright": "^4.1.10",
-    "@vitest/coverage-v8": "^4.1.10",
+    "@vitest/browser": "^5.0.0",
+    "@vitest/browser-playwright": "^5.0.0",
+    "@vitest/coverage-v8": "^5.0.0",
     "eslint": "^10.7.0",
     "eslint-config-prettier": "^10.1.8",
     "playwright": "catalog:",
@@ -140,6 +140,6 @@
     "tsup": "^8.5.1",
     "typescript": "6.0.3",
     "typescript-eslint": "^8.64.0",
-    "vitest": "^4.1.10"
+    "vitest": "^5.0.0"
   }
 }
