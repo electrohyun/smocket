@@ -61,6 +61,18 @@
       "groupName": "Vitest"
     },
     {
+      "description": "Keep the Node 20 compatibility runner on Vitest 4 because Vitest 5 requires Node 22.12 or newer.",
+      "matchFileNames": ["compat/node20/package.json"],
+      "matchDepNames": ["vitest"],
+      "allowedVersions": "/^4\\./"
+    },
+    {
+      "description": "Keep the Node 20 compatibility runner on Vite 6 because later Vite majors require a newer Node 20 release.",
+      "matchFileNames": ["compat/node20/package.json"],
+      "matchDepNames": ["vite"],
+      "allowedVersions": "/^6\\./"
+    },
+    {
       "description": "Actions are kept individual. Each one gates every CI job, so a grouped failure would not say which bump broke it. They fall outside the dev tooling group already, since an action's depType is `action` or `uses-with` rather than `devDependencies`, but that is a side effect of how the group is written rather than a decision. Stating it here holds even if the group above widens later.",
       "matchManagers": ["github-actions"],
       "groupName": null

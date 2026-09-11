@@ -1,0 +1,12 @@
+{
+  "name": "@smocket/node20-tests",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20.13"
+  },
+  "devDependencies": {
+    "vite": "6.4.3",
+    "vitest": "4.1.11"
+  }
+}
