@@ -148,6 +148,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Install the Node 20 compatibility runner
+        run: pnpm --dir compat/node20 install --frozen-lockfile
       - run: pnpm build
       - run: pnpm --filter smocket-client build
       # Lower tier: the exact floor `engines.node` declares. Nothing installed
@@ -161,23 +163,25 @@ jobs:
           node-version: 20.0.0
       - run: node scripts/smoke.mjs
       - run: node --test packages/smocket-client/test/runtime.test.mjs packages/smocket-client/test/runtime.test.cjs
-      # Upper tier: the whole mock suite against `dist/`, on the lowest Node 20
-      # that can run it. That is 20.13.0 and not 20.0.0 because vitest 4 pulls
-      # in rolldown, rolldown calls `util.styleText`, and Node 20 grew that
-      # mid-line: it is absent through 20.11, and 20.12 rejects the array of
-      # formats rolldown passes. Both fail before a single test is collected.
-      # Do not lower this to match `engines.node`. The number is a fact about
-      # our runner, and keeping it out of `engines` is the point of the split:
-      # a consumer does not run our vitest.
+      # Upper tier: the whole mock suite against `dist/` on Node 20.13.0. The
+      # exact 20.0.0 floor can collect this suite, but its fake timer cleanup
+      # does not complete. The smoke checks above cover that exact runtime,
+      # while this tier keeps the broader package behavior on Node 20.
       #
-      # The `node_modules` installed above is reused as-is. It is pnpm's
-      # symlink tree and Node 20 resolves through it fine, so no reinstall and
-      # no artifact hand-off is needed.
+      # The root suite uses Vitest 5, which requires Node 22.12 or newer. This
+      # tier invokes Vitest 4 from `compat/node20` instead, which keeps the
+      # runner in a dedicated lockfile without executing unsupported Vitest 5
+      # code.
+      # The `node_modules` installed above is reused as is. Node 20 resolves
+      # pnpm's links without a reinstall or a separate artifact.
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 20.13.0
-      - run: node scripts/check-shared-worker-dist-gate.mjs
-      - run: node node_modules/vitest/vitest.mjs run --config vitest.dist.config.ts
+      - name: Reject a missing SharedWorker artifact with the Node 20 runner
+        run: node scripts/check-shared-worker-dist-gate.mjs
+        env:
+          SMOCKET_DIST_VITEST: compat/node20/node_modules/vitest/vitest.mjs
+      - run: node compat/node20/node_modules/vitest/vitest.mjs run --config vitest.dist.config.ts
 
   compat:
     name: real target (socket.io ${{ matrix.socketio }})

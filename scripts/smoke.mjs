@@ -1,8 +1,8 @@
 // The lower tier of the two-tier Node check. It runs the built package on the
-// exact version `engines.node` declares, which no other job can do: vitest 4
-// pulls in rolldown, and rolldown needs a `util.styleText` that Node 20 only
-// grew mid-line, so the suite cannot start on 20.0.0 at all. Importing the
-// module would prove only that it loads, so this drives one delivery instead:
+// exact version `engines.node` declares, which no other job can do. The broad
+// suite's fake timer cleanup does not complete on Node 20.0.0, so that suite
+// runs on a later Node 20 release. Importing the module would prove only that
+// it loads, so this drives one delivery instead:
 // a join, a room broadcast, and the sender's own exclusion from it.
 //
 // Zero dependencies on purpose. `node:assert` and `dist/` are the whole import

@@ -52,3 +52,4 @@ these are written.
 | [0038](./0038-shared-worker-is-an-explicit-narrow-facade.md)            | SharedWorker uses explicit host and client subpaths with a narrow facade                | Accepted           | #376, #377, #379     |
 | [0039](./0039-retire-legacy-chat-room-evaluation.md)                    | Retire chat-room evaluation paths after maintained replacements exist                   | Superseded by 0040 | #451, #476           |
 | [0040](./0040-keep-drawing-game-executable.md)                          | Keep drawing game executable and retire its recorded comparison reports                 | Accepted           | #476                 |
+| [0041](./0041-keep-node-20-suite-on-supported-vitest.md)                | Keep the Node 20 compatibility suite on a supported Vitest release                      | Accepted           | #494                 |

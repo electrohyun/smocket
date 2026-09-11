@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { defineConfig } from 'vitest/config';
+import type { UserConfig } from 'vitest/config';
 
 // The upper tier of the two-tier Node check: the mock target run against the
 // built package instead of `src/`, so the thing a consumer installs is what the
@@ -15,7 +15,7 @@ const distDirectory = process.env.SMOCKET_DIST_DIR
 const dist = path.resolve(distDirectory, 'index.js');
 const sharedWorkerDist = path.resolve(distDirectory, 'shared-worker.js');
 
-export default defineConfig({
+export default {
   resolve: {
     alias: [
       { find: /^\.\/index$/, replacement: dist },
@@ -47,4 +47,4 @@ export default defineConfig({
     // the surface freezes at v1.0.0. They stay source-only unit tests.
     exclude: ['src/connect-url.test.ts', 'src/socket-id.test.ts'],
   },
-});
+} satisfies UserConfig;

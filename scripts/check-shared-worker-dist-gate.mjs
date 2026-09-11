@@ -6,6 +6,9 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
+const vitestPath = process.env.SMOCKET_DIST_VITEST
+  ? resolve(ROOT, process.env.SMOCKET_DIST_VITEST)
+  : resolve(ROOT, 'node_modules/vitest/vitest.mjs');
 const temporaryRoot = await mkdtemp(join(tmpdir(), 'smocket-shared-worker-dist-gate-'));
 const temporaryDist = join(temporaryRoot, 'dist');
 
@@ -15,7 +18,7 @@ try {
   const result = spawnSync(
     process.execPath,
     [
-      resolve(ROOT, 'node_modules/vitest/vitest.mjs'),
+      vitestPath,
       'run',
       '--config',
       resolve(ROOT, 'vitest.dist.config.ts'),
