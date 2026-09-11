@@ -43,6 +43,24 @@
       "schedule": ["before 6am on monday"]
     },
     {
+      "description": "Give pnpm major releases their own pull request because they change dependency installation and lockfile generation independently of the test runner.",
+      "matchDepTypes": ["packageManager"],
+      "matchDepNames": ["pnpm"],
+      "matchUpdateTypes": ["major"],
+      "groupName": null
+    },
+    {
+      "description": "Keep the Vitest packages together when a major release changes the runner, browser integration, and coverage integration as one migration.",
+      "matchPackageNames": [
+        "vitest",
+        "@vitest/browser",
+        "@vitest/browser-playwright",
+        "@vitest/coverage-v8"
+      ],
+      "matchUpdateTypes": ["major"],
+      "groupName": "Vitest"
+    },
+    {
       "description": "Actions are kept individual. Each one gates every CI job, so a grouped failure would not say which bump broke it. They fall outside the dev tooling group already, since an action's depType is `action` or `uses-with` rather than `devDependencies`, but that is a side effect of how the group is written rather than a decision. Stating it here holds even if the group above widens later.",
       "matchManagers": ["github-actions"],
       "groupName": null
