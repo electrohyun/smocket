@@ -1,6 +1,16 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended", ":dependencyDashboard"],
+  "ignorePaths": [
+    "**/node_modules/**",
+    "**/bower_components/**",
+    "**/vendor/**",
+    "**/__tests__/**",
+    "**/test/**",
+    "**/tests/**",
+    "**/__fixtures__/**",
+    "**/fixtures/**"
+  ],
   "timezone": "Asia/Seoul",
   "semanticCommitScope": null,
   "minimumReleaseAge": "3 days",
@@ -25,8 +35,8 @@
       "allowedVersions": "/^4\\.8\\./"
     },
     {
-      "description": "All build, test, and package-manager tooling in one weekly PR, with the patch stream separated so patches can be told apart from minors. separateMinorPatch was originally added to give the patch auto-merge rule something to match, and it is kept after that rule was dropped because a patch bundle is readable at a glance while a minor bundle is worth reading.",
-      "matchDepTypes": ["devDependencies", "packageManager"],
+      "description": "Group build, test, catalog, and package manager tooling in weekly pull requests. Keep patches separate from minor releases because patch updates are readable at a glance, while minor updates deserve closer review.",
+      "matchDepTypes": ["devDependencies", "packageManager", "pnpm.catalog.default"],
       "matchPackageNames": ["!socket.io", "!socket.io-client"],
       "groupName": "dev tooling",
       "separateMinorPatch": true,

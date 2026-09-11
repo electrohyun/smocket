@@ -19,6 +19,12 @@ These are not workspace packages. `scripts/run-clean-adoption.mjs` copies them i
 temporary directory outside the checkout, installs the selected exact packages, and
 reports each input and resolved identity.
 
-The runner pins its fixture tools in its generated manifest. Update those versions
-alongside the repository toolchain, then run the candidate and published commands
-from the root package.
+This directory's `package.json` owns the exact tool versions used in that temporary
+consumer. The runner adds the selected package inputs to that manifest and installs the
+consumer without a workspace lockfile. Browser validation installs the Chromium revision
+required by this manifest's Playwright version before running its fixtures, so it does not
+depend on the workspace Playwright version.
+
+The workspace root and maintained browser examples use the Playwright version in the default
+catalog in `pnpm-workspace.yaml`. The consumer manifest stays independent because it represents
+a consumer rather than a workspace package.
