@@ -18,8 +18,8 @@
   "dependencies": {
     "smocket": "workspace:*",
     "smocket-client": "workspace:*",
-    "react": "19.2.8",
-    "react-dom": "19.2.8",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
     "socket.io": "4.8.3",
     "socket.io-client": "4.8.3"
   },
