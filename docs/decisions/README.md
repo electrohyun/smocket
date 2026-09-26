@@ -53,3 +53,4 @@ these are written.
 | [0039](./0039-retire-legacy-chat-room-evaluation.md)                    | Retire chat-room evaluation paths after maintained replacements exist                   | Superseded by 0040 | #451, #476           |
 | [0040](./0040-keep-drawing-game-executable.md)                          | Keep drawing game executable and retire its recorded comparison reports                 | Accepted           | #476                 |
 | [0041](./0041-keep-node-20-suite-on-supported-vitest.md)                | Keep the Node 20 compatibility suite on a supported Vitest release                      | Accepted           | #494                 |
+| [0042](./0042-automerge-only-stable-renovate-patches.md)                | Automerge only stable development-tool patches after the extended gate                  | Accepted           | #511                 |
