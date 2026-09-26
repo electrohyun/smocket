@@ -47,7 +47,7 @@
       "schedule": ["before 6am on monday"]
     },
     {
-      "description": "Automerge stable development-tool patches after the extended release-age gate. Keep Socket.IO, TypeScript, and pre-1.0 packages manual because CI alone cannot settle their project-level intent or compatibility risk.",
+      "description": "Automerge stable development-tool patches after the extended release-age gate. Keep Socket.IO, TypeScript, and dependencies currently using a 0.x release manual because CI alone cannot settle their project-level intent or compatibility risk.",
       "matchDepTypes": ["devDependencies", "packageManager", "pnpm.catalog.default"],
       "matchPackageNames": ["!socket.io", "!socket.io-client", "!typescript"],
       "matchUpdateTypes": ["patch"],
