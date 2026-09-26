@@ -13,6 +13,10 @@
   ],
   "timezone": "Asia/Seoul",
   "semanticCommitScope": null,
+  "automergeType": "pr",
+  "automergeStrategy": "squash",
+  "platformAutomerge": false,
+  "rebaseWhen": "behind-base-branch",
   "minimumReleaseAge": "3 days",
   "internalChecksFilter": "strict",
   "packageRules": [
@@ -41,6 +45,15 @@
       "groupName": "dev tooling",
       "separateMinorPatch": true,
       "schedule": ["before 6am on monday"]
+    },
+    {
+      "description": "Automerge stable development-tool patches after the extended release-age gate. Keep Socket.IO, TypeScript, and pre-1.0 packages manual because CI alone cannot settle their project-level intent or compatibility risk.",
+      "matchDepTypes": ["devDependencies", "packageManager", "pnpm.catalog.default"],
+      "matchPackageNames": ["!socket.io", "!socket.io-client", "!typescript"],
+      "matchUpdateTypes": ["patch"],
+      "matchCurrentVersion": "!/^0/",
+      "minimumReleaseAge": "14 days",
+      "automerge": true
     },
     {
       "description": "Give pnpm major releases their own pull request because they change dependency installation and lockfile generation independently of the test runner.",
