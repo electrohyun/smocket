@@ -6,12 +6,12 @@
     "node": ">=20"
   },
   "devDependencies": {
-    "@vitest/browser": "5.0.0",
-    "@vitest/browser-playwright": "5.0.0",
-    "jest": "30.5.1",
+    "@vitest/browser": "5.0.1",
+    "@vitest/browser-playwright": "5.0.1",
+    "jest": "30.5.2",
     "playwright": "1.63.0",
     "socket.io-client": "4.8.3",
     "typescript": "6.0.3",
-    "vitest": "5.0.0"
+    "vitest": "5.0.1"
   }
 }
