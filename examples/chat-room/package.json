@@ -10,6 +10,6 @@
     "smocket": "workspace:*",
     "smocket-client": "workspace:*",
     "socket.io": "4.8.3",
-    "socket.io-client": "4.8.3"
+    "socket.io-client": "4.8.4"
   }
 }
