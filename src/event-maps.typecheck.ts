@@ -288,8 +288,8 @@ export function assertTypedEventMapsCompile(): void {
     void socketBroadcastAnswers;
     void socketTimeoutFirstAnswers;
     void socketVolatileAnswers;
-    // @ts-expect-error an ack with no response value cannot back emitWithAck
-    socket.emitWithAck('done');
+    const done: Promise<undefined> = socket.emitWithAck('done');
+    void done;
     void answer;
     void returnedFromMessageAliases;
     void compressedTimedSocket;
@@ -412,8 +412,8 @@ export function assertTypedEventMapsCompile(): void {
   roomOperator.emitWithAck('question', 'value?');
   // @ts-expect-error an event without an acknowledgement cannot back broadcast emitWithAck
   timedRoomOperator.emitWithAck('chat', 'hello');
-  // @ts-expect-error an acknowledgement with no response value cannot back broadcast emitWithAck
-  timedRoomOperator.emitWithAck('done');
+  const done: Promise<undefined> = timedRoomOperator.emitWithAck('done');
+  void done;
   // @ts-expect-error wrong broadcast Promise payload
   timedRoomOperator.emitWithAck('question', 42);
   // @ts-expect-error the caller does not supply the internal collector callback
@@ -760,8 +760,8 @@ export function assertRealSocketIoListenerInferenceCompiles(
     void socketTimeoutFirstAnswers;
     void socketVolatileAnswers;
     const returnedServerSocket: typeof socket = socket.disconnect();
-    // @ts-expect-error an ack with no response value cannot back emitWithAck
-    socket.emitWithAck('done');
+    const done: Promise<undefined> = socket.emitWithAck('done');
+    void done;
     void answer;
     void returnedFromMessageAliases;
     void compressedTimedSocket;
@@ -861,8 +861,8 @@ export function assertRealSocketIoListenerInferenceCompiles(
   io.to('room').emitWithAck('question', 'value?');
   // @ts-expect-error an event without an acknowledgement cannot back broadcast emitWithAck
   io.timeout(100).emitWithAck('chat', 'hello');
-  // @ts-expect-error an acknowledgement with no response value cannot back broadcast emitWithAck
-  io.timeout(100).emitWithAck('done');
+  const done: Promise<undefined> = io.timeout(100).emitWithAck('done');
+  void done;
   // @ts-expect-error wrong broadcast Promise payload
   io.timeout(100).emitWithAck('question', 42);
   // @ts-expect-error the caller does not supply the internal collector callback

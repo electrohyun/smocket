@@ -90,13 +90,11 @@ export type EventNameWithAck<
   Last<EventParams<Map, Event>> | Map[Event],
   Event,
   Event extends Event
-    ? Last<EventParams<Map, Event>> extends (...args: never[]) => unknown
-      ? // Socket.IO uses `void` here so both `undefined` and an explicit `void` response are excluded.
-        // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
-        FirstAckValue<Last<EventParams<Map, Event>>> extends void
-        ? never
-        : Event
-      : never
+    ? EventParams<Map, Event> extends never[]
+      ? never
+      : Last<EventParams<Map, Event>> extends (...args: never[]) => unknown
+        ? Event
+        : never
     : never
 >;
 type LooseParameters<Value> = Value extends (...args: infer Params) => unknown ? Params : never;

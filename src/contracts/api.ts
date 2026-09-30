@@ -682,8 +682,8 @@ export interface ServerContract<
       socket: ServerSocketContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
     ) => void,
   ): NamespaceContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>;
-  /** Shut down every namespace and socket. Socket.IO 4.7 returns void; 4.8 returns a promise. */
-  close(fn?: (err?: Error) => void): void | Promise<void>;
+  /** Shut down every namespace and socket, returning the target's completion promise. */
+  close(fn?: (err?: Error) => void): Promise<void>;
 }
 
 /**
