@@ -37,7 +37,7 @@ badge on the [README](../README.md) goes red if either target does.
 
 ## Verified against real socket.io
 
-Every case below ran against socket.io 4.8.3 first and against smocket second, from the
+Every case below ran against socket.io 4.8.4 first and against smocket second, from the
 same test file, and passed on both. Each links to the test that pins it.
 
 ### Connection and identity
@@ -169,32 +169,32 @@ under [0029](./decisions/0029-narrowed-parent-broadcasts-stay-unverified.md).
 
 - [emits new_namespace synchronously once for static namespaces but not root or parents](../src/dynamic-namespace.test.ts#L7)
 - [admits RegExp children, caches them, and attaches manual children to the parent](../src/dynamic-namespace.test.ts#L24)
-- [preserves stateful RegExp lastIndex across dynamic admission attempts](../src/dynamic-namespace.test.ts#L45)
-- [does not re-evaluate a stateful RegExp parent when reading cached namespaces](../src/dynamic-namespace.test.ts#L65)
-- [preserves sticky RegExp lastIndex across dynamic admission attempts](../src/dynamic-namespace.test.ts#L79)
-- [resets caller-assigned RegExp lastIndex after a failed manual attachment match](../src/dynamic-namespace.test.ts#L99)
-- [uses admission order but the latest duplicate RegExp parent for manual attachment](../src/dynamic-namespace.test.ts#L114)
-- [does not attach a manually created namespace to a function parent](../src/dynamic-namespace.test.ts#L130)
-- [reuses one child for concurrent admission and supports the of listener overload](../src/dynamic-namespace.test.ts#L143)
-- [tries function matchers in order with normalized names and auth until one allows](../src/dynamic-namespace.test.ts#L158)
-- [invokes a dynamic namespace matcher after the client factory returns](../src/dynamic-namespace.test.ts#L191)
-- [does not invoke a dynamic matcher for a connection cancelled after return](../src/dynamic-namespace.test.ts#L205)
-- [rejects an unmatched dynamic namespace as Invalid namespace](../src/dynamic-namespace.test.ts#L227)
-- [retries dynamic admission after an earlier matcher rejection](../src/dynamic-namespace.test.ts#L240)
-- [dynamic admission reads the current client.auth on a manual retry](../src/dynamic-namespace.test.ts#L258)
-- [creates a child before middleware and snapshots parent setup at creation](../src/dynamic-namespace.test.ts#L276)
-- [copies the parent connect synonym to a concrete child](../src/dynamic-namespace.test.ts#L313)
-- [ignores duplicate client connect calls while async dynamic admission is pending](../src/dynamic-namespace.test.ts#L324)
-- [cancels dynamic admission while callback-form auth is unresolved](../src/dynamic-namespace.test.ts#L350)
-- [cancels unresolved dynamic matching with shared Manager disconnect(true)](../src/dynamic-namespace.test.ts#L387)
-- [continues parent matching after a cancelled parent rejects late](../src/dynamic-namespace.test.ts#L431)
-- [reuses one child for concurrent async same-name admissions](../src/dynamic-namespace.test.ts#L486)
-- [broadcasts directly across children while child rooms and lifecycle stay isolated](../src/dynamic-namespace.test.ts#L515)
-- [exposes narrowed parent operators without selecting their delivery result](../src/dynamic-namespace.test.ts#L550)
-- [keeps shared Manager teardown connection-wide across dynamic children](../src/dynamic-namespace.test.ts#L561)
-- [uses one concrete child for nextConnection, lookup, and Manager grouping](../src/dynamic-namespace.test.ts#L582)
-- [creates a RegExp child when nextConnection observes it before a client connects](../src/dynamic-namespace.test.ts#L599)
-- [keeps new_namespace available as an ordinary Socket payload event](../src/dynamic-namespace.test.ts#L616)
+- [rejects dynamic namespace RegExp with g flags before admission](../src/dynamic-namespace.test.ts#L45)
+- [rejects dynamic namespace RegExp with y flags before admission](../src/dynamic-namespace.test.ts#L45)
+- [rejects dynamic namespace RegExp with gy flags before admission](../src/dynamic-namespace.test.ts#L45)
+- [preserves stateless RegExp lastIndex when admitting and reading cached children](../src/dynamic-namespace.test.ts#L63)
+- [uses admission order but the latest duplicate RegExp parent for manual attachment](../src/dynamic-namespace.test.ts#L79)
+- [does not attach a manually created namespace to a function parent](../src/dynamic-namespace.test.ts#L95)
+- [reuses one child for concurrent admission and supports the of listener overload](../src/dynamic-namespace.test.ts#L108)
+- [tries function matchers in order with normalized names and auth until one allows](../src/dynamic-namespace.test.ts#L123)
+- [invokes a dynamic namespace matcher after the client factory returns](../src/dynamic-namespace.test.ts#L156)
+- [does not invoke a dynamic matcher for a connection cancelled after return](../src/dynamic-namespace.test.ts#L170)
+- [rejects an unmatched dynamic namespace as Invalid namespace](../src/dynamic-namespace.test.ts#L192)
+- [retries dynamic admission after an earlier matcher rejection](../src/dynamic-namespace.test.ts#L205)
+- [dynamic admission reads the current client.auth on a manual retry](../src/dynamic-namespace.test.ts#L223)
+- [creates a child before middleware and snapshots parent setup at creation](../src/dynamic-namespace.test.ts#L241)
+- [copies the parent connect synonym to a concrete child](../src/dynamic-namespace.test.ts#L278)
+- [ignores duplicate client connect calls while async dynamic admission is pending](../src/dynamic-namespace.test.ts#L289)
+- [cancels dynamic admission while callback-form auth is unresolved](../src/dynamic-namespace.test.ts#L315)
+- [cancels unresolved dynamic matching with shared Manager disconnect(true)](../src/dynamic-namespace.test.ts#L352)
+- [continues parent matching after a cancelled parent rejects late](../src/dynamic-namespace.test.ts#L396)
+- [reuses one child for concurrent async same-name admissions](../src/dynamic-namespace.test.ts#L451)
+- [broadcasts directly across children while child rooms and lifecycle stay isolated](../src/dynamic-namespace.test.ts#L480)
+- [exposes narrowed parent operators without selecting their delivery result](../src/dynamic-namespace.test.ts#L515)
+- [keeps shared Manager teardown connection-wide across dynamic children](../src/dynamic-namespace.test.ts#L526)
+- [uses one concrete child for nextConnection, lookup, and Manager grouping](../src/dynamic-namespace.test.ts#L547)
+- [creates a RegExp child when nextConnection observes it before a client connects](../src/dynamic-namespace.test.ts#L564)
+- [keeps new_namespace available as an ordinary Socket payload event](../src/dynamic-namespace.test.ts#L581)
 
 ### Acknowledgements
 
@@ -295,13 +295,14 @@ composition.
 - [a disconnected recipient cannot finish a broadcast acknowledgement collection](../src/broadcast-promise-ack.test.ts#L25)
 - [untimed broadcast acknowledgement collection keeps the timer race and resolves [] for nobody](../src/broadcast-promise-ack.test.ts#L76)
 - [untimed broadcast acknowledgement collection times out when a recipient never acknowledges](../src/broadcast-promise-ack.test.ts#L102)
-- [timeout rejection exposes partial responses and late acknowledgements mutate that array once](../src/broadcast-promise-ack.test.ts#L119)
-- [server, namespace, room, exclusion, and socket broadcast share Promise collection](../src/broadcast-promise-ack.test.ts#L152)
-- [timeout-first and narrowing-first Promise broadcasts select the same responders](../src/broadcast-promise-ack.test.ts#L182)
-- [Promise broadcast hides its collector ack and observes each selected socket once](../src/broadcast-promise-ack.test.ts#L198)
-- [reserved Promise broadcasts reject without outgoing observation](../src/broadcast-promise-ack.test.ts#L208)
-- [dynamic parent Promise acknowledgements resolve [] without reaching concrete children](../src/broadcast-promise-ack.test.ts#L219)
-- [Promise broadcast snapshots one request and each acknowledgement response independently](../src/broadcast-promise-ack.test.ts#L238)
+- [timed-out callback collection ignores late acknowledgements](../src/broadcast-promise-ack.test.ts#L119)
+- [timed-out promise collection ignores late acknowledgements](../src/broadcast-promise-ack.test.ts#L119)
+- [server, namespace, room, exclusion, and socket broadcast share Promise collection](../src/broadcast-promise-ack.test.ts#L164)
+- [timeout-first and narrowing-first Promise broadcasts select the same responders](../src/broadcast-promise-ack.test.ts#L194)
+- [Promise broadcast hides its collector ack and observes each selected socket once](../src/broadcast-promise-ack.test.ts#L210)
+- [reserved Promise broadcasts reject without outgoing observation](../src/broadcast-promise-ack.test.ts#L220)
+- [dynamic parent Promise acknowledgements resolve [] without reaching concrete children](../src/broadcast-promise-ack.test.ts#L231)
+- [Promise broadcast snapshots one request and each acknowledgement response independently](../src/broadcast-promise-ack.test.ts#L250)
 
 ### Connection middleware
 

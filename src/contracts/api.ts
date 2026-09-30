@@ -124,8 +124,8 @@ export interface TimeoutEmitterContract<EmitEvents extends EventsMap = DefaultEv
  * once with `(null, responses)` when every recipient acks in time, or `(Error('operation
  * has timed out'), responses)` when the timer wins, where `responses` holds the acks that
  * arrived, in arrival order. A broadcast to no recipient resolves at once as `(null, [])`.
- * A late ack cannot settle the callback or Promise twice, but it may append to an already
- * exposed partial-response array. The narrowing methods chain and keep the timeout, so
+ * A late ack cannot settle the callback or Promise twice or change an already exposed
+ * partial-response array. The narrowing methods chain and keep the timeout, so
  * `io.timeout(ms).to(a).to(b)` targets the union and
  * `io.timeout(ms).to(a).except(b)` collects from the survivors only (#137). Reading
  * `volatile` before or after those narrowings keeps both the timeout and event map.

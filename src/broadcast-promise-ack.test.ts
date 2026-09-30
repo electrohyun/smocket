@@ -116,38 +116,50 @@ it('untimed broadcast acknowledgement collection times out when a recipient neve
   expect(error.responses).toEqual([]);
 });
 
-it('timeout rejection exposes partial responses and late acknowledgements mutate that array once', async () => {
-  const answered = await ctx.connectClient();
-  const late = await ctx.connectClient();
-  await answered.serverSocket.join('all');
-  await late.serverSocket.join('all');
-  answered.client.on('question', (ack: (response: string) => void) => ack('answered'));
+it.each(['callback', 'promise'] as const)(
+  'timed-out %s collection ignores late acknowledgements',
+  async (kind) => {
+    const answered = await ctx.connectClient();
+    const late = await ctx.connectClient();
+    await answered.serverSocket.join('all');
+    await late.serverSocket.join('all');
+    answered.client.on('question', (ack: (response: string) => void) => ack('answered'));
 
-  let answerLate: ((response: string) => void) | undefined;
-  late.client.on('question', (ack: (response: string) => void) => {
-    answerLate = ack;
-  });
-  late.serverSocket.on('ack-marker', (ack: () => void) => ack());
+    let answerLate: ((response: string) => void) | undefined;
+    late.client.on('question', (ack: (response: string) => void) => {
+      answerLate = ack;
+    });
+    late.serverSocket.on('ack-marker', (ack: () => void) => ack());
 
-  const pending = ctx.io.to('all').timeout(100).emitWithAck('question');
-  let settlements = 0;
-  void pending.then(
-    () => (settlements += 1),
-    () => (settlements += 1),
-  );
+    const broadcast = ctx.io.to('all').timeout(100);
+    const pending =
+      kind === 'promise'
+        ? broadcast.emitWithAck('question')
+        : new Promise<unknown[]>((resolve, reject) => {
+            broadcast.emit('question', (error: Error | null, responses: unknown[]) => {
+              if (error) reject(Object.assign(error, { responses }));
+              else resolve(responses);
+            });
+          });
+    let settlements = 0;
+    void pending.then(
+      () => (settlements += 1),
+      () => (settlements += 1),
+    );
 
-  const error = (await pending.catch((reason: unknown) => reason)) as TimeoutError;
-  expect(error).toBeInstanceOf(Error);
-  expect(error.message).toBe('operation has timed out');
-  expect(Object.hasOwn(error, 'responses')).toBe(true);
-  expect(error.responses).toEqual(['answered']);
+    const error = (await pending.catch((reason: unknown) => reason)) as TimeoutError;
+    expect(error).toBeInstanceOf(Error);
+    expect(error.message).toBe('operation has timed out');
+    expect(Object.hasOwn(error, 'responses')).toBe(true);
+    expect(error.responses).toEqual(['answered']);
 
-  answerLate?.('late');
-  await late.client.emitWithAck('ack-marker');
+    answerLate?.('late');
+    await late.client.emitWithAck('ack-marker');
 
-  expect(error.responses).toEqual(['answered', 'late']);
-  expect(settlements).toBe(1);
-});
+    expect(error.responses).toEqual(['answered']);
+    expect(settlements).toBe(1);
+  },
+);
 
 it('server, namespace, room, exclusion, and socket broadcast share Promise collection', async () => {
   const a = await ctx.connectClient();

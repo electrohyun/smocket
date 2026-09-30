@@ -227,8 +227,8 @@ export class BroadcastOperator<Socket extends BroadcastSocket = BroadcastSocket>
   }
 
   /**
-   * Collect acknowledgements once (#112), in measured arrival order on 4.7.5 and 4.8.3.
-   * Timeout exposes partial responses; late answers may append to that exposed array, and
+   * Collect acknowledgements once (#112), in measured arrival order on 4.8.4.
+   * Timeout exposes partial responses; late answers leave that exposed array unchanged, and
    * an empty recipient set resolves immediately.
    */
   private collect(
@@ -253,8 +253,8 @@ export class BroadcastOperator<Socket extends BroadcastSocket = BroadcastSocket>
     }, ms);
     for (const socket of recipients) {
       const answer = (...received: unknown[]) => {
-        responses.push(received[0]);
         if (settled) return;
+        responses.push(received[0]);
         remaining -= 1;
         if (remaining === 0) {
           settled = true;
