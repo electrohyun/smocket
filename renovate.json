@@ -96,6 +96,13 @@
       "matchDepNames": ["node"],
       "matchCurrentValue": "/^20\\.(0\\.0|13\\.0)$/",
       "enabled": false
+    },
+    {
+      "description": "Adopt Socket.IO targets manually with the root validation pins; keep examples and consumers exact without independent bot updates.",
+      "matchManagers": ["npm"],
+      "matchFileNames": ["examples/**/package.json", "consumers/**/package.json"],
+      "matchPackageNames": ["socket.io", "socket.io-client"],
+      "enabled": false
     }
   ]
 }

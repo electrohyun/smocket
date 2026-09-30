@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
-import { existsSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -36,6 +36,20 @@ export function declaredTarget(manifest) {
     server,
     client,
   };
+}
+
+/** Adoption fixtures must exercise the release's declared target. */
+export function verifyAdoptionPins(manifest, target, source) {
+  for (const specification of [target.server, target.client]) {
+    for (const section of ['dependencies', 'devDependencies']) {
+      const version = manifest[section]?.[specification.name];
+      if (version !== undefined && version !== specification.version) {
+        throw new Error(
+          `${source} pins ${specification.name} to ${version}; expected ${specification.version}`,
+        );
+      }
+    }
+  }
 }
 
 const printer = ts.createPrinter({
@@ -584,6 +598,14 @@ export function generateInventory() {
   const entries = [];
   const resolutions = [];
   for (const target of [declaredTarget(rootManifest)]) {
+    for (const directory of ['examples', 'consumers']) {
+      for (const entry of readdirSync(join(root, directory), { withFileTypes: true })) {
+        const path = join(root, directory, entry.name, 'package.json');
+        if (entry.isDirectory() && existsSync(path)) {
+          verifyAdoptionPins(readJson(path), target, `${directory}/${entry.name}/package.json`);
+        }
+      }
+    }
     const server = verifyPackage(target.server);
     const client = verifyPackage(target.client);
     const adapter = adapterForServer(server.path);
