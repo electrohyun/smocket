@@ -16,8 +16,9 @@ directions, `Manager`, and the built-in Adapter. It expands inherited instance
 members and class static members, keeps `declaredBy`, and records receiver,
 overload index, declaration kind, readonly state, optionality, and the normalized
 declaration signature. Private and protected static declarations are excluded.
-The installed packages must match the declared pins. A target change requires
-regenerating the inventory and reviewing the changed declarations.
+The installed packages and the upstream pins in examples and consumers must match
+the declared pins. A target change requires regenerating the inventory and reviewing
+the changed declarations.
 
 Evidence tiers stay distinct:
 

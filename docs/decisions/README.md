@@ -31,8 +31,8 @@ these are written.
 | [0017](./0017-off-follows-the-emitter.md)                               | off follows the underlying emitter: Node on the server, component-emitter on the client | Accepted           | #103                 |
 | [0018](./0018-delivery-scheduling-adapter-hook.md)                      | Per-socket delivery delay is an adapter scheduling hook, keyed by sid, preserving FIFO  | Accepted           | #78                  |
 | [0019](./0019-what-counts-as-a-breaking-change.md)                      | A version number promises fidelity, not the current result                              | Accepted           | #115                 |
-| [0020](./0020-close-follows-socket-lifecycle.md)                        | `close()` tears down sockets and unregisters only the current server                    | Accepted           | #193, #359           |
-| [0021](./0021-event-maps-cross-the-substitution-seam.md)                | Event maps and socket data survive the server substitution seam                         | Accepted           | #171                 |
+| [0020](./0020-close-follows-socket-lifecycle.md)                        | `close()` tears down sockets and unregisters only the current server                    | Accepted           | #193, #359, #519     |
+| [0021](./0021-event-maps-cross-the-substitution-seam.md)                | Event maps and socket data survive the server substitution seam                         | Accepted           | #171, #519           |
 | [0022](./0022-root-socket-names-server-socket.md)                       | Root `Socket` names the server type; `smocket-client` owns the client type              | Accepted           | #178, #235           |
 | [0023](./0023-client-package-is-a-thin-facade.md)                       | `smocket-client` re-exports one shared client lookup without owning connection state    | Accepted           | #235                 |
 | [0024](./0024-assemble-consumer-from-canonical-example.md)              | Assemble an independent consumer from the canonical chat application                    | Superseded by 0039 | #208, #451           |
@@ -40,7 +40,7 @@ these are written.
 | [0026](./0026-payloads-cross-a-json-snapshot-boundary.md)               | Non-binary payloads cross the default parser's JSON snapshot boundary                   | Accepted           | #237, #250           |
 | [0027](./0027-one-workflow-drives-three-case-study-targets.md)          | One workflow drives three isolated application case-study targets                       | Superseded by 0039 | #218, #451           |
 | [0028](./0028-disconnect-true-closes-the-shared-manager-group.md)       | `disconnect(true)` closes the shared client Manager group                               | Accepted           | #236, #254           |
-| [0029](./0029-narrowed-parent-broadcasts-stay-unverified.md)            | Parent broadcast conformance stops before narrowing                                     | Accepted           | #269                 |
+| [0029](./0029-narrowed-parent-broadcasts-stay-unverified.md)            | Parent broadcast conformance stops before narrowing                                     | Accepted           | #269, #519           |
 | [0030](./0030-public-connection-api-settles-on-close.md)                | The public direct connection API rejects observers when its server closes               | Accepted           | #277, #350           |
 | [0031](./0031-adapter-registration-and-removal-lifecycle.md)            | Adapters register before admission and may observe whole-socket removal                 | Accepted           | #278                 |
 | [0032](./0032-trace-final-broadcast-routing.md)                         | Trace final broadcast routing without retaining payloads                                | Accepted           | #262                 |
@@ -54,3 +54,4 @@ these are written.
 | [0040](./0040-keep-drawing-game-executable.md)                          | Keep drawing game executable and retire its recorded comparison reports                 | Accepted           | #476                 |
 | [0041](./0041-keep-node-20-suite-on-supported-vitest.md)                | Keep the Node 20 compatibility suite on a supported Vitest release                      | Accepted           | #494                 |
 | [0042](./0042-automerge-only-stable-renovate-patches.md)                | Automerge only stable development-tool patches after the extended gate                  | Accepted           | #511                 |
+| [0043](./0043-follow-one-declared-socketio-target.md)                   | Follow one declared Socket.IO target per release                                        | Accepted           | #519                 |

@@ -37,8 +37,9 @@ badge on the [README](../README.md) goes red if either target does.
 
 ## Verified against real socket.io
 
-Every case below ran against socket.io 4.8.4 first and against smocket second, from the
-same test file, and passed on both. Each links to the test that pins it.
+Every case below ran against socket.io 4.8.4 and socket.io-client 4.8.4 first and
+against smocket second, from the same test file, and passed on both. Each links to the
+test that pins it.
 
 ### Connection and identity
 
@@ -857,20 +858,20 @@ is judged mechanically rather than by taste.
 Each row is answered by a CI job rather than by a claim, so the evidence is in
 [`.github/workflows/ci.yml`](../.github/workflows/ci.yml).
 
-| Question                              | Answer                                               | Job                   |
-| ------------------------------------- | ---------------------------------------------------- | --------------------- |
-| Which Node runs the suite             | 22 and 24 on Linux, current LTS on Windows and macOS | `test`                |
-| Which Node runs the published package | 20 and up, the floor `engines.node` declares         | `declared node floor` |
-| Which TypeScript consumes the types   | 5.0.2 and up, under NodeNext and Bundler             | `package`             |
-| Which socket.io the cases hold for    | 4.7 and 4.8                                          | `real target`         |
-| Which browser the mock runs in        | Chromium, mock target only                           | `browser`             |
+| Question                              | Answer                                               | Job                             |
+| ------------------------------------- | ---------------------------------------------------- | ------------------------------- |
+| Which Node runs the suite             | 22 and 24 on Linux, current LTS on Windows and macOS | `test`                          |
+| Which Node runs the published package | 20 and up, the floor `engines.node` declares         | `declared node floor`           |
+| Which TypeScript consumes the types   | 5.0.2 and up, under NodeNext and Bundler             | `package`                       |
+| Which Socket.IO the cases hold for    | Exact root server and client pins, recorded above    | `test`, `public surface ledger` |
+| Which browser the mock runs in        | Chromium, mock target only                           | `browser`                       |
 
-The socket.io row is what lets the report speak for more than one version. The cases
-encode socket.io's behaviour, the `real target` job passes them on both 4.7 and 4.8, and
-the ordinary dual run passes the same cases on smocket. A behaviour the two socket.io
-versions disagreed on cannot become a shared case, and the compatibility typecheck requires
-the contract to admit both measured declarations. The `Server.close()` return difference is
-recorded in [differences.md](./differences.md).
+Each release follows one declared Socket.IO server and client target under
+[0043](./decisions/0043-follow-one-declared-socketio-target.md). The dual run compares
+that target's behavior with Smocket, and type checks compare the covered declarations.
+The root pins and installed versions must agree; examples and consumers must use the
+same exact upstream pins. A differing version is unverified unless explicitly validated.
+Earlier releases retain their documented support, without a maintenance guarantee.
 
 The browser row is narrower on purpose. A page cannot host a socket.io server, so there
 is no real target to compare against there, and the job asks only whether the mock

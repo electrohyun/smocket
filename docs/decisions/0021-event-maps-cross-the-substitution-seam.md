@@ -1,6 +1,6 @@
 # 0021. Event maps cross the substitution seam
 
-**Status:** Accepted · 2026-08-10 · #171
+**Status:** Accepted · 2026-08-10 · #171 · Revised 2026-09-30 · #519
 **Governed by:** [0000](./0000-do-not-invent-what-has-no-source.md),
 [0019](./0019-what-counts-as-a-breaking-change.md)
 
@@ -23,8 +23,10 @@ acknowledgements and `socket.data`. The free `connect` and `io` functions stay n
 as Socket.IO's client lookup functions are; an application substitution keeps reading the
 real client's own generic `Socket` type.
 
-Server `emitWithAck` accepts only acknowledgement callbacks that carry a response value;
-the client keeps Socket.IO client's wider event-name rule. Reserved disconnect listeners
+Server `emitWithAck` accepts acknowledgement callbacks with or without a response value,
+matching the 4.8.4 target under [0043](./0043-follow-one-declared-socketio-target.md).
+The earlier response-value restriction followed 4.7.5 and 4.8.3 and is retired.
+The client keeps Socket.IO client's wider event-name rule. Reserved disconnect listeners
 preserve each side's Socket.IO reason and description types.
 
 Socket.IO exports `DefaultEventsMap` from its root but keeps the `EventsMap` constraint on

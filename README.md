@@ -169,6 +169,11 @@ state, React UI, and user actions; only the connection bootstrap changes.
 The project links each public claim to a maintained workflow rather than copying
 test counts into this page.
 
+This source targets `socket.io@4.8.4` and `socket.io-client@4.8.4`. Each release
+records its exact validated target in the conformance report and release notes;
+other upstream versions are unverified unless explicitly validated. See the
+[target policy](docs/decisions/0043-follow-one-declared-socketio-target.md).
+
 | Question                                         | Maintained path                                                |
 | ------------------------------------------------ | -------------------------------------------------------------- |
 | Does delivery and routing match Socket.IO?       | [dual-run conformance](docs/conformance.md)                    |

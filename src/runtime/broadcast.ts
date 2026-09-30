@@ -343,7 +343,7 @@ export class ParentBroadcastOperator<Socket extends BroadcastSocket = BroadcastS
 
   /**
    * Direct parent Promise acknowledgement broadcasts resolve `[]` without reaching
-   * concrete children in both supported minors. Narrowed parent delivery stays outside
+   * concrete children in the declared target. Narrowed parent delivery stays outside
    * the broader conformance claim under 0029.
    */
   emitWithAck(event: string, ...args: unknown[]): Promise<unknown> {

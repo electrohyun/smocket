@@ -22,6 +22,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as prettier from 'prettier';
+import { declaredTarget } from './check-public-surface.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const reportPath = join(root, 'docs', 'conformance.md');
@@ -441,15 +442,24 @@ function generate(real, mock) {
     (hasOracle(area.file) ? verified : smocketOnly).push(section(area, cases));
   }
 
-  const oracle = JSON.parse(
-    readFileSync(join(root, 'node_modules', 'socket.io', 'package.json'), 'utf8'),
-  ).version;
+  const target = declaredTarget(JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')));
+  const references = [target.server, target.client].map(({ name, version }) => {
+    const installed = JSON.parse(
+      readFileSync(join(root, 'node_modules', name, 'package.json'), 'utf8'),
+    );
+    if (installed.name !== name || installed.version !== version) {
+      throw new Error(
+        `${name} resolved to ${installed.version}; expected declared target ${version}`,
+      );
+    }
+    return `${name} ${version}`;
+  });
 
   return [
     '## Verified against real socket.io',
     '',
     wrap(
-      `Every case below ran against socket.io ${oracle} first and against smocket second, from ` +
+      `Every case below ran against ${references.join(' and ')} first and against smocket second, from ` +
         'the same test file, and passed on both. Each links to the test that pins it.',
     ),
     '',

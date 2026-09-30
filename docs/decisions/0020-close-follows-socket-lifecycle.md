@@ -1,10 +1,10 @@
 # 0020. close follows socket.io's socket lifecycle
 
-**Status:** Accepted · 2026-08-10 · #193
+**Status:** Accepted · 2026-08-10 · #193 · Revised 2026-09-30 · #519
 **Governed by:** [0000](./0000-do-not-invent-what-has-no-source.md)
 
-> **TL;DR** Socket.io 4.7 and 4.8 share the close callback and lifecycle but differ in
-> return value; smocket accepts the callback and returns the 4.8 promise. It leaves an armed
+> **TL;DR** Smocket accepts the close callback and returns the declared Socket.IO
+> target's completion promise. It leaves an armed
 > server-side [ack](../glossary.md#ack) timeout running and removes this server from the
 > [origin registry](../glossary.md#origin-registry) only while it owns the entry.
 
@@ -18,9 +18,10 @@ error once. A pending server `emitWithAck` stays pending.
 A connection started immediately before close never reaches `connection`; its client observes
 `connect_error` instead, so close cannot resolve and then admit a socket that escaped teardown.
 Both versions invoke an optional callback when close completes. A later callback receives
-`ERR_SERVER_NOT_RUNNING`; in 4.8, the returned promise still resolves. Version 4.7 returns `void`,
-while 4.8 returns `Promise<void>`. Smocket keeps the common callback and returns the 4.8 promise,
-which adds completion to the older call shape without invalidating it.
+`ERR_SERVER_NOT_RUNNING`; in 4.8, the returned promise still resolves. Historical 4.7
+returns `void`, while 4.8 returns `Promise<void>`. Under
+[0043](./0043-follow-one-declared-socketio-target.md), the 4.8.4 target and Smocket's
+contract both return `Promise<void>`; the former union no longer accommodates 4.7.
 
 An armed server acknowledgement timeout is separate from the connection teardown. Real socket.io
 leaves its timer running, and its callback still receives `operation has timed out` after

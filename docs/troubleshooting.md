@@ -143,7 +143,7 @@ client.volatile.emit('volatile', 'dropped');
   the volatile event is absent when a later ordinary marker arrives.
 - **Cause and action:** the client is in the pre-connect window. Await `connect` before a
   volatile event that must arrive, or use an ordinary event when buffering is intended.
-- **Classification:** this buffering and drop split matches Socket.IO 4.7 and 4.8. See
+- **Classification:** this buffering and drop split matches the declared Socket.IO target. See
   [volatile.test.ts](../src/volatile.test.ts) and
   [decision 0016](./decisions/0016-volatile-drops-only-pre-connect.md).
 
