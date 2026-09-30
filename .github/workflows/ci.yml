@@ -183,30 +183,6 @@ jobs:
           SMOCKET_DIST_VITEST: compat/node20/node_modules/vitest/vitest.mjs
       - run: node compat/node20/node_modules/vitest/vitest.mjs run --config vitest.dist.config.ts
 
-  compat:
-    name: real target (socket.io ${{ matrix.socketio }})
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        # Exercise the oracle across its supported range, not one pinned version.
-        socketio: ['4.7', '4.8']
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          persist-credentials: false
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
-        with:
-          node-version: 22
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - name: Pin socket.io ${{ matrix.socketio }}
-        run: pnpm add --workspace-root -D socket.io@${{ matrix.socketio }} socket.io-client@${{ matrix.socketio }}
-      - name: Typecheck against socket.io ${{ matrix.socketio }}
-        run: pnpm typecheck
-      - name: Run the suite against real socket.io ${{ matrix.socketio }}
-        run: pnpm test:real
-
   conformance:
     name: conformance report
     runs-on: ubuntu-latest

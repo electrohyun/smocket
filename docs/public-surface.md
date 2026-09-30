@@ -1,12 +1,12 @@
 # Public surface ledger
 
-> **TL;DR** The generated inventory extracts each supported Socket.IO declaration
-> line independently, and the reviewed ledger classifies every entry. CI rejects
+> **TL;DR** The generated inventory extracts the declared Socket.IO target from
+> the root's exact pins, and the reviewed ledger classifies every entry. CI rejects
 > declaration drift, stale classifications, and unclassified keys or signatures.
 
 [`public-surface.generated.json`](./public-surface.generated.json) is derived from
-exact `socket.io` and `socket.io-client` 4.7.5 and 4.8.3 aliases. Each server
-package resolves its own `socket.io-adapter` 2.5.8. The inventory records the
+the exact root `socket.io` and `socket.io-client` pins, initially 4.8.4 for both.
+The server resolves its own `socket.io-adapter` 2.5.8. The inventory records the
 extractor's pinned TypeScript version because it can change declaration parsing.
 It omits pnpm because package-manager updates do not change the extracted surface.
 
@@ -16,8 +16,8 @@ directions, `Manager`, and the built-in Adapter. It expands inherited instance
 members and class static members, keeps `declaredBy`, and records receiver,
 overload index, declaration kind, readonly state, optionality, and the normalized
 declaration signature. Private and protected static declarations are excluded.
-The two supported versions stay separate, including exports and signatures that
-differ.
+The installed packages must match the declared pins. A target change requires
+regenerating the inventory and reviewing the changed declarations.
 
 Evidence tiers stay distinct:
 
@@ -35,7 +35,7 @@ never used to generate the upstream inventory.
 ## Upstream attribution and package boundary
 
 The inventory uses the declarations and package metadata from `socket.io` and
-`socket.io-client` 4.7.5 and 4.8.3 and their resolved `socket.io-adapter` 2.5.8.
+`socket.io-client` 4.8.4 and their resolved `socket.io-adapter` 2.5.8.
 Runtime-only client emitter entries reference `@socket.io/component-emitter`
 3.1.2. The upstream repositories, copyright notices, and MIT license references
 are recorded in [`THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md).
@@ -45,9 +45,9 @@ part of Smocket's runtime and is excluded from both npm packages.
 
 ## Regenerate and review
 
-1. Run `pnpm install --frozen-lockfile` so all exact aliases resolve.
+1. Run `pnpm install --frozen-lockfile` so the exact root pins resolve.
 2. Run `pnpm public-surface` to regenerate only the source inventory.
-3. Review every added, removed, or changed key and exact signature by version.
+3. Review every added, removed, or changed key and exact signature for the target.
 4. Add one ledger disposition and its issue, ADR, scope, or implementation
    reference for every new inventory id; remove classifications that became stale.
 5. Run `pnpm check:public-surface`.

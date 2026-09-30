@@ -56,18 +56,18 @@ runtime. The package is present only through development-time Socket.IO fixtures
 generator reads declarations and package metadata from these exact upstream
 packages:
 
-- [`socket.io` 4.7.5 and 4.8.3](https://github.com/socketio/socket.io)
-- [`socket.io-client` 4.7.5 and 4.8.3](https://github.com/socketio/socket.io-client)
+- [`socket.io` 4.8.4](https://github.com/socketio/socket.io)
+- [`socket.io-client` 4.8.4](https://github.com/socketio/socket.io-client)
 - [`socket.io-adapter` 2.5.8](https://github.com/socketio/socket.io/tree/main/packages/socket.io-adapter)
 - [`@socket.io/component-emitter` 3.1.2](https://github.com/socketio/emitter)
 
 The Socket.IO packages are MIT-licensed. Their installed license notices identify
-the 4.7 server package as Copyright (c) 2014-2018 Automattic, the 4.7 client as
-Copyright (c) 2014 Guillermo Rauch, and the 4.8 server, client, and adapter as
-Copyright (c) 2014-present Guillermo Rauch and Socket.IO contributors.
+the server, client, and adapter as Copyright (c) 2014-present Guillermo Rauch and
+Socket.IO contributors. Earlier inventory references to 4.7.5 and 4.8.3 remain in
+Git history with their recorded notices.
 
 The inventory records package exports and normalized public signatures so CI can
-detect drift across the two supported lines. Regenerate and review it with the
+detect drift in the declared target. Regenerate and review it with the
 steps in [`docs/public-surface.md`](docs/public-surface.md). These JSON and Markdown
 files are not included in either npm package and none of the upstream packages is
 a Smocket runtime dependency.

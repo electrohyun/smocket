@@ -5,10 +5,32 @@ import { test } from 'node:test';
 import ts from 'typescript';
 
 import {
+  declaredTarget,
   extractSurface,
   reconcileInventory,
   withOverloadIndexes,
 } from './check-public-surface.mjs';
+
+test('rejects a missing or ranged reference instead of silently testing an installed version', () => {
+  for (const name of ['socket.io', 'socket.io-client']) {
+    for (const version of [undefined, '^4.8.4', '4.8', 'latest', '4.9.0-rc.1']) {
+      const manifest = { devDependencies: { 'socket.io': '4.8.4', 'socket.io-client': '4.8.4' } };
+      manifest.devDependencies[name] = version;
+      assert.throws(() => declaredTarget(manifest), new RegExp(`must pin ${name}`));
+    }
+  }
+});
+
+test('records independent exact server and client references', () => {
+  const target = declaredTarget({
+    devDependencies: { 'socket.io': '4.8.4', 'socket.io-client': '4.8.3' },
+  });
+  assert.equal(target.server.version, '4.8.4');
+  assert.equal(target.client.version, '4.8.3');
+  assert.equal(target.server.alias, 'socket.io');
+  assert.equal(target.client.alias, 'socket.io-client');
+  assert.equal(target.line, '4.8.4+4.8.3');
+});
 
 const fixturePath = join(import.meta.dirname, 'fixtures', 'public-surface-drift', 'upstream.d.ts');
 
