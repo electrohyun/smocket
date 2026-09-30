@@ -42,62 +42,26 @@ it('admits RegExp children, caches them, and attaches manual children to the par
   expect(ctx.io.of('/tenant-2')).toBe(manual);
 });
 
-it('preserves stateful RegExp lastIndex across dynamic admission attempts', async () => {
-  const matcher = /^\/state-[ab]$/g;
-  ctx.io.of(matcher);
+it.each(['g', 'y', 'gy'])(
+  'rejects dynamic namespace RegExp with %s flags before admission',
+  async (flags) => {
+    const matcher = new RegExp('^/state-a$', flags);
+    matcher.lastIndex = 1;
+    const inherited: string[] = [];
+    expect(() => ctx.io.of(matcher, () => inherited.push('rejected'))).toThrow(
+      'stateful regular expressions are not supported',
+    );
+    expect(matcher.lastIndex).toBe(1);
 
-  const first = ctx.openClient({ namespace: '/state-a' });
-  await receive(first, 'connect');
-  expect(matcher.lastIndex).toBe('/state-a'.length);
+    ctx.io.of(/^\/state-a$/).on('connection', () => inherited.push('accepted'));
+    const client = ctx.openClient({ namespace: '/state-a' });
+    await receive(client, 'connect');
+    expect(inherited).toEqual(['accepted']);
+  },
+);
 
-  const second = ctx.openClient({ namespace: '/state-b' });
-  const outcome = await Promise.race([
-    receive(second, 'connect').then(() => 'connect' as const),
-    receive(second, 'connect_error'),
-  ]);
-
-  expect(outcome).not.toBe('connect');
-  expect(outcome).toBeInstanceOf(Error);
-  expect((outcome as Error).message).toBe('Invalid namespace');
-  expect(matcher.lastIndex).toBe(0);
-});
-
-it('does not re-evaluate a stateful RegExp parent when reading cached namespaces', async () => {
-  const matcher = /^\/cached-state$/g;
-  ctx.io.of(matcher);
-
-  const client = ctx.openClient({ namespace: '/cached-state' });
-  await receive(client, 'connect');
-  expect(matcher.lastIndex).toBe('/cached-state'.length);
-
-  expect(ctx.io.of('/cached-state').name).toBe('/cached-state');
-  expect(matcher.lastIndex).toBe('/cached-state'.length);
-  ctx.io.emit('root-read');
-  expect(matcher.lastIndex).toBe('/cached-state'.length);
-});
-
-it('preserves sticky RegExp lastIndex across dynamic admission attempts', async () => {
-  const matcher = /^\/sticky-[ab]$/y;
-  ctx.io.of(matcher);
-
-  const first = ctx.openClient({ namespace: '/sticky-a' });
-  await receive(first, 'connect');
-  expect(matcher.lastIndex).toBe('/sticky-a'.length);
-
-  const second = ctx.openClient({ namespace: '/sticky-b' });
-  const outcome = await Promise.race([
-    receive(second, 'connect').then(() => 'connect' as const),
-    receive(second, 'connect_error'),
-  ]);
-
-  expect(outcome).not.toBe('connect');
-  expect(outcome).toBeInstanceOf(Error);
-  expect((outcome as Error).message).toBe('Invalid namespace');
-  expect(matcher.lastIndex).toBe(0);
-});
-
-it('resets caller-assigned RegExp lastIndex after a failed manual attachment match', async () => {
-  const matcher = /^\/manual-state$/g;
+it('preserves stateless RegExp lastIndex when admitting and reading cached children', async () => {
+  const matcher = /^\/manual-state$/;
   const parent = ctx.io.of(matcher);
   const inherited: string[] = [];
   parent.on('connection', (socket) => inherited.push(socket.nsp.name));
@@ -107,8 +71,9 @@ it('resets caller-assigned RegExp lastIndex after a failed manual attachment mat
   const client = ctx.openClient({ namespace: '/manual-state' });
   await receive(client, 'connect');
 
-  expect(inherited).toEqual([]);
-  expect(matcher.lastIndex).toBe(0);
+  expect(inherited).toEqual(['/manual-state']);
+  expect(ctx.io.of('/manual-state').name).toBe('/manual-state');
+  expect(matcher.lastIndex).toBe(1);
 });
 
 it('uses admission order but the latest duplicate RegExp parent for manual attachment', async () => {

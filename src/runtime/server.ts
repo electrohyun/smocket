@@ -191,6 +191,9 @@ export class Server<
     ) => void,
   ): NamespaceContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData> {
     if (typeof name !== 'string') {
+      if (name instanceof RegExp && (name.global || name.sticky)) {
+        throw new Error('stateful regular expressions are not supported');
+      }
       const parent = new ParentNamespace(`/_${this.parents.length}`, name);
       this.parents.push(parent);
       if (name instanceof RegExp) this.regexParents.set(name, parent);
