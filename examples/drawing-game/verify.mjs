@@ -356,7 +356,7 @@ try {
   const real = await runTarget(browser, 'real');
   assert.deepEqual(smocket, real);
   process.stdout.write(
-    'Drawing game passed the same three-page workflow with Smocket and Real Socket.IO.\n',
+    'Drawing game passed the same three-page workflow with smocket and Real Socket.IO.\n',
   );
 } finally {
   await browser.close();

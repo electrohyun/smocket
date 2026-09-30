@@ -15,7 +15,7 @@ async function loadTargets(): Promise<[RealModule, SmocketModule]> {
   return Promise.all([import(realUrl), import(smocketUrl)]);
 }
 
-test('Real Socket.IO and Smocket produce deeply equal drawing-game observations', async () => {
+test('Real Socket.IO and smocket produce deeply equal drawing-game observations', async () => {
   const [real, smocket] = await loadTargets();
   const realObservation = await real.observeRealTarget();
   const smocketObservation = await smocket.observeSmocketTarget();

@@ -12,7 +12,7 @@
 
 Socket.IO 4.7.5 and 4.8.3 agree that a direct parent `emit` reaches the current
 concrete child [namespaces](../glossary.md#namespace), while each child keeps its
-own rooms, adapter, sockets, and lifecycle. Smocket will reproduce and publish
+own rooms, adapter, sockets, and lifecycle. smocket will reproduce and publish
 that common behavior together with concrete-child routing.
 
 The original record said that 4.7.5 routed `parent.to(room).emit(...)`, while
@@ -30,7 +30,7 @@ Under [0043](./0043-follow-one-declared-socketio-target.md), new conformance use
 the declared 4.8.4 target rather than agreement across minors. This issue retains
 the existing support boundary: the measured narrowed case does not establish the
 full routing matrix. Dedicated coverage must precede publishing narrowed delivery
-as supported. Smocket does not reproduce the historically recorded `TypeError`.
+as supported. smocket does not reproduce the historically recorded `TypeError`.
 
 This boundary is about the parent operation only. Room routing on every concrete
 child remains ordinary conformance. Under [0019], adding the common dynamic

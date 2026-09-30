@@ -42,7 +42,7 @@ than discovered in a failing suite.
 ## B. What smocket adds that socket.io has no equivalent for
 
 - **`server.connect(namespace, options)` and `server.nextConnection(namespace)`.** Neither is
-  a socket.io server API. Together they form Smocket's direct connection API. `connect`
+  a socket.io server API. Together they form smocket's direct connection API. `connect`
   opens the client without an origin-registry lookup, and `nextConnection` resolves with its
   admitted server-side Socket. Once the namespace exists, the per-namespace queues accept either
   call first and preserve FIFO order. Named static namespaces are established through `of()` or
@@ -72,7 +72,7 @@ than discovered in a failing suite.
 - **`TracingAdapter` records final broadcast routing decisions.** It stores one immutable,
   payload-free trace per successful concrete-namespace broadcast after exclusions and
   volatile filtering. Empty-recipient broadcasts are recorded, while direct Socket emits,
-  reserved events, and encoding failures are not. It can wrap another Smocket adapter so
+  reserved events, and encoding failures are not. It can wrap another smocket adapter so
   tracing does not replace custom routing, scheduling, or cleanup. See
   [0032](./decisions/0032-trace-final-broadcast-routing.md).
 - **`DroppingAdapter` removes selected sids from broadcast delivery.** The deterministic

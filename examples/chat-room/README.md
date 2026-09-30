@@ -2,12 +2,12 @@
 
 This example is a small scripted chat application with two
 [rooms](../../docs/glossary.md#room), participant roles, targeted messages, and a
-disconnect notification. It uses the workspace copy of Smocket, so CI exercises
+disconnect notification. It uses the workspace copy of smocket, so CI exercises
 the source under review rather than an installed public release.
 
 The workspace bootstrap deliberately uses the retained root `connect` export. The
 dual-target test reuses this application's handlers and scenario with workspace
-Smocket and real Socket.IO.
+smocket and real Socket.IO.
 
 ## Participants and channels
 
@@ -50,7 +50,7 @@ From the repository root, after `pnpm install`:
 pnpm example:chat-room
 ```
 
-That command builds Smocket, runs the application test, and then runs the CLI.
+That command builds smocket, runs the application test, and then runs the CLI.
 To run only the transcript-producing application:
 
 ```bash
@@ -91,9 +91,9 @@ and verifies that a repeated run does not depend on state left by the previous r
 
 - `app.js` exports the shared `registerHandlers` function and owns join, message,
   welcome, authorization, announcement, and departure behavior.
-- `bootstrap.js` creates the workspace-backed Smocket server and clients, then
+- `bootstrap.js` creates the workspace-backed smocket server and clients, then
   supplies them to the shared scenario.
-- `targets.js` supplies real Socket.IO and Smocket runtime setup to the dual-target
+- `targets.js` supplies real Socket.IO and smocket runtime setup to the dual-target
   test.
 - `scenario.js` creates the three clients, registers observers before actions,
   executes the workflow, returns structured results, formats the transcript, and
@@ -106,7 +106,7 @@ and verifies that a repeated run does not depend on state left by the previous r
 - `dual-target.test.js` runs the same scenario against both runtimes and compares
   their complete observations.
 
-## Smocket APIs in the application
+## smocket APIs in the application
 
 - `new Server(url)` and `io.on('connection')` create the chat server and install
   handlers for each participant.
@@ -147,4 +147,4 @@ This example shows already-verified APIs working together as one application. It
 does not create a new compatibility guarantee. The generated
 [dual-run conformance report](../../docs/conformance.md) remains the source of
 truth: each behavior listed there is run first against real Socket.IO and then
-against Smocket from the same test case.
+against smocket from the same test case.

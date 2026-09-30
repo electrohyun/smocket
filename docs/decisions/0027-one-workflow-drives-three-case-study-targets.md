@@ -6,8 +6,8 @@
 [0024](./0024-assemble-consumer-from-canonical-example.md)
 
 > **TL;DR** One chat-room workflow and its observable assertions run through
-> independent real Socket.IO, exact published Smocket, and handwritten-mock fixtures.
-> Smocket owns the recorded evidence and interpretation; the site renders a pinned
+> independent real Socket.IO, exact published smocket, and handwritten-mock fixtures.
+> smocket owns the recorded evidence and interpretation; the site renders a pinned
 > snapshot, and the result applies only to this workflow.
 
 ## Decision
@@ -16,7 +16,7 @@ The case study shares one chat-room application workflow and one set of observab
 assertions across all three targets. Target-specific code is limited to bootstrap and
 dependency wiring, so changing the target does not change the behavior being examined.
 
-Real Socket.IO, an exact published Smocket version, and the handwritten mock each run in
+Real Socket.IO, an exact published smocket version, and the handwritten mock each run in
 an independent fixture. This keeps their package boundaries and setup visible without
 creating separate copies of the workflow or assertions.
 
@@ -27,7 +27,7 @@ encode the assertions instead of implementing the behavior they exercise.
 
 ## Evidence ownership and publication
 
-The Smocket repository owns the canonical structured observations. It also owns the
+The smocket repository owns the canonical structured observations. It also owns the
 static Markdown case study, which is authoritative for interpretation, qualifications,
 and limitations.
 
@@ -39,7 +39,7 @@ interpretation source.
 ## Claim boundary
 
 Agreement or disagreement is evidence only for the observable behavior exercised by
-this workflow. It must not be generalized into a claim about Smocket's overall Socket.IO
+this workflow. It must not be generalized into a claim about smocket's overall Socket.IO
 compatibility; the [dual-run conformance report](../conformance.md) remains authoritative
 for that guarantee.
 

@@ -7,7 +7,7 @@
 If setup fails before the first application event, start with the
 [troubleshooting guide](./troubleshooting.md). It separates URL, namespace, lifecycle,
 runner alias, package-format, and event-map failures by their actual signals.
-For a complete application that runs unchanged against real Socket.IO and Smocket,
+For a complete application that runs unchanged against real Socket.IO and smocket,
 follow the [drawing-game example](../examples/drawing-game/).
 
 ## Choose the client import path
@@ -214,7 +214,7 @@ same lifecycle rather than making `close()` a timer-reset API. See
 
 ## Driving a connection directly
 
-The exported `Server` has a Smocket-only direct connection API for tests that already hold the
+The exported `Server` has a smocket-only direct connection API for tests that already hold the
 server instance. `connect()` returns the client immediately, while `nextConnection()` returns
 the admitted server-side Socket. Both accept a namespace and default to `/`.
 

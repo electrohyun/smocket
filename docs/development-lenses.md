@@ -23,7 +23,7 @@ a claim that work under a lens is complete.
 ## Extensibility
 
 - **Meaning.** Test-specific capabilities should extend smocket without silently changing
-  its default compatible behaviour. Smocket-only surfaces remain distinct and bounded.
+  its default compatible behaviour. smocket-only surfaces remain distinct and bounded.
 - **Why it matters.** A test affordance should not make the default path harder to trust
   or require a core edit for every use case.
 - **Current example.** [Adapter registration](./adapter-registration.md) exposes routing,
@@ -44,7 +44,7 @@ a claim that work under a lens is complete.
 
 ## Productivity
 
-- **Meaning.** Smocket aims to reduce the setup and maintenance needed to write, change,
+- **Meaning.** smocket aims to reduce the setup and maintenance needed to write, change,
   and understand Socket.IO application tests.
 - **Why it matters.** Behavioural accuracy alone does not prove that adopting the mock
   makes a user's testing workflow easier.
@@ -56,7 +56,7 @@ a claim that work under a lens is complete.
 
 ## Sustainability
 
-- **Meaning.** Smocket's public commitments and development practices should remain
+- **Meaning.** smocket's public commitments and development practices should remain
   maintainable after v1.0.0.
 - **Why it matters.** Unsupported promises eventually separate documentation, tests, and
   runtime behaviour. The project must keep explaining what it supports and how it knows.

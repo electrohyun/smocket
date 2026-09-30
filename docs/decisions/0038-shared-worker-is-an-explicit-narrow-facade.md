@@ -9,14 +9,14 @@
 [0026](./0026-payloads-cross-a-json-snapshot-boundary.md),
 [0031](./0031-adapter-registration-and-removal-lifecycle.md)
 
-> **TL;DR** Callers create and version a module `SharedWorker`, run their Smocket
+> **TL;DR** Callers create and version a module `SharedWorker`, run their smocket
 > server handlers inside it, and connect through explicit worker subpaths. The page
 > receives a narrow socket facade, not the complete Socket.IO Client contract.
 
 ## Decision
 
 Real Socket.IO clients share rooms and server state by reaching one external server.
-SharedWorker Smocket reproduces that development scene by moving one existing Smocket
+SharedWorker smocket reproduces that development scene by moving one existing smocket
 server and its real client sockets into a worker. It is not a transport, reconnection,
 authentication, persistence, or production-server substitute.
 
@@ -81,4 +81,4 @@ and multi-server coordination remain outside scope.
 - **Create the worker implicitly.** Hidden URL, name, CSP, and HMR choices would prevent
   deterministic ownership and make multiple application workers ambiguous.
 - **Promise immediate crash cleanup.** The browser does not provide a reliable port-close
-  signal for every termination, and reproducing heartbeat is outside Smocket's scope.
+  signal for every termination, and reproducing heartbeat is outside smocket's scope.

@@ -111,7 +111,7 @@ const AREAS = [
     file: 'src/ack-native.test.ts',
     title: 'Native acknowledgement teardown race',
     blurb:
-      'Discarding or retaining acknowledgements as appropriate when a Smocket outgoing observer tears down a connection mid-send.',
+      'Discarding or retaining acknowledgements as appropriate when a smocket outgoing observer tears down a connection mid-send.',
   },
   {
     file: 'src/payload-serialization.test.ts',
@@ -238,7 +238,7 @@ const AREAS = [
     file: 'src/dropping-adapter.test.ts',
     title: 'Deterministic broadcast dropping',
     blurb:
-      'A Smocket-only final-recipient filter by sid, including acknowledgements, cleanup, namespace isolation, and adapter composition.',
+      'A smocket-only final-recipient filter by sid, including acknowledgements, cleanup, namespace isolation, and adapter composition.',
   },
   {
     file: 'src/broadcast-management-adapter.test.ts',
@@ -254,7 +254,7 @@ const AREAS = [
   {
     file: 'src/broadcast-promise-ack-native.test.ts',
     title: 'Native broadcast Promise policy',
-    blurb: 'Applying Smocket-only pre-connect volatile selection before acknowledgement counting.',
+    blurb: 'Applying smocket-only pre-connect volatile selection before acknowledgement counting.',
   },
   {
     file: 'src/socket-id.test.ts',
@@ -288,7 +288,7 @@ const AREAS = [
     file: 'examples/shared-worker-lobby/src/application.test.ts',
     title: 'SharedWorker lobby application handlers',
     blurb:
-      'Running the documented lobby handlers against real Socket.IO and Smocket, including duplicate-label identity, readiness, start, and disconnect.',
+      'Running the documented lobby handlers against real Socket.IO and smocket, including duplicate-label identity, readiness, start, and disconnect.',
   },
   {
     file: 'src/emitter-returns.test.ts',

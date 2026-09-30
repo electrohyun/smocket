@@ -11,7 +11,7 @@
 
 ## Decision
 
-Socket.IO has no built-in deterministic recipient-dropping adapter. Smocket adds one
+Socket.IO has no built-in deterministic recipient-dropping adapter. smocket adds one
 test-only routing affordance through the existing adapter seam without changing default
 Socket.IO-compatible delivery.
 

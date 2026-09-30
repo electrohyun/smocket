@@ -45,7 +45,7 @@ This facade is intentionally narrower than the ordinary client contract; see the
 for the runnable example, supported surface, production migration, and browser
 limits.
 
-Smocket models Socket.IO's in-process logic layer. It does not reproduce
+smocket models Socket.IO's in-process logic layer. It does not reproduce
 transports, heartbeat, reconnection, or multi-server adapters. See the
 [documented scope](https://github.com/electrohyun/smocket/blob/main/docs/scope.md)
 and [supported differences](https://github.com/electrohyun/smocket/blob/main/docs/differences.md).

@@ -24,7 +24,7 @@
 ## Test ownership
 
 Delivery and routing cases remain beside the root implementation in `src/` because the
-same cases run against Real Socket.IO and Smocket. The SharedWorker host and client
+same cases run against Real Socket.IO and smocket. The SharedWorker host and client
 contract suites live in `test/shared-worker/`; source, dist, and Chromium configs all
 collect those same files. `browser-tests/` contains pages and workers driven by scripts,
 not another Vitest suite.

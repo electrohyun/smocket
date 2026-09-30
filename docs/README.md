@@ -10,9 +10,9 @@ slug: /
 
 This page is published at [smocket-site.vercel.app/docs](https://smocket-site.vercel.app/docs).
 
-## Start with Smocket
+## Start with smocket
 
-Smocket reproduces Socket.IO's in-memory delivery and routing rules so frontend and
+smocket reproduces Socket.IO's in-memory delivery and routing rules so frontend and
 application tests can exercise rooms, namespaces, broadcasts, and acknowledgements
 without starting a network server. The [README quick start](../README.md#quick-start)
 is the shortest executable setup and remains the canonical installation example.
@@ -34,11 +34,11 @@ From there, choose the path that matches the code you have:
 ## Understand the guarantees
 
 - [Conformance report](./conformance.md): behaviours compared by the dual run.
-- [Adapter registration](./adapter-registration.md): Smocket-only routing extensions.
-- [Glossary](./glossary.md): Socket.IO and Smocket terms used by these guides.
+- [Adapter registration](./adapter-registration.md): smocket-only routing extensions.
+- [Glossary](./glossary.md): Socket.IO and smocket terms used by these guides.
 - [Roadmap](./roadmap.md): the stable boundary, release gates, and maintained paths.
 - [Drawing-game example](../examples/drawing-game/): the same application running
-  with Real Socket.IO and Smocket in Node and across browser pages.
+  with Real Socket.IO and smocket in Node and across browser pages.
 
 ## Maintain the project
 

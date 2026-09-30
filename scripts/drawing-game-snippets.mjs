@@ -78,13 +78,13 @@ const definitions = [
   [
     'smocket-bootstrap',
     'examples/drawing-game/smocket.ts',
-    'Start an isolated in-memory Smocket server and register the golden handlers.',
+    'Start an isolated in-memory smocket server and register the golden handlers.',
     ['1-connect'],
   ],
   [
     'smocket-client-substitution',
     'examples/drawing-game/smocket-loader.mjs',
-    'Resolve socket.io-client to smocket-client only for the compiled Smocket target.',
+    'Resolve socket.io-client to smocket-client only for the compiled smocket target.',
     ['1-connect'],
   ],
 ];

@@ -4,7 +4,7 @@ import { assertScenarioResult } from './assertions.js';
 import { runChatRoomScenario } from './scenario.js';
 import { targets } from './targets.js';
 
-test('the chat-room workflow matches real Socket.IO and Smocket', async () => {
+test('the chat-room workflow matches real Socket.IO and smocket', async () => {
   const observations = {};
 
   for (const target of targets) {

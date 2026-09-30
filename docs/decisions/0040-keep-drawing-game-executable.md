@@ -6,13 +6,13 @@
 [0019](./0019-what-counts-as-a-breaking-change.md)
 
 > **TL;DR** Keep the drawing game as executable application documentation against
-> Real Socket.IO and Smocket. Retire the competing-tool, handwritten, and generated
+> Real Socket.IO and smocket. Retire the competing-tool, handwritten, and generated
 > comparison paths; conformance and clean adoption keep their existing roles.
 
 ## Decision
 
 `examples/drawing-game` remains the maintained application. Its compact Node workflow
-runs against Real Socket.IO and Smocket, while its browser workflow runs the same
+runs against Real Socket.IO and smocket, while its browser workflow runs the same
 application handler through a Node Socket.IO server or an in-browser SharedWorker.
 
 The separate `case-studies/drawing-game` path is retired. The repository no longer owns

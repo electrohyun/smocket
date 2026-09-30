@@ -114,7 +114,7 @@ export class DelayingAdapter extends Adapter {
 }
 
 /**
- * A deterministic, Smocket-only final-recipient filter. It wraps another adapter so
+ * A deterministic, smocket-only final-recipient filter. It wraps another adapter so
  * membership, custom routing, scheduling, tracing, and cleanup keep their existing
  * behavior while selected sids are removed from broadcast delivery only.
  */

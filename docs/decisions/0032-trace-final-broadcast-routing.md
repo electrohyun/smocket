@@ -5,14 +5,14 @@
 [0026](./0026-payloads-cross-a-json-snapshot-boundary.md),
 [0031](./0031-adapter-registration-and-removal-lifecycle.md)
 
-> **TL;DR** A Smocket adapter may observe one immutable, payload-free snapshot after
+> **TL;DR** A smocket adapter may observe one immutable, payload-free snapshot after
 > final broadcast recipient selection. `TracingAdapter` records those snapshots and
 > can wrap another adapter without changing routing, scheduling, or cleanup.
 
 ## Decision
 
 Socket.IO supplies the routing behavior but has no corresponding tracing adapter.
-Smocket therefore observes the already verified result without claiming upstream adapter
+smocket therefore observes the already verified result without claiming upstream adapter
 compatibility. The optional `SmocketAdapter.traceBroadcast(trace)` hook is the single
 native observation point.
 

@@ -155,7 +155,7 @@ React UI, 사용자 동작을 공유하며 연결 bootstrap만 달라집니다.
 - [설치 없이 바로 실행되는 브라우저 데모 열기](https://smocket-site.vercel.app/demo)
 - `pnpm example:drawing-game`으로 소스 실행하기
 - [애플리케이션 case study](https://smocket-site.vercel.app/case-study)에서 Node.js
-  Socket.IO와 메모리에서 실행되는 Smocket의 역할 읽기
+  Socket.IO와 메모리에서 실행되는 smocket의 역할 읽기
 
 ## 지원 범위를 계속 확인하는 방법
 

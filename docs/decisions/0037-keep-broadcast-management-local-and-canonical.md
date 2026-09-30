@@ -7,7 +7,7 @@
 [0028](./0028-disconnect-true-closes-the-shared-manager-group.md),
 [0036](./0036-drop-final-broadcast-recipients-by-sid.md)
 
-> **TL;DR** Smocket implements local `fetchSockets`, `socketsJoin`, and
+> **TL;DR** smocket implements local `fetchSockets`, `socketsJoin`, and
 > `socketsLeave`, and `disconnectSockets`, while deferring deprecated `allSockets`.
 > Management selects canonical local Sockets; delivery adapters do not redefine the set.
 
@@ -20,7 +20,7 @@ namespace, while `true` closed every namespace Socket sharing a selected Socket'
 Manager. Every bulk method returned `undefined`. `allSockets` was deprecated and ignored
 exclusions in both versions.
 
-Smocket implements `fetchSockets`, `socketsJoin`, `socketsLeave`, and both forms of
+smocket implements `fetchSockets`, `socketsJoin`, `socketsLeave`, and both forms of
 `disconnectSockets`. It defers `allSockets` instead of adding a deprecated API whose
 compatibility requires preserving an exclusion quirk.
 
@@ -51,7 +51,7 @@ Socket.IO surface is a minor release after v1 and a patch before v1 under 0019.
 
 - **Implement `allSockets`.** Deprecation plus its exclusion quirk adds liability without a
   capability `fetchSockets` cannot provide.
-- **Route management through the registered adapter.** Smocket adapters are a narrower,
+- **Route management through the registered adapter.** smocket adapters are a narrower,
   transport-free delivery seam; making them own membership or lifecycle would reverse 0025.
 - **Apply deterministic drops to management.** Decision 0036 limits drops to broadcast
   event delivery, not management selection.

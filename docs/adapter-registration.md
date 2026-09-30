@@ -53,7 +53,7 @@ is replaced. Adapter state and membership never migrate through late registratio
 Stateful adapters may implement `removeSocket(sid)`. Whole-socket cleanup first calls
 `del` for each room and removes the `sids` entry, then calls this optional method once while
 the namespace roster still contains the socket. Ordinary `socket.leave(socket.id)` does not
-call it. This is a Smocket extension hook, not Socket.IO's `delAll` or lifecycle events.
+call it. This is a smocket extension hook, not Socket.IO's `delAll` or lifecycle events.
 
 `DelayingAdapter` uses the hook to drain every queued server-to-client delivery in FIFO
 order and release the sid's delay state. Scheduled callbacks for that detached queue become

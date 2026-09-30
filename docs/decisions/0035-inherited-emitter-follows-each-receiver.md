@@ -14,7 +14,7 @@
 Socket.IO 4.7.5 and 4.8.3 expose the same inherited emitter members. The four server
 receivers support `addListener`, `on`, `once`, both prepend forms, both single-removal
 forms, bulk removal, listener snapshots, raw wrapper snapshots, counts, event names,
-and max-listener state. Smocket accepts that set.
+and max-listener state. smocket accepts that set.
 
 Node receiver mutations return their receiver. `listeners` unwraps `once` callbacks,
 `rawListeners` exposes fresh snapshots containing the wrappers, prepend registration
@@ -30,7 +30,7 @@ component-emitter identifies its wrapper only through `.fn`. A similarly named p
 on an ordinary callback does not make it a wrapper on the other emitter side.
 
 Socket.IO delegates every Server EventEmitter method to the root Namespace. Its
-declarations still return Server for fluent methods. Smocket preserves both layers. The
+declarations still return Server for fluent methods. smocket preserves both layers. The
 public type returns Server and the runtime returns `io.of('/')`. Listener and max-listener
 state read through either object is therefore shared. A delegated listener also receives
 the root Namespace, not Server, as `this`.
@@ -40,14 +40,14 @@ Socket.IO's reserved outgoing event names. Once a `newListener` observer exists,
 next registration throws before adding the requested listener. Once a `removeListener`
 observer exists, removal completes and then throws. This is the behavior of both
 supported Socket.IO versions on Namespace, ParentNamespace, and server Socket. Server
-inherits the Namespace result through delegation. Smocket preserves that error boundary
+inherits the Namespace result through delegation. smocket preserves that error boundary
 instead of making the meta-events usable where Socket.IO does not.
 
 Bulk removal of the final `removeListener` observer follows the host Node capability,
 not its major version. Node 20.0.0 through 20.20.2 returned normally; early Node 22 and
 24 snapshots returned, while 22.23.2 and 24.19.0 emitted the final meta-event. Both
 Socket.IO versions matched. When emitted, Namespace, delegated Server, and server Socket
-remove the observer then throw; ParentNamespace returns normally. Smocket probes the
+remove the observer then throw; ParentNamespace returns normally. smocket probes the
 native emitter when available, while browsers have no Node meta-event and return normally.
 
 Max-listener state defaults to 10 and is local to each Node receiver. Exceeding it emits

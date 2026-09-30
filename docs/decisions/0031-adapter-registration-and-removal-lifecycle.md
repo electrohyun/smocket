@@ -7,15 +7,15 @@
 [0025](./0025-built-in-adapter-observation-stays-rooms-only.md)
 
 > **TL;DR** Adapter registration is setup-only and each namespace receives a fresh
-> instance. An optional Smocket-only `removeSocket(sid)` signal follows membership
+> instance. An optional smocket-only `removeSocket(sid)` signal follows membership
 > removal, and `DelayingAdapter` uses it to drain queued delivery in FIFO order.
 
 ## Decision
 
 Socket.IO constructs one adapter per namespace and removes whole-socket membership
-through its adapter. Smocket keeps the narrower contract from 0008 and 0025 because a
+through its adapter. smocket keeps the narrower contract from 0008 and 0025 because a
 real adapter also owns transport delivery and multi-server behavior that this mock cannot
-provide. This record adds only the lifecycle needed by stateful Smocket extensions.
+provide. This record adds only the lifecycle needed by stateful smocket extensions.
 
 `io.adapter(factory)` must run before the first connection attempt. It prepares a fresh,
 distinct adapter for the root and every existing static namespace, then installs all of
@@ -37,7 +37,7 @@ The already-scheduled head later sees that detached queue and does nothing. A re
 uses a fresh sid and cannot inherit the removed scheduler state.
 
 This is a narrow follow-up to 0025, not a superseding record. Built-in compatibility
-observation remains limited to `rooms`. The shipped Smocket interface still makes `sids`,
+observation remains limited to `rooms`. The shipped smocket interface still makes `sids`,
 `socketsIn`, scheduling, and removal native extension points without claiming arbitrary
 Socket.IO Adapter compatibility. The earlier 0018 allowance for delayed delivery after
 disconnect is superseded only for whole-socket teardown by this required drain.

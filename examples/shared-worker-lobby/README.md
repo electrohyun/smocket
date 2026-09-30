@@ -1,7 +1,7 @@
 # SharedWorker lobby example
 
 > **TL;DR** This static Vite app runs caller-written lobby handlers in one
-> SharedWorker and connects three same-origin tabs through Smocket's explicit
+> SharedWorker and connects three same-origin tabs through smocket's explicit
 > worker bridge. It demonstrates multi-tab delivery without starting a Node
 > Socket.IO server.
 

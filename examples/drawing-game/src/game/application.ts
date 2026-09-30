@@ -23,7 +23,7 @@ function socketLabel(socket: GameSocket): Label | null {
   return value === 'A' || value === 'B' || value === 'C' ? value : null;
 }
 
-/** Worker-safe application state and lifecycle shared by Smocket and Socket.IO. */
+/** Worker-safe application state and lifecycle shared by smocket and Socket.IO. */
 export function registerDrawingGameApplication(
   io: GameServer,
   { countdownMs = 3000, now = Date.now }: DrawingGameOptions = {},

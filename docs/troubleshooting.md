@@ -1,6 +1,6 @@
 # Troubleshooting test adoption
 
-> **TL;DR** Start with the URL, namespace, and resolved client package. Smocket keeps
+> **TL;DR** Start with the URL, namespace, and resolved client package. smocket keeps
 > Socket.IO-compatible errors generic where Socket.IO does, while its origin registry
 > and package substitution have explicit signals and cleanup rules.
 
@@ -14,7 +14,7 @@ const URL = 'http://localhost:3000';
 ```
 
 An [ack](./glossary.md#ack) is the response callback attached to an event. An
-[origin registry](./glossary.md#origin-registry) is Smocket's in-process lookup from a
+[origin registry](./glossary.md#origin-registry) is smocket's in-process lookup from a
 protocol, host, and port to a server.
 
 ## 1. A malformed URL
@@ -22,10 +22,10 @@ protocol, host, and port to a server.
 - **Reproduce:** call `connect('http://[')` or use a relative URL in Node without a
   `location.origin`.
 - **Signal:** `connect()` throws a synchronous native `TypeError`. Its message belongs to
-  the JavaScript URL implementation and is not a stable Smocket contract.
+  the JavaScript URL implementation and is not a stable smocket contract.
 - **Cause and action:** the URL cannot become an absolute URL. Pass a valid absolute URL in
   Node, or provide the browser origin that a relative URL needs.
-- **Classification:** Smocket exposes the native URL parser at its boundary. A real
+- **Classification:** smocket exposes the native URL parser at its boundary. A real
   Socket.IO client need not fail at lookup construction, so do not assert parity or exact
   text here. See [decision 0003](./decisions/0003-url-is-required.md).
 
@@ -40,12 +40,12 @@ client.on('connect_error', console.error);
 ```
 
 - **Signal:** on the next tick the client emits an `Error` whose message contains
-  `no server registered for http://localhost:3001`. Smocket also logs a line beginning
+  `no server registered for http://localhost:3001`. smocket also logs a line beginning
   `[smocket] connect_error`, does not throw from `connect()`, and does not retry.
 - **Cause and action:** protocol, hostname, or port differs, or the server was not created
   yet. Make both URLs name the same normalized origin and construct the server first.
 - **Classification:** this immediate one-shot failure and console diagnostic are
-  Smocket-specific. Real Socket.IO uses network retries. The contract is pinned in
+  smocket-specific. Real Socket.IO uses network retries. The contract is pinned in
   [connect-url.test.ts](../src/connect-url.test.ts) and
   [decision 0005](./decisions/0005-missing-server-behavior.md).
 
@@ -59,7 +59,7 @@ connect(`${URL}/private`).on('connect_error', console.error);
 ```
 
 - **Signal:** the client receives `Error('Invalid namespace')`, stays disconnected, and
-  gets no id. Smocket writes no extra console diagnostic.
+  gets no id. smocket writes no extra console diagnostic.
 - **Cause and action:** the static [namespace](./glossary.md#namespace) does not exist.
   Call `io.of('/private')` before connecting, and check the URL path spelling.
 - **Classification:** the signal is Socket.IO-compatible and intentionally generic. It is
@@ -83,7 +83,7 @@ connect(URL).on('connect_error', console.error);
 - **Cause and action:** middleware called `next(error)`. Register `connect_error` before
   opening the client, then inspect its auth input and the middleware-owned `data` value.
 - **Classification:** message and data propagation are Socket.IO-compatible. The message
-  comes from application middleware, not from a richer Smocket diagnostic. See
+  comes from application middleware, not from a richer smocket diagnostic. See
   [middleware.test.ts](../src/middleware.test.ts).
 
 ## 5. Reserved event emission
@@ -125,7 +125,7 @@ client.timeout(20).emit('save', 'draft', (error) => {
   never ran because setup targeted the wrong client. Ack every intended path, choose a
   deliberate duration, and await the result or drive fake timers before teardown.
 - **Classification:** the generic error and one-shot settlement are Socket.IO-compatible.
-  Smocket intentionally adds no event-specific text. See
+  smocket intentionally adds no event-specific text. See
   [timeout.test.ts](../src/timeout.test.ts).
 
 ## 7. Ordinary and volatile emits before connect
@@ -172,7 +172,7 @@ await pending;
 - **Cause and action:** application code reused a disconnected client. Stop emitting after
   disposal, or reconnect explicitly and wait for `connect` before expecting delivery.
 - **Classification:** buffering and in-flight rejection match Socket.IO. Automatic
-  reconnection timing remains outside Smocket's scope. See [ack.test.ts](../src/ack.test.ts)
+  reconnection timing remains outside smocket's scope. See [ack.test.ts](../src/ack.test.ts)
   and [decision 0012](./decisions/0012-reject-inflight-acks-on-disconnect.md).
 
 ## 9. Connecting after server close
@@ -192,7 +192,7 @@ connect(URL).on('connect_error', console.error);
   completed. Construct a fresh `Server` for the next test and await connection work before
   closing the current one.
 - **Classification:** rejecting an in-flight connection is Socket.IO-compatible. Registry
-  removal and the later missing-origin diagnostic are Smocket-specific. See
+  removal and the later missing-origin diagnostic are smocket-specific. See
   [server-close.test.ts](../src/server-close.test.ts) and
   [decision 0020](./decisions/0020-close-follows-socket-lifecycle.md).
 
@@ -210,11 +210,11 @@ expect(mappedClient.connect).toBe(selectedClient.connect);
   contain the documented mapping. In Jest, make the same identity comparison with
   `require()`.
 - **Signal:** package loading fails, the identity assertion fails, or the later connection
-  behaves like real Socket.IO. Runner error wording is not a Smocket contract.
+  behaves like real Socket.IO. Runner error wording is not a smocket contract.
 - **Cause and action:** the config was not selected or did not map the exact
   `socket.io-client` specifier to `smocket-client`. Fix `resolve.alias`, `vi.mock`, or
   `moduleNameMapper`, then keep the identity assertion while diagnosing.
-- **Classification:** this belongs to the test runner. Smocket cannot diagnose a module
+- **Classification:** this belongs to the test runner. smocket cannot diagnose a module
   that never resolved to it. The executable forms live in
   [consumers/test-adoption](../consumers/test-adoption/).
 
@@ -223,13 +223,13 @@ expect(mappedClient.connect).toBe(selectedClient.connect);
 - **Reproduce:** import the application from `socket.io-client` without activating its
   test alias, while the test creates an in-memory `Server` from `smocket`.
 - **Signal:** the client resolves from the real `socket.io-client` package, attempts a
-  network connection, and may retry or leave a transport handle. There is no Smocket
-  `[smocket] connect_error` line because Smocket never received the lookup.
+  network connection, and may retry or leave a transport handle. There is no smocket
+  `[smocket] connect_error` line because smocket never received the lookup.
 - **Cause and action:** the runner used a production config, or the alias applied to a
   different project or file. Run the identity assertion in section 10 and print the
   installed paths with `require.resolve('smocket-client')` or
   `import.meta.resolve('smocket-client')` outside the transformed application.
-- **Classification:** this is package resolution outside the Smocket runtime. Do not add a
+- **Classification:** this is package resolution outside the smocket runtime. Do not add a
   runtime detector for it.
 
 ## 12. Teardown, replacement, timers, and open handles
@@ -253,7 +253,7 @@ afterEach(async () => {
 - **Cause and action:** setup reused an origin, teardown closed the wrong instance, or a
   timer remained armed. Disconnect every retained client, await the current server's
   `close()`, and settle or drive every ack timer before the test ends.
-- **Classification:** origin replacement is Smocket-specific. Disconnect order and the
+- **Classification:** origin replacement is smocket-specific. Disconnect order and the
   surviving ack timer match Socket.IO. See [connect-url.test.ts](../src/connect-url.test.ts),
   [server-close.test.ts](../src/server-close.test.ts), and
   [decision 0020](./decisions/0020-close-follows-socket-lifecycle.md).

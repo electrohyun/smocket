@@ -94,7 +94,7 @@
       "id": "smocket-bootstrap",
       "sourceFile": "examples/drawing-game/smocket.ts",
       "language": "typescript",
-      "purpose": "Start an isolated in-memory Smocket server and register the golden handlers.",
+      "purpose": "Start an isolated in-memory smocket server and register the golden handlers.",
       "stepIds": ["1-connect"],
       "code": "export function startSmocketApplication(): ScenarioApplication {\n  nextOrigin += 1;\n  const url = `http://drawing-game-${nextOrigin}.smocket.test`;\n  const io = new SmocketServer<ClientToServerEvents, ServerToClientEvents>(url);\n  registerDrawingGameHandlers(io);\n\n  return createScenarioApplication(io, url, () => io.close());\n}"
     },
@@ -102,7 +102,7 @@
       "id": "smocket-client-substitution",
       "sourceFile": "examples/drawing-game/smocket-loader.mjs",
       "language": "javascript",
-      "purpose": "Resolve socket.io-client to smocket-client only for the compiled Smocket target.",
+      "purpose": "Resolve socket.io-client to smocket-client only for the compiled smocket target.",
       "stepIds": ["1-connect"],
       "code": "export async function resolve(specifier, context, nextResolve) {\n  const fromSmocketBuild = context.parentURL?.includes('/examples/drawing-game/dist/smocket/');\n  if (specifier === 'socket.io-client' && fromSmocketBuild) {\n    return nextResolve(\n      new URL('../../packages/smocket-client/dist/index.mjs', import.meta.url).href,\n      context,\n    );\n  }\n  const fromSmocketClient = context.parentURL?.includes('/packages/smocket-client/dist/');\n  if (specifier === 'smocket' && (fromSmocketBuild || fromSmocketClient)) {\n    return nextResolve(new URL('../../dist/index.js', import.meta.url).href, context);\n  }\n  return nextResolve(specifier, context);\n}"
     }

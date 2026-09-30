@@ -5,7 +5,7 @@
 [0008](./0008-adapter-api-before-v1.md), [0013](./0013-reconnect-fresh-socket.md),
 [0018](./0018-delivery-scheduling-adapter-hook.md)
 
-> **TL;DR** Smocket stabilizes the built-in adapter's live `rooms` map for observation. The
+> **TL;DR** smocket stabilizes the built-in adapter's live `rooms` map for observation. The
 > other methods and events lack a core use and conflict with teardown or custom-adapter
 > boundaries, so they stay outside the v1 compatibility surface.
 
@@ -28,7 +28,7 @@ empty Set, and a deduplicated room union otherwise. The declarations expose `add
 Node `EventEmitter`'s untyped string-and-`any[]` surface, so their names and payloads are
 not encoded in the declarations.
 
-Smocket keeps only `namespace.adapter.rooms` as built-in Adapter compatibility surface.
+smocket keeps only `namespace.adapter.rooms` as built-in Adapter compatibility surface.
 Its live membership and removal of empty room keys are already needed to inspect routing
 state. External mutation of the map is not supported. Every new candidate is deferred:
 
@@ -36,17 +36,17 @@ state. External mutation of the map is not supported. Every new candidate is def
 | ------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `addAll`, `delAll`                                      | Defer    | `socket.join`, `socket.leave`, and disconnect already own membership changes; direct mutation would add a second lifecycle entry point.                                              |
 | `socketRooms`                                           | Defer    | `socket.rooms` already supplies the application observation, and exact live-reference teardown conflicts with 0013.                                                                  |
-| `sockets`                                               | Defer    | Smocket's core already routes through its Smocket-only `socketsIn`; no application or extension use requires the upstream async lookup contract.                                     |
+| `sockets`                                               | Defer    | smocket's core already routes through its smocket-only `socketsIn`; no application or extension use requires the upstream async lookup contract.                                     |
 | `create-room`, `join-room`, `leave-room`, `delete-room` | Defer    | No concrete consumer requires them, while promising `on` would widen the separate `SmocketAdapter` registration contract or make `namespace.adapter` inconsistent after replacement. |
 
 The teardown conflict is observable. While connected, real `socket.rooms` is the same Set
 returned by `adapter.socketRooms(id)`. After disconnect, the getter returns a new empty Set,
 but a reference captured before disconnect retains every old room. Decision 0013 instead
-requires that captured Smocket reference to be emptied in place. This decision does not
+requires that captured smocket reference to be emptied in place. This decision does not
 silently reverse 0013; a future `socketRooms` proposal must first revisit it explicitly.
 
 The exported `Adapter` and `SmocketAdapter` keep `add`, `del`, `sids`, `socketsIn`, and the
-optional scheduling hook as Smocket-only surface under 0008 and 0018. They remain
+optional scheduling hook as smocket-only surface under 0008 and 0018. They remain
 incompatible with arbitrary Socket.IO adapters. Decision 0031 adds a narrow optional
 whole-socket removal signal for native extension cleanup without adding `delAll`, upstream
 lifecycle events, or another built-in observation promise. No deferred member blocks v1.
@@ -58,5 +58,5 @@ lifecycle events, or another built-in observation promise. No deferred member bl
 - **Accept only lookups and lifecycle events now.** `socketRooms` still reaches the 0013
   conflict, and events still change what every registered custom adapter must provide.
 - **Make `SmocketAdapter` match Socket.IO's Adapter.** A real adapter also owns transport
-  delivery and multi-server behavior that Smocket cannot reproduce; 0008 and 0018 already
+  delivery and multi-server behavior that smocket cannot reproduce; 0008 and 0018 already
   assign this seam a narrower routing and test-scheduling role.

@@ -17,7 +17,7 @@ generic positions, while the client type carries two and reverses the event dire
 External fixtures under `node16` and `bundler` resolution verified both valid calls and
 wrong-direction rejections.
 
-Smocket combines both directions in one package, but its root already exposes `Server`.
+smocket combines both directions in one package, but its root already exposes `Server`.
 The root will therefore export `ServerSocketContract` as the named type `Socket`, letting
 a server replace `socket.io` with `smocket` without changing its named imports.
 The separate `smocket-client` package will export `ClientSocketContract` as `Socket`,
@@ -39,7 +39,7 @@ compiling, so [0019](./0019-what-counts-as-a-breaking-change.md) classifies it a
 after 1.0.0 and patch before 1.0.0.
 
 This decision does not expose a runtime `Socket` constructor. Both upstream packages do,
-but their constructors differ from Smocket's internal constructors, and no measured
+but their constructors differ from smocket's internal constructors, and no measured
 application use case requires construction. Runtime constructor compatibility remains
 unverified rather than being inferred from the type name.
 
@@ -51,7 +51,7 @@ unverified rather than being inferred from the type name.
 - **Leave the root name unassigned.** It avoids choosing a direction but forces an
   existing server import to change both the package and the import path.
 - **Use `smocket/client` and `smocket/server` subpaths.** The types are unambiguous, but
-  both directions adopt a Smocket-specific import convention instead of preserving
+  both directions adopt a smocket-specific import convention instead of preserving
   Socket.IO's package-level substitution shape.
 - **Leave `Socket` unavailable everywhere.** Explicit contract names remain usable, but
   application annotations cannot retain Socket.IO's name across package substitution.

@@ -54,7 +54,7 @@ function connectionTarget(url: string): {
 }
 
 /**
- * Attach one application-owned MessagePort to an existing Smocket server. The caller
+ * Attach one application-owned MessagePort to an existing smocket server. The caller
  * owns the SharedWorker, server handlers, worker URL, and worker name (ADR 0038).
  */
 export function attachSharedWorker<

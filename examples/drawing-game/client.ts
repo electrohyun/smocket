@@ -12,7 +12,7 @@ import {
 
 export type DrawingGameClient = Socket<ServerToClientEvents, ClientToServerEvents>;
 
-/** This import and constructor stay unchanged when the target becomes Smocket. */
+/** This import and constructor stay unchanged when the target becomes smocket. */
 export function createDrawingGameClient(url: string, label: Label): DrawingGameClient {
   return io(url, {
     auth: { label },

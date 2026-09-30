@@ -3,7 +3,7 @@
 **Status:** Accepted · 2026-08-10 · #193 · Revised 2026-09-30 · #519
 **Governed by:** [0000](./0000-do-not-invent-what-has-no-source.md)
 
-> **TL;DR** Smocket accepts the close callback and returns the declared Socket.IO
+> **TL;DR** smocket accepts the close callback and returns the declared Socket.IO
 > target's completion promise. It leaves an armed
 > server-side [ack](../glossary.md#ack) timeout running and removes this server from the
 > [origin registry](../glossary.md#origin-registry) only while it owns the entry.
@@ -20,12 +20,12 @@ A connection started immediately before close never reaches `connection`; its cl
 Both versions invoke an optional callback when close completes. A later callback receives
 `ERR_SERVER_NOT_RUNNING`; in 4.8, the returned promise still resolves. Historical 4.7
 returns `void`, while 4.8 returns `Promise<void>`. Under
-[0043](./0043-follow-one-declared-socketio-target.md), the 4.8.4 target and Smocket's
+[0043](./0043-follow-one-declared-socketio-target.md), the 4.8.4 target and smocket's
 contract both return `Promise<void>`; the former union no longer accommodates 4.7.
 
 An armed server acknowledgement timeout is separate from the connection teardown. Real socket.io
 leaves its timer running, and its callback still receives `operation has timed out` after
-`close()` resolves. Smocket does the same. Tests that arm one settle it before ending or drive
+`close()` resolves. smocket does the same. Tests that arm one settle it before ending or drive
 it with fake timers; `close()` is not a timer reset.
 
 The origin registry has no socket.io counterpart, but leaving a closed server registered would

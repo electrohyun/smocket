@@ -86,7 +86,7 @@ export interface BroadcastContract<
 
 /**
  * The Socket.IO-compatible subset returned by {@link BroadcastContract.fetchSockets}.
- * Smocket returns its existing local server Socket object, while this type promises only
+ * smocket returns its existing local server Socket object, while this type promises only
  * the members Socket.IO exposes for values that could otherwise be remote.
  */
 export interface FetchedSocketContract<
@@ -574,7 +574,7 @@ export interface ServerContract<
    * the on-based path code written for real socket.io actually uses.
    *
    * Socket.IO declares the return as the Server while its runtime delegates to the root
-   * Namespace and returns that object. Smocket preserves both observations: this contract
+   * Namespace and returns that object. smocket preserves both observations: this contract
    * carries the declared fluent type and the runtime returns `io.of('/')`.
    */
   on<
@@ -758,7 +758,7 @@ export interface ServerSocketContract<
   connected: boolean;
   /** Exact inverse of {@link connected}. */
   readonly disconnected: boolean;
-  /** Smocket does not reproduce connection-state recovery. */
+  /** smocket does not reproduce connection-state recovery. */
   readonly recovered: boolean;
   /** Server-only view of room membership; a live Set emptied in place on teardown. */
   rooms: Set<string>;
@@ -876,7 +876,7 @@ export interface ClientSocketContract<
   connected: boolean;
   /** Exact inverse of {@link connected}. */
   readonly disconnected: boolean;
-  /** Smocket does not reproduce connection-state recovery. */
+  /** smocket does not reproduce connection-state recovery. */
   recovered: boolean;
   /** Mutable auth source read again whenever application code reconnects this client. */
   auth: Record<string, unknown> | AuthCallback;

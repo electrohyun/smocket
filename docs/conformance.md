@@ -618,7 +618,7 @@ because nothing about socket.io follows from them.
 
 ### Native acknowledgement teardown race
 
-Discarding or retaining acknowledgements as appropriate when a Smocket outgoing observer
+Discarding or retaining acknowledgements as appropriate when a smocket outgoing observer
 tears down a connection mid-send.
 
 - [discards an ack retained after an outgoing observer disconnects the client](../src/ack-native.test.ts#L5)
@@ -705,7 +705,7 @@ Recording immutable final broadcast routing decisions without payloads.
 
 ### Deterministic broadcast dropping
 
-A Smocket-only final-recipient filter by sid, including acknowledgements, cleanup,
+A smocket-only final-recipient filter by sid, including acknowledgements, cleanup,
 namespace isolation, and adapter composition.
 
 - [drops io.emit by sid and restores delivery without changing membership](../src/dropping-adapter.test.ts#L28)
@@ -745,7 +745,7 @@ Holding a socket's client-inbound stream so a race can be interleaved on purpose
 
 ### Native broadcast Promise policy
 
-Applying Smocket-only pre-connect volatile selection before acknowledgement counting.
+Applying smocket-only pre-connect volatile selection before acknowledgement counting.
 
 - [volatile Promise collection excludes pre-connect recipients from its expected count](../src/broadcast-promise-ack-native.test.ts#L5)
 
@@ -827,7 +827,7 @@ stale-generation suppression, and bridge errors.
 
 ### SharedWorker lobby application handlers
 
-Running the documented lobby handlers against real Socket.IO and Smocket, including
+Running the documented lobby handlers against real Socket.IO and smocket, including
 duplicate-label identity, readiness, start, and disconnect.
 
 - [the documented lobby handlers preserve identity and lifecycle across both targets](../examples/shared-worker-lobby/src/application.test.ts#L12)
@@ -868,7 +868,7 @@ Each row is answered by a CI job rather than by a claim, so the evidence is in
 
 Each release follows one declared Socket.IO server and client target under
 [0043](./decisions/0043-follow-one-declared-socketio-target.md). The dual run compares
-that target's behavior with Smocket, and type checks compare the covered declarations.
+that target's behavior with smocket, and type checks compare the covered declarations.
 The root pins and installed versions must agree; examples and consumers must use the
 same exact upstream pins. A differing version is unverified unless explicitly validated.
 Earlier releases retain their documented support, without a maintenance guarantee.

@@ -11,7 +11,7 @@
 ## Decision
 
 Real Socket.IO remains the behavioral reference. The drawing-game compatibility study
-runs its shared workflow against Real Socket.IO and workspace Smocket, while its
+runs its shared workflow against Real Socket.IO and workspace smocket, while its
 maintenance study records staged handwritten implementations. Clean-adoption fixtures
 install the exact candidate or reviewed published packages outside the checkout.
 

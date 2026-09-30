@@ -1,7 +1,7 @@
 # Multi-tab drawing game
 
 > **TL;DR** Run one React drawing game in three Chromium pages. The default mode
-> hosts one in-browser Smocket server in a SharedWorker; the Real mode starts a
+> hosts one in-browser smocket server in a SharedWorker; the Real mode starts a
 > Node HTTP server with Socket.IO. Both modes register the same application
 > handler and show the same game screen.
 
@@ -12,7 +12,7 @@ night-sky asset, mono font, and visible game flow. It does not include Next.js,
 landing or case-study routes, marketing navigation, analytics, generated site
 files, or snapshots.
 
-## Run with Smocket
+## Run with smocket
 
 From the repository root:
 
@@ -27,7 +27,7 @@ When A, B, and C are connected, the countdown starts. Draw in A, submit guesses
 in B or C, and use `giraffe` to end the round.
 
 The target badge reads `MOCK · SHARED WORKER`. This path starts no separate
-Socket.IO backend process. One in-browser Smocket server owns the session while
+Socket.IO backend process. One in-browser smocket server owns the session while
 the several browser pages keep distinct socket ids.
 
 ## Run with Real Socket.IO
@@ -79,7 +79,7 @@ server. Browser-specific code is limited to the page connections and React UI.
 
 ## Record the live-coding scene
 
-Open the Smocket URL with `?recording=1`. It enters the same game and handler,
+Open the smocket URL with `?recording=1`. It enters the same game and handler,
 uses a recording session id, and keeps the target and player badges prominent.
 Open B and C with the two buttons in A.
 
@@ -103,7 +103,7 @@ pnpm example:drawing-game:verify
 ```
 
 The first command runs the compact game scenario against Real Socket.IO and
-Smocket and compares the complete result. The second opens real Chromium pages
+smocket and compares the complete result. The second opens real Chromium pages
 A, B, and C for each browser mode. It checks distinct socket ids, the shared
 session, countdown, sender-excluded strokes, chat, both guess acknowledgements,
 the common end result, a closed page, a refreshed page, and a repeated run with
@@ -112,4 +112,4 @@ no previous players left behind.
 This example checks in-memory delivery and routing in one desktop Chromium
 profile. A real backend must still be tested for network transport,
 authentication, reconnection, database access, persistence, cross-device use,
-and scaling. Smocket does not replace those checks.
+and scaling. smocket does not replace those checks.

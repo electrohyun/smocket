@@ -6,19 +6,19 @@
 [0028](./0028-disconnect-true-closes-the-shared-manager-group.md)
 
 > **TL;DR** `Server.connect()` and `nextConnection()` are the two public halves of
-> Smocket's direct connection API. They pair admitted sockets in per-namespace FIFO
+> smocket's direct connection API. They pair admitted sockets in per-namespace FIFO
 > order. Closing the server discards unclaimed sockets and rejects pending or later
 > observers with an ordinary `Error`.
 
 ## Decision
 
 Real Socket.IO opens a client through socket.io-client and exposes the server side through a
-`connection` listener. It has no `Server.connect()` or `nextConnection()` counterpart. Smocket
+`connection` listener. It has no `Server.connect()` or `nextConnection()` counterpart. smocket
 keeps that compatible path through `connect(url)`, while the concrete `Server` also supports a
 direct test API that avoids the origin registry.
 
 `Server.connect(namespace?, options?)` remains public and joins `SmocketServer`. It normalizes
-the namespace, preserves the event-map direction, accepts the same Smocket `ConnectOptions` as
+the namespace, preserves the event-map direction, accepts the same smocket `ConnectOptions` as
 `connect(url)`, and uses the Manager grouping fixed by [0028](./0028-disconnect-true-closes-the-shared-manager-group.md).
 `nextConnection(namespace?)` is its observing half. Both default to `/`.
 

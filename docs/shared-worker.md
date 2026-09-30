@@ -1,6 +1,6 @@
 # Multi-tab frontend development with SharedWorker
 
-> **TL;DR** A caller-owned module `SharedWorker` can host one Smocket server for
+> **TL;DR** A caller-owned module `SharedWorker` can host one smocket server for
 > same-origin tabs during frontend development. Use the explicit worker subpaths,
 > keep application handlers worker-safe, and switch the page bootstrap to a real
 > Socket.IO client and server for transport, authentication, and deployment checks.
@@ -17,7 +17,7 @@ lobby, become ready, start from the leader tab, and observe a departure together
 
 The example is a static Vite frontend. It does not start Node or a Socket.IO
 server. [`worker.ts`](../examples/shared-worker-lobby/src/worker.ts) creates the
-Smocket server and registers the caller's handlers, while
+smocket server and registers the caller's handlers, while
 [`client.ts`](../examples/shared-worker-lobby/src/client.ts) creates the browser
 worker and connects its port. The application event and handler contract stays in
 [`application.ts`](../examples/shared-worker-lobby/src/application.ts).
@@ -55,7 +55,7 @@ facade. Run the handlers behind a real Socket.IO server and omit the worker entr
 from the production bootstrap.
 
 That real-server path is required to verify network transport, reconnection,
-authentication, database access, persistence, and cross-device behavior. Smocket
+authentication, database access, persistence, and cross-device behavior. smocket
 inside a worker verifies in-memory delivery and routing only.
 
 ## Normal shutdown

@@ -6,7 +6,7 @@
 
 > **TL;DR** Server-side `socket.disconnect(true)` closes every connected or pending
 > namespace socket on the same client Manager, while `false` closes only the current
-> namespace and independent Managers stay connected. Smocket models that group without
+> namespace and independent Managers stay connected. smocket models that group without
 > a transport.
 
 ## Decision
@@ -17,11 +17,11 @@ namespace, `forceNew: true`, or `multiplex: false` creates an independent Manage
 Closing one server socket with `true` disconnected only the namespaces on its
 Manager, in their connection order; sockets using the other Managers stayed connected.
 
-Smocket will replace the server-wide identity stand-in with a host-neutral logical
+smocket will replace the server-wide identity stand-in with a host-neutral logical
 Manager. Its supported lookup surface reuses one cached Manager for distinct
 namespaces at an origin, creates an independent Manager for a namespace already in
 that cached group, and accepts `forceNew` and `multiplex` to opt out. The Engine.IO
-path remains outside this grouping API because Smocket has no transport path.
+path remains outside this grouping API because smocket has no transport path.
 
 With `false`, only the addressed namespace socket closes. With `true`, every
 connected namespace socket in the same Manager closes in connection order. Each
@@ -44,7 +44,7 @@ a patch before v1 under [0019](./0019-what-counts-as-a-breaking-change.md).
 
 - **Ignore `close` because there is no transport.** The transport is absent, but
   which namespace sockets disconnect, their reasons, and their order are observable.
-- **Close every client registered on the Smocket server.** One server can host
+- **Close every client registered on the smocket server.** One server can host
   several independent Managers, so this would disconnect unrelated clients.
 - **Keep the `Server` object as the Manager identity.** It cannot represent repeated
   namespaces or explicit opt-outs without collapsing independent connections.

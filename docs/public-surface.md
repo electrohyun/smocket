@@ -42,7 +42,7 @@ Runtime-only client emitter entries reference `@socket.io/component-emitter`
 are recorded in [`THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md).
 
 This inventory is generated compatibility evidence for the repository. It is not
-part of Smocket's runtime and is excluded from both npm packages.
+part of smocket's runtime and is excluded from both npm packages.
 
 ## Regenerate and review
 
@@ -57,5 +57,5 @@ part of Smocket's runtime and is excluded from both npm packages.
 
 Do not edit generated entries to hide upstream drift. Update the extractor only
 when the declaration normalization itself is wrong, then regenerate and review
-the full diff. Public Smocket changes consume the existing vocabulary; they do
+the full diff. Public smocket changes consume the existing vocabulary; they do
 not weaken this guard or the separate `check:package` policy.

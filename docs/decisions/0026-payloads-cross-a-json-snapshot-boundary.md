@@ -24,7 +24,7 @@ immediately for a connected send and at flush for a buffered client packet.
 
 A broadcast encodes one packet at the call, including when it has no recipients, and each
 recipient decodes an independent object graph. Neither later mutation of the source nor
-mutation by one recipient reaches another recipient. Smocket will preserve these results
+mutation by one recipient reaches another recipient. smocket will preserve these results
 through direct emits, acknowledgements, broadcasts, timeout wrappers, connected volatile
 emits, and buffered delivery in both directions.
 
@@ -42,7 +42,7 @@ earlier consumption boundary, including when their payload encoding fails.
 The compatibility contract is the successful decoded value, reference isolation, and
 snapshot or failure timing. It does not promise Socket.IO's internal traversal algorithm,
 the number of getter or `toJSON` calls, or a native exception's exact class and message.
-Those vary below the application result and copying them would couple Smocket to parser
+Those vary below the application result and copying them would couple smocket to parser
 internals rather than the stable boundary.
 
 This decision covers default-parser packets only when they contain no binary value. Binary

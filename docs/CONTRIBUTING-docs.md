@@ -20,6 +20,7 @@ experience**.
 
 ## 1. Style
 
+- **Project name:** write `smocket` in lowercase, including headings and sentence openings.
 - **Use bullets for enumerations.** Options, field lists, rule lists, and lists of
   alternatives are bullets.
 - **Write causation as prose.** "Why this conclusion" is two to four sentences.

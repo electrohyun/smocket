@@ -13,7 +13,7 @@
 
 Socket.IO server sockets report `connected` as false in connection middleware,
 true in `connection` and `disconnecting`, then false in `disconnect`. The
-`disconnected` getter is its exact inverse. Smocket changes these values at the
+`disconnected` getter is its exact inverse. smocket changes these values at the
 same lifecycle boundaries.
 
 The server socket state cannot also represent whether the paired client has fired
@@ -23,11 +23,11 @@ delivery therefore reads a separate private client-readiness value and keeps the
 drop rule from [0016](./0016-volatile-drops-only-pre-connect.md).
 
 Socket.IO exposes mutable client `auth` and reads it when a connection starts.
-Smocket retains stable lookup options but resolves the current `socket.auth` on
+smocket retains stable lookup options but resolves the current `socket.auth` on
 every manual `connect()`, including dynamic namespace admission. Object replacement
 and callback auth can therefore supply a fresh handshake value after disconnect.
 
-Smocket does not reproduce connection-state recovery. Its server and client
+smocket does not reproduce connection-state recovery. Its server and client
 `recovered` values are false for every completed connection. This observable value
 does not add packet restoration, reconnect automation, recovery identifiers, or
 recovery buffers.
@@ -46,4 +46,4 @@ transport lifecycle details beyond the in-memory delivery boundary.
 - **Implement recovery to expose `recovered`.** The property can truthfully stay
   false without adding the recovery behavior excluded by project scope.
 - **Expose internal client buffers.** Their contents and timing belong to parser and
-  transport behavior that Smocket does not reproduce.
+  transport behavior that smocket does not reproduce.

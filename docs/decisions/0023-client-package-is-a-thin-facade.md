@@ -14,16 +14,16 @@
 Socket.IO Client 4.7.5 and 4.8.3 expose one lookup function as the ESM default, `io`, and
 `connect`. Their CommonJS root is that callable with `.io` and `.connect` attached. Both
 versions export the two-slot client `Socket`; 4.8 also exports transport values that are
-outside Smocket's scope. Runtime and external TypeScript consumers under `node16` and
+outside smocket's scope. Runtime and external TypeScript consumers under `node16` and
 `bundler` supplied this evidence.
 
 `smocket-client` will be a separate package whose ESM default, `io`, and `connect` are one
 facade function delegating to `smocket`'s lookup. Its CommonJS root will be that callable
 with `.io` and `.connect` referring to itself. Cross-package function identity is not an
 API. It will export `ClientSocketContract` as the type `Socket` and only the client option
-types supported by Smocket.
+types supported by smocket.
 
-The facade keeps Smocket's existing required URL and supported options; it does not add
+The facade keeps smocket's existing required URL and supported options; it does not add
 Socket.IO Client's no-argument, options-only, or Manager-backed overloads. `Manager`,
 runtime `Socket`, `protocol`, and transport exports are excluded rather than implying
 unsupported reconnection, parser, or transport behavior.
@@ -36,7 +36,7 @@ Their versions are released together, publishing `smocket` first and the facade 
 The existing `smocket` `io` and `connect` exports remain supported.
 
 Socket.IO Client's CommonJS runtime is callable, but its 4.7.5 and 4.8.3 declarations do
-not make `import = require()` callable; `attw` reports the missing `export =`. Smocket's
+not make `import = require()` callable; `attw` reports the missing `export =`. smocket's
 CommonJS declaration will use `export =` and namespace merging to describe the measured
 runtime accurately. ESM declarations keep default and named exports. Both package checks
 and external Node, bundler, and browser consumers must pass before publication.

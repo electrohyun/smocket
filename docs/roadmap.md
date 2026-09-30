@@ -9,7 +9,7 @@
 Since v1.0.0, the compatibility guarantee is observable behaviour and public types inside the documented
 [scope](./scope.md). The [conformance report](./conformance.md) owns behaviour compared
 with Real Socket.IO, [differences](./differences.md) owns deliberate divergences and
-Smocket-only APIs, and [ADR 0019](./decisions/0019-what-counts-as-a-breaking-change.md)
+smocket-only APIs, and [ADR 0019](./decisions/0019-what-counts-as-a-breaking-change.md)
 governs changes to published promises.
 
 The root and client packages release as one exact-version pair. Their supported imports
@@ -34,7 +34,7 @@ completion percentages, or duplicated issue status.
 ## Maintained application paths
 
 The [drawing-game example](../examples/drawing-game/) runs one application with Real
-Socket.IO and Smocket in Node and across browser pages. The workspace chat room remains
+Socket.IO and smocket in Node and across browser pages. The workspace chat room remains
 a compact executable example. Neither application owns a separate recorded comparison;
 the [conformance report](./conformance.md) owns the supported compatibility boundary.
 
@@ -45,7 +45,7 @@ types, browser use, and the SharedWorker subpaths.
 ## Outside the roadmap
 
 Network transport and fallback, heartbeat, automatic network reconnection, multi-server
-scaling, and binary framing remain outside Smocket's in-memory layer. A test hook may
+scaling, and binary framing remain outside smocket's in-memory layer. A test hook may
 simulate an application condition without claiming to reproduce those systems.
 
 Additions after v1.0.0 still start from measured Socket.IO behaviour and follow ADR 0019.
