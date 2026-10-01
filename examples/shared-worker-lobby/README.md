@@ -25,6 +25,9 @@ the two remaining views.
 
 Run the same workflow headlessly with:
 
+Before your first browser verification, install Chromium by running
+`pnpm exec playwright install chromium` from the repository root.
+
 ```bash
 pnpm example:shared-worker
 ```
