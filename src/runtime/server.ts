@@ -200,12 +200,9 @@ export class Server<
       if (listener) parent.on('connection', listener as Listener);
       return parent as NamespaceContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>;
     }
-    return this.getNamespace(name) as NamespaceContract<
-      ListenEvents,
-      EmitEvents,
-      ServerSideEvents,
-      SocketData
-    >;
+    const namespace = this.getNamespace(name);
+    if (listener) namespace.on('connection', listener as Listener);
+    return namespace as NamespaceContract<ListenEvents, EmitEvents, ServerSideEvents, SocketData>;
   }
 
   on<

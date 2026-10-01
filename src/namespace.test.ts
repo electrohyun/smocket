@@ -180,3 +180,28 @@ it('socket.broadcast stays inside the namespace of the sender', async () => {
   expect(msgRoot.received).toBe(false); // another namespace
   expect(msgGame1.received).toBe(false); // sender excluded
 });
+
+it.each([
+  { kind: 'a new namespace', name: '/game', existing: false },
+  { kind: 'an existing namespace', name: 'game', existing: true },
+  { kind: 'the root namespace', name: '', existing: true },
+])('io.of registers its listener on $kind', async ({ name, existing }) => {
+  const original = existing ? ctx.io.of(name) : undefined;
+  const seen: ServerSocketContract[] = [];
+  const receivers: unknown[] = [];
+  const namespace = ctx.io.of(name, function (this: unknown, socket) {
+    seen.push(socket);
+    receivers.push(this);
+  });
+  if (original) expect(namespace).toBe(original);
+  expect(ctx.io.of(namespace.name)).toBe(namespace);
+
+  // Completed admission is the marker for the synchronous connection callbacks.
+  const first = await ctx.connectClient({ namespace: name });
+  expect(seen).toEqual([first.serverSocket]);
+  expect(receivers).toEqual([namespace]);
+
+  const second = await ctx.connectClient({ namespace: name });
+  expect(seen).toEqual([first.serverSocket, second.serverSocket]);
+  expect(receivers).toEqual([namespace, namespace]);
+});

@@ -161,6 +161,9 @@ What a namespace isolates: connections, emits, rooms, and socket ids.
 - [a room of the same name is separate per namespace](../src/namespace.test.ts#L120)
 - [a client attached to two namespaces has a different socket id per namespace](../src/namespace.test.ts#L145)
 - [socket.broadcast stays inside the namespace of the sender](../src/namespace.test.ts#L160)
+- [io.of registers its listener on a new namespace](../src/namespace.test.ts#L188)
+- [io.of registers its listener on an existing namespace](../src/namespace.test.ts#L188)
+- [io.of registers its listener on the root namespace](../src/namespace.test.ts#L188)
 
 ### Dynamic namespace parents
 
