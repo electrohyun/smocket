@@ -65,6 +65,7 @@ const sidebars: SidebarsConfig = {
         { type: 'doc', id: 'package-policy', label: 'Package policy' },
         { type: 'doc', id: 'release-candidates', label: 'Release candidates' },
         { type: 'doc', id: 'npm-publication', label: 'npm publication' },
+        { type: 'doc', id: 'release-completion', label: 'Release completion' },
         { type: 'doc', id: 'release-remediation', label: 'Release remediation' },
         {
           type: 'doc',
