@@ -40,8 +40,8 @@ Push your working branch to your fork, then open a pull request against `main` i
 | ------------------- | --------------------------------------- |
 | `pnpm test`         | Run tests in watch mode                 |
 | `pnpm vitest run`   | Run both test projects once             |
-| `pnpm typecheck`    | Type-check without emitting output      |
-| `pnpm lint`         | Check code and documentation style      |
+| `pnpm typecheck`    | Build packages and check types          |
+| `pnpm lint`         | Lint TypeScript source files            |
 | `pnpm format`       | Apply the repository formatting         |
 | `pnpm format:check` | Check formatting without changing files |
 | `pnpm docs:check`   | Build and test the documentation site   |
