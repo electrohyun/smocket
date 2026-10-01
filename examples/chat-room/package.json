@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node index.js",
+    "start": "node init && node index.js",
     "test": "node --test"
   },
   "dependencies": {
