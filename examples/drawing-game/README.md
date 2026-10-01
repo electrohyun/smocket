@@ -97,6 +97,8 @@ recording, confirm the tracked file is back to the completed version.
 
 ## Automated checks
 
+Before your first browser verification, install Chromium by running `pnpm exec playwright install chromium` from the repository root.
+
 ```bash
 pnpm example:drawing-game:test
 pnpm example:drawing-game:verify
