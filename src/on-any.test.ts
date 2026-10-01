@@ -426,3 +426,21 @@ it('offAny detaches the old arrays and installs stable empty replacements', asyn
   expect(serverSeen).toEqual(['replacement']);
   expect(clientSeen).toEqual(['replacement']);
 });
+
+it('incoming catch-all callbacks receive their owning socket on both sides', async () => {
+  const { client, serverSocket } = await ctx.connectClient();
+  const receivers: boolean[] = [];
+  serverSocket.onAny(function (this: unknown) {
+    receivers.push(this === serverSocket);
+  });
+  client.onAny(function (this: unknown) {
+    receivers.push(this === client);
+  });
+  serverSocket.on('to-server', (acknowledge: () => void) => acknowledge());
+  client.on('to-client', (acknowledge: () => void) => acknowledge());
+
+  await client.emitWithAck('to-server');
+  await serverSocket.emitWithAck('to-client');
+
+  expect(receivers).toEqual([true, true]);
+});

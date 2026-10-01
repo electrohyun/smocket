@@ -533,7 +533,7 @@ class SharedWorkerSocketImplementation<
 
   private dispatch(event: string, args: unknown[]): void {
     if (!RESERVED_EVENTS.has(event) && this.anyListeners?.length) {
-      for (const listener of [...this.anyListeners]) listener(event, ...args);
+      for (const listener of [...this.anyListeners]) listener.apply(this, [event, ...args]);
     }
     const listeners = this.listenersByEvent.get(event);
     if (!listeners) return;

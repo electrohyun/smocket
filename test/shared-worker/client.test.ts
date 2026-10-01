@@ -682,4 +682,23 @@ describe('shared-worker client facade', () => {
       else Reflect.deleteProperty(globalThis, 'removeEventListener');
     }
   });
+
+  it('incoming catch-all callbacks receive the owning page socket', async () => {
+    let serverSocket!: ServerSocketContract;
+    const { socket } = setup((io) =>
+      io.on('connection', (connected) => (serverSocket = connected)),
+    );
+    await nextEvent(socket, 'connect');
+    const receivers: boolean[] = [];
+    socket.onAny(function (this: unknown) {
+      receivers.push(this === socket);
+    });
+    const marker = nextEvent(socket, 'marker');
+
+    serverSocket.emit('message', 'hello');
+    serverSocket.emit('marker');
+    await marker;
+
+    expect(receivers).toEqual([true, true]);
+  });
 });

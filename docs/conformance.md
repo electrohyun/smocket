@@ -417,6 +417,7 @@ What `volatile` delivers in steady state, and the one window where it drops.
 - [empty listenersAny lookups are fresh and cannot install listeners on either side](../src/on-any.test.ts#L332)
 - [offAny on untouched sockets keeps empty lookups fresh and inert](../src/on-any.test.ts#L366)
 - [offAny detaches the old arrays and installs stable empty replacements](../src/on-any.test.ts#L401)
+- [incoming catch-all callbacks receive their owning socket on both sides](../src/on-any.test.ts#L430)
 
 ### Outgoing catch-all listeners
 
@@ -443,6 +444,7 @@ What `volatile` delivers in steady state, and the one window where it drops.
 - [empty listenersAnyOutgoing lookups are fresh and cannot install listeners on either side](../src/on-any-outgoing.test.ts#L292)
 - [offAnyOutgoing on untouched sockets keeps empty lookups fresh and inert](../src/on-any-outgoing.test.ts#L313)
 - [offAnyOutgoing detaches the old arrays and installs stable empty replacements](../src/on-any-outgoing.test.ts#L335)
+- [outgoing catch-all callbacks receive their owning socket on both sides](../src/on-any-outgoing.test.ts#L361)
 
 ### Reserved event names
 
@@ -827,6 +829,7 @@ stale-generation suppression, and bridge errors.
 - [shared-worker client facade drops a server acknowledgement after local connection state ends](../test/shared-worker/client.test.ts#L576)
 - [shared-worker client facade reports admission failure once and uses current auth on an explicit retry](../test/shared-worker/client.test.ts#L604)
 - [shared-worker client facade disconnects once on pagehide and releases page lifecycle ownership](../test/shared-worker/client.test.ts#L627)
+- [shared-worker client facade incoming catch-all callbacks receive the owning page socket](../test/shared-worker/client.test.ts#L686)
 
 ### SharedWorker lobby application handlers
 

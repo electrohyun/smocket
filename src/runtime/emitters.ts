@@ -223,7 +223,7 @@ export class Emitter {
     const last = args.at(-1);
     const outgoing = typeof last === 'function' ? args.slice(0, -1) : args;
     for (const any of [...this.anyOutgoingListeners]) {
-      (any as (...a: unknown[]) => void)(event, ...outgoing);
+      any.apply(this, [event, ...outgoing]);
     }
   }
 
@@ -255,7 +255,7 @@ export class Emitter {
   protected dispatchCatchAll(event: string, args: unknown[]): void {
     if (this.anyListeners?.length && !RESERVED_EVENTS.has(event)) {
       for (const any of [...this.anyListeners]) {
-        (any as (...a: unknown[]) => void)(event, ...args);
+        any.apply(this, [event, ...args]);
       }
     }
   }
