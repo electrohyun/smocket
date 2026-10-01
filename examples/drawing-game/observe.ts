@@ -24,7 +24,7 @@ console.log(
     {
       schemaVersion: 1,
       targets: {
-        'socket.io@4.8.3': socketIoObservation,
+        'socket.io@4.8.4': socketIoObservation,
         'smocket@workspace': smocketObservation,
       },
       deeplyEqual: true,

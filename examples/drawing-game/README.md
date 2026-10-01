@@ -39,8 +39,8 @@ pnpm example:drawing-game:dev:real
 ```
 
 Follow the same A/B/C actions. The target badge reads `REAL · SOCKET.IO`. Vite's
-Node HTTP server now also hosts a real `socket.io@4.8.3` server, and the pages
-connect with `socket.io-client@4.8.3`. The application handler, event types,
+Node HTTP server now also hosts a real `socket.io@4.8.4` server, and the pages
+connect with `socket.io-client@4.8.4`. The application handler, event types,
 state rules, React UI, and user actions do not change.
 
 ## Source map
