@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ServerSocketContract } from '../../src/contract';
 import { Server } from '../../src/mock-server';
 import { attachSharedWorker, type SharedWorkerHost } from '../../src/shared-worker';
@@ -769,4 +769,180 @@ describe('shared-worker host', () => {
     });
     await expect(serverDisconnected).resolves.toBe('client namespace disconnect');
   });
+
+  it.each(['BigInt', 'circular'])(
+    'reports %s encoding failures and reserved packets before a later acknowledgement marker',
+    async (kind) => {
+      const { bridge, io, url } = setup();
+      const received: unknown[] = [];
+      io.on('connection', (socket) => {
+        socket.on('save', (value: unknown) => received.push(value));
+        socket.on('marker', (ack: (values: unknown[]) => void) => ack(received));
+      });
+      bridge.post(connectMessage('request:1', url));
+      const connected = await bridge.next();
+      if (connected.type !== SHARED_WORKER_MESSAGE_TYPES.connected) {
+        throw new Error('the host did not connect');
+      }
+      const circular: { self?: unknown } = {};
+      circular.self = circular;
+      bridge.post(
+        clientEvent(
+          connected.generation,
+          'save',
+          [kind === 'BigInt' ? 1n : circular],
+          'failed-ack',
+        ),
+      );
+      expect(await bridge.next()).toMatchObject({
+        type: SHARED_WORKER_MESSAGE_TYPES.bridgeError,
+        error: expect.any(String),
+      });
+      bridge.post(clientEvent(connected.generation, 'disconnect', []));
+      expect(await bridge.next()).toMatchObject({
+        type: SHARED_WORKER_MESSAGE_TYPES.bridgeError,
+        error: '"disconnect" is a reserved event name',
+      });
+      bridge.post(clientEvent(connected.generation, 'marker', [], 'client:marker'));
+      expect(await bridge.next()).toMatchObject({
+        type: SHARED_WORKER_MESSAGE_TYPES.acknowledgement,
+        ackId: 'client:marker',
+        args: [[]],
+      });
+    },
+  );
+
+  it('lets an application outgoing listener exception escape without reporting a bridge error', async () => {
+    const url = `http://shared-worker-handler-${++nextOrigin}.test`;
+    const io = new Server(url);
+    servers.push(io);
+    const applicationError = new TypeError('application listener failed');
+    let retainedAcknowledgement: ((...args: unknown[]) => void) | undefined;
+    const listener = () => {
+      throw applicationError;
+    };
+    const client = io.connect();
+    client.onAnyOutgoing(listener);
+    const emit = client.emit.bind(client);
+    vi.spyOn(client, 'emit').mockImplementation((event, ...args) => {
+      if (event === 'save') retainedAcknowledgement = args.at(-1) as typeof retainedAcknowledgement;
+      return emit(event, ...args);
+    });
+    io.on('connection', (socket) =>
+      socket.on('marker', (ack: (value: string) => void) => ack('valid')),
+    );
+    const server = { connect: () => client };
+    let receive!: (event: MessageEvent<unknown>) => void;
+    let ready!: () => void;
+    const connected = new Promise<void>((resolve) => {
+      ready = resolve;
+    });
+    let markerDelivered!: () => void;
+    const marker = new Promise<void>((resolve) => {
+      markerDelivered = resolve;
+    });
+    const outbound: SharedWorkerHostMessage[] = [];
+    const port = {
+      addEventListener: (type: string, fn: typeof receive) => {
+        if (type === 'message') receive = fn;
+      },
+      removeEventListener: () => undefined,
+      start: () => undefined,
+      postMessage: (message: SharedWorkerHostMessage) => {
+        outbound.push(message);
+        if (message.type === SHARED_WORKER_MESSAGE_TYPES.connected) ready();
+        if (
+          message.type === SHARED_WORKER_MESSAGE_TYPES.acknowledgement &&
+          message.ackId === 'client:marker'
+        )
+          markerDelivered();
+      },
+    } as unknown as MessagePort;
+    const host = attachSharedWorker(server as never, port);
+    try {
+      receive(new MessageEvent('message', { data: connectMessage('request:1', url) }));
+      await connected;
+      expect(() =>
+        receive(
+          new MessageEvent('message', { data: clientEvent(1, 'save', ['valid'], 'client:failed') }),
+        ),
+      ).toThrow(applicationError);
+      expect(retainedAcknowledgement).toBeTypeOf('function');
+      retainedAcknowledgement?.('late');
+      client.offAnyOutgoing(listener);
+      receive(new MessageEvent('message', { data: clientEvent(1, 'marker', [], 'client:marker') }));
+      await marker;
+      expect(outbound).toEqual([
+        expect.objectContaining({ type: SHARED_WORKER_MESSAGE_TYPES.connected }),
+        expect.objectContaining({
+          type: SHARED_WORKER_MESSAGE_TYPES.acknowledgement,
+          ackId: 'client:marker',
+          args: ['valid'],
+        }),
+      ]);
+    } finally {
+      host.close();
+    }
+  });
+
+  it('reports an invalid acknowledgement payload and keeps the server acknowledgement usable', async () => {
+    const { bridge, io, url } = setup();
+    const answers: unknown[] = [];
+    io.on('connection', (socket) => {
+      socket.emit('question', (answer: unknown) => answers.push(answer));
+      socket.on('marker', (ack: (values: unknown[]) => void) => ack(answers));
+    });
+    bridge.post(connectMessage('request:1', url));
+    const connected = await bridge.next();
+    const question = await bridge.next();
+    if (
+      connected.type !== SHARED_WORKER_MESSAGE_TYPES.connected ||
+      question.type !== SHARED_WORKER_MESSAGE_TYPES.serverEvent ||
+      !question.ackId
+    ) {
+      throw new Error('the host did not forward the question');
+    }
+    const acknowledgement = {
+      version: SHARED_WORKER_PROTOCOL_VERSION,
+      type: SHARED_WORKER_MESSAGE_TYPES.acknowledgement,
+      direction: 'server',
+      generation: connected.generation,
+      ackId: question.ackId,
+      args: [1n],
+    } as const;
+    bridge.postUnknown(acknowledgement);
+    expect(await bridge.next()).toMatchObject({ type: SHARED_WORKER_MESSAGE_TYPES.bridgeError });
+    bridge.postUnknown({ ...acknowledgement, args: ['valid answer'] });
+    bridge.post(clientEvent(connected.generation, 'marker', [], 'client:marker'));
+    expect(await bridge.next()).toMatchObject({
+      type: SHARED_WORKER_MESSAGE_TYPES.acknowledgement,
+      ackId: 'client:marker',
+      args: [['valid answer']],
+    });
+  });
+});
+
+it('rejects reserved event packet names at both SharedWorker boundaries', () => {
+  for (const event of [
+    'connect',
+    'connect_error',
+    'disconnect',
+    'disconnecting',
+    'newListener',
+    'removeListener',
+    'bridge_error',
+  ]) {
+    expect(() => readSharedWorkerPageMessage(clientEvent(1, event, []))).toThrow(
+      `"${event}" is a reserved event name`,
+    );
+    expect(() =>
+      readSharedWorkerHostMessage({
+        version: SHARED_WORKER_PROTOCOL_VERSION,
+        type: SHARED_WORKER_MESSAGE_TYPES.serverEvent,
+        generation: 1,
+        event,
+        args: [],
+      }),
+    ).toThrow(`"${event}" is a reserved event name`);
+  }
 });

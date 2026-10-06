@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ServerSocketContract } from '../../src/contract';
 import { Server } from '../../src/mock-server';
 import {
@@ -84,6 +84,48 @@ function nextEvent(socket: SharedWorkerSocket, event: string): Promise<unknown[]
 afterEach(async () => {
   for (const harness of harnesses.splice(0)) harness.close();
   await Promise.all(servers.splice(0).map((server) => server.close()));
+});
+
+it('reports JSON encoding failures and releases failed client acknowledgements before a later marker', async () => {
+  const { harness, socket } = setup((io) =>
+    io.on('connection', (serverSocket) => {
+      serverSocket.on('marker', (ack: (value: string) => void) => ack('still connected'));
+    }),
+  );
+  await nextEvent(socket, 'connect');
+  const errors: string[] = [];
+  const failedCallback = vi.fn();
+  socket.on('bridge_error', (error: Error) => errors.push(error.message));
+  socket.emit('save', 1n, failedCallback);
+  harness.injectHostMessage({
+    version: SHARED_WORKER_PROTOCOL_VERSION,
+    type: SHARED_WORKER_MESSAGE_TYPES.acknowledgement,
+    direction: 'client',
+    generation: 1,
+    ackId: 'client:1:1',
+    args: ['late answer to a failed send'],
+  });
+  const circular: { self?: unknown } = {};
+  circular.self = circular;
+  const applicationError = new TypeError('bridge error listener failed');
+  const throwingListener = () => {
+    throw applicationError;
+  };
+  socket.on('bridge_error', throwingListener);
+  expect(() => socket.emit('save', circular, failedCallback)).toThrow(applicationError);
+  socket.off('bridge_error', throwingListener);
+  harness.injectHostMessage({
+    version: SHARED_WORKER_PROTOCOL_VERSION,
+    type: SHARED_WORKER_MESSAGE_TYPES.acknowledgement,
+    direction: 'client',
+    generation: 1,
+    ackId: 'client:1:2',
+    args: ['late answer after an application error'],
+  });
+  await expect(socket.emitWithAck('marker')).resolves.toBe('still connected');
+  expect(errors).toHaveLength(2);
+  expect(failedCallback).not.toHaveBeenCalled();
+  expect(socket.connected).toBe(true);
 });
 
 describe('shared-worker client facade', () => {

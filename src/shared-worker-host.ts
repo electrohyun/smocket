@@ -253,9 +253,11 @@ export function attachSharedWorker<
   ): void => {
     const args = [...message.args];
     const ackId = message.ackId;
+    let failedAcknowledgement: SharedWorkerConnectionReference | undefined;
     if (ackId) {
       let answered = false;
       const reference: SharedWorkerConnectionReference = { state };
+      failedAcknowledgement = reference;
       state.pendingClientAcknowledgements.add(reference);
       args.push((...acknowledgementArgs: unknown[]) => {
         if (answered) return;
@@ -267,7 +269,17 @@ export function attachSharedWorker<
         acknowledgeClientEvent(current, ackId, acknowledgementArgs);
       });
     }
-    state.socket.emit(message.event, ...args);
+    let emitted = false;
+    try {
+      state.socket.emit(message.event, ...args);
+      emitted = true;
+    } finally {
+      // Application exceptions still escape, but a failed send must release its ack.
+      if (!emitted && failedAcknowledgement) {
+        failedAcknowledgement.state = undefined;
+        state.pendingClientAcknowledgements.delete(failedAcknowledgement);
+      }
+    }
   };
 
   const handleMessage = (value: unknown): void => {

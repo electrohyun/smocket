@@ -202,6 +202,26 @@ try {
     emitWithAck(pageC, 'join', ROOM),
   ]);
 
+  const packetErrors = await pageA.evaluate(async (room) => {
+    const probe = globalThis.sharedWorkerLifecycleProbe;
+    const circular = {};
+    circular.self = circular;
+    for (const [event, args] of [
+      ['invalid-payload', [1n]],
+      ['invalid-payload', [circular]],
+      ['disconnect', []],
+    ]) {
+      probe.postPacket({ version: 1, type: 'CLIENT_EVENT', generation: 1, event, args });
+    }
+    // This later acknowledgement proves the port processed all invalid packets.
+    await probe.emitWithAck('inspect', room);
+    return probe.events('bridge_error');
+  }, ROOM);
+  assert.equal(packetErrors.length, 3);
+  assert.ok(packetErrors.every(([message]) => typeof message === 'string' && message.length > 0));
+  assert.equal(packetErrors[2][0], '"disconnect" is a reserved event name');
+  assert.equal((await lifecycleState(pageA)).connected, true);
+
   const orderedMarker = waitForEvent(pageB, 'marker', 'after-order');
   await emit(pageA, 'ordered', 1);
   await emit(pageA, 'ordered', 2);

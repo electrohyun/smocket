@@ -22,6 +22,7 @@ export interface SharedWorkerLifecycleProbe {
   emit(event: string, ...args: unknown[]): void;
   emitPending(event: string, ...args: unknown[]): void;
   emitWithAck(event: string, ...args: unknown[]): Promise<unknown>;
+  postPacket(message: unknown): void;
   events(event: string): EventArguments[];
   waitFor(event: string, expected?: unknown): Promise<EventArguments>;
   connect(): void;
@@ -131,6 +132,9 @@ window.sharedWorkerLifecycleProbe = {
   },
   emitWithAck(event, ...args) {
     return socket.emitWithAck(event, ...args);
+  },
+  postPacket(message) {
+    worker.port.postMessage(message);
   },
   events(event) {
     return observed.get(event) ?? [];

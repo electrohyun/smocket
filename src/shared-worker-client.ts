@@ -14,6 +14,7 @@ import {
   SHARED_WORKER_MESSAGE_TYPES,
   SHARED_WORKER_PROTOCOL_VERSION,
   readSharedWorkerHostMessage,
+  readSharedWorkerPageMessage,
   type SharedWorkerClientEventMessage,
   type SharedWorkerConnectMessage,
   type SharedWorkerDisconnectMessage,
@@ -363,7 +364,13 @@ class SharedWorkerSocketImplementation<
       args: emission.args,
       ...(ackId ? { ackId } : {}),
     };
-    if (!this.post(message) && ackId) this.pendingClientAcknowledgements.delete(ackId);
+    let posted = false;
+    try {
+      posted = this.post(message);
+    } finally {
+      // Release the reference even when an application's bridge_error listener throws.
+      if (!posted && ackId) this.pendingClientAcknowledgements.delete(ackId);
+    }
   }
 
   private flushOutgoing(): void {
@@ -490,6 +497,12 @@ class SharedWorkerSocketImplementation<
   }
 
   private post(message: SharedWorkerPageMessage): boolean {
+    try {
+      readSharedWorkerPageMessage(message);
+    } catch (error) {
+      this.dispatchBridgeError(errorValue(error));
+      return false;
+    }
     try {
       this.port.postMessage(message);
       return true;
