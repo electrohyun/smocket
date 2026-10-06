@@ -515,3 +515,44 @@ it('client removeAllListeners with no event clears every ordinary listener', asy
 
   expect(received).toEqual([]);
 });
+
+it.each(['once', 'prependOnceListener'] as const)(
+  'retained %s wrappers fire once on Namespace, ParentNamespace, and server Socket',
+  async (method) => {
+    const { serverSocket } = await ctx.connectClient();
+    const receivers = [ctx.io.of('/retained-once'), ctx.io.of(/^\/retained-child$/), serverSocket];
+    for (const receiver of receivers) {
+      const seen: string[] = [];
+      const owners: boolean[] = [];
+      receiver[method]('retained', function (this: unknown, value: string) {
+        seen.push(value);
+        owners.push(this === receiver);
+      });
+      const [wrapper] = receiver.rawListeners('retained');
+      wrapper?.('first');
+      wrapper?.('second');
+
+      expect(seen).toEqual(['first']);
+      expect(owners).toEqual([true]);
+      expect(receiver.rawListeners('retained')).toEqual([]);
+    }
+  },
+);
+
+it.each(['once', 'prependOnceListener'] as const)(
+  '%s fires once when an earlier listener invokes its retained wrapper',
+  async (method) => {
+    const { client, serverSocket } = await ctx.connectClient();
+    const seen: string[] = [];
+    serverSocket[method]('reentrant', (value: string) => seen.push(value));
+    const [wrapper] = serverSocket.rawListeners('reentrant');
+    serverSocket.prependListener('reentrant', () => wrapper?.('inner'));
+    const marker = new Promise<void>((resolve) => serverSocket.once('marker', resolve));
+
+    client.emit('reentrant', 'outer');
+    client.emit('marker');
+    await marker;
+
+    expect(seen).toEqual(['inner']);
+  },
+);

@@ -612,6 +612,10 @@ max-listener state.
 - [server Socket meta-events collide before add and after once removal](../src/inherited-emitter.test.ts#L453)
 - [client source and declaration aliases share component-emitter identity](../src/inherited-emitter.test.ts#L473)
 - [client removeAllListeners with no event clears every ordinary listener](../src/inherited-emitter.test.ts#L502)
+- [retained once wrappers fire once on Namespace, ParentNamespace, and server Socket](../src/inherited-emitter.test.ts#L519)
+- [retained prependOnceListener wrappers fire once on Namespace, ParentNamespace, and server Socket](../src/inherited-emitter.test.ts#L519)
+- [once fires once when an earlier listener invokes its retained wrapper](../src/inherited-emitter.test.ts#L542)
+- [prependOnceListener fires once when an earlier listener invokes its retained wrapper](../src/inherited-emitter.test.ts#L542)
 
 ## smocket only
 

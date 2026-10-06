@@ -153,8 +153,11 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
   /** Node-compatible wrapper shape for `listeners()` and `rawListeners()`. */
   override once(event: OrdinaryEventName, listener: Listener): this {
     assertNodeListener(listener);
+    let fired = false;
     const wrapper = ((...args: never[]) => {
+      if (fired) return;
       this.removeListener(event, wrapper);
+      fired = true;
       listener.apply(this, args);
     }) as Listener;
     (wrapper as { listener?: Listener }).listener = listener;
@@ -169,8 +172,11 @@ export class ServerSocket extends Emitter implements ServerSocketContract {
 
   prependOnceListener(event: OrdinaryEventName, listener: Listener): this {
     assertNodeListener(listener);
+    let fired = false;
     const wrapper = ((...args: never[]) => {
+      if (fired) return;
       this.removeListener(event, wrapper);
+      fired = true;
       listener.apply(this, args);
     }) as Listener;
     (wrapper as { listener?: Listener }).listener = listener;
