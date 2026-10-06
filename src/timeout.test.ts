@@ -316,3 +316,75 @@ it('a callback-less timeout emit still delivers and arms no timer', async () => 
   client.timeout(20).emit('plain', 'hello');
   await expect(delivered).resolves.toBe('hello');
 });
+
+async function openFailedClient() {
+  await ctx.io.close();
+  // Install before opening: the real Manager captures its timer functions at construction.
+  vi.useFakeTimers();
+  const client = ctx.openMissingServerClient();
+  await expect(receive(client, 'connect_error')).resolves.toBeInstanceOf(Error);
+  return client;
+}
+
+it.each(['ordinary', 'volatile'])(
+  'times out %s callback acknowledgements after connection failure',
+  async (mode) => {
+    try {
+      const client = await openFailedClient();
+      const callback = vi.fn();
+      const timers = vi.getTimerCount();
+      const emitter = mode === 'volatile' ? client.volatile : client;
+
+      expect(emitter.timeout(30).emit('unanswered', callback)).toBe(client);
+      expect(vi.getTimerCount()).toBe(timers + 1);
+      await vi.advanceTimersByTimeAsync(30);
+
+      expect(callback).toHaveBeenCalledExactlyOnceWith(new Error('operation has timed out'));
+      await vi.advanceTimersByTimeAsync(30);
+      expect(callback).toHaveBeenCalledOnce();
+      expect(client.disconnected).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  },
+);
+
+it.each(['ordinary', 'volatile'])(
+  'rejects %s promise acknowledgements on timeout after connection failure',
+  async (mode) => {
+    try {
+      const client = await openFailedClient();
+      const settled = vi.fn();
+      const timers = vi.getTimerCount();
+      const emitter = mode === 'volatile' ? client.volatile : client;
+      const outcome = emitter.timeout(30).emitWithAck('unanswered').then(settled, settled);
+
+      expect(vi.getTimerCount()).toBe(timers + 1);
+      await vi.advanceTimersByTimeAsync(30);
+      await outcome;
+      expect(settled).toHaveBeenCalledExactlyOnceWith(new Error('operation has timed out'));
+      await vi.advanceTimersByTimeAsync(30);
+      expect(settled).toHaveBeenCalledOnce();
+    } finally {
+      vi.useRealTimers();
+    }
+  },
+);
+
+it('consumes a callback-less timeout after connection failure without timing out later acks', async () => {
+  try {
+    const client = await openFailedClient();
+    const settled = vi.fn();
+    const timers = vi.getTimerCount();
+
+    client.timeout(30).emit('plain', 'payload');
+    client.emit('untimed-callback', settled);
+    void client.emitWithAck('untimed-promise').then(settled, settled);
+
+    expect(vi.getTimerCount()).toBe(timers);
+    await vi.advanceTimersByTimeAsync(30);
+    expect(settled).not.toHaveBeenCalled();
+  } finally {
+    vi.useRealTimers();
+  }
+});

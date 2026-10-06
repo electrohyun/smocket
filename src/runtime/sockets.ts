@@ -15,7 +15,6 @@ import {
   asRooms,
   assertNotReservedEvent,
   defer,
-  emitWithAck,
   type EncodedPayload,
   scheduleDelivery,
   send,
@@ -943,18 +942,21 @@ export class FailedClientSocket extends ClientEmitter implements ClientSocketCon
     });
   }
 
-  emit(event: string, ..._args: unknown[]): this {
+  emit(event: string, ...args: unknown[]): this {
     assertNotReservedEvent(event);
+    const { timeout } = this.flags;
     this.flags = {};
+    withAckTimeout(args, timeout);
     return this;
   }
   send(...args: unknown[]): this {
     return this.emit('message', ...args);
   }
   emitWithAck(event: string, ...args: unknown[]): Promise<unknown> {
-    this.flags = {};
-    // No invented rejection: an unanswered ack remains pending.
-    return emitWithAck(undefined, event, args, Function.prototype as () => void);
+    return new Promise((_resolve, reject) => {
+      // An absent server cannot acknowledge. emit arms only an explicit timeout.
+      this.emit(event, ...args, reject);
+    });
   }
   timeout(ms: number): this {
     this.flags.timeout = ms;

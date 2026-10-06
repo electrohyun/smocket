@@ -1,7 +1,7 @@
 import { afterEach, beforeEach } from 'vitest';
 import type { ClientSocketContract, FixtureConnectOptions, ServerContext } from './contract';
 import { makeConnectClients } from './connect-clients';
-import { Server } from './mock-server';
+import { connect, Server } from './mock-server';
 
 /** Build the `mock` half of the shared dual-run `ServerContext`. */
 export function setupMockServer(): ServerContext {
@@ -46,6 +46,12 @@ export function setupMockServer(): ServerContext {
   // Keep this path registration-free so admission tests own namespace creation.
   ctx.openUnregisteredClient = (namespace: string) => {
     const client = server.connect(namespace);
+    clients.push(client);
+    return client;
+  };
+
+  ctx.openMissingServerClient = () => {
+    const client = connect('http://localhost');
     clients.push(client);
     return client;
   };
