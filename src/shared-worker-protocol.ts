@@ -1,3 +1,5 @@
+import { assertNotReservedEvent, encodePayload } from './runtime/delivery';
+
 export const SHARED_WORKER_PROTOCOL_VERSION = 1 as const;
 
 export const SHARED_WORKER_MESSAGE_TYPES = Object.freeze({
@@ -140,6 +142,9 @@ function requireArgs(message: Record<string, unknown>): void {
   if (!Array.isArray(message.args)) {
     throw new TypeError(`${String(message.type)}.args must be an array`);
   }
+  // Structured clone accepts BigInt and cycles, but these still cross the JSON
+  // packet boundary under ADR 0026. Validate before allocating bridge ack references.
+  encodePayload(message.args);
 }
 
 function requireConnection(message: Record<string, unknown>): void {
@@ -176,6 +181,10 @@ export function readSharedWorkerBridgeMessage(value: unknown): SharedWorkerBridg
     case SHARED_WORKER_MESSAGE_TYPES.serverEvent:
       requireGeneration(value);
       requireNonEmptyString(value, 'event');
+      assertNotReservedEvent(value.event as string);
+      if (value.event === 'bridge_error') {
+        throw new Error('"bridge_error" is a reserved event name');
+      }
       requireArgs(value);
       if (value.ackId !== undefined) requireNonEmptyString(value, 'ackId');
       break;
