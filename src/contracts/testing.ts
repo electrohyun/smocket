@@ -49,6 +49,8 @@ export interface ServerContext<
    * namespace and invalidate an unregistered-admission test before the client starts.
    */
   openUnregisteredClient: (namespace: string) => ClientSocketContract<EmitEvents, ListenEvents>;
+  /** Open a client after closing `io`, so tests can await a missing-server `connect_error`. */
+  openMissingServerClient: () => ClientSocketContract<EmitEvents, ListenEvents>;
   /**
    * Connect `count` clients and return them paired with their server-side
    * sockets, in connection order. Sugar over `connectClient` for the recurring

@@ -135,6 +135,16 @@ export function setupRealServer(): ServerContext {
     return asClientContract(client);
   };
 
+  ctx.openMissingServerClient = () => {
+    const client = io(`http://${REAL_ORACLE_HOST}:${port}`, {
+      transports: ['websocket'],
+      reconnection: false,
+      forceNew: true,
+    });
+    clients.push(client);
+    return asClientContract(client);
+  };
+
   ctx.connectClients = makeConnectClients(ctx);
 
   ctx.disconnectPendingClient = async (clientContract, serverSocketContract) => {

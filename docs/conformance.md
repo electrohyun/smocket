@@ -272,6 +272,11 @@ JSON results, snapshot timing, invalid data, and reference isolation.
 - [server timeout().emitWithAck resolves and rejects with the same one-shot decoration](../src/timeout.test.ts#L256)
 - [times out volatile server emits in either modifier order without delivering them](../src/timeout.test.ts#L269)
 - [a callback-less timeout emit still delivers and arms no timer](../src/timeout.test.ts#L311)
+- [times out ordinary callback acknowledgements after connection failure](../src/timeout.test.ts#L329)
+- [times out volatile callback acknowledgements after connection failure](../src/timeout.test.ts#L329)
+- [rejects ordinary promise acknowledgements on timeout after connection failure](../src/timeout.test.ts#L352)
+- [rejects volatile promise acknowledgements on timeout after connection failure](../src/timeout.test.ts#L352)
+- [consumes a callback-less timeout after connection failure without timing out later acks](../src/timeout.test.ts#L374)
 
 ### Broadcast acknowledgements
 
