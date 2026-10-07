@@ -1,12 +1,12 @@
 # Conformance report
 
-> **TL;DR** Every behaviour on this page was measured against a real socket.io server
-> and then against smocket, from one test file. The list is generated from that run and
-> is written only when both targets pass, so a case is here because it was compared
-> rather than because someone claimed it.
+> **TL;DR** Delivery cases are measured against real socket.io and smocket from one
+> test file. The list is generated only when both test projects succeed. Native smocket
+> cases and repository tooling checks are listed separately without a Socket.IO claim.
 
 > [!IMPORTANT]
-> This report records the cases that run against both targets. It is not a percentage
+> The delivery and native API sections record cases that run against both targets.
+> Repository tooling checks run once in the mock project. This report is not a percentage
 > of Socket.IO's complete API and does not make a 100% compatibility claim.
 
 ## The dual run
@@ -855,6 +855,24 @@ duplicate-label identity, readiness, start, and disconnect.
 
 - [the documented lobby handlers preserve identity and lifecycle across both targets](../examples/shared-worker-lobby/src/application.test.ts#L12)
 - [normalizes a blank label and rejects readiness after departure](../examples/shared-worker-lobby/src/application.test.ts#L58)
+
+## Repository tooling
+
+These checks run once in the mock project. They verify repository tooling, not Socket.IO
+delivery or the native smocket API.
+
+### Conformance report failure handling
+
+Rejecting unsuccessful test processes and aggregate reports before generating or
+certifying the case list.
+
+- [reads a report only from a successful test process](../scripts/conformance-report.test.ts#L37)
+- [rejects a failed mock process even when its JSON report says cases passed](../scripts/conformance-report.test.ts#L42)
+- [rejects a signalled real process even when its JSON report says cases passed](../scripts/conformance-report.test.ts#L49)
+- [rejects aggregate failure even when individual cases passed and the process exits zero](../scripts/conformance-report.test.ts#L60)
+- [preserves spawn errors before trying to read a report](../scripts/conformance-report.test.ts#L70)
+- [fails the write command without changing the report after a test process fails](../scripts/conformance-report.test.ts#L77)
+- [fails the check command without changing the report after a test process fails](../scripts/conformance-report.test.ts#L77)
 
 <!-- conformance:generated end -->
 

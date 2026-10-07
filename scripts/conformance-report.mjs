@@ -1,12 +1,13 @@
 // Generate the case list in `docs/conformance.md` from an actual dual run.
 //
-// The report's claim is that every behaviour it names was measured against a real
+// The delivery report's claim is that each behaviour was measured against a real
 // socket.io server and then against the mock. A hand-written list cannot carry that
 // claim for long: it drifts the moment a case is added, renamed, or deleted, and a
 // reader has no way to tell a stale line from a current one. So the list is derived
 // from the run itself, and the run has to be green before anything is written. A case
-// appears here only because it passed on both targets, which is why the generated
-// section has no result column: an unverified case is absent rather than marked.
+// in the delivery sections appears only because it passed on both targets, which is
+// why there is no result column: an unverified case is absent rather than marked.
+// Repository tooling checks run once in the mock project and are listed separately.
 //
 // `--check` regenerates and compares instead of writing, which is what CI runs. Only
 // the region between the markers is generated; the prose around it is written by hand
@@ -19,7 +20,7 @@
 import { spawnSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as prettier from 'prettier';
 import { declaredTarget } from './check-public-surface.mjs';
@@ -35,10 +36,11 @@ const END = '<!-- conformance:generated end -->';
  * meets the library rather than alphabetically: connect, join a room, broadcast, then
  * the narrower surface, with disconnect last.
  *
- * Which of the two groups an area lands in is not declared here. It is read off the
+ * Which delivery group an area lands in is not declared here. It is read off the
  * test file's own imports (see `hasOracle`), so an area cannot be filed under "verified
  * against socket.io" by editing this table. A `src/*.test.ts` file missing from here
- * fails the run rather than being quietly dropped from the report.
+ * fails the run rather than being quietly dropped from the report. Tooling entries
+ * are marked explicitly because they run only in the mock project.
  */
 const AREAS = [
   {
@@ -302,10 +304,17 @@ const AREAS = [
     blurb:
       'Node and component-emitter aliases, listener order, wrappers, removal, delegation, and max-listener state.',
   },
+  {
+    file: 'scripts/conformance-report.test.ts',
+    title: 'Conformance report failure handling',
+    blurb:
+      'Rejecting unsuccessful test processes and aggregate reports before generating or certifying the case list.',
+    tooling: true,
+  },
 ];
 
 /** Run one vitest project and return its JSON report. */
-function runProject(project, outDir) {
+export function runProject(project, outDir) {
   const outputFile = join(outDir, `${project}.json`);
   const result = spawnSync(
     process.execPath,
@@ -322,7 +331,17 @@ function runProject(project, outDir) {
     { cwd: root, stdio: 'inherit' },
   );
   if (result.error) throw result.error;
-  return JSON.parse(readFileSync(outputFile, 'utf8'));
+  if (result.signal) {
+    throw new Error(`${project} test process terminated by ${result.signal}`);
+  }
+  if (result.status !== 0) {
+    throw new Error(`${project} test process exited with status ${result.status}`);
+  }
+  const report = JSON.parse(readFileSync(outputFile, 'utf8'));
+  if (report.success !== true) {
+    throw new Error(`${project} test report did not report success`);
+  }
+  return report;
 }
 
 /** Absolute path from the reporter, as a repo-relative posix path. */
@@ -392,6 +411,20 @@ function collect(area, real, mock) {
   return cases;
 }
 
+/** Tooling checks run once, without claiming a real Socket.IO comparison. */
+function collectTooling(area, mock) {
+  const assertions = mock.get(area.file);
+  if (!assertions) throw new Error(`${area.file} did not run on the mock target.`);
+  const cases = [];
+  for (const [name, assertion] of assertions) {
+    if (assertion.status !== 'passed') {
+      throw new Error(`"${name}" (${area.file}) is ${assertion.status} on the mock target.`);
+    }
+    cases.push({ name, line: assertion.location?.line });
+  }
+  return cases.sort((a, b) => (a.line ?? 0) - (b.line ?? 0));
+}
+
 /**
  * Wrap a paragraph the way the hand-written prose around it is wrapped. Prettier leaves
  * markdown prose alone (`proseWrap` defaults to preserve), so without this the generated
@@ -437,7 +470,12 @@ function generate(real, mock) {
 
   const verified = [];
   const smocketOnly = [];
+  const tooling = [];
   for (const area of AREAS) {
+    if (area.tooling) {
+      tooling.push(section(area, collectTooling(area, mock)));
+      continue;
+    }
     const cases = collect(area, real, mock);
     (hasOracle(area.file) ? verified : smocketOnly).push(section(area, cases));
   }
@@ -474,6 +512,14 @@ function generate(real, mock) {
     ),
     '',
     ...smocketOnly,
+    '## Repository tooling',
+    '',
+    wrap(
+      'These checks run once in the mock project. They verify repository tooling, ' +
+        'not Socket.IO delivery or the native smocket API.',
+    ),
+    '',
+    ...tooling,
   ].join('\n');
 }
 
@@ -521,4 +567,6 @@ async function main() {
   console.log('Wrote docs/conformance.md.');
 }
 
-await main();
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  await main();
+}
