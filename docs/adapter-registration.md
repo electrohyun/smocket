@@ -56,8 +56,10 @@ the namespace roster still contains the socket. Ordinary `socket.leave(socket.id
 call it. This is a smocket extension hook, not Socket.IO's `delAll` or lifecycle events.
 
 `DelayingAdapter` uses the hook to drain every queued server-to-client delivery in FIFO
-order and release the sid's delay state. Scheduled callbacks for that detached queue become
-inert. A fresh sid after reconnect starts without the old delay.
+order and release the sid's delay state. After draining, it cancels the default delivery
+timer. Injected `DeliveryTimer` implementations may supply `cancel(fn)` to release a
+scheduled callback. Without that optional method, callbacks for the detached queue become
+inert when they run. A fresh sid after reconnect starts without the old delay.
 
 ## Final routing traces
 

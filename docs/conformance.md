@@ -754,8 +754,10 @@ Holding a socket's client-inbound stream so a race can be interleaved on purpose
 - [ignores a non-finite delay rather than storing NaN or Infinity](../src/delay-adapter.test.ts#L178)
 - [keeps delay state when the socket leaves only its id room](../src/delay-adapter.test.ts#L194)
 - [drains a queued stream during close without duplicating scheduled callbacks](../src/delay-adapter.test.ts#L212)
-- [drains the remaining queue when the scheduled head triggers teardown](../src/delay-adapter.test.ts#L260)
-- [does not carry an old sid delay into a reconnect](../src/delay-adapter.test.ts#L281)
+- [drains the remaining queue when the scheduled head triggers teardown](../src/delay-adapter.test.ts#L263)
+- [does not carry an old sid delay into a reconnect](../src/delay-adapter.test.ts#L284)
+- [cancels only the removed socket timer after draining its queued delivery](../src/delay-adapter.test.ts#L308)
+- [releases the default timer when draining a queued delivery throws](../src/delay-adapter.test.ts#L341)
 
 ### Native broadcast Promise policy
 
