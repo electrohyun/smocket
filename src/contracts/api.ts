@@ -556,6 +556,8 @@ export type AdapterFactory<
 export interface DeliveryTimer {
   /** Run `fn` `ms` from now. */
   schedule(fn: () => void, ms: number): void;
+  /** Cancel a scheduled callback, when supported. Removal still drains its queued delivery. */
+  cancel?(fn: () => void): void;
   /** The current time in ms; used to keep a socket's queue ordered across delay changes. */
   now(): number;
 }

@@ -241,9 +241,11 @@ it('drains a queued stream during close without duplicating scheduled callbacks'
   await flush();
   expect(received).toEqual([]);
   expect(outgoing).toEqual(['callback', 'promise', 'silent', 'tail']);
+  expect(vi.getTimerCount()).toBe(2);
 
   await io.close();
   expect(received).toEqual(['callback', 'promise', 'silent', 'tail']);
+  expect(vi.getTimerCount()).toBe(1);
   await expect(callback).resolves.toEqual(['callback-answer']);
   await expect(promised).resolves.toBe('promise-answer');
 
@@ -251,6 +253,7 @@ it('drains a queued stream during close without duplicating scheduled callbacks'
   const timeoutResult = await timed;
   expect(timeoutResult).toHaveLength(1);
   expect(timeoutResult[0]).toMatchObject({ message: 'operation has timed out' });
+  expect(vi.getTimerCount()).toBe(0);
 
   await vi.advanceTimersByTimeAsync(50);
   expect(received).toEqual(['callback', 'promise', 'silent', 'tail']);
@@ -300,4 +303,50 @@ it('does not carry an old sid delay into a reconnect', async () => {
   reconnected.emit('ev', 'fresh');
   await flush();
   expect(seen).toEqual(['old', 'fresh']);
+});
+
+it('cancels only the removed socket timer after draining its queued delivery', () => {
+  const pending = new Set<() => void>();
+  const order: string[] = [];
+  const timer = {
+    now: () => 0,
+    schedule: (fn: () => void) => pending.add(fn),
+    cancel: (fn: () => void) => {
+      order.push('cancel');
+      pending.delete(fn);
+    },
+  };
+  const adapter = new DelayingAdapter(timer);
+  adapter.setDelay('removed', 20);
+  adapter.setDelay('retained', 20);
+  adapter.scheduleDelivery('removed', () => order.push('first'));
+  adapter.scheduleDelivery('removed', () => order.push('second'));
+  adapter.scheduleDelivery('retained', () => order.push('retained'));
+  const [removed, retained] = pending;
+  if (!removed || !retained) throw new Error('both sockets must have a scheduled timer');
+
+  adapter.removeSocket('removed');
+  expect(order).toEqual(['first', 'second', 'cancel']);
+  expect([...pending]).toEqual([retained]);
+
+  // Even a callback already queued by the host cannot redeliver the detached stream.
+  removed();
+  pending.delete(retained);
+  retained();
+  expect(order).toEqual(['first', 'second', 'cancel', 'retained']);
+  adapter.removeSocket('removed');
+  expect(order).toEqual(['first', 'second', 'cancel', 'retained']);
+});
+
+it('releases the default timer when draining a queued delivery throws', () => {
+  const adapter = new DelayingAdapter();
+  const error = new Error('application delivery failed');
+  adapter.setDelay('socket', 60_000);
+  adapter.scheduleDelivery('socket', () => {
+    throw error;
+  });
+  expect(vi.getTimerCount()).toBe(1);
+
+  expect(() => adapter.removeSocket('socket')).toThrow(error);
+  expect(vi.getTimerCount()).toBe(0);
 });

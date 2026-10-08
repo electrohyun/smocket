@@ -43,9 +43,21 @@ export class Adapter implements SmocketAdapter {
   }
 }
 
+const scheduledTimers = new WeakMap<() => void, ReturnType<typeof setTimeout>>();
+
 const realTimer: DeliveryTimer = {
   schedule: (fn, ms) => {
-    setTimeout(fn, ms);
+    const timer = setTimeout(() => {
+      scheduledTimers.delete(fn);
+      fn();
+    }, ms);
+    scheduledTimers.set(fn, timer);
+  },
+  cancel: (fn) => {
+    const timer = scheduledTimers.get(fn);
+    if (timer === undefined) return;
+    scheduledTimers.delete(fn);
+    clearTimeout(timer);
   },
   now: () => Date.now(),
 };
@@ -59,6 +71,7 @@ export class DelayingAdapter extends Adapter {
   private readonly delays = new Map<string, number>();
   /** Only each queue head is scheduled, making order independent of timer callback ordering. */
   private readonly queues = new Map<string, Array<{ deliver: () => void; fireAt: number }>>();
+  private readonly scheduled = new Map<string, () => void>();
 
   constructor(private readonly timer: DeliveryTimer = realTimer) {
     super();
@@ -93,6 +106,7 @@ export class DelayingAdapter extends Adapter {
     }
     const run = () => {
       if (this.queues.get(sid) !== queue) return;
+      this.scheduled.delete(sid);
       queue.shift();
       head.deliver();
       if (this.queues.get(sid) !== queue) return;
@@ -100,7 +114,10 @@ export class DelayingAdapter extends Adapter {
     };
     const wait = head.fireAt - this.timer.now();
     if (wait <= 0) defer(run);
-    else this.timer.schedule(run, wait);
+    else {
+      this.scheduled.set(sid, run);
+      this.timer.schedule(run, wait);
+    }
   }
 
   /** Drain pending deliveries in order, then release all scheduler state for this socket. */
@@ -109,7 +126,13 @@ export class DelayingAdapter extends Adapter {
     const queue = this.queues.get(sid);
     if (!queue) return;
     this.queues.delete(sid);
-    for (const entry of queue) entry.deliver();
+    const scheduled = this.scheduled.get(sid);
+    this.scheduled.delete(sid);
+    try {
+      for (const entry of queue) entry.deliver();
+    } finally {
+      if (scheduled) this.timer.cancel?.(scheduled);
+    }
   }
 }
 

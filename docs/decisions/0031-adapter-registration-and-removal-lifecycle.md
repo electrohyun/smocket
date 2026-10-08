@@ -33,8 +33,10 @@ disconnect events. Client, server, Manager-wide, and server-close teardown share
 Calling `socket.leave(socket.id)` is only a room leave and does not signal removal.
 `DelayingAdapter` therefore retains that sid's delay. On actual removal it deletes the
 delay, detaches the queue, and delivers every queued item synchronously in FIFO order.
-The already-scheduled head later sees that detached queue and does nothing. A reconnect
-uses a fresh sid and cannot inherit the removed scheduler state.
+After draining, the default timer is cancelled. An injected timer may implement the
+optional `DeliveryTimer.cancel(fn)` hook to release its scheduled head too. Without it,
+the head later sees the detached queue and does nothing. A reconnect uses a fresh sid
+and cannot inherit the removed scheduler state.
 
 This is a narrow follow-up to 0025, not a superseding record. Built-in compatibility
 observation remains limited to `rooms`. The shipped smocket interface still makes `sids`,
