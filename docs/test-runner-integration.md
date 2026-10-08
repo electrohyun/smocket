@@ -202,15 +202,23 @@ test('and is gone by the next test, because the server is a new one', () => {
 The second test is the assertion that matters. `afterEach` closed the server that held the
 room, and `beforeEach` supplied a new server with a new adapter, so the lookup finds nothing.
 
-One thing this does not reset. An acknowledgement timeout armed by a previous test,
-through `socket.timeout(ms)` or `io.timeout(ms)`, holds its own reference and still fires
-on schedule, which can be during a later test. Closing the server disconnects its sockets
-and removes its registry entry but does not disarm what it already scheduled. A suite that
-arms ack timeouts should let them settle before the test ends, either by awaiting the
-acknowledgement or by driving the timer with fake timers. `io.close()` does not disarm an
-already-armed timeout: real socket.io leaves that timer running too, so smocket keeps the
-same lifecycle rather than making `close()` a timer-reset API. See
+An acknowledgement timeout armed on a server Socket with `serverSocket.timeout(ms)`, or
+on a broadcast with `io.timeout(ms)`, keeps running after server close. It can expire during
+a later test, so let it settle before the test ends, either by awaiting the acknowledgement
+or by driving the timer with fake timers. `io.close()` does not reset these timers, matching
+real socket.io. See
 [decision 0020](./decisions/0020-close-follows-socket-lifecycle.md).
+
+For a client packet already sent, connection teardown rejects a pending `emitWithAck`
+promise and calls a timed acknowledgement callback with `socket has been disconnected`.
+It also clears that client's armed timer, so expiry cannot call it again. Untimed client
+callbacks stay pending. See
+[decision 0012](./decisions/0012-reject-inflight-acks-on-disconnect.md).
+
+A client packet buffered before connection has not been sent. Its timed acknowledgement
+keeps waiting for a later connection or its timeout. If the timeout expires first, the
+packet is removed from the buffer. Settle these buffered operations before ending a test
+too, since closing the server does not reset their timers.
 
 ## Driving a connection directly
 
