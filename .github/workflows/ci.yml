@@ -106,7 +106,7 @@ jobs:
       - name: Install the clean-adoption npm runner
         run: npm install --global "npm@$CLEAN_ADOPTION_NPM_VERSION"
       - name: Download the verified release candidate
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           name: release-candidate-${{ github.event.pull_request.head.sha || github.sha }}
           path: .release-candidate
@@ -252,7 +252,7 @@ jobs:
         run: pnpm install --frozen-lockfile
       - if: steps.versions.outputs.changed == 'true'
         name: Download the synchronized release candidate
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           name: release-candidate-${{ github.event.pull_request.head.sha || github.sha }}
           path: .release-candidate
