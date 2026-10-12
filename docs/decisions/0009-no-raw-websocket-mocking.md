@@ -1,6 +1,10 @@
 # 0009. smocket does not mock raw WebSocket
 
-**Status:** Accepted · 2026-07-28 · #66
+**Status:** Superseded by [0044](./0044-ws-api-without-transport.md) · 2026-10-09 · #66, #555
+**Originally accepted:** 2026-07-28 · #66
+
+The original rationale below is retained. Decision 0044 permits selected ws
+application APIs while keeping transport interception outside smocket's scope.
 
 > **TL;DR** smocket does not mock the raw WebSocket transport. Raw WebSocket
 > interception is MSW's lane; smocket's lane is socket.io delivery semantics, the

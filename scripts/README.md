@@ -38,6 +38,10 @@
 
 ## Script tests and direct execution
 
+`pnpm check:ws-types` checks the source ws contract and compile-only examples with
+and without Node types. It runs as part of `pnpm typecheck`; it does not build or
+validate a published `smocket/ws` entry point.
+
 Files named `scripts/*.test.ts` are collected only by the mock Vitest project because
 they test repository tooling rather than Socket.IO behavior. `check-public-surface.test.mjs`
 is run by its package command, while website `.test.mjs` files use the Node test runner
