@@ -118,7 +118,9 @@
     "check:public-surface": "node scripts/check-public-surface.mjs --check && node --test scripts/check-public-surface.test.mjs scripts/check-public-surface-issues.test.mjs",
     "check:public-surface-issues": "node scripts/check-public-surface-issues.mjs",
     "check:published-types": "node scripts/check-published-types.mjs",
-    "check:ws-types": "node scripts/check-ws-types.mjs"
+    "check:ws-types": "node scripts/check-ws-types.mjs",
+    "check:ws-package": "node scripts/check-ws-package.mjs",
+    "check:ws-package:fixture": "node scripts/check-ws-package.mjs --fixture"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.5",
