@@ -39,7 +39,7 @@ export default defineConfig({
           name: 'mock',
           // Tooling tests do not read SMOCKET_TARGET. Run them once instead of
           // starting the same npm subprocess fixtures in both projects.
-          include: [...targetFiles, ...toolingFiles],
+          include: [...targetFiles, ...toolingFiles, 'test/ws/isolation.test.ts'],
           env: { SMOCKET_TARGET: 'mock' },
         },
       },

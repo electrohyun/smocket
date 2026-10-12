@@ -1,32 +1,55 @@
 import { afterEach } from 'vitest';
 import RealWebSocket, { WebSocketServer as RealWebSocketServer } from 'ws';
-import type { AddressInfo } from '../../src/ws/contracts';
+import type { AddressInfo, RequestHeaders } from '../../src/ws/contracts';
 import * as mock from '../../src/ws/runtime';
 
-export type Socket = Pick<RealWebSocket, 'on' | 'once' | 'send' | 'close' | 'readyState'> & {
+interface Emitter<Events extends { [Event in keyof Events]: unknown[] }> {
+  on<Event extends keyof Events>(event: Event, listener: (...args: Events[Event]) => void): this;
+  once<Event extends keyof Events>(event: Event, listener: (...args: Events[Event]) => void): this;
+}
+interface SocketEvents {
+  open: [];
+  message: [data: Buffer, isBinary: boolean];
+  close: [code: number, reason: Buffer];
+  error: [error: Error];
+}
+export interface Socket extends Emitter<SocketEvents> {
+  readonly readyState: number;
   readonly url: string | undefined;
-};
-export type Server = Pick<RealWebSocketServer, 'on' | 'once' | 'close' | 'address'>;
-type ManagedSocket = Socket & Pick<RealWebSocket, 'terminate'>;
+  send(text: string): void;
+  close(code?: number, reason?: string | Buffer): void;
+  terminate(): void;
+}
+interface ServerEvents {
+  connection: [socket: Socket, request: { url?: string; method?: string; headers: RequestHeaders }];
+  listening: [];
+  close: [];
+  error: [error: Error];
+}
+export interface Server extends Emitter<ServerEvents> {
+  address(): AddressInfo | string | null;
+  close(callback?: (error?: Error) => void): void;
+}
 interface BasicConstructors {
-  WebSocket: new (url: string | URL) => ManagedSocket;
+  WebSocket: new (url: string | URL) => Socket;
   WebSocketServer: new (
     options: { port: number; host?: string; path?: string },
     callback?: (this: { address(): AddressInfo | null }) => void,
   ) => Server;
 }
-// Projection is limited to methods exercised here, not the complete ws contract.
-const constructors = (process.env.SMOCKET_TARGET === 'mock'
-  ? mock
-  : {
-      WebSocket: RealWebSocket,
-      WebSocketServer: RealWebSocketServer,
-    }) as unknown as BasicConstructors;
+// Both implementations must structurally satisfy the exercised subset, without a cast.
+const constructors: BasicConstructors =
+  process.env.SMOCKET_TARGET === 'mock'
+    ? mock
+    : {
+        WebSocket: RealWebSocket,
+        WebSocketServer: RealWebSocketServer,
+      };
 
 /** Both targets exercise this subset; public constructor binding belongs to #562. */
 export function setupWs() {
   const servers: Server[] = [];
-  const sockets = new Set<ManagedSocket>();
+  const sockets = new Set<Socket>();
 
   afterEach(async () => {
     for (const socket of sockets) {

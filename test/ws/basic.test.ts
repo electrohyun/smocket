@@ -63,18 +63,19 @@ it('delivers text as Buffer with isBinary=false in both directions, including an
   });
   const client = ctx.createClient(`ws://127.0.0.1:${port}`);
   const messages: string[] = [];
+  client.once('open', () => messages.push('open'));
   const reply = new Promise<void>((resolve) =>
     client.on('message', (data, isBinary) => {
       expect(Buffer.isBuffer(data)).toBe(true);
       expect(isBinary).toBe(false);
       messages.push(data.toString());
-      if (messages.length === 2) resolve();
+      if (messages.length === 3) resolve();
     }),
   );
   await opened(client);
   client.send('안녕');
   await reply;
-  expect(messages).toEqual(['greeting', 'reply:안녕']);
+  expect(messages).toEqual(['open', 'greeting', 'reply:안녕']);
 });
 
 it.each([

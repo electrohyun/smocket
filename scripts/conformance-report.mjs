@@ -50,6 +50,13 @@ const AREAS = [
       'Server registration, request basics, text Buffer delivery, normal close, and address reuse.',
   },
   {
+    file: 'test/ws/isolation.test.ts',
+    title: 'Virtual ws registration and isolation',
+    blurb:
+      'Network-free delivery, independent Socket.IO state, virtual host registration, local aliases, and path selection. These mock-specific rules are not real-network equivalence claims.',
+    mockOnly: true,
+  },
+  {
     file: 'src/connection.test.ts',
     title: 'Connection and identity',
     blurb: 'Pairing a client with its server socket, the id both sides see, and the first emit.',

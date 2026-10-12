@@ -641,12 +641,12 @@ reuse.
 - [assigns a port and exposes address() through a separate constructor callback receiver](../test/ws/basic.test.ts#L9)
 - [connects asynchronously and supplies request basics and socket-side URLs](../test/ws/basic.test.ts#L25)
 - [delivers text as Buffer with isBinary=false in both directions, including an immediate server greeting](../test/ws/basic.test.ts#L52)
-- [closes both ends normally from client with code undefined and a Buffer reason](../test/ws/basic.test.ts#L85)
-- [closes both ends normally from client with code 1000 and a Buffer reason](../test/ws/basic.test.ts#L85)
-- [closes both ends normally from server with code undefined and a Buffer reason](../test/ws/basic.test.ts#L85)
-- [closes both ends normally from server with code 1000 and a Buffer reason](../test/ws/basic.test.ts#L85)
-- [releases a server registration so the same address can be used again](../test/ws/basic.test.ts#L109)
-- [normalizes HTTP URLs and rejects invalid URLs synchronously](../test/ws/basic.test.ts#L125)
+- [closes both ends normally from client with code undefined and a Buffer reason](../test/ws/basic.test.ts#L86)
+- [closes both ends normally from client with code 1000 and a Buffer reason](../test/ws/basic.test.ts#L86)
+- [closes both ends normally from server with code undefined and a Buffer reason](../test/ws/basic.test.ts#L86)
+- [closes both ends normally from server with code 1000 and a Buffer reason](../test/ws/basic.test.ts#L86)
+- [releases a server registration so the same address can be used again](../test/ws/basic.test.ts#L110)
+- [normalizes HTTP URLs and rejects invalid URLs synchronously](../test/ws/basic.test.ts#L126)
 
 ## smocket only
 
@@ -655,6 +655,20 @@ These have no oracle to compare against: they cover the API smocket adds
 §B](./differences.md#b-what-smocket-adds-that-socketio-has-no-equivalent-for)) and the
 internals behind it. Native Socket.IO-mock cases run under both projects; virtual ws
 rules run only in the mock project. They establish no real-library equivalence.
+
+### Virtual ws registration and isolation
+
+Network-free delivery, independent Socket.IO state, virtual host registration, local
+aliases, and path selection. These mock-specific rules are not real-network equivalence
+claims.
+
+- [exchanges messages without creating an HTTP server or opening a TCP connection](../test/ws/isolation.test.ts#L39)
+- [matches local aliases for localhost without changing the client URL](../test/ws/isolation.test.ts#L57)
+- [matches local aliases for LOCALHOST without changing the client URL](../test/ws/isolation.test.ts#L57)
+- [matches local aliases for 0:0:0:0:0:0:0:1 without changing the client URL](../test/ws/isolation.test.ts#L57)
+- [keeps ws registrations alive when a Socket.IO server at the same address closes](../test/ws/isolation.test.ts#L70)
+- [keeps registrations with the same port on different hosts separate](../test/ws/isolation.test.ts#L82)
+- [does not connect a wrong-path client and still accepts a later matching client](../test/ws/isolation.test.ts#L100)
 
 ### Native acknowledgement teardown race
 
