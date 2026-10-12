@@ -84,7 +84,7 @@
     "check:shared-worker-dist": "node scripts/check-shared-worker-dist-gate.mjs",
     "smoke": "node scripts/smoke.mjs",
     "coverage": "vitest run --project=mock --coverage",
-    "typecheck": "tsup && tsc --noEmit && tsc -p tsconfig.published-types.json && pnpm --filter smocket-client typecheck && pnpm --filter smocket-client build && pnpm --filter drawing-game-example typecheck && pnpm --filter shared-worker-lobby-example typecheck && pnpm --filter @smocket/docs typecheck",
+    "typecheck": "tsup && tsc --noEmit && tsc -p tsconfig.published-types.json && pnpm check:ws-types && pnpm --filter smocket-client typecheck && pnpm --filter smocket-client build && pnpm --filter drawing-game-example typecheck && pnpm --filter shared-worker-lobby-example typecheck && pnpm --filter @smocket/docs typecheck",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -117,7 +117,8 @@
     "public-surface": "node scripts/check-public-surface.mjs --write",
     "check:public-surface": "node scripts/check-public-surface.mjs --check && node --test scripts/check-public-surface.test.mjs scripts/check-public-surface-issues.test.mjs",
     "check:public-surface-issues": "node scripts/check-public-surface-issues.mjs",
-    "check:published-types": "node scripts/check-published-types.mjs"
+    "check:published-types": "node scripts/check-published-types.mjs",
+    "check:ws-types": "node scripts/check-ws-types.mjs"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.5",
