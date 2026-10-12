@@ -28,10 +28,12 @@ server.on('connection', (socket, request) => {
 });
 ```
 
-CommonJS receives the constructor directly with `const WebSocket = require('smocket/ws')`,
-then obtains `WebSocketServer` from that constructor. No environment factory or Buffer
-injection is required. These are target imports, not evidence of an available runtime entry.
-The support decision and exclusions live in [0044](./decisions/0044-ws-api-without-transport.md).
+CommonJS uses `const WebSocket = require('smocket/ws').default` and
+`const { WebSocketServer } = require('smocket/ws')`, as decided in
+[0045](./decisions/0045-ws-commonjs-uses-default-export.md). No environment factory or
+Buffer injection is required. These are target imports, not evidence of an available
+runtime entry. The support decision and exclusions live in
+[0044](./decisions/0044-ws-api-without-transport.md).
 
 ## Type contract
 

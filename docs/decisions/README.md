@@ -56,3 +56,4 @@ these are written.
 | [0042](./0042-automerge-only-stable-renovate-patches.md)                | Automerge only stable development-tool patches after the extended gate                  | Accepted           | #511                 |
 | [0043](./0043-follow-one-declared-socketio-target.md)                   | Follow one declared Socket.IO target per release                                        | Accepted           | #519                 |
 | [0044](./0044-ws-api-without-transport.md)                              | Support selected ws application APIs without transport                                  | Accepted           | #553, #555           |
+| [0045](./0045-ws-commonjs-uses-default-export.md)                       | Use the default export for ws CommonJS consumers                                        | Accepted           | #562                 |
