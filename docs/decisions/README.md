@@ -20,7 +20,7 @@ these are written.
 | [0006](./0006-handshake-fields.md)                                      | The handshake carries only fields a mock has a source for                               | Accepted           | #65                  |
 | [0007](./0007-no-unchecked-indexed-access.md)                           | `noUncheckedIndexedAccess` guards the delivery-layer map lookups                        | Accepted           | #66                  |
 | [0008](./0008-adapter-api-before-v1.md)                                 | The adapter registration API lands before v1.0.0                                        | Accepted           | #66                  |
-| [0009](./0009-no-raw-websocket-mocking.md)                              | smocket does not mock raw WebSocket; that is MSW's lane                                 | Accepted           | #66                  |
+| [0009](./0009-no-raw-websocket-mocking.md)                              | smocket does not mock raw WebSocket; that is MSW's lane                                 | Superseded by 0044 | #66, #555            |
 | [0010](./0010-single-defer-primitive-and-fifo.md)                       | One `defer` primitive keeps per-socket delivery FIFO                                    | Accepted           | #40, #41, #67        |
 | [0011](./0011-socket-id-format.md)                                      | Socket ids match socket.io's shape, not its source                                      | Accepted           | #67                  |
 | [0012](./0012-reject-inflight-acks-on-disconnect.md)                    | Timed client callbacks settle on disconnect; retained callbacks stay connection-owned   | Accepted           | #45, #67, #359, #360 |
@@ -55,3 +55,4 @@ these are written.
 | [0041](./0041-keep-node-20-suite-on-supported-vitest.md)                | Keep the Node 20 compatibility suite on a supported Vitest release                      | Accepted           | #494                 |
 | [0042](./0042-automerge-only-stable-renovate-patches.md)                | Automerge only stable development-tool patches after the extended gate                  | Accepted           | #511                 |
 | [0043](./0043-follow-one-declared-socketio-target.md)                   | Follow one declared Socket.IO target per release                                        | Accepted           | #519                 |
+| [0044](./0044-ws-api-without-transport.md)                              | Support selected ws application APIs without transport                                  | Accepted           | #553, #555           |

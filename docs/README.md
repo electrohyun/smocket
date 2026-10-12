@@ -48,6 +48,7 @@ From there, choose the path that matches the code you have:
 - [Development lenses](./development-lenses.md)
 - [Decisions index](./decisions/README.md)
 - [Public surface ledger](./public-surface.md)
+- [ws application contract](./ws-contract.md)
 - [Package policy](./package-policy.md)
 - [Release candidates](./release-candidates.md),
   [npm publication](./npm-publication.md), and
