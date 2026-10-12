@@ -44,6 +44,12 @@ const END = '<!-- conformance:generated end -->';
  */
 const AREAS = [
   {
+    file: 'test/ws/basic.test.ts',
+    title: 'Basic ws messaging',
+    blurb:
+      'Server registration, request basics, text Buffer delivery, normal close, and address reuse.',
+  },
+  {
     file: 'src/connection.test.ts',
     title: 'Connection and identity',
     blurb: 'Pairing a client with its server socket, the id both sides see, and the first emit.',
@@ -370,6 +376,10 @@ function hasOracle(file) {
   return readFileSync(join(root, file), 'utf8').includes("from './setup-server'");
 }
 
+function hasWsOracle(file) {
+  return readFileSync(join(root, file), 'utf8').includes("from './setup-ws'");
+}
+
 /**
  * Collect the cases of one area, insisting both targets ran the same ones. A case
  * present on one target only means the file branches on the target, which would make
@@ -383,6 +393,7 @@ function collect(area, real, mock) {
   }
 
   const names = new Set([...realCases.keys(), ...mockCases.keys()]);
+  const realTarget = hasWsOracle(area.file) ? 'real ws' : 'real socket.io';
   const cases = [];
   for (const name of names) {
     const onReal = realCases.get(name);
@@ -394,7 +405,7 @@ function collect(area, real, mock) {
       );
     }
     for (const [target, assertion] of [
-      ['real socket.io', onReal],
+      [realTarget, onReal],
       ['smocket', onMock],
     ]) {
       if (assertion.status !== 'passed') {
@@ -457,10 +468,10 @@ function section(area, cases) {
 
 function generate(real, mock) {
   const seen = new Set(AREAS.map((area) => area.file));
-  for (const file of real.keys()) {
+  for (const file of new Set([...real.keys(), ...mock.keys()])) {
     // Only `src/` is the library's own suite. `scripts/` holds unit tests for the
     // repository's tooling, which prove nothing about delivery.
-    if (file.startsWith('src/') && !seen.has(file)) {
+    if ((file.startsWith('src/') || file.startsWith('test/ws/')) && !seen.has(file)) {
       throw new Error(
         `${file} is not in the area table in scripts/conformance-report.mjs. ` +
           'Add it with a title and a one-line description so its cases are reported.',
@@ -469,6 +480,7 @@ function generate(real, mock) {
   }
 
   const verified = [];
+  const verifiedWs = [];
   const smocketOnly = [];
   const tooling = [];
   for (const area of AREAS) {
@@ -476,11 +488,18 @@ function generate(real, mock) {
       tooling.push(section(area, collectTooling(area, mock)));
       continue;
     }
+    if (area.mockOnly) {
+      smocketOnly.push(section(area, collectTooling(area, mock)));
+      continue;
+    }
     const cases = collect(area, real, mock);
-    (hasOracle(area.file) ? verified : smocketOnly).push(section(area, cases));
+    (hasWsOracle(area.file) ? verifiedWs : hasOracle(area.file) ? verified : smocketOnly).push(
+      section(area, cases),
+    );
   }
 
-  const target = declaredTarget(JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')));
+  const manifest = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
+  const target = declaredTarget(manifest);
   const references = [target.server, target.client].map(({ name, version }) => {
     const installed = JSON.parse(
       readFileSync(join(root, 'node_modules', name, 'package.json'), 'utf8'),
@@ -492,6 +511,12 @@ function generate(real, mock) {
     }
     return `${name} ${version}`;
   });
+  const installedWs = JSON.parse(readFileSync(join(root, 'node_modules/ws/package.json'), 'utf8'));
+  if (installedWs.version !== manifest.devDependencies.ws) {
+    throw new Error(
+      `ws resolved to ${installedWs.version}; expected ${manifest.devDependencies.ws}`,
+    );
+  }
 
   return [
     '## Verified against real socket.io',
@@ -502,13 +527,21 @@ function generate(real, mock) {
     ),
     '',
     ...verified,
+    '## Verified against real ws',
+    '',
+    wrap(
+      `These cases ran against ws ${installedWs.version} and the ws mock from the same test file and passed on both. ` +
+        'They cover the internal basic runtime; package entry points and the rest of the selected ws contract require their own checks.',
+    ),
+    '',
+    ...verifiedWs,
     '## smocket only',
     '',
     wrap(
       'These have no oracle to compare against: they cover the API smocket adds ' +
         '([differences.md §B](./differences.md#b-what-smocket-adds-that-socketio-has-no-equivalent-for)) ' +
-        'and the internals behind it, so they run the same under both targets. They are listed ' +
-        'apart because nothing about socket.io follows from them.',
+        'and the internals behind it. Native Socket.IO-mock cases run under both projects; ' +
+        'virtual ws rules run only in the mock project. They establish no real-library equivalence.',
     ),
     '',
     ...smocketOnly,

@@ -2,6 +2,7 @@ import { defineConfig } from 'vitest/config';
 
 const targetFiles = [
   'src/**/*.test.ts',
+  'test/ws/basic.test.ts',
   'test/shared-worker/**/*.test.ts',
   'examples/shared-worker-lobby/src/**/*.test.ts',
 ];

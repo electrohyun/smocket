@@ -1,21 +1,26 @@
 # Conformance report
 
-> **TL;DR** Delivery cases are measured against real socket.io and smocket from one
-> test file. The list is generated only when both test projects succeed. Native smocket
-> cases and repository tooling checks are listed separately without a Socket.IO claim.
+> **TL;DR** Delivery cases compare smocket with real socket.io or real ws from the
+> same test file, in separate report sections. The list is generated only when both
+> test projects succeed. Mock-specific rules and repository tooling are listed separately.
 
 > [!IMPORTANT]
-> The delivery and native API sections record cases that run against both targets.
-> Repository tooling checks run once in the mock project. This report is not a percentage
-> of Socket.IO's complete API and does not make a 100% compatibility claim.
+> The real-library sections record cases that run against both targets. Mock-specific
+> ws rules and repository tooling run only in the mock project. This report is not a
+> percentage of either library's complete API and does not claim complete compatibility.
 
 ## The dual run
 
-A test file here never imports a server directly. It calls `setupServer()` from
+Socket.IO comparison files call `setupServer()` from
 [`src/setup-server.ts`](../src/setup-server.ts), which resolves to a real socket.io
 server or to smocket depending on `SMOCKET_TARGET`, and the two targets are the two
 vitest projects `pnpm test:real` and `pnpm test:mock` run. The test body is the same
 either way.
+
+The ws comparison uses [`test/ws/setup-ws.ts`](../test/ws/setup-ws.ts) to select real
+ws or the internal ws runtime under the same two projects. Its Node-only fixtures
+live outside the browser suite; virtual host and network-isolation checks run only
+on the mock and are reported without a real-ws equivalence claim.
 
 The real target is the oracle, and the order matters. A case is written against it
 first, so what the case asserts is socket.io's behaviour and not the mock's. Running
@@ -622,13 +627,34 @@ max-listener state.
 - [once fires once when an earlier listener invokes its retained wrapper](../src/inherited-emitter.test.ts#L542)
 - [prependOnceListener fires once when an earlier listener invokes its retained wrapper](../src/inherited-emitter.test.ts#L542)
 
+## Verified against real ws
+
+These cases ran against ws 8.21.3 and the ws mock from the same test file and passed on
+both. They cover the internal basic runtime; package entry points and the rest of the
+selected ws contract require their own checks.
+
+### Basic ws messaging
+
+Server registration, request basics, text Buffer delivery, normal close, and address
+reuse.
+
+- [assigns a port and exposes address() through a separate constructor callback receiver](../test/ws/basic.test.ts#L9)
+- [connects asynchronously and supplies request basics and socket-side URLs](../test/ws/basic.test.ts#L25)
+- [delivers text as Buffer with isBinary=false in both directions, including an immediate server greeting](../test/ws/basic.test.ts#L52)
+- [closes both ends normally from client with code undefined and a Buffer reason](../test/ws/basic.test.ts#L85)
+- [closes both ends normally from client with code 1000 and a Buffer reason](../test/ws/basic.test.ts#L85)
+- [closes both ends normally from server with code undefined and a Buffer reason](../test/ws/basic.test.ts#L85)
+- [closes both ends normally from server with code 1000 and a Buffer reason](../test/ws/basic.test.ts#L85)
+- [releases a server registration so the same address can be used again](../test/ws/basic.test.ts#L109)
+- [normalizes HTTP URLs and rejects invalid URLs synchronously](../test/ws/basic.test.ts#L125)
+
 ## smocket only
 
 These have no oracle to compare against: they cover the API smocket adds
 ([differences.md
 §B](./differences.md#b-what-smocket-adds-that-socketio-has-no-equivalent-for)) and the
-internals behind it, so they run the same under both targets. They are listed apart
-because nothing about socket.io follows from them.
+internals behind it. Native Socket.IO-mock cases run under both projects; virtual ws
+rules run only in the mock project. They establish no real-library equivalence.
 
 ### Native acknowledgement teardown race
 
