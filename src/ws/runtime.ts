@@ -2,19 +2,16 @@ import { Buffer } from 'node:buffer';
 import type {
   AddressInfo,
   ConnectionRequest,
+  EventListenerOptions,
   ListeningCallback,
-  RawData,
   ServerOptions,
 } from './contracts';
 import { WsEmitter } from './emitter';
+import { WsEventTarget } from './event-target';
+import type { SocketEvents } from './event-target';
+import type { SocketEventHandler, SocketEventListener, SocketEventName } from './events';
 import { findServer, register, unregister } from './registry';
 
-interface SocketEvents {
-  open: [];
-  message: [data: RawData, isBinary: boolean];
-  error: [error: Error];
-  close: [code: number, reason: Buffer];
-}
 interface ServerEvents {
   connection: [socket: WebSocket, request: ConnectionRequest];
   listening: [];
@@ -53,6 +50,48 @@ export class WebSocket extends WsEmitter<SocketEvents> {
   private state: 0 | 1 | 2 | 3;
   private peer: WebSocket | undefined;
   private server: WebSocketServer | undefined;
+  private cleanClose = false;
+  private readonly eventTarget = new WsEventTarget(this, () => this.cleanClose);
+
+  get onopen(): SocketEventHandler<'open'> | null {
+    return this.eventTarget.get('open');
+  }
+  set onopen(handler: SocketEventHandler<'open'> | null) {
+    this.eventTarget.set('open', handler);
+  }
+  get onmessage(): SocketEventHandler<'message'> | null {
+    return this.eventTarget.get('message');
+  }
+  set onmessage(handler: SocketEventHandler<'message'> | null) {
+    this.eventTarget.set('message', handler);
+  }
+  get onerror(): SocketEventHandler<'error'> | null {
+    return this.eventTarget.get('error');
+  }
+  set onerror(handler: SocketEventHandler<'error'> | null) {
+    this.eventTarget.set('error', handler);
+  }
+  get onclose(): SocketEventHandler<'close'> | null {
+    return this.eventTarget.get('close');
+  }
+  set onclose(handler: SocketEventHandler<'close'> | null) {
+    this.eventTarget.set('close', handler);
+  }
+
+  addEventListener<Event extends SocketEventName>(
+    type: Event,
+    listener: SocketEventListener<Event>,
+    options?: EventListenerOptions,
+  ): void {
+    this.eventTarget.add(type, listener, options);
+  }
+
+  removeEventListener<Event extends SocketEventName>(
+    type: Event,
+    listener: SocketEventListener<Event>,
+  ): void {
+    this.eventTarget.remove(type, listener);
+  }
 
   // null creates an accepted socket internally, as real ws does after upgrade.
   constructor(address: string | URL | null) {
@@ -127,8 +166,8 @@ export class WebSocket extends WsEmitter<SocketEvents> {
     if (bytes.length > 123) throw new RangeError('The message must not be greater than 123 bytes');
     const peer = this.peer;
     queueMicrotask(() => {
-      this.finish(code ?? 1005, bytes);
-      peer?.finish(code ?? 1005, bytes);
+      this.finish(code ?? 1005, bytes, true);
+      peer?.finish(code ?? 1005, bytes, true);
     });
   }
 
@@ -160,15 +199,20 @@ export class WebSocket extends WsEmitter<SocketEvents> {
     });
   }
 
-  private finish(code: number, reason: Buffer): void {
+  private finish(code: number, reason: Buffer, clean = false): void {
     if (this.state === WebSocket.CLOSED) return;
     this.state = WebSocket.CLOSED;
+    this.cleanClose = clean;
     this.peer = undefined;
     const server = this.server;
     this.server = undefined;
     server?.remove(this);
     this.emit('close', code, Buffer.from(reason));
   }
+}
+
+for (const property of ['onopen', 'onerror', 'onclose', 'onmessage']) {
+  Object.defineProperty(WebSocket.prototype, property, { enumerable: true });
 }
 
 export class WebSocketServer extends WsEmitter<ServerEvents> {

@@ -44,6 +44,12 @@ const END = '<!-- conformance:generated end -->';
  */
 const AREAS = [
   {
+    file: 'test/ws/event-target.test.ts',
+    title: 'ws event properties and listeners',
+    blurb:
+      'Event objects, callback receivers, property replacement, duplicate listeners, once, and interaction with EventEmitter removal.',
+  },
+  {
     file: 'test/ws/emitter.test.ts',
     title: 'ws EventEmitter methods',
     blurb:

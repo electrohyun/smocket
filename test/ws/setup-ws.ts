@@ -55,13 +55,16 @@ interface BasicConstructors {
   ) => Server;
 }
 // Both implementations must structurally satisfy the exercised subset, without a cast.
-const constructors: BasicConstructors =
+const eventConstructors =
   process.env.SMOCKET_TARGET === 'mock'
     ? mock
     : {
         WebSocket: RealWebSocket,
         WebSocketServer: RealWebSocketServer,
       };
+const constructors: BasicConstructors = eventConstructors;
+// Unify EventEmitter overloads while retaining both actual event-property APIs.
+export type EventSocket = Omit<RealWebSocket | mock.WebSocket, keyof CustomEmitter> & CustomEmitter;
 
 /** Both targets exercise this subset; public constructor binding belongs to #562. */
 export function setupWs() {
@@ -83,6 +86,25 @@ export function setupWs() {
   });
 
   return {
+    async createEventPair(configure?: (client: EventSocket) => void) {
+      const server = new eventConstructors.WebSocketServer({ port: 0, host: '127.0.0.1' });
+      servers.push(server);
+      const connections: {
+        once(event: 'connection', listener: (socket: EventSocket) => void): unknown;
+      } = server;
+      const accepted = new Promise<EventSocket>((resolve) => {
+        connections.once('connection', (socket) => {
+          sockets.add(socket);
+          resolve(socket);
+        });
+      });
+      const address = await listening(server);
+      const client: EventSocket = new eventConstructors.WebSocket(`ws://127.0.0.1:${address.port}`);
+      sockets.add(client);
+      configure?.(client);
+      await opened(client);
+      return { client, socket: await accepted };
+    },
     createServer(
       options: { port: number; host?: string; path?: string },
       callback?: (this: { address(): AddressInfo | null }) => void,

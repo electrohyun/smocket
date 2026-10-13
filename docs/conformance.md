@@ -633,6 +633,39 @@ These cases ran against ws 8.21.3 and the ws mock from the same test file and pa
 both. They cover the internal basic runtime; package entry points and the rest of the
 selected ws contract require their own checks.
 
+### ws event properties and listeners
+
+Event objects, callback receivers, property replacement, duplicate listeners, once, and
+interaction with EventEmitter removal.
+
+- [client ws event listeners starts with null event properties and uses a fresh event object for each listener](../test/ws/event-target.test.ts#L28)
+- [accepted ws event listeners starts with null event properties and uses a fresh event object for each listener](../test/ws/event-target.test.ts#L28)
+- [client ws event listeners binds function callbacks to the socket and handleEvent callbacks to their object](../test/ws/event-target.test.ts#L48)
+- [accepted ws event listeners binds function callbacks to the socket and handleEvent callbacks to their object](../test/ws/event-target.test.ts#L48)
+- [client ws event listeners ignores duplicate listener registration and keeps the first once option](../test/ws/event-target.test.ts#L65)
+- [accepted ws event listeners ignores duplicate listener registration and keeps the first once option](../test/ws/event-target.test.ts#L65)
+- [client ws event listeners removes an event listener without removing an onmessage property or ordinary emitter callback](../test/ws/event-target.test.ts#L83)
+- [accepted ws event listeners removes an event listener without removing an onmessage property or ordinary emitter callback](../test/ws/event-target.test.ts#L83)
+- [client ws event listeners moves replaced event properties to the end of the listener order and clears them with null](../test/ws/event-target.test.ts#L96)
+- [accepted ws event listeners moves replaced event properties to the end of the listener order and clears them with null](../test/ws/event-target.test.ts#L96)
+- [client ws event listeners reflects EventEmitter removal in property getters and permits re-registration](../test/ws/event-target.test.ts#L113)
+- [accepted ws event listeners reflects EventEmitter removal in property getters and permits re-registration](../test/ws/event-target.test.ts#L113)
+- [client ws event listeners clears an event property when assigned a non-function value](../test/ws/event-target.test.ts#L126)
+- [accepted ws event listeners clears an event property when assigned a non-function value](../test/ws/event-target.test.ts#L126)
+- [client ws event listeners tracks object listeners by identity for duplicate registration and removal](../test/ws/event-target.test.ts#L143)
+- [accepted ws event listeners tracks object listeners by identity for duplicate registration and removal](../test/ws/event-target.test.ts#L143)
+- [client ws event listeners retains binary event data identity when the underlying emitter supplies bytes](../test/ws/event-target.test.ts#L164)
+- [accepted ws event listeners retains binary event data identity when the underlying emitter supplies bytes](../test/ws/event-target.test.ts#L164)
+- [client ws event listeners wraps an Error without changing its identity and treats onerror as an error listener](../test/ws/event-target.test.ts#L173)
+- [accepted ws event listeners wraps an Error without changing its identity and treats onerror as an error listener](../test/ws/event-target.test.ts#L173)
+- [client ws event listeners delivers normal close information as string reason and wasClean=true](../test/ws/event-target.test.ts#L187)
+- [accepted ws event listeners delivers normal close information as string reason and wasClean=true](../test/ws/event-target.test.ts#L187)
+- [client ws event listeners uses wasClean=false after abrupt termination](../test/ws/event-target.test.ts#L203)
+- [accepted ws event listeners uses wasClean=false after abrupt termination](../test/ws/event-target.test.ts#L203)
+- [client ws event listeners delivers real text through the event property while the emitter still receives bytes](../test/ws/event-target.test.ts#L212)
+- [accepted ws event listeners delivers real text through the event property while the emitter still receives bytes](../test/ws/event-target.test.ts#L212)
+- [dispatches an open event with the client as target and callback receiver](../test/ws/event-target.test.ts#L229)
+
 ### ws EventEmitter methods
 
 Registration, removal, dispatch, snapshots, raw once wrappers, and listener bookkeeping
