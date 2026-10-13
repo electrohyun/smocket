@@ -62,5 +62,5 @@ rejection of excluded options. The no-Node case uses types=[] and skipLibCheck=f
 This checks the source contract, not generated declarations, module exports, a packed
 package, runtime delivery, or all supported TypeScript versions.
 
-The [basic runtime review notes](./ws-runtime-review.md) describe the internal
-connection/text path, its separate real-ws tests, and the remaining validation limits.
+The [runtime review notes](./ws-runtime-review.md) describe the internal connection,
+text, and EventEmitter paths, their real-ws comparisons, and remaining validation limits.
