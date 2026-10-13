@@ -29,10 +29,13 @@ function clientUrl(address: string | URL): URL {
   if (url.protocol === 'http:') url.protocol = 'ws:';
   if (url.protocol === 'https:') url.protocol = 'wss:';
   if (!['ws:', 'wss:'].includes(url.protocol)) {
-    throw new SyntaxError('The URL protocol must be ws:, wss:, http:, or https:');
+    throw new SyntaxError(
+      'The URL\'s protocol must be one of "ws:", "wss:", "http:", "https:", or "ws+unix:"',
+    );
   }
   if (url.hash) throw new SyntaxError('The URL contains a fragment identifier');
-  return url;
+  // ws binds the request before later changes to a caller-supplied URL object.
+  return new URL(url.href);
 }
 
 /** Internal basic runtime, not yet bound to the complete public constructor contract. */
@@ -155,7 +158,7 @@ export class WebSocket extends WsEmitter<SocketEvents> {
     if (
       code !== undefined &&
       !(
-        Number.isInteger(code) &&
+        typeof code === 'number' &&
         ((code >= 1000 && code <= 1014 && ![1004, 1005, 1006].includes(code)) ||
           (code >= 3000 && code <= 4999))
       )
@@ -164,10 +167,12 @@ export class WebSocket extends WsEmitter<SocketEvents> {
     }
     const bytes = code === undefined ? Buffer.alloc(0) : Buffer.from(reason ?? '');
     if (bytes.length > 123) throw new RangeError('The message must not be greater than 123 bytes');
+    // ws accepts fractional numbers and truncates them when writing the close code.
+    const closeCode = code === undefined ? 1005 : Math.trunc(code);
     const peer = this.peer;
     queueMicrotask(() => {
-      this.finish(code ?? 1005, bytes, true);
-      peer?.finish(code ?? 1005, bytes, true);
+      this.finish(closeCode, bytes, true);
+      peer?.finish(closeCode, bytes, true);
     });
   }
 

@@ -44,6 +44,12 @@ const END = '<!-- conformance:generated end -->';
  */
 const AREAS = [
   {
+    file: 'test/ws/input-validation.test.ts',
+    title: 'ws URL and close input validation',
+    blurb:
+      'URL normalization and snapshots, synchronous URL errors, close code checks, UTF-8 reason limits, and validation order across socket states.',
+  },
+  {
     file: 'test/ws/event-target.test.ts',
     title: 'ws event properties and listeners',
     blurb:
