@@ -49,7 +49,10 @@ public contract or provide a production package entry.
 Binding must account for every selected method before [#562](https://github.com/electrohyun/smocket/issues/562)
 can validate the actual package.
 
-Full URL/close validation and event properties/listeners remain in
+The [event listener review notes](./ws-event-listeners-review.md) explain event
+properties, listener identity, event values, and their comparison limits.
+
+Full URL/close validation remains in
 [#538](https://github.com/electrohyun/smocket/issues/538). Public client tracking and
 broadcast belong to [#539](https://github.com/electrohyun/smocket/issues/539).
 The failure and abrupt-close paths support teardown, but their detailed ordering,

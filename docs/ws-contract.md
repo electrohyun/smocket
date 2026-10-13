@@ -63,4 +63,4 @@ This checks the source contract, not generated declarations, module exports, a p
 package, runtime delivery, or all supported TypeScript versions.
 
 The [runtime review notes](./ws-runtime-review.md) describe the internal connection,
-text, and EventEmitter paths, their real-ws comparisons, and remaining validation limits.
+text, EventEmitter, and event-listener paths, their real-ws comparisons, and remaining limits.
