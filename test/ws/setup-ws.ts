@@ -3,9 +3,26 @@ import RealWebSocket, { WebSocketServer as RealWebSocketServer } from 'ws';
 import type { AddressInfo, RequestHeaders } from '../../src/ws/contracts';
 import * as mock from '../../src/ws/runtime';
 
-interface Emitter<Events extends { [Event in keyof Events]: unknown[] }> {
+export type Listener = (...args: unknown[]) => void;
+export type RawListener = Listener & { listener?: Listener };
+export interface CustomEmitter {
+  on(event: string | symbol, listener: Listener): this;
+  once(event: string | symbol, listener: Listener): this;
+  addListener(event: string | symbol, listener: Listener): this;
+  removeListener(event: string | symbol, listener: Listener): this;
+  off(event: string | symbol, listener: Listener): this;
+  removeAllListeners(event?: string | symbol): this;
+  emit(event: string | symbol, ...args: unknown[]): boolean;
+  listeners(event: string | symbol): Listener[];
+  rawListeners(event: string | symbol): RawListener[];
+  listenerCount(event: string | symbol, listener?: Listener): number;
+  eventNames(): (string | symbol)[];
+}
+interface Emitter<Events extends { [Event in keyof Events]: unknown[] }> extends CustomEmitter {
   on<Event extends keyof Events>(event: Event, listener: (...args: Events[Event]) => void): this;
+  on(event: string | symbol, listener: Listener): this;
   once<Event extends keyof Events>(event: Event, listener: (...args: Events[Event]) => void): this;
+  once(event: string | symbol, listener: Listener): this;
 }
 interface SocketEvents {
   open: [];
@@ -61,6 +78,8 @@ export function setupWs() {
     await Promise.all(
       servers.map((server) => new Promise<void>((resolve) => server.close(() => resolve()))),
     );
+    servers.length = 0;
+    sockets.clear();
   });
 
   return {

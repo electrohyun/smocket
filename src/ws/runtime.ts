@@ -1,18 +1,25 @@
 import { Buffer } from 'node:buffer';
-import { NodeEmitter } from '../runtime/emitters';
-import type { AddressInfo, ConnectionRequest, ListeningCallback, ServerOptions } from './contracts';
+import type {
+  AddressInfo,
+  ConnectionRequest,
+  ListeningCallback,
+  RawData,
+  ServerOptions,
+} from './contracts';
+import { WsEmitter } from './emitter';
 import { findServer, register, unregister } from './registry';
 
-/** Ordinary listener bookkeeping is shared; ws owns all connection and delivery state. */
-class WsEmitter extends NodeEmitter {
-  emit(event: string | symbol, ...args: unknown[]): boolean {
-    const hasListeners = this.listenerCount(event) > 0;
-    if (!hasListeners && event === 'error') {
-      throw args[0] instanceof Error ? args[0] : new Error('Unhandled error event');
-    }
-    this.emitLocal(event, args);
-    return hasListeners;
-  }
+interface SocketEvents {
+  open: [];
+  message: [data: RawData, isBinary: boolean];
+  error: [error: Error];
+  close: [code: number, reason: Buffer];
+}
+interface ServerEvents {
+  connection: [socket: WebSocket, request: ConnectionRequest];
+  listening: [];
+  error: [error: Error];
+  close: [];
 }
 
 function clientUrl(address: string | URL): URL {
@@ -32,7 +39,7 @@ function clientUrl(address: string | URL): URL {
 }
 
 /** Internal basic runtime, not yet bound to the complete public constructor contract. */
-export class WebSocket extends WsEmitter {
+export class WebSocket extends WsEmitter<SocketEvents> {
   static readonly CONNECTING = 0;
   static readonly OPEN = 1;
   static readonly CLOSING = 2;
@@ -164,7 +171,7 @@ export class WebSocket extends WsEmitter {
   }
 }
 
-export class WebSocketServer extends WsEmitter {
+export class WebSocketServer extends WsEmitter<ServerEvents> {
   readonly host: string | undefined;
   readonly path: string | undefined;
   private info: AddressInfo | null;

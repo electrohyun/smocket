@@ -633,6 +633,54 @@ These cases ran against ws 8.21.3 and the ws mock from the same test file and pa
 both. They cover the internal basic runtime; package entry points and the rest of the
 selected ws contract require their own checks.
 
+### ws EventEmitter methods
+
+Registration, removal, dispatch, snapshots, raw once wrappers, and listener bookkeeping
+on the server and both socket sides.
+
+- [server EventEmitter returns its receiver from registration/removal and uses Node method aliases](../test/ws/emitter.test.ts#L22)
+- [client socket EventEmitter returns its receiver from registration/removal and uses Node method aliases](../test/ws/emitter.test.ts#L22)
+- [accepted socket EventEmitter returns its receiver from registration/removal and uses Node method aliases](../test/ws/emitter.test.ts#L22)
+- [server EventEmitter emits synchronously in registration order with duplicate listeners, arguments, and receiver](../test/ws/emitter.test.ts#L36)
+- [client socket EventEmitter emits synchronously in registration order with duplicate listeners, arguments, and receiver](../test/ws/emitter.test.ts#L36)
+- [accepted socket EventEmitter emits synchronously in registration order with duplicate listeners, arguments, and receiver](../test/ws/emitter.test.ts#L36)
+- [server EventEmitter removes the most recently registered matching listener and ignores missing listeners](../test/ws/emitter.test.ts#L53)
+- [client socket EventEmitter removes the most recently registered matching listener and ignores missing listeners](../test/ws/emitter.test.ts#L53)
+- [accepted socket EventEmitter removes the most recently registered matching listener and ignores missing listeners](../test/ws/emitter.test.ts#L53)
+- [server EventEmitter returns fresh listener snapshots and exposes once wrappers before and after emit](../test/ws/emitter.test.ts#L70)
+- [client socket EventEmitter returns fresh listener snapshots and exposes once wrappers before and after emit](../test/ws/emitter.test.ts#L70)
+- [accepted socket EventEmitter returns fresh listener snapshots and exposes once wrappers before and after emit](../test/ws/emitter.test.ts#L70)
+- [server EventEmitter runs a raw once wrapper only once and binds its owner even when called with a different receiver](../test/ws/emitter.test.ts#L92)
+- [client socket EventEmitter runs a raw once wrapper only once and binds its owner even when called with a different receiver](../test/ws/emitter.test.ts#L92)
+- [accepted socket EventEmitter runs a raw once wrapper only once and binds its owner even when called with a different receiver](../test/ws/emitter.test.ts#L92)
+- [server EventEmitter allows a raw wrapper listener to be called without consuming the once registration](../test/ws/emitter.test.ts#L109)
+- [client socket EventEmitter allows a raw wrapper listener to be called without consuming the once registration](../test/ws/emitter.test.ts#L109)
+- [accepted socket EventEmitter allows a raw wrapper listener to be called without consuming the once registration](../test/ws/emitter.test.ts#L109)
+- [server EventEmitter does not rerun a once listener when an earlier listener recursively emits the event](../test/ws/emitter.test.ts#L121)
+- [client socket EventEmitter does not rerun a once listener when an earlier listener recursively emits the event](../test/ws/emitter.test.ts#L121)
+- [accepted socket EventEmitter does not rerun a once listener when an earlier listener recursively emits the event](../test/ws/emitter.test.ts#L121)
+- [server EventEmitter takes a dispatch snapshot when listeners add or remove other listeners](../test/ws/emitter.test.ts#L137)
+- [client socket EventEmitter takes a dispatch snapshot when listeners add or remove other listeners](../test/ws/emitter.test.ts#L137)
+- [accepted socket EventEmitter takes a dispatch snapshot when listeners add or remove other listeners](../test/ws/emitter.test.ts#L137)
+- [server EventEmitter consumes a once registration before propagating its callback exception](../test/ws/emitter.test.ts#L154)
+- [client socket EventEmitter consumes a once registration before propagating its callback exception](../test/ws/emitter.test.ts#L154)
+- [accepted socket EventEmitter consumes a once registration before propagating its callback exception](../test/ws/emitter.test.ts#L154)
+- [server EventEmitter removes symbol listeners in reverse order while preserving other events](../test/ws/emitter.test.ts#L169)
+- [client socket EventEmitter removes symbol listeners in reverse order while preserving other events](../test/ws/emitter.test.ts#L169)
+- [accepted socket EventEmitter removes symbol listeners in reverse order while preserving other events](../test/ws/emitter.test.ts#L169)
+- [server EventEmitter orders integer event names before other strings and symbols and returns a snapshot](../test/ws/emitter.test.ts#L190)
+- [client socket EventEmitter orders integer event names before other strings and symbols and returns a snapshot](../test/ws/emitter.test.ts#L190)
+- [accepted socket EventEmitter orders integer event names before other strings and symbols and returns a snapshot](../test/ws/emitter.test.ts#L190)
+- [server EventEmitter distinguishes an omitted removeAllListeners argument from explicit undefined](../test/ws/emitter.test.ts#L210)
+- [client socket EventEmitter distinguishes an omitted removeAllListeners argument from explicit undefined](../test/ws/emitter.test.ts#L210)
+- [accepted socket EventEmitter distinguishes an omitted removeAllListeners argument from explicit undefined](../test/ws/emitter.test.ts#L210)
+- [server EventEmitter emits usable newListener/removeListener notifications with unwrapped once callbacks](../test/ws/emitter.test.ts#L224)
+- [client socket EventEmitter emits usable newListener/removeListener notifications with unwrapped once callbacks](../test/ws/emitter.test.ts#L224)
+- [accepted socket EventEmitter emits usable newListener/removeListener notifications with unwrapped once callbacks](../test/ws/emitter.test.ts#L224)
+- [server EventEmitter rethrows an unhandled Error object and delivers handled errors synchronously](../test/ws/emitter.test.ts#L243)
+- [client socket EventEmitter rethrows an unhandled Error object and delivers handled errors synchronously](../test/ws/emitter.test.ts#L243)
+- [accepted socket EventEmitter rethrows an unhandled Error object and delivers handled errors synchronously](../test/ws/emitter.test.ts#L243)
+
 ### Basic ws messaging
 
 Server registration, request basics, text Buffer delivery, normal close, and address

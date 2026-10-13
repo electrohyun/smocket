@@ -44,6 +44,12 @@ const END = '<!-- conformance:generated end -->';
  */
 const AREAS = [
   {
+    file: 'test/ws/emitter.test.ts',
+    title: 'ws EventEmitter methods',
+    blurb:
+      'Registration, removal, dispatch, snapshots, raw once wrappers, and listener bookkeeping on the server and both socket sides.',
+  },
+  {
     file: 'test/ws/basic.test.ts',
     title: 'Basic ws messaging',
     blurb:
