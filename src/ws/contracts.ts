@@ -173,9 +173,14 @@ type TracksClients<Options> = 'clientTracking' extends keyof Options
       : false
     : boolean
   : true;
-/** CommonJS returns this constructor object directly, without a .default lookup. */
-export interface WebSocketModule extends WebSocketConstructor {
-  readonly WebSocket: WebSocketModule;
+interface WebSocketExport extends WebSocketConstructor {
+  readonly WebSocket: WebSocketExport;
+  readonly WebSocketServer: WebSocketServerConstructor;
+}
+/** CommonJS exposes the constructor through default and the named WebSocket export. */
+export interface WebSocketModule {
+  readonly default: WebSocketExport;
+  readonly WebSocket: WebSocketExport;
   readonly WebSocketServer: WebSocketServerConstructor;
 }
 export type Server<Tracking extends boolean = true> = WebSocketServer<Tracking>;

@@ -18,7 +18,10 @@ declare const WebSocket: WebSocketConstructor;
 declare const WebSocketServer: WebSocketServerConstructor;
 declare const commonjs: WebSocketModule;
 
-new commonjs('ws://localhost:3000').send('direct constructor');
+new commonjs.default('ws://localhost:3000').send('default constructor');
+
+// @ts-expect-error The CommonJS module object is not itself a constructor.
+new commonjs('ws://localhost:3000');
 
 const { WebSocketServer: CjsServer, WebSocket: CjsClient } = commonjs;
 new CjsServer({ port: 0 });

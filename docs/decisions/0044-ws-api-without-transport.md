@@ -4,6 +4,7 @@
 **Governed by:** [0000](./0000-do-not-invent-what-has-no-source.md),
 [0019](./0019-what-counts-as-a-breaking-change.md)
 **Supersedes:** [0009](./0009-no-raw-websocket-mocking.md)
+**CommonJS export shape:** Superseded by [0045](./0045-ws-commonjs-uses-default-export.md)
 
 > **TL;DR** Support selected ws application calls, events, and states in memory through
 > smocket/ws, following real ws within the agreed scope. This does not intercept network
@@ -18,7 +19,7 @@ without creating HTTP/TCP connections. That permits ws applications to use a moc
 preserving the transport exclusions behind 0009.
 
 Use default WebSocket and named WebSocketServer imports from `smocket/ws`. CommonJS
-receives the WebSocket constructor directly, with WebSocketServer as a property.
+uses the `.default` constructor lookup specified in [0045](./0045-ws-commonjs-uses-default-export.md).
 Do not require a public environment factory or manual Buffer injection. The ws byte path
 targets Node Buffer; its types must not impose Node declarations on other smocket users.
 Native browser WebSocket and Blob are outside this selected ws contract.

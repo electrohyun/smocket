@@ -14,15 +14,16 @@
 
 ## Package and release gates
 
-| Scripts                                                                                           | Entry point and responsibility                                                                                                                                                   |
-| ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `assert-no-imports.js`, `check-packed-package.mjs`, `check-self-contained-types.mjs`              | `pnpm check:package` checks the built root package, packed contents, external imports, and consumer type boundaries.                                                             |
-| `check-client-package.mjs`, `run-client-attw.mjs`                                                 | `pnpm check:client-package` checks the client facade's manifest, files, runtime, and package typing.                                                                             |
-| `release-candidate.mjs`, `check-release-candidate.mjs`                                            | `pnpm release:candidate` creates the ignored two-tarball manifest; `pnpm check:release-candidate` consumes that exact set without publishing.                                    |
-| `run-clean-adoption.mjs`, `run-client-package-consumer.mjs`                                       | Candidate and published checks assemble independent consumers outside the checkout. They install packages and remove their temporary projects afterward.                         |
-| `published-consumer-version.mjs`                                                                  | The scheduled published-consumer workflow validates and prints the reviewed exact version pin.                                                                                   |
-| `check-client-release-order.mjs`, `publish-release-candidate.mjs`, `verify-published-release.mjs` | Release workflow-only gates enforce root-before-client publication and verify the exact registry pair. Publication changes external state and is not a local validation command. |
-| `check-published-types.mjs`, `published-type-compatibility.mjs`                                   | Pull-request CI detects synchronized version changes and checks the public type boundary against the base revision.                                                              |
+| Scripts                                                                                           | Entry point and responsibility                                                                                                                                                       |
+| ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `assert-no-imports.js`, `check-packed-package.mjs`, `check-self-contained-types.mjs`              | `pnpm check:package` checks the built root package, packed contents, external imports, and consumer type boundaries.                                                                 |
+| `check-client-package.mjs`, `run-client-attw.mjs`                                                 | `pnpm check:client-package` checks the client facade's manifest, files, runtime, and package typing.                                                                                 |
+| `release-candidate.mjs`, `check-release-candidate.mjs`                                            | `pnpm release:candidate` creates the ignored two-tarball manifest; `pnpm check:release-candidate` consumes that exact set without publishing.                                        |
+| `run-clean-adoption.mjs`, `run-client-package-consumer.mjs`                                       | Candidate and published checks assemble independent consumers outside the checkout. They install packages and remove their temporary projects afterward.                             |
+| `published-consumer-version.mjs`                                                                  | The scheduled published-consumer workflow validates and prints the reviewed exact version pin.                                                                                       |
+| `check-client-release-order.mjs`, `publish-release-candidate.mjs`, `verify-published-release.mjs` | Release workflow-only gates enforce root-before-client publication and verify the exact registry pair. Publication changes external state and is not a local validation command.     |
+| `check-published-types.mjs`, `published-type-compatibility.mjs`                                   | Pull-request CI detects synchronized version changes and checks the public type boundary against the base revision.                                                                  |
+| `check-ws-package.mjs`                                                                            | `pnpm check:ws-package --tarball <path>` installs one artifact in isolated TS 5.0.2/6.0.3 consumers, with and without Node types, and checks NodeNext, Bundler, and ESM/CJS loading. |
 
 ## SharedWorker, browser, and smoke gates
 
@@ -41,6 +42,12 @@
 `pnpm check:ws-types` checks the source ws contract and compile-only examples with
 and without Node types. It runs as part of `pnpm typecheck`; it does not build or
 validate a published `smocket/ws` entry point.
+
+`pnpm check:ws-package:fixture` builds a temporary package from the ws contract and
+test-only constructors to exercise the checker independently of the production runtime.
+Fixture success proves the validation setup, not a production ws entry or delivery
+behavior. The package command requires an explicit tarball and fails if its ws export
+is missing.
 
 Files named `scripts/*.test.ts` are collected only by the mock Vitest project because
 they test repository tooling rather than Socket.IO behavior. `check-public-surface.test.mjs`
