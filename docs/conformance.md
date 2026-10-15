@@ -633,6 +633,53 @@ These cases ran against ws 8.23.0 and the ws mock from the same test file and pa
 both. They cover the internal basic runtime; package entry points and the rest of the
 selected ws contract require their own checks.
 
+### ws payloads and send callbacks
+
+Buffer-compatible inputs, binary overrides, receive binaryType, and state-dependent send
+callbacks.
+
+- [client selected send API sends string with inferred binary=false and an asynchronous callback](../test/ws/payloads.test.ts#L52)
+- [client selected send API sends number with inferred binary=false and an asynchronous callback](../test/ws/payloads.test.ts#L52)
+- [client selected send API sends zero with inferred binary=false and an asynchronous callback](../test/ws/payloads.test.ts#L52)
+- [client selected send API sends Buffer with inferred binary=true and an asynchronous callback](../test/ws/payloads.test.ts#L52)
+- [client selected send API sends ArrayBuffer with inferred binary=true and an asynchronous callback](../test/ws/payloads.test.ts#L52)
+- [client selected send API sends SharedArrayBuffer with inferred binary=true and an asynchronous callback](../test/ws/payloads.test.ts#L52)
+- [client selected send API sends offset Uint8Array with inferred binary=true and an asynchronous callback](../test/ws/payloads.test.ts#L52)
+- [client selected send API sends offset DataView with inferred binary=true and an asynchronous callback](../test/ws/payloads.test.ts#L52)
+- [client selected send API sends array with inferred binary=true and an asynchronous callback](../test/ws/payloads.test.ts#L52)
+- [client selected send API sends coercible array with inferred binary=true and an asynchronous callback](../test/ws/payloads.test.ts#L52)
+- [client selected send API sends valueOf string with inferred binary=true and an asynchronous callback](../test/ws/payloads.test.ts#L52)
+- [client selected send API sends valueOf bytes with inferred binary=true and an asynchronous callback](../test/ws/payloads.test.ts#L52)
+- [client selected send API sends primitive string with inferred binary=true and an asynchronous callback](../test/ws/payloads.test.ts#L52)
+- [server selected send API sends string with inferred binary=false and an asynchronous callback](../test/ws/payloads.test.ts#L52)
+- [server selected send API sends number with inferred binary=false and an asynchronous callback](../test/ws/payloads.test.ts#L52)
+- [server selected send API sends zero with inferred binary=false and an asynchronous callback](../test/ws/payloads.test.ts#L52)
+- [server selected send API sends Buffer with inferred binary=true and an asynchronous callback](../test/ws/payloads.test.ts#L52)
+- [server selected send API sends ArrayBuffer with inferred binary=true and an asynchronous callback](../test/ws/payloads.test.ts#L52)
+- [server selected send API sends SharedArrayBuffer with inferred binary=true and an asynchronous callback](../test/ws/payloads.test.ts#L52)
+- [server selected send API sends offset Uint8Array with inferred binary=true and an asynchronous callback](../test/ws/payloads.test.ts#L52)
+- [server selected send API sends offset DataView with inferred binary=true and an asynchronous callback](../test/ws/payloads.test.ts#L52)
+- [server selected send API sends array with inferred binary=true and an asynchronous callback](../test/ws/payloads.test.ts#L52)
+- [server selected send API sends coercible array with inferred binary=true and an asynchronous callback](../test/ws/payloads.test.ts#L52)
+- [server selected send API sends valueOf string with inferred binary=true and an asynchronous callback](../test/ws/payloads.test.ts#L52)
+- [server selected send API sends valueOf bytes with inferred binary=true and an asynchronous callback](../test/ws/payloads.test.ts#L52)
+- [server selected send API sends primitive string with inferred binary=true and an asynchronous callback](../test/ws/payloads.test.ts#L52)
+- [client selected send API honors the binary option for binary string](../test/ws/payloads.test.ts#L89)
+- [client selected send API honors the binary option for text bytes](../test/ws/payloads.test.ts#L89)
+- [client selected send API honors the binary option for explicit undefined](../test/ws/payloads.test.ts#L89)
+- [server selected send API honors the binary option for binary string](../test/ws/payloads.test.ts#L89)
+- [server selected send API honors the binary option for text bytes](../test/ws/payloads.test.ts#L89)
+- [server selected send API honors the binary option for explicit undefined](../test/ws/payloads.test.ts#L89)
+- [client selected send API switches binaryType between Buffer and ArrayBuffer without changing text messages](../test/ws/payloads.test.ts#L106)
+- [server selected send API switches binaryType between Buffer and ArrayBuffer without changing text messages](../test/ws/payloads.test.ts#L106)
+- [client selected send API ignores unsupported binaryType assignments](../test/ws/payloads.test.ts#L134)
+- [server selected send API ignores unsupported binaryType assignments](../test/ws/payloads.test.ts#L134)
+- [client selected send API reports a send callback error while CLOSING](../test/ws/payloads.test.ts#L141)
+- [client selected send API reports a send callback error while CLOSED](../test/ws/payloads.test.ts#L141)
+- [server selected send API reports a send callback error while CLOSING](../test/ws/payloads.test.ts#L141)
+- [server selected send API reports a send callback error while CLOSED](../test/ws/payloads.test.ts#L141)
+- [throws on send while CONNECTING before invoking a callback](../test/ws/payloads.test.ts#L166)
+
 ### ws client tracking
 
 Client set membership, tracking options, cleanup, sender selection, and message order

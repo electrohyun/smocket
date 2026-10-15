@@ -1,6 +1,11 @@
 import { afterEach } from 'vitest';
 import RealWebSocket, { WebSocketServer as RealWebSocketServer } from 'ws';
-import type { AddressInfo, RequestHeaders } from '../../src/ws/contracts';
+import type {
+  AddressInfo,
+  RequestHeaders,
+  SendCallback,
+  SendOptions,
+} from '../../src/ws/contracts';
 import * as mock from '../../src/ws/runtime';
 
 export type Listener = (...args: unknown[]) => void;
@@ -64,7 +69,14 @@ const eventConstructors =
       };
 const constructors: BasicConstructors = eventConstructors;
 // Unify EventEmitter overloads while retaining both actual event-property APIs.
-export type EventSocket = Omit<RealWebSocket | mock.WebSocket, keyof CustomEmitter> & CustomEmitter;
+export type SendInput = Exclude<Parameters<RealWebSocket['send']>[0], Blob>;
+interface SendSocket {
+  send(data: SendInput, callback?: SendCallback): void;
+  send(data: SendInput, options: SendOptions, callback?: SendCallback): void;
+}
+export type EventSocket = Omit<RealWebSocket | mock.WebSocket, keyof CustomEmitter | 'send'> &
+  CustomEmitter &
+  SendSocket;
 
 /** Both targets exercise this subset; public constructor binding belongs to #562. */
 export function setupWs() {
