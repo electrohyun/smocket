@@ -54,7 +54,8 @@ properties, listener identity, event values, and their comparison limits.
 
 The [input validation review notes](./ws-input-validation-review.md) explain URL
 normalization, URL snapshots, close arguments, and state-dependent validation.
-Public client tracking and broadcast belong to [#539](https://github.com/electrohyun/smocket/issues/539).
+The [client set review](./ws-client-tracking-review.md) covers membership and an
+all-client broadcast; further application comparisons belong to [#539](https://github.com/electrohyun/smocket/issues/539).
 The failure and abrupt-close paths support teardown, but their detailed ordering,
 send callbacks, concurrent close, pending work, and byte inputs require the
 real-ws comparisons in [#540](https://github.com/electrohyun/smocket/issues/540).
