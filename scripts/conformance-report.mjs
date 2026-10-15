@@ -44,6 +44,12 @@ const END = '<!-- conformance:generated end -->';
  */
 const AREAS = [
   {
+    file: 'test/ws/client-tracking.test.ts',
+    title: 'ws client tracking',
+    blurb:
+      'Client-set membership, tracking options, removal after close, and iteration for an all-client broadcast.',
+  },
+  {
     file: 'test/ws/input-validation.test.ts',
     title: 'ws URL and close input validation',
     blurb:

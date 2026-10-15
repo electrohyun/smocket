@@ -6,6 +6,7 @@ const targetFiles = [
   'test/ws/emitter.test.ts',
   'test/ws/event-target.test.ts',
   'test/ws/input-validation.test.ts',
+  'test/ws/client-tracking.test.ts',
   'test/shared-worker/**/*.test.ts',
   'examples/shared-worker-lobby/src/**/*.test.ts',
 ];

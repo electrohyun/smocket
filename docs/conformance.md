@@ -633,6 +633,17 @@ These cases ran against ws 8.23.0 and the ws mock from the same test file and pa
 both. They cover the internal basic runtime; package entry points and the rest of the
 selected ws contract require their own checks.
 
+### ws client tracking
+
+Client-set membership, tracking options, removal after close, and iteration for an
+all-client broadcast.
+
+- [tracks accepted sockets with the omitted setting](../test/ws/client-tracking.test.ts#L19)
+- [tracks accepted sockets with the true setting](../test/ws/client-tracking.test.ts#L19)
+- [tracks accepted sockets with the false setting](../test/ws/client-tracking.test.ts#L19)
+- [tracks accepted sockets with the explicit undefined setting](../test/ws/client-tracking.test.ts#L19)
+- [broadcasts through the public clients set to every accepted socket](../test/ws/client-tracking.test.ts#L39)
+
 ### ws URL and close input validation
 
 URL normalization and snapshots, synchronous URL errors, close code checks, UTF-8 reason
