@@ -41,8 +41,8 @@ pnpm test
 | ------------------- | -------------------------------- |
 | `pnpm test`         | 테스트를 watch 모드로 실행       |
 | `pnpm vitest run`   | 두 테스트 프로젝트를 한 번 실행  |
-| `pnpm typecheck`    | 결과물을 만들지 않고 타입만 검사 |
-| `pnpm lint`         | 코드와 문서 스타일 검사          |
+| `pnpm typecheck`    | 패키지 빌드 및 타입 검사     |
+| `pnpm lint`         | TypeScript 소스 파일 린트    |
 | `pnpm format`       | 저장소 포맷 적용                 |
 | `pnpm format:check` | 파일을 바꾸지 않고 포맷 검사     |
 | `pnpm docs:check`   | 문서 사이트 빌드 및 검사         |
