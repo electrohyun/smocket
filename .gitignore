@@ -67,8 +67,6 @@ web_modules/
 .yarn-integrity
 
 # dotenv environment variable files
-.env
-.env.*
 !.env.example
 
 # parcel-bundler cache (https://parceljs.org/)
@@ -149,3 +147,4 @@ vite.config.ts.timestamp-*
 
 # SharedWorker parity runner artifacts
 .tmp-shared-worker-parity-*
+config.bat

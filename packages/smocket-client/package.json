@@ -68,7 +68,7 @@
   },
   "packageManager": "pnpm@12.14.0",
   "scripts": {
-    "build": "node scripts/clean-dist.mjs && tsc -p tsconfig.esm.json && tsc -p tsconfig.cjs.json",
+    "build": "node init && node scripts/clean-dist.mjs && tsc -p tsconfig.esm.json && tsc -p tsconfig.cjs.json",
     "prepublishOnly": "pnpm run build && node ../../scripts/check-client-package.mjs && node ../../scripts/check-client-release-order.mjs",
     "test": "node --test test/runtime.test.mjs test/runtime.test.cjs",
     "typecheck": "tsc -p tsconfig.esm.json --noEmit && tsc -p tsconfig.cjs.json --noEmit",
