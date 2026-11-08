@@ -6,7 +6,7 @@
     "node": ">=20.13"
   },
   "devDependencies": {
-    "vite": "6.4.4",
+    "vite": "6.4.5",
     "vitest": "4.1.12"
   }
 }
