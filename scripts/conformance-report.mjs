@@ -47,7 +47,7 @@ const AREAS = [
     file: 'test/ws/client-tracking.test.ts',
     title: 'ws client tracking',
     blurb:
-      'Client-set membership, tracking options, removal after close, and iteration for an all-client broadcast.',
+      'Client set membership, tracking options, cleanup, sender selection, and message order for each connection.',
   },
   {
     file: 'test/ws/input-validation.test.ts',
