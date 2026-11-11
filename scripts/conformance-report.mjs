@@ -75,6 +75,13 @@ const AREAS = [
     mockOnly: true,
   },
   {
+    file: 'test/ws/registry.test.ts',
+    title: 'Virtual ws registry boundaries',
+    blurb:
+      'Port and host validation, default ports, wildcard lookup and collisions, and virtual port exhaustion and reuse. These checks exercise the in-memory registry only.',
+    mockOnly: true,
+  },
+  {
     file: 'src/connection.test.ts',
     title: 'Connection and identity',
     blurb: 'Pairing a client with its server socket, the id both sides see, and the first emit.',

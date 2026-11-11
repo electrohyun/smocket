@@ -760,13 +760,17 @@ interaction with EventEmitter removal.
 - [accepted ws event listeners retains binary event data identity when the underlying emitter supplies bytes](../test/ws/event-target.test.ts#L164)
 - [client ws event listeners wraps an Error without changing its identity and treats onerror as an error listener](../test/ws/event-target.test.ts#L173)
 - [accepted ws event listeners wraps an Error without changing its identity and treats onerror as an error listener](../test/ws/event-target.test.ts#L173)
-- [client ws event listeners delivers normal close information as string reason and wasClean=true](../test/ws/event-target.test.ts#L187)
-- [accepted ws event listeners delivers normal close information as string reason and wasClean=true](../test/ws/event-target.test.ts#L187)
-- [client ws event listeners uses wasClean=false after abrupt termination](../test/ws/event-target.test.ts#L203)
-- [accepted ws event listeners uses wasClean=false after abrupt termination](../test/ws/event-target.test.ts#L203)
-- [client ws event listeners delivers real text through the event property while the emitter still receives bytes](../test/ws/event-target.test.ts#L212)
-- [accepted ws event listeners delivers real text through the event property while the emitter still receives bytes](../test/ws/event-target.test.ts#L212)
-- [dispatches an open event with the client as target and callback receiver](../test/ws/event-target.test.ts#L229)
+- [client ws event listeners uses an empty event message when an emitted error has no message](../test/ws/event-target.test.ts#L187)
+- [accepted ws event listeners uses an empty event message when an emitted error has no message](../test/ws/event-target.test.ts#L187)
+- [client ws event listeners ignores unsupported event types without removing ordinary emitter listeners](../test/ws/event-target.test.ts#L197)
+- [accepted ws event listeners ignores unsupported event types without removing ordinary emitter listeners](../test/ws/event-target.test.ts#L197)
+- [client ws event listeners delivers normal close information as string reason and wasClean=true](../test/ws/event-target.test.ts#L208)
+- [accepted ws event listeners delivers normal close information as string reason and wasClean=true](../test/ws/event-target.test.ts#L208)
+- [client ws event listeners uses wasClean=false after abrupt termination](../test/ws/event-target.test.ts#L224)
+- [accepted ws event listeners uses wasClean=false after abrupt termination](../test/ws/event-target.test.ts#L224)
+- [client ws event listeners delivers real text through the event property while the emitter still receives bytes](../test/ws/event-target.test.ts#L233)
+- [accepted ws event listeners delivers real text through the event property while the emitter still receives bytes](../test/ws/event-target.test.ts#L233)
+- [dispatches an open event with the client as target and callback receiver](../test/ws/event-target.test.ts#L250)
 
 ### ws EventEmitter methods
 
@@ -830,6 +834,10 @@ reuse.
 - [closes both ends normally from server with code 1000 and a Buffer reason](../test/ws/basic.test.ts#L86)
 - [releases a server registration so the same address can be used again](../test/ws/basic.test.ts#L110)
 - [normalizes HTTP URLs and rejects invalid URLs synchronously](../test/ws/basic.test.ts#L126)
+- [rejects sends before open and ignores sends during and after normal close](../test/ws/basic.test.ts#L137)
+- [reports an address collision without unregistering the listening server](../test/ws/basic.test.ts#L165)
+- [waits for connected sockets before completing server close callbacks](../test/ws/basic.test.ts#L177)
+- [emits close again when closing a stopped server without a callback](../test/ws/basic.test.ts#L204)
 
 ## smocket only
 
@@ -852,6 +860,30 @@ claims.
 - [keeps ws registrations alive when a Socket.IO server at the same address closes](../test/ws/isolation.test.ts#L70)
 - [keeps registrations with the same port on different hosts separate](../test/ws/isolation.test.ts#L82)
 - [does not connect a wrong-path client and still accepts a later matching client](../test/ws/isolation.test.ts#L100)
+- [cancels listening when closed before the deferred listening notification](../test/ws/isolation.test.ts#L118)
+- [closes a listening server without a callback and releases its address](../test/ws/isolation.test.ts#L132)
+- [cleans up both sockets when a client aborts inside the connection handler before open](../test/ws/isolation.test.ts#L141)
+- [drops queued text after the peer closes and rejects bytes in the text-only runtime](../test/ws/isolation.test.ts#L169)
+- [handles close on an internal socket before pairing](../test/ws/isolation.test.ts#L191)
+- [handles terminate on an internal socket before pairing](../test/ws/isolation.test.ts#L191)
+
+### Virtual ws registry boundaries
+
+Port and host validation, default ports, wildcard lookup and collisions, and virtual
+port exhaustion and reuse. These checks exercise the in-memory registry only.
+
+- [rejects invalid virtual port -1](../test/ws/registry.test.ts#L13)
+- [rejects invalid virtual port 65536](../test/ws/registry.test.ts#L13)
+- [rejects invalid virtual port 1.5](../test/ws/registry.test.ts#L13)
+- [rejects invalid virtual port NaN](../test/ws/registry.test.ts#L13)
+- [rejects invalid virtual port Infinity](../test/ws/registry.test.ts#L13)
+- [rejects unsupported server host example.test](../test/ws/registry.test.ts#L17)
+- [rejects unsupported server host 256.0.0.1](../test/ws/registry.test.ts#L17)
+- [rejects unsupported server host 127.0.0](../test/ws/registry.test.ts#L17)
+- [routes default ws and wss ports to the matching registration](../test/ws/registry.test.ts#L23)
+- [limits IPv4 wildcard lookup and detects wildcard collisions in either registration order](../test/ws/registry.test.ts#L32)
+- [accepts IPv4 and IPv6 targets through an IPv6 wildcard](../test/ws/registry.test.ts#L46)
+- [skips occupied ports, wraps the allocator, reports exhaustion, and reuses a released port](../test/ws/registry.test.ts#L53)
 
 ### Native acknowledgement teardown race
 

@@ -245,6 +245,7 @@ describe.each(['server', 'client socket', 'accepted socket'] as const)(
       emitter.removeAllListeners('error');
       const error = new Error('application failure');
       expect(() => emitter.emit('error', error)).toThrow(error);
+      expect(() => emitter.emit('error', 'application failure')).toThrow(Error);
       const observed: unknown[] = [];
       emitter.on('error', (value) => observed.push(value));
       expect(emitter.emit('error', error)).toBe(true);

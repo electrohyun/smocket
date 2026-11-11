@@ -184,6 +184,27 @@ describe.each(['client', 'accepted'] as const)('%s ws event listeners', (side) =
     expect(observed).toEqual([receiver, receiver, error, 'application error', 'error']);
   });
 
+  it('uses an empty event message when an emitted error has no message', async () => {
+    const { receiver } = await pair();
+    const error = new Error('removed');
+    Reflect.set(error, 'message', undefined);
+    const events: unknown[] = [];
+    receiver.addEventListener('error', (event: Event) => events.push(event));
+    receiver.emit('error', error);
+    expect(events).toEqual([expect.objectContaining({ error, message: '', target: receiver })]);
+  });
+
+  it('ignores unsupported event types without removing ordinary emitter listeners', async () => {
+    const { receiver } = await pair();
+    const observed: string[] = [];
+    const listener = () => observed.push('ordinary');
+    receiver.on('custom', listener);
+    Reflect.apply(receiver.addEventListener, receiver, ['custom', () => observed.push('event')]);
+    Reflect.apply(receiver.removeEventListener, receiver, ['custom', listener]);
+    expect(receiver.emit('custom')).toBe(true);
+    expect(observed).toEqual(['ordinary']);
+  });
+
   it('delivers normal close information as string reason and wasClean=true', async () => {
     const { receiver, peer } = await pair();
     let resolveClose: (event: CloseEvent) => void = () => {};

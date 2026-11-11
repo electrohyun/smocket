@@ -133,3 +133,82 @@ it('normalizes HTTP URLs and rejects invalid URLs synchronously', async () => {
   expect(() => ctx.createClient(`ws://127.0.0.1:${port}/#fragment`)).toThrow(SyntaxError);
   expect(() => ctx.createClient('ftp://localhost')).toThrow(SyntaxError);
 });
+
+it('rejects sends before open and ignores sends during and after normal close', async () => {
+  const server = ctx.createServer({ port: 0, host: '127.0.0.1' });
+  const { port } = await listening(server);
+  const received: string[] = [];
+  const peerClosed = new Promise<void>((resolve) => {
+    server.on('connection', (socket) => {
+      socket.on('message', (data) => received.push(data.toString()));
+      socket.on('close', () => {
+        received.push('close marker');
+        resolve();
+      });
+    });
+  });
+  const client = ctx.createClient(`ws://127.0.0.1:${port}`);
+  expect(() => client.send('before open')).toThrow(
+    'WebSocket is not open: readyState 0 (CONNECTING)',
+  );
+  await opened(client);
+  const done = closed(client);
+  client.close();
+  expect(client.send('during close')).toBeUndefined();
+  await Promise.all([done, peerClosed]);
+  expect(client.send('after close')).toBeUndefined();
+  // The peer's later close event marks the end of its incoming delivery sequence.
+  await new Promise<void>((resolve) => server.close(() => resolve()));
+  expect(received).toEqual(['close marker']);
+});
+
+it('reports an address collision without unregistering the listening server', async () => {
+  const first = ctx.createServer({ port: 0, host: '127.0.0.1' });
+  const { port } = await listening(first);
+  const duplicate = ctx.createServer({ port, host: '127.0.0.1' });
+  const error = await new Promise<Error>((resolve) => duplicate.once('error', resolve));
+  expect(error).toMatchObject({ code: 'EADDRINUSE' });
+  expect(duplicate.address()).toBeNull();
+  await new Promise<void>((resolve) => duplicate.close(() => resolve()));
+  const client = ctx.createClient(`ws://127.0.0.1:${port}`);
+  await opened(client);
+});
+
+it('waits for connected sockets before completing server close callbacks', async () => {
+  const server = ctx.createServer({ port: 0, host: '127.0.0.1' });
+  const { port } = await listening(server);
+  const client = ctx.createClient(`ws://127.0.0.1:${port}`);
+  await opened(client);
+  const order: string[] = [];
+  server.on('close', () => order.push('close'));
+  const first = new Promise<void>((resolve) =>
+    server.close(() => {
+      order.push('first callback');
+      resolve();
+    }),
+  );
+  const second = new Promise<void>((resolve) =>
+    server.close(() => {
+      order.push('second callback');
+      resolve();
+    }),
+  );
+  expect(server.address()).toBeNull();
+  expect(order).toEqual([]);
+  const done = closed(client);
+  client.close();
+  await Promise.all([first, second, done]);
+  expect(order).toEqual(['close', 'first callback', 'second callback']);
+});
+
+it('emits close again when closing a stopped server without a callback', async () => {
+  const server = ctx.createServer({ port: 0, host: '127.0.0.1' });
+  await listening(server);
+  const order: string[] = [];
+  server.on('close', () => order.push('close'));
+  await new Promise<void>((resolve) => server.close(() => resolve()));
+  const done = new Promise<void>((resolve) => server.once('close', resolve));
+  server.close();
+  await done;
+  expect(order).toEqual(['close', 'close']);
+});

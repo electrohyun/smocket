@@ -114,3 +114,96 @@ it('does not connect a wrong-path client and still accepts a later matching clie
   // A later accepted connection is the marker; no timeout proves non-receipt.
   expect(accepted).toEqual(['/chat']);
 });
+
+it('cancels listening when closed before the deferred listening notification', async () => {
+  const events: string[] = [];
+  const server = new WebSocketServer({ port: 0 }, () => events.push('callback'));
+  servers.add(server);
+  server.on('listening', () => events.push('listening'));
+  server.on('close', () => events.push('close marker'));
+  const first = new Promise<void>((resolve) => server.close(() => resolve()));
+  const second = new Promise<void>((resolve) => server.close(() => resolve()));
+  await Promise.all([first, second]);
+  expect(events).toEqual(['close marker']);
+  expect(server.accepting).toBe(false);
+  expect(server.address()).toBeNull();
+});
+
+it('closes a listening server without a callback and releases its address', async () => {
+  const { server } = await serve({ port: 0 });
+  const done = new Promise<void>((resolve) => server.once('close', resolve));
+  server.close();
+  await done;
+  expect(server.address()).toBeNull();
+  expect(server.accepting).toBe(false);
+});
+
+it('cleans up both sockets when a client aborts inside the connection handler before open', async () => {
+  const { server, address } = await serve({ port: 0 });
+  const client = new WebSocket(`ws://localhost:${address.port}`);
+  clients.add(client);
+  const events: string[] = [];
+  const clientClosed = new Promise<void>((resolve) =>
+    client.once('close', () => {
+      events.push('client close');
+      resolve();
+    }),
+  );
+  const acceptedClosed = new Promise<void>((resolve) =>
+    server.once('connection', (socket) => {
+      socket.once('close', () => {
+        events.push('accepted close');
+        resolve();
+      });
+      client.terminate();
+    }),
+  );
+  client.once('open', () => events.push('open'));
+  client.once('error', () => events.push('error'));
+  await Promise.all([clientClosed, acceptedClosed]);
+  expect(events).toEqual(['error', 'client close', 'accepted close']);
+  client.terminate();
+  expect(client.readyState).toBe(WebSocket.CLOSED);
+});
+
+it('drops queued text after the peer closes and rejects bytes in the text-only runtime', async () => {
+  const { server, address } = await serve({ port: 0 });
+  const accepted = new Promise<WebSocket>((resolve) => server.once('connection', resolve));
+  const client = await connect(`ws://localhost:${address.port}`);
+  const socket = await accepted;
+  // Byte payload implementation belongs to the next ws runtime slice.
+  // @ts-expect-error Verify the current runtime boundary for JavaScript callers.
+  expect(() => client.send(Buffer.from('bytes'))).toThrow('The basic ws runtime accepts text only');
+  const events: string[] = [];
+  client.on('message', () => events.push('message'));
+  client.on('close', () => events.push('close'));
+  client.close();
+  socket.send('queued after close');
+  await new Promise<void>((resolve) =>
+    queueMicrotask(() => {
+      events.push('queue marker');
+      resolve();
+    }),
+  );
+  expect(events).toEqual(['close', 'queue marker']);
+});
+
+it.each(['close', 'terminate'] as const)(
+  'handles %s on an internal socket before pairing',
+  async (method) => {
+    const socket = new WebSocket(null);
+    const events: string[] = [];
+    socket.on('message', () => events.push('message'));
+    socket.on('close', () => events.push('close'));
+    socket.send('unpaired');
+    socket[method]();
+    await new Promise<void>((resolve) =>
+      queueMicrotask(() => {
+        events.push('queue marker');
+        resolve();
+      }),
+    );
+    expect(events).toEqual(['close', 'queue marker']);
+    expect(socket.readyState).toBe(WebSocket.CLOSED);
+  },
+);
