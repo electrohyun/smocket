@@ -2,6 +2,10 @@ import { defineConfig } from 'vitest/config';
 
 const targetFiles = [
   'src/**/*.test.ts',
+  'test/ws/basic.test.ts',
+  'test/ws/emitter.test.ts',
+  'test/ws/event-target.test.ts',
+  'test/ws/input-validation.test.ts',
   'test/shared-worker/**/*.test.ts',
   'examples/shared-worker-lobby/src/**/*.test.ts',
 ];
@@ -38,7 +42,12 @@ export default defineConfig({
           name: 'mock',
           // Tooling tests do not read SMOCKET_TARGET. Run them once instead of
           // starting the same npm subprocess fixtures in both projects.
-          include: [...targetFiles, ...toolingFiles],
+          include: [
+            ...targetFiles,
+            ...toolingFiles,
+            'test/ws/isolation.test.ts',
+            'test/ws/registry.test.ts',
+          ],
           env: { SMOCKET_TARGET: 'mock' },
         },
       },

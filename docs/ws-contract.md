@@ -61,3 +61,6 @@ check inference, explicit socket annotations, callbacks, Buffer interoperability
 rejection of excluded options. The no-Node case uses types=[] and skipLibCheck=false.
 This checks the source contract, not generated declarations, module exports, a packed
 package, runtime delivery, or all supported TypeScript versions.
+
+The [runtime review notes](./ws-runtime-review.md) describe the internal connection,
+text, EventEmitter, and event-listener paths, their real-ws comparisons, and remaining limits.

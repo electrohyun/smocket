@@ -84,7 +84,7 @@
     "check:shared-worker-dist": "node scripts/check-shared-worker-dist-gate.mjs",
     "smoke": "node scripts/smoke.mjs",
     "coverage": "vitest run --project=mock --coverage",
-    "typecheck": "tsup && tsc --noEmit && tsc -p tsconfig.published-types.json && pnpm check:ws-types && pnpm --filter smocket-client typecheck && pnpm --filter smocket-client build && pnpm --filter drawing-game-example typecheck && pnpm --filter shared-worker-lobby-example typecheck && pnpm --filter @smocket/docs typecheck",
+    "typecheck": "tsup && tsc --noEmit && tsc -p tsconfig.published-types.json && tsc -p tsconfig.ws-tests.json && pnpm check:ws-types && pnpm --filter smocket-client typecheck && pnpm --filter smocket-client build && pnpm --filter drawing-game-example typecheck && pnpm --filter shared-worker-lobby-example typecheck && pnpm --filter @smocket/docs typecheck",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -126,6 +126,7 @@
     "@arethetypeswrong/cli": "^0.18.5",
     "@eslint/js": "^10.0.1",
     "@types/node": "^26.1.1",
+    "@types/ws": "8.18.2",
     "@vitest/browser": "^5.0.0",
     "@vitest/browser-playwright": "^5.0.0",
     "@vitest/coverage-v8": "^5.0.0",
@@ -139,6 +140,7 @@
     "tsup": "^8.5.1",
     "typescript": "6.0.3",
     "typescript-eslint": "^8.64.0",
-    "vitest": "^5.0.0"
+    "vitest": "^5.0.0",
+    "ws": "8.21.3"
   }
 }

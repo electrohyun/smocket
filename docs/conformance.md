@@ -1,21 +1,26 @@
 # Conformance report
 
-> **TL;DR** Delivery cases are measured against real socket.io and smocket from one
-> test file. The list is generated only when both test projects succeed. Native smocket
-> cases and repository tooling checks are listed separately without a Socket.IO claim.
+> **TL;DR** Delivery cases compare smocket with real socket.io or real ws from the
+> same test file, in separate report sections. The list is generated only when both
+> test projects succeed. Mock-specific rules and repository tooling are listed separately.
 
 > [!IMPORTANT]
-> The delivery and native API sections record cases that run against both targets.
-> Repository tooling checks run once in the mock project. This report is not a percentage
-> of Socket.IO's complete API and does not make a 100% compatibility claim.
+> The real-library sections record cases that run against both targets. Mock-specific
+> ws rules and repository tooling run only in the mock project. This report is not a
+> percentage of either library's complete API and does not claim complete compatibility.
 
 ## The dual run
 
-A test file here never imports a server directly. It calls `setupServer()` from
+Socket.IO comparison files call `setupServer()` from
 [`src/setup-server.ts`](../src/setup-server.ts), which resolves to a real socket.io
 server or to smocket depending on `SMOCKET_TARGET`, and the two targets are the two
 vitest projects `pnpm test:real` and `pnpm test:mock` run. The test body is the same
 either way.
+
+The ws comparison uses [`test/ws/setup-ws.ts`](../test/ws/setup-ws.ts) to select real
+ws or the internal ws runtime under the same two projects. Its Node-only fixtures
+live outside the browser suite; virtual host and network-isolation checks run only
+on the mock and are reported without a real-ws equivalence claim.
 
 The real target is the oracle, and the order matters. A case is written against it
 first, so what the case asserts is socket.io's behaviour and not the mock's. Running
@@ -622,13 +627,263 @@ max-listener state.
 - [once fires once when an earlier listener invokes its retained wrapper](../src/inherited-emitter.test.ts#L542)
 - [prependOnceListener fires once when an earlier listener invokes its retained wrapper](../src/inherited-emitter.test.ts#L542)
 
+## Verified against real ws
+
+These cases ran against ws 8.21.3 and the ws mock from the same test file and passed on
+both. They cover the internal basic runtime; package entry points and the rest of the
+selected ws contract require their own checks.
+
+### ws URL and close input validation
+
+URL normalization and snapshots, synchronous URL errors, close code checks, UTF-8 reason
+limits, and validation order across socket states.
+
+- [rejects malformed URL not a URL synchronously](../test/ws/input-validation.test.ts#L8)
+- [rejects malformed URL ws:// synchronously](../test/ws/input-validation.test.ts#L8)
+- [rejects malformed URL ws://localhost:65536 synchronously](../test/ws/input-validation.test.ts#L8)
+- [rejects malformed URL ws://[::1 synchronously](../test/ws/input-validation.test.ts#L8)
+- [rejects malformed URL ws://localhost:bad synchronously](../test/ws/input-validation.test.ts#L8)
+- [rejects unsupported protocol in ftp://localhost synchronously](../test/ws/input-validation.test.ts#L15)
+- [rejects unsupported protocol in mailto:someone@example.test synchronously](../test/ws/input-validation.test.ts#L15)
+- [rejects a nonempty fragment in ws://127.0.0.1/#room synchronously](../test/ws/input-validation.test.ts#L26)
+- [rejects a nonempty fragment in https://127.0.0.1/#room synchronously](../test/ws/input-validation.test.ts#L26)
+- [normalizes HTTP://127.0.0.1:80 before attempting a connection](../test/ws/input-validation.test.ts#L44)
+- [normalizes https://127.0.0.1:443 before attempting a connection](../test/ws/input-validation.test.ts#L44)
+- [normalizes ws://127.0.0.1:80/a/../chat?room=one before attempting a connection](../test/ws/input-validation.test.ts#L44)
+- [normalizes wss://[::1]:443 before attempting a connection](../test/ws/input-validation.test.ts#L44)
+- [normalizes ws://127.0.0.1/chat room?room=two words before attempting a connection](../test/ws/input-validation.test.ts#L44)
+- [accepts URL suffix # and preserves it in url](../test/ws/input-validation.test.ts#L54)
+- [accepts URL suffix %23room and preserves it in url](../test/ws/input-validation.test.ts#L54)
+- [snapshots the normalized URL before the caller changes the URL object](../test/ws/input-validation.test.ts#L66)
+- [client close input validation rejects code 999 after entering CLOSING](../test/ws/input-validation.test.ts#L91)
+- [client close input validation rejects code 1004 after entering CLOSING](../test/ws/input-validation.test.ts#L91)
+- [client close input validation rejects code 1005 after entering CLOSING](../test/ws/input-validation.test.ts#L91)
+- [client close input validation rejects code 1006 after entering CLOSING](../test/ws/input-validation.test.ts#L91)
+- [client close input validation rejects code 1015 after entering CLOSING](../test/ws/input-validation.test.ts#L91)
+- [client close input validation rejects code 2999 after entering CLOSING](../test/ws/input-validation.test.ts#L91)
+- [client close input validation rejects code 5000 after entering CLOSING](../test/ws/input-validation.test.ts#L91)
+- [client close input validation rejects code -1 after entering CLOSING](../test/ws/input-validation.test.ts#L91)
+- [client close input validation rejects code NaN after entering CLOSING](../test/ws/input-validation.test.ts#L91)
+- [client close input validation rejects code Infinity after entering CLOSING](../test/ws/input-validation.test.ts#L91)
+- [client close input validation rejects code 1014.5 after entering CLOSING](../test/ws/input-validation.test.ts#L91)
+- [server close input validation rejects code 999 after entering CLOSING](../test/ws/input-validation.test.ts#L91)
+- [server close input validation rejects code 1004 after entering CLOSING](../test/ws/input-validation.test.ts#L91)
+- [server close input validation rejects code 1005 after entering CLOSING](../test/ws/input-validation.test.ts#L91)
+- [server close input validation rejects code 1006 after entering CLOSING](../test/ws/input-validation.test.ts#L91)
+- [server close input validation rejects code 1015 after entering CLOSING](../test/ws/input-validation.test.ts#L91)
+- [server close input validation rejects code 2999 after entering CLOSING](../test/ws/input-validation.test.ts#L91)
+- [server close input validation rejects code 5000 after entering CLOSING](../test/ws/input-validation.test.ts#L91)
+- [server close input validation rejects code -1 after entering CLOSING](../test/ws/input-validation.test.ts#L91)
+- [server close input validation rejects code NaN after entering CLOSING](../test/ws/input-validation.test.ts#L91)
+- [server close input validation rejects code Infinity after entering CLOSING](../test/ws/input-validation.test.ts#L91)
+- [server close input validation rejects code 1014.5 after entering CLOSING](../test/ws/input-validation.test.ts#L91)
+- [client close input validation rejects non-number code 1000](../test/ws/input-validation.test.ts#L105)
+- [client close input validation rejects non-number code null](../test/ws/input-validation.test.ts#L105)
+- [client close input validation rejects non-number code true](../test/ws/input-validation.test.ts#L105)
+- [server close input validation rejects non-number code 1000](../test/ws/input-validation.test.ts#L105)
+- [server close input validation rejects non-number code null](../test/ws/input-validation.test.ts#L105)
+- [server close input validation rejects non-number code true](../test/ws/input-validation.test.ts#L105)
+- [client close input validation accepts code 1000 and reports its integer value to both ends](../test/ws/input-validation.test.ts#L116)
+- [client close input validation accepts code 1001 and reports its integer value to both ends](../test/ws/input-validation.test.ts#L116)
+- [client close input validation accepts code 1002 and reports its integer value to both ends](../test/ws/input-validation.test.ts#L116)
+- [client close input validation accepts code 1003 and reports its integer value to both ends](../test/ws/input-validation.test.ts#L116)
+- [client close input validation accepts code 1007 and reports its integer value to both ends](../test/ws/input-validation.test.ts#L116)
+- [client close input validation accepts code 1008 and reports its integer value to both ends](../test/ws/input-validation.test.ts#L116)
+- [client close input validation accepts code 1009 and reports its integer value to both ends](../test/ws/input-validation.test.ts#L116)
+- [client close input validation accepts code 1010 and reports its integer value to both ends](../test/ws/input-validation.test.ts#L116)
+- [client close input validation accepts code 1011 and reports its integer value to both ends](../test/ws/input-validation.test.ts#L116)
+- [client close input validation accepts code 1012 and reports its integer value to both ends](../test/ws/input-validation.test.ts#L116)
+- [client close input validation accepts code 1013 and reports its integer value to both ends](../test/ws/input-validation.test.ts#L116)
+- [client close input validation accepts code 1014 and reports its integer value to both ends](../test/ws/input-validation.test.ts#L116)
+- [client close input validation accepts code 3000 and reports its integer value to both ends](../test/ws/input-validation.test.ts#L116)
+- [client close input validation accepts code 4999 and reports its integer value to both ends](../test/ws/input-validation.test.ts#L116)
+- [client close input validation accepts code 3000.75 and reports its integer value to both ends](../test/ws/input-validation.test.ts#L116)
+- [server close input validation accepts code 1000 and reports its integer value to both ends](../test/ws/input-validation.test.ts#L116)
+- [server close input validation accepts code 1001 and reports its integer value to both ends](../test/ws/input-validation.test.ts#L116)
+- [server close input validation accepts code 1002 and reports its integer value to both ends](../test/ws/input-validation.test.ts#L116)
+- [server close input validation accepts code 1003 and reports its integer value to both ends](../test/ws/input-validation.test.ts#L116)
+- [server close input validation accepts code 1007 and reports its integer value to both ends](../test/ws/input-validation.test.ts#L116)
+- [server close input validation accepts code 1008 and reports its integer value to both ends](../test/ws/input-validation.test.ts#L116)
+- [server close input validation accepts code 1009 and reports its integer value to both ends](../test/ws/input-validation.test.ts#L116)
+- [server close input validation accepts code 1010 and reports its integer value to both ends](../test/ws/input-validation.test.ts#L116)
+- [server close input validation accepts code 1011 and reports its integer value to both ends](../test/ws/input-validation.test.ts#L116)
+- [server close input validation accepts code 1012 and reports its integer value to both ends](../test/ws/input-validation.test.ts#L116)
+- [server close input validation accepts code 1013 and reports its integer value to both ends](../test/ws/input-validation.test.ts#L116)
+- [server close input validation accepts code 1014 and reports its integer value to both ends](../test/ws/input-validation.test.ts#L116)
+- [server close input validation accepts code 3000 and reports its integer value to both ends](../test/ws/input-validation.test.ts#L116)
+- [server close input validation accepts code 4999 and reports its integer value to both ends](../test/ws/input-validation.test.ts#L116)
+- [server close input validation accepts code 3000.75 and reports its integer value to both ends](../test/ws/input-validation.test.ts#L116)
+- [client close input validation rejects a ASCII string reason exceeding 123 bytes](../test/ws/input-validation.test.ts#L130)
+- [client close input validation rejects a multibyte string reason exceeding 123 bytes](../test/ws/input-validation.test.ts#L130)
+- [client close input validation rejects a Buffer reason exceeding 123 bytes](../test/ws/input-validation.test.ts#L130)
+- [server close input validation rejects a ASCII string reason exceeding 123 bytes](../test/ws/input-validation.test.ts#L130)
+- [server close input validation rejects a multibyte string reason exceeding 123 bytes](../test/ws/input-validation.test.ts#L130)
+- [server close input validation rejects a Buffer reason exceeding 123 bytes](../test/ws/input-validation.test.ts#L130)
+- [client close input validation delivers a empty string reason as UTF-8 bytes](../test/ws/input-validation.test.ts#L145)
+- [client close input validation delivers a ASCII boundary reason as UTF-8 bytes](../test/ws/input-validation.test.ts#L145)
+- [client close input validation delivers a multibyte boundary reason as UTF-8 bytes](../test/ws/input-validation.test.ts#L145)
+- [client close input validation delivers a Buffer boundary reason as UTF-8 bytes](../test/ws/input-validation.test.ts#L145)
+- [client close input validation delivers a unpaired surrogate reason as UTF-8 bytes](../test/ws/input-validation.test.ts#L145)
+- [server close input validation delivers a empty string reason as UTF-8 bytes](../test/ws/input-validation.test.ts#L145)
+- [server close input validation delivers a ASCII boundary reason as UTF-8 bytes](../test/ws/input-validation.test.ts#L145)
+- [server close input validation delivers a multibyte boundary reason as UTF-8 bytes](../test/ws/input-validation.test.ts#L145)
+- [server close input validation delivers a Buffer boundary reason as UTF-8 bytes](../test/ws/input-validation.test.ts#L145)
+- [server close input validation delivers a unpaired surrogate reason as UTF-8 bytes](../test/ws/input-validation.test.ts#L145)
+- [client close input validation ignores an oversized reason when the code is omitted](../test/ws/input-validation.test.ts#L158)
+- [server close input validation ignores an oversized reason when the code is omitted](../test/ws/input-validation.test.ts#L158)
+- [client close input validation ignores invalid arguments while already CLOSING or CLOSED](../test/ws/input-validation.test.ts#L167)
+- [server close input validation ignores invalid arguments while already CLOSING or CLOSED](../test/ws/input-validation.test.ts#L167)
+- [aborts a CONNECTING socket before validating close arguments](../test/ws/input-validation.test.ts#L180)
+
+### ws event properties and listeners
+
+Event objects, callback receivers, property replacement, duplicate listeners, once, and
+interaction with EventEmitter removal.
+
+- [client ws event listeners starts with null event properties and uses a fresh event object for each listener](../test/ws/event-target.test.ts#L28)
+- [accepted ws event listeners starts with null event properties and uses a fresh event object for each listener](../test/ws/event-target.test.ts#L28)
+- [client ws event listeners binds function callbacks to the socket and handleEvent callbacks to their object](../test/ws/event-target.test.ts#L48)
+- [accepted ws event listeners binds function callbacks to the socket and handleEvent callbacks to their object](../test/ws/event-target.test.ts#L48)
+- [client ws event listeners ignores duplicate listener registration and keeps the first once option](../test/ws/event-target.test.ts#L65)
+- [accepted ws event listeners ignores duplicate listener registration and keeps the first once option](../test/ws/event-target.test.ts#L65)
+- [client ws event listeners removes an event listener without removing an onmessage property or ordinary emitter callback](../test/ws/event-target.test.ts#L83)
+- [accepted ws event listeners removes an event listener without removing an onmessage property or ordinary emitter callback](../test/ws/event-target.test.ts#L83)
+- [client ws event listeners moves replaced event properties to the end of the listener order and clears them with null](../test/ws/event-target.test.ts#L96)
+- [accepted ws event listeners moves replaced event properties to the end of the listener order and clears them with null](../test/ws/event-target.test.ts#L96)
+- [client ws event listeners reflects EventEmitter removal in property getters and permits re-registration](../test/ws/event-target.test.ts#L113)
+- [accepted ws event listeners reflects EventEmitter removal in property getters and permits re-registration](../test/ws/event-target.test.ts#L113)
+- [client ws event listeners clears an event property when assigned a non-function value](../test/ws/event-target.test.ts#L126)
+- [accepted ws event listeners clears an event property when assigned a non-function value](../test/ws/event-target.test.ts#L126)
+- [client ws event listeners tracks object listeners by identity for duplicate registration and removal](../test/ws/event-target.test.ts#L143)
+- [accepted ws event listeners tracks object listeners by identity for duplicate registration and removal](../test/ws/event-target.test.ts#L143)
+- [client ws event listeners retains binary event data identity when the underlying emitter supplies bytes](../test/ws/event-target.test.ts#L164)
+- [accepted ws event listeners retains binary event data identity when the underlying emitter supplies bytes](../test/ws/event-target.test.ts#L164)
+- [client ws event listeners wraps an Error without changing its identity and treats onerror as an error listener](../test/ws/event-target.test.ts#L173)
+- [accepted ws event listeners wraps an Error without changing its identity and treats onerror as an error listener](../test/ws/event-target.test.ts#L173)
+- [client ws event listeners uses an empty event message when an emitted error has no message](../test/ws/event-target.test.ts#L187)
+- [accepted ws event listeners uses an empty event message when an emitted error has no message](../test/ws/event-target.test.ts#L187)
+- [client ws event listeners ignores unsupported event types without removing ordinary emitter listeners](../test/ws/event-target.test.ts#L197)
+- [accepted ws event listeners ignores unsupported event types without removing ordinary emitter listeners](../test/ws/event-target.test.ts#L197)
+- [client ws event listeners delivers normal close information as string reason and wasClean=true](../test/ws/event-target.test.ts#L208)
+- [accepted ws event listeners delivers normal close information as string reason and wasClean=true](../test/ws/event-target.test.ts#L208)
+- [client ws event listeners uses wasClean=false after abrupt termination](../test/ws/event-target.test.ts#L224)
+- [accepted ws event listeners uses wasClean=false after abrupt termination](../test/ws/event-target.test.ts#L224)
+- [client ws event listeners delivers real text through the event property while the emitter still receives bytes](../test/ws/event-target.test.ts#L233)
+- [accepted ws event listeners delivers real text through the event property while the emitter still receives bytes](../test/ws/event-target.test.ts#L233)
+- [dispatches an open event with the client as target and callback receiver](../test/ws/event-target.test.ts#L250)
+
+### ws EventEmitter methods
+
+Registration, removal, dispatch, snapshots, raw once wrappers, and listener bookkeeping
+on the server and both socket sides.
+
+- [server EventEmitter returns its receiver from registration/removal and uses Node method aliases](../test/ws/emitter.test.ts#L22)
+- [client socket EventEmitter returns its receiver from registration/removal and uses Node method aliases](../test/ws/emitter.test.ts#L22)
+- [accepted socket EventEmitter returns its receiver from registration/removal and uses Node method aliases](../test/ws/emitter.test.ts#L22)
+- [server EventEmitter emits synchronously in registration order with duplicate listeners, arguments, and receiver](../test/ws/emitter.test.ts#L36)
+- [client socket EventEmitter emits synchronously in registration order with duplicate listeners, arguments, and receiver](../test/ws/emitter.test.ts#L36)
+- [accepted socket EventEmitter emits synchronously in registration order with duplicate listeners, arguments, and receiver](../test/ws/emitter.test.ts#L36)
+- [server EventEmitter removes the most recently registered matching listener and ignores missing listeners](../test/ws/emitter.test.ts#L53)
+- [client socket EventEmitter removes the most recently registered matching listener and ignores missing listeners](../test/ws/emitter.test.ts#L53)
+- [accepted socket EventEmitter removes the most recently registered matching listener and ignores missing listeners](../test/ws/emitter.test.ts#L53)
+- [server EventEmitter returns fresh listener snapshots and exposes once wrappers before and after emit](../test/ws/emitter.test.ts#L70)
+- [client socket EventEmitter returns fresh listener snapshots and exposes once wrappers before and after emit](../test/ws/emitter.test.ts#L70)
+- [accepted socket EventEmitter returns fresh listener snapshots and exposes once wrappers before and after emit](../test/ws/emitter.test.ts#L70)
+- [server EventEmitter runs a raw once wrapper only once and binds its owner even when called with a different receiver](../test/ws/emitter.test.ts#L92)
+- [client socket EventEmitter runs a raw once wrapper only once and binds its owner even when called with a different receiver](../test/ws/emitter.test.ts#L92)
+- [accepted socket EventEmitter runs a raw once wrapper only once and binds its owner even when called with a different receiver](../test/ws/emitter.test.ts#L92)
+- [server EventEmitter allows a raw wrapper listener to be called without consuming the once registration](../test/ws/emitter.test.ts#L109)
+- [client socket EventEmitter allows a raw wrapper listener to be called without consuming the once registration](../test/ws/emitter.test.ts#L109)
+- [accepted socket EventEmitter allows a raw wrapper listener to be called without consuming the once registration](../test/ws/emitter.test.ts#L109)
+- [server EventEmitter does not rerun a once listener when an earlier listener recursively emits the event](../test/ws/emitter.test.ts#L121)
+- [client socket EventEmitter does not rerun a once listener when an earlier listener recursively emits the event](../test/ws/emitter.test.ts#L121)
+- [accepted socket EventEmitter does not rerun a once listener when an earlier listener recursively emits the event](../test/ws/emitter.test.ts#L121)
+- [server EventEmitter takes a dispatch snapshot when listeners add or remove other listeners](../test/ws/emitter.test.ts#L137)
+- [client socket EventEmitter takes a dispatch snapshot when listeners add or remove other listeners](../test/ws/emitter.test.ts#L137)
+- [accepted socket EventEmitter takes a dispatch snapshot when listeners add or remove other listeners](../test/ws/emitter.test.ts#L137)
+- [server EventEmitter consumes a once registration before propagating its callback exception](../test/ws/emitter.test.ts#L154)
+- [client socket EventEmitter consumes a once registration before propagating its callback exception](../test/ws/emitter.test.ts#L154)
+- [accepted socket EventEmitter consumes a once registration before propagating its callback exception](../test/ws/emitter.test.ts#L154)
+- [server EventEmitter removes symbol listeners in reverse order while preserving other events](../test/ws/emitter.test.ts#L169)
+- [client socket EventEmitter removes symbol listeners in reverse order while preserving other events](../test/ws/emitter.test.ts#L169)
+- [accepted socket EventEmitter removes symbol listeners in reverse order while preserving other events](../test/ws/emitter.test.ts#L169)
+- [server EventEmitter orders integer event names before other strings and symbols and returns a snapshot](../test/ws/emitter.test.ts#L190)
+- [client socket EventEmitter orders integer event names before other strings and symbols and returns a snapshot](../test/ws/emitter.test.ts#L190)
+- [accepted socket EventEmitter orders integer event names before other strings and symbols and returns a snapshot](../test/ws/emitter.test.ts#L190)
+- [server EventEmitter distinguishes an omitted removeAllListeners argument from explicit undefined](../test/ws/emitter.test.ts#L210)
+- [client socket EventEmitter distinguishes an omitted removeAllListeners argument from explicit undefined](../test/ws/emitter.test.ts#L210)
+- [accepted socket EventEmitter distinguishes an omitted removeAllListeners argument from explicit undefined](../test/ws/emitter.test.ts#L210)
+- [server EventEmitter emits usable newListener/removeListener notifications with unwrapped once callbacks](../test/ws/emitter.test.ts#L224)
+- [client socket EventEmitter emits usable newListener/removeListener notifications with unwrapped once callbacks](../test/ws/emitter.test.ts#L224)
+- [accepted socket EventEmitter emits usable newListener/removeListener notifications with unwrapped once callbacks](../test/ws/emitter.test.ts#L224)
+- [server EventEmitter rethrows an unhandled Error object and delivers handled errors synchronously](../test/ws/emitter.test.ts#L243)
+- [client socket EventEmitter rethrows an unhandled Error object and delivers handled errors synchronously](../test/ws/emitter.test.ts#L243)
+- [accepted socket EventEmitter rethrows an unhandled Error object and delivers handled errors synchronously](../test/ws/emitter.test.ts#L243)
+
+### Basic ws messaging
+
+Server registration, request basics, text Buffer delivery, normal close, and address
+reuse.
+
+- [assigns a port and exposes address() through a separate constructor callback receiver](../test/ws/basic.test.ts#L9)
+- [connects asynchronously and supplies request basics and socket-side URLs](../test/ws/basic.test.ts#L25)
+- [delivers text as Buffer with isBinary=false in both directions, including an immediate server greeting](../test/ws/basic.test.ts#L52)
+- [closes both ends normally from client with code undefined and a Buffer reason](../test/ws/basic.test.ts#L86)
+- [closes both ends normally from client with code 1000 and a Buffer reason](../test/ws/basic.test.ts#L86)
+- [closes both ends normally from server with code undefined and a Buffer reason](../test/ws/basic.test.ts#L86)
+- [closes both ends normally from server with code 1000 and a Buffer reason](../test/ws/basic.test.ts#L86)
+- [releases a server registration so the same address can be used again](../test/ws/basic.test.ts#L110)
+- [normalizes HTTP URLs and rejects invalid URLs synchronously](../test/ws/basic.test.ts#L126)
+- [rejects sends before open and ignores sends during and after normal close](../test/ws/basic.test.ts#L137)
+- [reports an address collision without unregistering the listening server](../test/ws/basic.test.ts#L165)
+- [waits for connected sockets before completing server close callbacks](../test/ws/basic.test.ts#L177)
+- [emits close again when closing a stopped server without a callback](../test/ws/basic.test.ts#L204)
+
 ## smocket only
 
 These have no oracle to compare against: they cover the API smocket adds
 ([differences.md
 §B](./differences.md#b-what-smocket-adds-that-socketio-has-no-equivalent-for)) and the
-internals behind it, so they run the same under both targets. They are listed apart
-because nothing about socket.io follows from them.
+internals behind it. Native Socket.IO-mock cases run under both projects; virtual ws
+rules run only in the mock project. They establish no real-library equivalence.
+
+### Virtual ws registration and isolation
+
+Network-free delivery, independent Socket.IO state, virtual host registration, local
+aliases, and path selection. These mock-specific rules are not real-network equivalence
+claims.
+
+- [exchanges messages without creating an HTTP server or opening a TCP connection](../test/ws/isolation.test.ts#L39)
+- [matches local aliases for localhost without changing the client URL](../test/ws/isolation.test.ts#L57)
+- [matches local aliases for LOCALHOST without changing the client URL](../test/ws/isolation.test.ts#L57)
+- [matches local aliases for 0:0:0:0:0:0:0:1 without changing the client URL](../test/ws/isolation.test.ts#L57)
+- [keeps ws registrations alive when a Socket.IO server at the same address closes](../test/ws/isolation.test.ts#L70)
+- [keeps registrations with the same port on different hosts separate](../test/ws/isolation.test.ts#L82)
+- [does not connect a wrong-path client and still accepts a later matching client](../test/ws/isolation.test.ts#L100)
+- [cancels listening when closed before the deferred listening notification](../test/ws/isolation.test.ts#L118)
+- [closes a listening server without a callback and releases its address](../test/ws/isolation.test.ts#L132)
+- [cleans up both sockets when a client aborts inside the connection handler before open](../test/ws/isolation.test.ts#L141)
+- [drops queued text after the peer closes and rejects bytes in the text-only runtime](../test/ws/isolation.test.ts#L169)
+- [handles close on an internal socket before pairing](../test/ws/isolation.test.ts#L191)
+- [handles terminate on an internal socket before pairing](../test/ws/isolation.test.ts#L191)
+
+### Virtual ws registry boundaries
+
+Port and host validation, default ports, wildcard lookup and collisions, and virtual
+port exhaustion and reuse. These checks exercise the in-memory registry only.
+
+- [rejects invalid virtual port -1](../test/ws/registry.test.ts#L13)
+- [rejects invalid virtual port 65536](../test/ws/registry.test.ts#L13)
+- [rejects invalid virtual port 1.5](../test/ws/registry.test.ts#L13)
+- [rejects invalid virtual port NaN](../test/ws/registry.test.ts#L13)
+- [rejects invalid virtual port Infinity](../test/ws/registry.test.ts#L13)
+- [rejects unsupported server host example.test](../test/ws/registry.test.ts#L17)
+- [rejects unsupported server host 256.0.0.1](../test/ws/registry.test.ts#L17)
+- [rejects unsupported server host 127.0.0](../test/ws/registry.test.ts#L17)
+- [routes default ws and wss ports to the matching registration](../test/ws/registry.test.ts#L23)
+- [limits IPv4 wildcard lookup and detects wildcard collisions in either registration order](../test/ws/registry.test.ts#L32)
+- [accepts IPv4 and IPv6 targets through an IPv6 wildcard](../test/ws/registry.test.ts#L46)
+- [skips occupied ports, wraps the allocator, reports exhaustion, and reuses a released port](../test/ws/registry.test.ts#L53)
 
 ### Native acknowledgement teardown race
 

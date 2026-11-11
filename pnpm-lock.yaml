@@ -185,6 +185,9 @@ importers:
       '@types/node':
         specifier: ^26.1.1
         version: 26.6.5
+      '@types/ws':
+        specifier: 8.18.2
+        version: 8.18.2
       '@vitest/browser':
         specifier: ^5.0.0
         version: 5.0.5(vite@8.3.5(@types/node@26.6.5)(esbuild@0.27.7)(jiti@1.21.7)(terser@5.50.0))(vitest@5.0.5)
@@ -227,6 +230,9 @@ importers:
       vitest:
         specifier: ^5.0.0
         version: 5.0.5(@types/node@26.6.5)(@vitest/browser-playwright@5.0.5)(@vitest/coverage-v8@5.0.5)(@vitest/ui@5.0.5)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.27.7)(jiti@1.21.7)(terser@5.50.0))
+      ws:
+        specifier: 8.21.3
+        version: 8.21.3
 
   examples/chat-room:
     dependencies:
@@ -2518,6 +2524,9 @@ packages:
 
   '@types/ws@8.18.1':
     resolution: {integrity: sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg==}
+
+  '@types/ws@8.18.2':
+    resolution: {integrity: sha512-67MQl+fpWKVTT1NYdnmo3U4sc/xPo/zQBncVnI74qmQa0z/b+1g6iYqNmGCPbxO+zz2aklb08a0oHfegiVd0/w==}
 
   '@types/yargs-parser@21.0.3':
     resolution: {integrity: sha512-I4q9QU9MQv4oEOz4tAHJtNz1cwuLxn2F3xcc2iV5WdqLPpUnj30aUuxt1mAxYTG+oe8CZMV/+6rU4S4gRDzqtQ==}
@@ -9834,6 +9843,10 @@ snapshots:
   '@types/unist@3.0.3': {}
 
   '@types/ws@8.18.1':
+    dependencies:
+      '@types/node': 26.6.5
+
+  '@types/ws@8.18.2':
     dependencies:
       '@types/node': 26.6.5
 
