@@ -86,8 +86,15 @@ export function setupWs() {
   });
 
   return {
-    async createEventPair(configure?: (client: EventSocket) => void) {
-      const server = new eventConstructors.WebSocketServer({ port: 0, host: '127.0.0.1' });
+    async createEventPair(
+      configure?: (client: EventSocket) => void,
+      options: { clientTracking?: boolean } = {},
+    ) {
+      const server = new eventConstructors.WebSocketServer({
+        port: 0,
+        host: '127.0.0.1',
+        ...options,
+      });
       servers.push(server);
       const connections: {
         once(event: 'connection', listener: (socket: EventSocket) => void): unknown;
@@ -103,7 +110,7 @@ export function setupWs() {
       sockets.add(client);
       configure?.(client);
       await opened(client);
-      return { client, socket: await accepted };
+      return { server, client, socket: await accepted };
     },
     createServer(
       options: { port: number; host?: string; path?: string },

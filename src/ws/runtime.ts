@@ -220,6 +220,7 @@ for (const property of ['onopen', 'onerror', 'onclose', 'onmessage']) {
 }
 
 export class WebSocketServer extends WsEmitter<ServerEvents> {
+  declare clients: Set<WebSocket> | undefined;
   readonly host: string | undefined;
   readonly path: string | undefined;
   private info: AddressInfo | null;
@@ -231,6 +232,9 @@ export class WebSocketServer extends WsEmitter<ServerEvents> {
     super();
     this.host = options.host;
     this.path = options.path;
+    if (!Object.hasOwn(options, 'clientTracking') || options.clientTracking) {
+      this.clients = new Set();
+    }
     this.info = register(this, options.port);
     const receiver = { address: () => this.address() };
     queueMicrotask(() => {
@@ -259,6 +263,10 @@ export class WebSocketServer extends WsEmitter<ServerEvents> {
   connect(client: WebSocket, url: URL): void {
     const socket = new WebSocket(null);
     this.sockets.add(socket);
+    if (this.clients) {
+      this.clients.add(socket);
+      socket.on('close', () => this.clients?.delete(socket));
+    }
     socket.accept(client, this);
     const request: ConnectionRequest = {
       url: `${url.pathname}${url.search}`,
