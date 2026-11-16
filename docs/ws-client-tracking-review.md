@@ -6,7 +6,7 @@
 
 ## Implementation choices
 
-Real ws [adds and removes accepted sockets through its clients set](https://github.com/websockets/ws/blob/8.21.3/lib/websocket-server.js).
+Real ws [adds and removes accepted sockets through its clients set](https://github.com/websockets/ws/blob/8.23.0/lib/websocket-server.js).
 The runtime creates that public set when clientTracking is omitted or true.
 False and explicit undefined leave the property absent, following ws's option spread
 and truthiness check. Its close listener removes sockets before user close listeners.
