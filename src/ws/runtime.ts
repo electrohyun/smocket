@@ -22,7 +22,7 @@ interface ServerEvents {
 function clientUrl(address: string | URL): URL {
   let url: URL;
   try {
-    url = address instanceof URL ? address : new URL(address);
+    url = new URL(address);
   } catch {
     throw new SyntaxError(`Invalid URL: ${address}`);
   }
@@ -34,8 +34,7 @@ function clientUrl(address: string | URL): URL {
     );
   }
   if (url.hash) throw new SyntaxError('The URL contains a fragment identifier');
-  // ws binds the request before later changes to a caller-supplied URL object.
-  return new URL(url.href);
+  return url;
 }
 
 /** Internal basic runtime, not yet bound to the complete public constructor contract. */
@@ -154,7 +153,6 @@ export class WebSocket extends WsEmitter<SocketEvents> {
       this.fail(new Error('WebSocket was closed before the connection was established'));
       return;
     }
-    this.state = WebSocket.CLOSING;
     if (
       code !== undefined &&
       !(
@@ -169,6 +167,7 @@ export class WebSocket extends WsEmitter<SocketEvents> {
     if (bytes.length > 123) throw new RangeError('The message must not be greater than 123 bytes');
     // ws accepts fractional numbers and truncates them when writing the close code.
     const closeCode = code === undefined ? 1005 : Math.trunc(code);
+    this.state = WebSocket.CLOSING;
     const peer = this.peer;
     queueMicrotask(() => {
       this.finish(closeCode, bytes, true);
