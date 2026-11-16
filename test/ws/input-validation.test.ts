@@ -63,6 +63,20 @@ it.each(['#', '%23room'])('accepts URL suffix %s and preserves it in url', async
   expect(await requestUrl).toBe(suffix === '#' ? '/' : '/%23room');
 });
 
+it.each([
+  { input: 'http://127.0.0.1/chat?room=one', expected: 'ws://127.0.0.1/chat?room=one' },
+  { input: 'https://127.0.0.1/chat?room=one', expected: 'wss://127.0.0.1/chat?room=one' },
+])('preserves the caller URL object when normalizing $input', async ({ input, expected }) => {
+  const address = new URL(input);
+  const client = ctx.createClient(address);
+  client.on('error', () => {});
+  const done = closed(client);
+  expect(address.href).toBe(input);
+  expect(client.url).toBe(expected);
+  client.terminate();
+  await done;
+});
+
 it('snapshots the normalized URL before the caller changes the URL object', async () => {
   const server = ctx.createServer({ port: 0, host: '127.0.0.1', path: '/chat' });
   const { port } = await listening(server);
@@ -71,7 +85,7 @@ it('snapshots the normalized URL before the caller changes the URL object', asyn
   });
   const address = new URL(`http://127.0.0.1:${port}/chat?room=one`);
   const client = ctx.createClient(address);
-  expect(address.protocol).toBe('ws:');
+  expect(address.protocol).toBe('http:');
   address.port = '1';
   address.pathname = '/changed';
   address.search = '?room=two';
@@ -88,27 +102,38 @@ describe.each(['client', 'server'] as const)('%s close input validation', (side)
       : { initiator: socket, peer: client };
   }
 
+  async function closeAfterRejection(initiator: Socket, peer: Socket) {
+    const done = Promise.all([closed(initiator), closed(peer)]);
+    expect(initiator.close(1000, 'recovered')).toBeUndefined();
+    expect(initiator.readyState).toBe(2);
+    expect(await done).toEqual([
+      { code: 1000, reason: Buffer.from('recovered') },
+      { code: 1000, reason: Buffer.from('recovered') },
+    ]);
+  }
+
   it.each([999, 1004, 1005, 1006, 1015, 2999, 5000, -1, NaN, Infinity, 1014.5])(
-    'rejects code %s after entering CLOSING',
+    'rejects code %s without leaving OPEN',
     async (code) => {
       const { initiator, peer } = await pair();
       expect(() => initiator.close(code, 'a'.repeat(124))).toThrow(
         new TypeError('First argument must be a valid error code number'),
       );
-      expect(initiator.readyState).toBe(2);
+      expect(initiator.readyState).toBe(1);
       expect(peer.readyState).toBe(1);
-      expect(initiator.close(1000)).toBeUndefined();
-      expect(initiator.readyState).toBe(2);
+      await closeAfterRejection(initiator, peer);
     },
   );
 
   it.each(['1000', null, true])('rejects non-number code %s', async (code) => {
-    const { initiator } = await pair();
+    const { initiator, peer } = await pair();
     // @ts-expect-error JavaScript callers can pass values outside the declared API.
     expect(() => initiator.close(code)).toThrow(
       new TypeError('First argument must be a valid error code number'),
     );
-    expect(initiator.readyState).toBe(2);
+    expect(initiator.readyState).toBe(1);
+    expect(peer.readyState).toBe(1);
+    await closeAfterRejection(initiator, peer);
   });
 
   it.each([
@@ -132,8 +157,9 @@ describe.each(['client', 'server'] as const)('%s close input validation', (side)
     expect(() => initiator.close(1000, reason)).toThrow(
       new RangeError('The message must not be greater than 123 bytes'),
     );
-    expect(initiator.readyState).toBe(2);
+    expect(initiator.readyState).toBe(1);
     expect(peer.readyState).toBe(1);
+    await closeAfterRejection(initiator, peer);
   });
 
   it.each([
