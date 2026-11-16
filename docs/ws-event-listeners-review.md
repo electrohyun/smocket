@@ -37,6 +37,6 @@ live byte sends and binaryType conversion.
 [`event-target.typecheck.ts`](../test/ws/event-target.typecheck.ts) checks actual
 runtime callback receivers, event data, read-only fields, and excluded options.
 
-Full failure ordering, pending work, caller-buffer mutation, and close races remain
+Full failure ordering, pending work during failure or termination, caller-buffer mutation, and close races remain
 the comparisons in [#540](https://github.com/electrohyun/smocket/issues/540).
 The package binding and independent consumer checks remain [#562](https://github.com/electrohyun/smocket/issues/562).

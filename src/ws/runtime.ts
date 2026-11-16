@@ -157,6 +157,8 @@ export class WebSocket extends WsEmitter<SocketEvents> {
       options = undefined;
     }
     const payload = typeof data === 'number' ? data.toString() : data;
+    // ws still converts supported inputs after close, before queuing a state error.
+    const bytes = messageBytes(payload);
     if (this.state !== WebSocket.OPEN) {
       const state = this.state === WebSocket.CLOSING ? 'CLOSING' : 'CLOSED';
       const error = new Error(`WebSocket is not open: readyState ${this.state} (${state})`);
@@ -164,7 +166,6 @@ export class WebSocket extends WsEmitter<SocketEvents> {
       return;
     }
     const { binary } = { binary: typeof payload !== 'string', ...options };
-    const bytes = messageBytes(payload);
     const peer = this.peer;
     // A successful send callback confirms local acceptance, independently of peer receipt.
     queueMicrotask(() => {

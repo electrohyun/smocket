@@ -166,14 +166,11 @@ it('cleans up both sockets when a client aborts inside the connection handler be
   expect(client.readyState).toBe(WebSocket.CLOSED);
 });
 
-it('drops queued text after the peer closes and rejects bytes in the text-only runtime', async () => {
+it('drops queued text after the peer closes', async () => {
   const { server, address } = await serve({ port: 0 });
   const accepted = new Promise<WebSocket>((resolve) => server.once('connection', resolve));
   const client = await connect(`ws://localhost:${address.port}`);
   const socket = await accepted;
-  // Byte payload implementation belongs to the next ws runtime slice.
-  // @ts-expect-error Verify the current runtime boundary for JavaScript callers.
-  expect(() => client.send(Buffer.from('bytes'))).toThrow('The basic ws runtime accepts text only');
   const events: string[] = [];
   client.on('message', () => events.push('message'));
   client.on('close', () => events.push('close'));

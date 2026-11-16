@@ -6,7 +6,7 @@
 
 ## Implementation choices
 
-Real ws [normalizes numbers and selects binary defaults before sending](https://github.com/websockets/ws/blob/8.21.3/lib/websocket.js).
+Real ws [normalizes numbers and selects binary defaults before sending](https://github.com/websockets/ws/blob/8.23.0/lib/websocket.js).
 [`data.ts`](../src/ws/data.ts) converts the selected Buffer-compatible inputs while
 preserving view offsets and lengths. Message delivery uses bytes without encoding frames.
 Text still reaches ordinary message listeners as Buffer with isBinary=false.
@@ -16,13 +16,19 @@ Successful ws callbacks receive null despite its optional-Error declaration. The
 runtime preserves that type and uses Reflect.apply for the null success argument.
 Changing it to undefined would differ from observed ws behavior. CLOSING/CLOSED
 sends report an asynchronous Error; CONNECTING sends throw synchronously.
+CONNECTING rejects before converting the input. Other states still convert selected
+inputs before reporting a state error, so a throwing valueOf throws synchronously
+without scheduling a callback even after close.
 
 ## Validation limits
 
 [`payloads.test.ts`](../test/ws/payloads.test.ts) compares selected inputs, binary
 overrides, receive representation, callbacks, and state-dependent send errors on both
-socket sides. Text byte inputs use valid UTF-8. Caller-buffer mutation, malformed
-UTF-8 rejection, pending work, concurrent close, and full failure ordering require
+socket sides. A later message marks mixed text/byte FIFO ordering; closing immediately
+after several sends preserves their messages before the close event and completes
+each callback once. These checks do not require callback order relative to peer receipt.
+Text byte inputs use valid UTF-8. Caller-buffer mutation, malformed
+UTF-8 rejection, pending work during failure or abrupt termination, concurrent close, and full failure ordering require
 separate comparisons in [#540](https://github.com/electrohyun/smocket/issues/540).
 These checks do not complete every lifecycle requirement of that issue.
 

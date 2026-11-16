@@ -59,5 +59,5 @@ selection, and text order; packed application checks belong to [#539](https://gi
 The [payload review](./ws-payloads-review.md) covers selected byte inputs, binaryType,
 and send callbacks.
 The failure and abrupt-close paths support teardown, but their detailed ordering,
-concurrent close, pending work, malformed UTF-8, and caller-buffer mutation require the
+concurrent close, pending work during failure or termination, malformed UTF-8, and caller-buffer mutation require the
 real-ws comparisons in [#540](https://github.com/electrohyun/smocket/issues/540).
