@@ -633,6 +633,36 @@ These cases ran against ws 8.23.0 and the ws mock from the same test file and pa
 both. They cover the internal basic runtime; package entry points and the rest of the
 selected ws contract require their own checks.
 
+### ws receive validation
+
+Malformed text and close reasons, received close code validation, error identity, and
+per-side closing outcomes.
+
+- [client invalid incoming data rejects invalid lead text and stops later incoming messages](../test/ws/receive-validation.test.ts#L58)
+- [client invalid incoming data rejects truncated sequence text and stops later incoming messages](../test/ws/receive-validation.test.ts#L58)
+- [client invalid incoming data rejects overlong sequence text and stops later incoming messages](../test/ws/receive-validation.test.ts#L58)
+- [client invalid incoming data rejects surrogate text and stops later incoming messages](../test/ws/receive-validation.test.ts#L58)
+- [server invalid incoming data rejects invalid lead text and stops later incoming messages](../test/ws/receive-validation.test.ts#L58)
+- [server invalid incoming data rejects truncated sequence text and stops later incoming messages](../test/ws/receive-validation.test.ts#L58)
+- [server invalid incoming data rejects overlong sequence text and stops later incoming messages](../test/ws/receive-validation.test.ts#L58)
+- [server invalid incoming data rejects surrogate text and stops later incoming messages](../test/ws/receive-validation.test.ts#L58)
+- [client invalid incoming data accepts the same bytes as binary data](../test/ws/receive-validation.test.ts#L74)
+- [server invalid incoming data accepts the same bytes as binary data](../test/ws/receive-validation.test.ts#L74)
+- [client invalid incoming data rejects a malformed close reason](../test/ws/receive-validation.test.ts#L88)
+- [server invalid incoming data rejects a malformed close reason](../test/ws/receive-validation.test.ts#L88)
+- [client invalid incoming data rejects the reserved code produced by truncating 1004.5](../test/ws/receive-validation.test.ts#L98)
+- [client invalid incoming data rejects the reserved code produced by truncating 1005.5](../test/ws/receive-validation.test.ts#L98)
+- [client invalid incoming data rejects the reserved code produced by truncating 1006.5](../test/ws/receive-validation.test.ts#L98)
+- [server invalid incoming data rejects the reserved code produced by truncating 1004.5](../test/ws/receive-validation.test.ts#L98)
+- [server invalid incoming data rejects the reserved code produced by truncating 1005.5](../test/ws/receive-validation.test.ts#L98)
+- [server invalid incoming data rejects the reserved code produced by truncating 1006.5](../test/ws/receive-validation.test.ts#L98)
+- [client invalid incoming data validates the received code before the reason](../test/ws/receive-validation.test.ts#L115)
+- [server invalid incoming data validates the received code before the reason](../test/ws/receive-validation.test.ts#L115)
+- [client invalid incoming data ignores a malformed reason when no close code was supplied](../test/ws/receive-validation.test.ts#L129)
+- [server invalid incoming data ignores a malformed reason when no close code was supplied](../test/ws/receive-validation.test.ts#L129)
+- [client invalid incoming data keeps an already-sent close when invalid text arrives during closing](../test/ws/receive-validation.test.ts#L141)
+- [server invalid incoming data keeps an already-sent close when invalid text arrives during closing](../test/ws/receive-validation.test.ts#L141)
+
 ### ws close races and pending delivery
 
 Concurrent close information, close and terminate combinations, pending sends, and

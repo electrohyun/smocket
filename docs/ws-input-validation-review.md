@@ -39,8 +39,7 @@ range limits, UTF-8 reason boundaries, reason copies, URL preservation and snaps
 immediate state changes, and successful close after rejected arguments. URL-only
 secure cases abort immediately and do not verify TLS success.
 
-Buffer reason comparisons use valid UTF-8. Receiver rejection of malformed UTF-8
-or fractional codes that truncate to reserved values, full failure ordering,
-pending work, and concurrent close remain the comparisons in
-[#540](https://github.com/electrohyun/smocket/issues/540).
+The [receive validation review](./ws-receive-validation-review.md) covers malformed
+UTF-8 and fractional codes that truncate to reserved values. The
+[close-race review](./ws-close-races-review.md) covers pending work and concurrent close.
 The public package binding remains [#562](https://github.com/electrohyun/smocket/issues/562).

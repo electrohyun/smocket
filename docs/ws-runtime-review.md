@@ -61,5 +61,6 @@ and send callbacks.
 The [failure review](./ws-failure-review.md) covers failed or cancelled connection
 attempts and repeated server-close callbacks.
 The [close-race review](./ws-close-races-review.md) covers per-socket close results,
-termination, and pending delivery. Malformed UTF-8 and caller-buffer mutation require
-the real-ws comparisons in [#540](https://github.com/electrohyun/smocket/issues/540).
+termination, and pending delivery. The [receive validation review](./ws-receive-validation-review.md)
+covers malformed text and close information; caller-buffer mutation requires
+separate comparisons in [#540](https://github.com/electrohyun/smocket/issues/540).
