@@ -77,6 +77,7 @@ describe.each(['client', 'server'] as const)('%s selected send API', (side) => {
         ).toBeUndefined();
       });
       synchronous = false;
+
       const result = await received;
       await written;
       expect(Buffer.isBuffer(result.data)).toBe(true);
@@ -106,6 +107,7 @@ describe.each(['client', 'server'] as const)('%s selected send API', (side) => {
         resolve();
       }),
     );
+
     expect(await received).toEqual({ data: Buffer.from('hello'), binary: expectedBinary });
     expect(await event).toEqual(expectedBinary ? Buffer.from('hello') : 'hello');
     await written;
@@ -120,7 +122,9 @@ describe.each(['client', 'server'] as const)('%s selected send API', (side) => {
       const event = new Promise<unknown>((resolve) => {
         receiver.onmessage = (value: { readonly data: unknown }) => resolve(value.data);
       });
+
       sender.send(Buffer.from('hello'));
+
       const { data, binary } = await received;
       expect(binary).toBe(true);
       expect(await event).toBe(data);
@@ -135,7 +139,9 @@ describe.each(['client', 'server'] as const)('%s selected send API', (side) => {
     }
     receiver.binaryType = 'arraybuffer';
     const text = message(receiver);
+
     sender.send('hello');
+
     expect(await text).toEqual({ data: Buffer.from('hello'), binary: false });
   });
 
@@ -143,6 +149,7 @@ describe.each(['client', 'server'] as const)('%s selected send API', (side) => {
     const { receiver } = await pair();
     // @ts-expect-error Invalid JavaScript assignments must leave the selected value unchanged.
     receiver.binaryType = 'invalid';
+
     expect(receiver.binaryType).toBe('nodebuffer');
   });
 
@@ -155,11 +162,13 @@ describe.each(['client', 'server'] as const)('%s selected send API', (side) => {
         if (Buffer.isBuffer(data) && data.toString() === 'marker') resolve();
       });
     });
+
     sender.send('first');
     sender.send(Buffer.from('second'));
     sender.send(new Uint8Array([116, 104, 105, 114, 100]));
     sender.send('marker');
     await marker;
+
     expect(received).toEqual([
       { data: Buffer.from('first'), binary: false },
       { data: Buffer.from('second'), binary: true },
@@ -188,10 +197,12 @@ describe.each(['client', 'server'] as const)('%s selected send API', (side) => {
           }),
       ),
     );
+
     sender.close(1000, 'done');
     expect(sender.readyState).toBe(sender.CLOSING);
     const closeInfo = await done;
     await written;
+
     expect(events).toEqual([
       { data: Buffer.from('first'), binary: false },
       { data: Buffer.from('second'), binary: true },
@@ -219,6 +230,7 @@ describe.each(['client', 'server'] as const)('%s selected send API', (side) => {
       const failure = new Error('payload conversion failed');
       let conversions = 0;
       const callbacks: string[] = [];
+
       expect(() =>
         sender.send(
           {
@@ -231,6 +243,7 @@ describe.each(['client', 'server'] as const)('%s selected send API', (side) => {
         ),
       ).toThrow(failure);
       expect(conversions).toBe(1);
+
       // A later send callback proves that the failed conversion queued no callback.
       await new Promise<void>((resolve) =>
         sender.send('marker', () => {
@@ -238,6 +251,7 @@ describe.each(['client', 'server'] as const)('%s selected send API', (side) => {
           resolve();
         }),
       );
+
       expect(callbacks).toEqual(['marker']);
     },
   );
@@ -249,6 +263,7 @@ describe.each(['client', 'server'] as const)('%s selected send API', (side) => {
       const received: unknown[] = [];
       receiver.on('message', (data) => received.push(data));
       const done = Promise.all([closed(sender), closed(receiver)]);
+
       sender.close();
       if (state === 'CLOSED') await done;
       let synchronous = true;
@@ -265,9 +280,45 @@ describe.each(['client', 'server'] as const)('%s selected send API', (side) => {
       synchronous = false;
       await written;
       await done;
+
       expect(received).toEqual([]);
     },
   );
+
+  describe.each(['OPEN', 'CLOSING', 'CLOSED'] as const)('invalid payloads while %s', (state) => {
+    const invalidInputs: { label: string; data: unknown }[] = [
+      { label: 'plain object', data: {} },
+      { label: 'invalid primitive conversion', data: { [Symbol.toPrimitive]: true } },
+      { label: 'unsupported valueOf result', data: { valueOf: () => true } },
+    ];
+
+    it.each(invalidInputs)(
+      'rejects $label synchronously without invoking its callback',
+      async ({ data }) => {
+        const { sender, receiver } = await pair();
+        if (state !== 'OPEN') {
+          const done = Promise.all([closed(sender), closed(receiver)]);
+          sender.close();
+          if (state === 'CLOSED') await done;
+        }
+        const callbacks: string[] = [];
+
+        expect(() => {
+          // @ts-expect-error JavaScript callers can pass values outside the selected input types.
+          sender.send(data, () => callbacks.push('invalid'));
+        }).toThrow(TypeError);
+
+        await new Promise<void>((resolve) =>
+          sender.send('marker', () => {
+            callbacks.push('marker');
+            resolve();
+          }),
+        );
+
+        expect(callbacks).toEqual(['marker']);
+      },
+    );
+  });
 });
 
 it('throws on send while CONNECTING before invoking a callback', async () => {
@@ -286,12 +337,14 @@ it('throws on send while CONNECTING before invoking a callback', async () => {
       ),
     ).toThrow('WebSocket is not open: readyState 0 (CONNECTING)');
   });
+
   await new Promise<void>((resolve) =>
     client.send('marker', () => {
       callbacks.push('marker');
       resolve();
     }),
   );
+
   expect(conversions).toBe(0);
   expect(callbacks).toEqual(['marker']);
 });
