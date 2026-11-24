@@ -633,6 +633,34 @@ These cases ran against ws 8.23.0 and the ws mock from the same test file and pa
 both. They cover the internal basic runtime; package entry points and the rest of the
 selected ws contract require their own checks.
 
+### ws caller byte storage
+
+Caller storage changed after send or from its callback, offset views, and consecutive
+sends reusing one Buffer.
+
+- [client caller byte storage changed immediately preserves the sent Buffer bytes](../test/ws/buffer-lifetime.test.ts#L68)
+- [client caller byte storage changed immediately preserves the sent offset Uint8Array bytes](../test/ws/buffer-lifetime.test.ts#L68)
+- [client caller byte storage changed immediately preserves the sent offset DataView bytes](../test/ws/buffer-lifetime.test.ts#L68)
+- [client caller byte storage changed immediately preserves the sent ArrayBuffer bytes](../test/ws/buffer-lifetime.test.ts#L68)
+- [client caller byte storage changed immediately preserves the sent SharedArrayBuffer bytes](../test/ws/buffer-lifetime.test.ts#L68)
+- [client caller byte storage changed in the callback preserves the sent Buffer bytes](../test/ws/buffer-lifetime.test.ts#L68)
+- [client caller byte storage changed in the callback preserves the sent offset Uint8Array bytes](../test/ws/buffer-lifetime.test.ts#L68)
+- [client caller byte storage changed in the callback preserves the sent offset DataView bytes](../test/ws/buffer-lifetime.test.ts#L68)
+- [client caller byte storage changed in the callback preserves the sent ArrayBuffer bytes](../test/ws/buffer-lifetime.test.ts#L68)
+- [client caller byte storage changed in the callback preserves the sent SharedArrayBuffer bytes](../test/ws/buffer-lifetime.test.ts#L68)
+- [server caller byte storage changed immediately preserves the sent Buffer bytes](../test/ws/buffer-lifetime.test.ts#L68)
+- [server caller byte storage changed immediately preserves the sent offset Uint8Array bytes](../test/ws/buffer-lifetime.test.ts#L68)
+- [server caller byte storage changed immediately preserves the sent offset DataView bytes](../test/ws/buffer-lifetime.test.ts#L68)
+- [server caller byte storage changed immediately preserves the sent ArrayBuffer bytes](../test/ws/buffer-lifetime.test.ts#L68)
+- [server caller byte storage changed immediately preserves the sent SharedArrayBuffer bytes](../test/ws/buffer-lifetime.test.ts#L68)
+- [server caller byte storage changed in the callback preserves the sent Buffer bytes](../test/ws/buffer-lifetime.test.ts#L68)
+- [server caller byte storage changed in the callback preserves the sent offset Uint8Array bytes](../test/ws/buffer-lifetime.test.ts#L68)
+- [server caller byte storage changed in the callback preserves the sent offset DataView bytes](../test/ws/buffer-lifetime.test.ts#L68)
+- [server caller byte storage changed in the callback preserves the sent ArrayBuffer bytes](../test/ws/buffer-lifetime.test.ts#L68)
+- [server caller byte storage changed in the callback preserves the sent SharedArrayBuffer bytes](../test/ws/buffer-lifetime.test.ts#L68)
+- [client caller byte storage keeps separate message bytes when consecutive sends reuse one Buffer](../test/ws/buffer-lifetime.test.ts#L93)
+- [server caller byte storage keeps separate message bytes when consecutive sends reuse one Buffer](../test/ws/buffer-lifetime.test.ts#L93)
+
 ### ws receive validation
 
 Malformed text and close reasons, received close code validation, error identity, and

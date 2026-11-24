@@ -29,9 +29,16 @@ overrides, receive representation, callbacks, and state-dependent send errors on
 socket sides. A later message marks mixed text/byte FIFO ordering; closing immediately
 after several sends preserves their messages before the close event and completes
 each callback once. These checks do not require callback order relative to peer receipt.
+[`buffer-lifetime.test.ts`](../test/ws/buffer-lifetime.test.ts) changes caller-owned
+storage immediately after send and from its successful callback. Small Buffer,
+offset Uint8Array/DataView, ArrayBuffer, and SharedArrayBuffer inputs retain their
+original received bytes in both directions. Consecutive sends reusing one Buffer
+also retain distinct message bytes. A later marker completes the receive sequence;
+normal close ends the callback sequence. These comparisons establish copied delivery
+bytes for the selected inputs, not large queued writes or transport backpressure.
+
 The [receive validation review](./ws-receive-validation-review.md) covers malformed
-UTF-8 rejection. Caller-buffer mutation requires separate comparisons in
-[#540](https://github.com/electrohyun/smocket/issues/540).
+UTF-8 rejection.
 The [close-race review](./ws-close-races-review.md) covers accepted sends during
 termination and messages received while normal closing is pending.
 
