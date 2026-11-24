@@ -12,11 +12,13 @@ state before its deferred connection lookup, so that attempt cannot be admitted.
 The error precedes close, with code 1006 and an empty Buffer reason.
 
 [`failure.test.ts`](../test/ws/failure.test.ts) compares cancellation, a missing
-server, a mismatched host or path, and a secure target against a plain server.
+server, a mismatched path, and a secure target against a plain server.
 A later matching connection marks the end of each failed attempt and proves that
 it produced no server admission. A missing server's address can be reused.
 Failure Error values describe the application outcome; native TCP/TLS diagnostics
 belong to the host network stack.
+Virtual host rejection is checked separately in the mock-only
+[isolation suite](../test/ws/isolation.test.ts), independently of host loopback routing.
 
 ## Server close callbacks
 

@@ -56,7 +56,6 @@ it('closes a failed connection to a missing server and permits reuse of the addr
 
 it.each([
   { label: 'mismatched path', protocol: 'ws', host: '127.0.0.1', path: '/other' },
-  { label: 'mismatched host', protocol: 'ws', host: '127.0.0.2', path: '/chat' },
   {
     label: 'secure target against a plain server',
     protocol: 'wss',
