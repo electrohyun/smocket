@@ -123,7 +123,8 @@ it.each([
           recipient.readyState === recipient.OPEN &&
           (includeSender || recipient !== sender || text === marker)
         ) {
-          recipient.send(text);
+          const target: Pick<Socket, 'send'> = recipient;
+          target.send(text);
         }
       }
     });

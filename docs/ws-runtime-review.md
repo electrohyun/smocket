@@ -1,7 +1,7 @@
 # Basic ws runtime review notes
 
 > **TL;DR** The internal ws runtime models server registration, asynchronous
-> connection, text delivery, and normal close. Real-ws comparison and mock-specific
+> connection, selected payload delivery, and normal close. Real-ws comparison and mock-specific
 > isolation checks establish separate guarantees; package binding belongs to #562.
 
 ## Implementation choices
@@ -56,6 +56,8 @@ The [input validation review notes](./ws-input-validation-review.md) explain URL
 normalization, URL snapshots, close arguments, and state-dependent validation.
 The [client set review](./ws-client-tracking-review.md) covers membership, sender
 selection, and text order; packed application checks belong to [#539](https://github.com/electrohyun/smocket/issues/539).
+The [payload review](./ws-payloads-review.md) covers selected byte inputs, binaryType,
+and send callbacks.
 The failure and abrupt-close paths support teardown, but their detailed ordering,
-send callbacks, concurrent close, pending work, and byte inputs require the
+concurrent close, pending work during failure or termination, malformed UTF-8, and caller-buffer mutation require the
 real-ws comparisons in [#540](https://github.com/electrohyun/smocket/issues/540).

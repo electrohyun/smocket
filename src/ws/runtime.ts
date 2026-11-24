@@ -4,8 +4,12 @@ import type {
   ConnectionRequest,
   EventListenerOptions,
   ListeningCallback,
+  SendCallback,
+  SendData,
+  SendOptions,
   ServerOptions,
 } from './contracts';
+import { messageBytes } from './data';
 import { WsEmitter } from './emitter';
 import { WsEventTarget } from './event-target';
 import type { SocketEvents } from './event-target';
@@ -49,6 +53,7 @@ export class WebSocket extends WsEmitter<SocketEvents> {
   readonly CLOSING = 2;
   readonly CLOSED = 3;
   readonly url: string | undefined;
+  private outputType: 'nodebuffer' | 'arraybuffer' = 'nodebuffer';
   private state: 0 | 1 | 2 | 3;
   private peer: WebSocket | undefined;
   private server: WebSocketServer | undefined;
@@ -121,6 +126,13 @@ export class WebSocket extends WsEmitter<SocketEvents> {
     return this.state;
   }
 
+  get binaryType(): 'nodebuffer' | 'arraybuffer' {
+    return this.outputType;
+  }
+  set binaryType(value: 'nodebuffer' | 'arraybuffer') {
+    if (value === 'nodebuffer' || value === 'arraybuffer') this.outputType = value;
+  }
+
   /** Pairing is internal; no socket.io handshake, namespace, or ACK path is used. */
   accept(client: WebSocket, server: WebSocketServer): void {
     this.peer = client;
@@ -134,16 +146,37 @@ export class WebSocket extends WsEmitter<SocketEvents> {
     });
   }
 
-  send(data: string): void {
+  send(data: SendData, callback?: SendCallback): void;
+  send(data: SendData, options?: SendOptions, callback?: SendCallback): void;
+  send(data: SendData, options?: SendOptions | SendCallback, callback?: SendCallback): void {
     if (this.state === WebSocket.CONNECTING) {
       throw new Error('WebSocket is not open: readyState 0 (CONNECTING)');
     }
-    if (this.state !== WebSocket.OPEN) return;
-    if (typeof data !== 'string') throw new TypeError('The basic ws runtime accepts text only');
-    const bytes = Buffer.from(data);
+    if (typeof options === 'function') {
+      callback = options;
+      options = undefined;
+    }
+    const payload = typeof data === 'number' ? data.toString() : data;
+    // ws still converts supported inputs after close, before queuing a state error.
+    const bytes = messageBytes(payload);
+    if (this.state !== WebSocket.OPEN) {
+      const state = this.state === WebSocket.CLOSING ? 'CLOSING' : 'CLOSED';
+      const error = new Error(`WebSocket is not open: readyState ${this.state} (${state})`);
+      queueMicrotask(() => callback?.(error));
+      return;
+    }
+    const { binary } = { binary: typeof payload !== 'string', ...options };
     const peer = this.peer;
+    // A successful send callback confirms local acceptance, independently of peer receipt.
     queueMicrotask(() => {
-      if (peer && peer.state !== WebSocket.CLOSED) peer.emit('message', bytes, false);
+      // ws passes null on successful writes despite its optional-Error callback type.
+      if (callback) Reflect.apply(callback, undefined, [null]);
+    });
+    queueMicrotask(() => {
+      if (!peer || peer.state === WebSocket.CLOSED) return;
+      const received =
+        binary && peer.binaryType === 'arraybuffer' ? Uint8Array.from(bytes).buffer : bytes;
+      peer.emit('message', received, !!binary);
     });
   }
 
@@ -215,7 +248,7 @@ export class WebSocket extends WsEmitter<SocketEvents> {
   }
 }
 
-for (const property of ['onopen', 'onerror', 'onclose', 'onmessage']) {
+for (const property of ['onopen', 'onerror', 'onclose', 'onmessage', 'binaryType']) {
   Object.defineProperty(WebSocket.prototype, property, { enumerable: true });
 }
 

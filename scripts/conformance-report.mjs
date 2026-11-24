@@ -44,6 +44,12 @@ const END = '<!-- conformance:generated end -->';
  */
 const AREAS = [
   {
+    file: 'test/ws/payloads.test.ts',
+    title: 'ws payloads and send callbacks',
+    blurb:
+      'Buffer-compatible inputs, binary overrides, receive binaryType, and state-dependent send callbacks.',
+  },
+  {
     file: 'test/ws/client-tracking.test.ts',
     title: 'ws client tracking',
     blurb:
