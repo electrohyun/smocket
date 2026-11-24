@@ -633,6 +633,19 @@ These cases ran against ws 8.23.0 and the ws mock from the same test file and pa
 both. They cover the internal basic runtime; package entry points and the rest of the
 selected ws contract require their own checks.
 
+### ws connection failure and server close
+
+Failed and cancelled connection attempts, recovery, and server close event and callback
+order.
+
+- [closes a failed connection to a missing server and permits reuse of the address](../test/ws/failure.test.ts#L30)
+- [rejects a mismatched path before accepting a later matching client](../test/ws/failure.test.ts#L66)
+- [rejects a mismatched host before accepting a later matching client](../test/ws/failure.test.ts#L66)
+- [rejects a secure target against a plain server before accepting a later matching client](../test/ws/failure.test.ts#L66)
+- [cancels a CONNECTING client with close before server admission](../test/ws/failure.test.ts#L92)
+- [cancels a CONNECTING client with terminate before server admission](../test/ws/failure.test.ts#L92)
+- [runs stopped-server callbacks on the close event and only once per call](../test/ws/failure.test.ts#L121)
+
 ### ws payloads and send callbacks
 
 Buffer-compatible inputs, binary overrides, receive binaryType, and state-dependent send

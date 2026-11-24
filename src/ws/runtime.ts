@@ -324,10 +324,8 @@ export class WebSocketServer extends WsEmitter<ServerEvents> {
 
   close(callback?: (error?: Error) => void): void {
     if (this.finished) {
-      queueMicrotask(() => {
-        callback?.(new Error('The server is not running'));
-        this.emit('close');
-      });
+      if (callback) this.once('close', () => callback(new Error('The server is not running')));
+      queueMicrotask(() => this.emit('close'));
       return;
     }
     if (callback) this.once('close', callback);
