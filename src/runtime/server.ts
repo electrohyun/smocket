@@ -25,8 +25,8 @@ import type {
   TimeoutBroadcastContract,
   ConnectionMiddleware,
 } from '../contract';
+import { NodeEmitter, type Listener, type OrdinaryEventName } from '../core/listeners';
 import { defer, resolveAuth, serverClosedError } from './delivery';
-import { NodeEmitter, type Listener, type OrdinaryEventName } from './emitters';
 import { Manager } from './manager';
 import { Namespace, ParentNamespace, type Waiter } from './namespaces';
 import { ClientSocket, FailedClientSocket, ServerSocket } from './sockets';

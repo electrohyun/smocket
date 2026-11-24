@@ -26,10 +26,7 @@ import {
 import {
   addNodeListener,
   assertNodeListener,
-  type AnyListener,
-  ClientEmitter,
   createNodeListenerState,
-  Emitter,
   type Listener,
   nodeEventNames,
   nodeListenerCount,
@@ -39,7 +36,8 @@ import {
   removeAllNodeListeners,
   removeNodeListener,
   setNodeMaxListeners,
-} from './emitters';
+} from '../core/listeners';
+import { type AnyListener, ClientEmitter, Emitter } from './emitters';
 import { Manager, type ManagerServerSocket } from './manager';
 
 interface SocketFlags {
