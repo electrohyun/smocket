@@ -29,10 +29,9 @@ overrides, receive representation, callbacks, and state-dependent send errors on
 socket sides. A later message marks mixed text/byte FIFO ordering; closing immediately
 after several sends preserves their messages before the close event and completes
 each callback once. These checks do not require callback order relative to peer receipt.
-Text byte inputs use valid UTF-8. Caller-buffer mutation, malformed
-UTF-8 rejection, and additional failure ordering require
-separate comparisons in [#540](https://github.com/electrohyun/smocket/issues/540).
-These checks do not complete every lifecycle requirement of that issue.
+The [receive validation review](./ws-receive-validation-review.md) covers malformed
+UTF-8 rejection. Caller-buffer mutation requires separate comparisons in
+[#540](https://github.com/electrohyun/smocket/issues/540).
 The [close-race review](./ws-close-races-review.md) covers accepted sends during
 termination and messages received while normal closing is pending.
 

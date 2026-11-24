@@ -1,4 +1,4 @@
-import { Buffer } from 'node:buffer';
+import { Buffer, isUtf8 } from 'node:buffer';
 import type {
   AddressInfo,
   ConnectionRequest,
@@ -26,6 +26,21 @@ interface ServerEvents {
 interface CloseInfo {
   code: number;
   reason: Buffer;
+  hasCode: boolean;
+}
+
+function validCloseCode(code: number): boolean {
+  return (
+    typeof code === 'number' &&
+    ((code >= 1000 && code <= 1014 && ![1004, 1005, 1006].includes(code)) ||
+      (code >= 3000 && code <= 4999))
+  );
+}
+
+function invalidUtf8(): Error {
+  return Object.assign(new Error('Invalid WebSocket frame: invalid UTF-8 sequence'), {
+    code: 'WS_ERR_INVALID_UTF8',
+  });
 }
 
 function clientUrl(address: string | URL): URL {
@@ -63,7 +78,7 @@ export class WebSocket extends WsEmitter<SocketEvents> {
   private peer: WebSocket | undefined;
   private server: WebSocketServer | undefined;
   private cleanClose = false;
-  private terminated = false;
+  private incomingStopped = false;
   private sentClose: CloseInfo | undefined;
   private receivedClose: CloseInfo | undefined;
   private readonly eventTarget = new WsEventTarget(this, () => this.cleanClose);
@@ -181,7 +196,11 @@ export class WebSocket extends WsEmitter<SocketEvents> {
       if (callback) Reflect.apply(callback, undefined, [null]);
     });
     queueMicrotask(() => {
-      if (!peer || peer.state === WebSocket.CLOSED || peer.terminated) return;
+      if (!peer || peer.state === WebSocket.CLOSED || peer.incomingStopped) return;
+      if (!binary && !isUtf8(bytes)) {
+        peer.receiveError(invalidUtf8(), 1007);
+        return;
+      }
       const received =
         binary && peer.binaryType === 'arraybuffer' ? Uint8Array.from(bytes).buffer : bytes;
       peer.emit('message', received, !!binary);
@@ -194,21 +213,14 @@ export class WebSocket extends WsEmitter<SocketEvents> {
       this.fail(new Error('WebSocket was closed before the connection was established'));
       return;
     }
-    if (
-      code !== undefined &&
-      !(
-        typeof code === 'number' &&
-        ((code >= 1000 && code <= 1014 && ![1004, 1005, 1006].includes(code)) ||
-          (code >= 3000 && code <= 4999))
-      )
-    ) {
+    if (code !== undefined && !validCloseCode(code)) {
       throw new TypeError('First argument must be a valid error code number');
     }
     const bytes = code === undefined ? Buffer.alloc(0) : Buffer.from(reason ?? '');
     if (bytes.length > 123) throw new RangeError('The message must not be greater than 123 bytes');
     // ws accepts fractional numbers and truncates them when writing the close code.
     const closeCode = code === undefined ? 1005 : Math.trunc(code);
-    this.sendClose(closeCode, bytes);
+    this.sendClose(closeCode, bytes, code !== undefined);
   }
 
   terminate(): void {
@@ -217,7 +229,7 @@ export class WebSocket extends WsEmitter<SocketEvents> {
       this.fail(new Error('WebSocket was closed before the connection was established'));
       return;
     }
-    this.terminated = true;
+    this.incomingStopped = true;
     this.state = WebSocket.CLOSING;
     const peer = this.peer;
     queueMicrotask(() => {
@@ -227,7 +239,7 @@ export class WebSocket extends WsEmitter<SocketEvents> {
   }
 
   private fail(error: Error): void {
-    this.terminated = true;
+    this.incomingStopped = true;
     this.state = WebSocket.CLOSING;
     queueMicrotask(() => {
       try {
@@ -240,19 +252,46 @@ export class WebSocket extends WsEmitter<SocketEvents> {
     });
   }
 
-  private sendClose(code: number, reason: Buffer): void {
+  private receiveError(error: Error, status: number): void {
+    this.incomingStopped = true;
+    this.close(status);
+    const peer = this.peer;
+    try {
+      this.emit('error', error);
+    } finally {
+      // Send the protocol close, but do not process its acknowledgement after a receive error.
+      queueMicrotask(() => {
+        this.finishClose();
+        peer?.finishClose();
+      });
+    }
+  }
+
+  private sendClose(code: number, reason: Buffer, hasCode: boolean): void {
     this.state = WebSocket.CLOSING;
-    this.sentClose = { code, reason };
+    this.sentClose = { code, reason, hasCode };
     const peer = this.peer;
     queueMicrotask(() => {
       if (!peer) {
         this.finish(code, reason, true);
         return;
       }
-      if (peer.state === WebSocket.CLOSED || peer.terminated) return;
+      if (peer.state === WebSocket.CLOSED || peer.incomingStopped) return;
+      if (hasCode && !validCloseCode(code)) {
+        const error = Object.assign(
+          new RangeError(`Invalid WebSocket frame: invalid status code ${code}`),
+          { code: 'WS_ERR_INVALID_CLOSE_CODE' },
+        );
+        peer.receiveError(error, 1002);
+        return;
+      }
+      if (!isUtf8(reason)) {
+        peer.receiveError(invalidUtf8(), 1007);
+        return;
+      }
 
-      peer.receivedClose = { code, reason };
-      if (!peer.sentClose) peer.sendClose(code, reason);
+      peer.receivedClose = { code, reason, hasCode };
+      if (!peer.sentClose) peer.sendClose(code, reason, hasCode);
       queueMicrotask(() => peer.finishClose());
     });
   }

@@ -44,6 +44,12 @@ const END = '<!-- conformance:generated end -->';
  */
 const AREAS = [
   {
+    file: 'test/ws/receive-validation.test.ts',
+    title: 'ws receive validation',
+    blurb:
+      'Malformed text and close reasons, received close code validation, error identity, and per-side closing outcomes.',
+  },
+  {
     file: 'test/ws/close-races.test.ts',
     title: 'ws close races and pending delivery',
     blurb:
