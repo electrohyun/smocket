@@ -39,6 +39,8 @@ From there, choose the path that matches the code you have:
 - [Roadmap](./roadmap.md): the stable boundary, release gates, and maintained paths.
 - [Drawing-game example](../examples/drawing-game/): the same application running
   with Real Socket.IO and smocket in Node and across browser pages.
+- [Node ws forwarding example](../examples/ws-forwarding/): text and bytes with real
+  ws and the packed smocket/ws entry in ESM and CommonJS.
 
 ## Maintain the project
 

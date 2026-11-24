@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { access, copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { access, copyFile, cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
@@ -206,6 +206,29 @@ async function checkConsumer(tarball, compiler, withNode) {
     console.log(`${label}, ESM/CJS connection, bytes, callbacks, and cleanup: passed.`);
 }
 
+async function checkApplication(tarball) {
+  const project = join(temporaryRoot, 'forwarding-application');
+  await cp(join(repositoryRoot, 'examples/ws-forwarding'), project, { recursive: true });
+  await writeJson(join(project, 'package.json'), {
+    name: 'ws-forwarding-consumer',
+    private: true,
+    type: 'module',
+    dependencies: {
+      smocket: `file:${tarball}`,
+      ws: repositoryRequire('ws/package.json').version,
+    },
+  });
+  await install(project);
+
+  for (const file of ['verify.mjs', 'verify.cjs']) {
+    console.log((await run(process.execPath, [join(project, file)], project)).trim());
+  }
+  for (const target of ['mock', 'real']) {
+    await run(process.execPath, [join(project, 'demo.mjs'), target], project);
+  }
+  console.log('Packed ws forwarding application and demo passed outside the checkout.');
+}
+
 try {
   const tarball = selected.fixture ? await fixtureTarball() : selected.tarball;
   await access(tarball);
@@ -215,6 +238,7 @@ try {
       await checkConsumer(tarball, compiler, withNode);
     }
   }
+  if (!selected.fixture) await checkApplication(tarball);
   console.log(
     selected.fixture
       ? 'Fixture package checks passed. This does not validate the production ws runtime or entry point.'
