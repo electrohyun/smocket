@@ -6,11 +6,10 @@
 
 ## Implementation choices
 
-[`runtime.ts`](../src/ws/runtime.ts) reuses NodeEmitter only for ordinary listener
-bookkeeping. Its socket pairing, message delivery, and close state belong to ws.
+[`runtime.ts`](../src/ws/runtime.ts) reuses the [shared listener core](./shared-listener-core.md)
+only for ordinary bookkeeping. Its socket pairing, message delivery, and close state belong to ws.
 [`registry.ts`](../src/ws/registry.ts) owns a separate virtual host/port registry,
 so Socket.IO origins and namespace interpretation do not participate in ws lookup.
-Shared-core extraction remains [#541](https://github.com/electrohyun/smocket/issues/541).
 
 [`emitter.ts`](../src/ws/emitter.ts) preserves the Node registration/removal aliases
 and distinguishes omitted bulk-removal arguments from explicit undefined. Node

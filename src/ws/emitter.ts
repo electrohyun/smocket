@@ -1,5 +1,5 @@
-import { NodeEmitter, removeNodeListener } from '../runtime/emitters';
-import type { Listener, OrdinaryEventName } from '../runtime/emitters';
+import { NodeEmitter, removeNodeListener } from '../core/listeners';
+import type { Listener, OrdinaryEventName } from '../core/listeners';
 
 type RawListener = Listener & { listener?: Listener };
 

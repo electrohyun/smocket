@@ -9,6 +9,7 @@
 | Path             | Responsibility                                                           |
 | ---------------- | ------------------------------------------------------------------------ |
 | `src/`           | Root `smocket` source and delivery-focused dual-run tests.               |
+| `src/core/`      | Internal listener bookkeeping shared by Socket.IO and ws.                |
 | `packages/`      | Additional published packages, currently `smocket-client`.               |
 | `test/`          | Focused cross-file contract suites that exercise a production subsystem. |
 | `browser-tests/` | Browser runner fixtures used by lifecycle and parity scripts.            |
