@@ -6,7 +6,7 @@ import type {
   SendCallback,
   SendOptions,
 } from '../../src/ws/contracts';
-import * as mock from '../../src/ws/runtime';
+import * as mock from '../../src/ws';
 
 export type Listener = (...args: unknown[]) => void;
 export type RawListener = Listener & { listener?: Listener };
@@ -78,7 +78,7 @@ export type EventSocket = Omit<RealWebSocket | mock.WebSocket, keyof CustomEmitt
   CustomEmitter &
   SendSocket;
 
-/** Both targets exercise this subset; public constructor binding belongs to #562. */
+/** The mock target uses the public source entry; packed consumers check generated files. */
 export function setupWs() {
   const servers: Server[] = [];
   const sockets = new Set<Socket>();
@@ -102,11 +102,15 @@ export function setupWs() {
       configure?: (client: EventSocket) => void,
       options: { clientTracking?: boolean } = {},
     ) {
-      const server = new eventConstructors.WebSocketServer({
+      const settings = {
         port: 0,
         host: '127.0.0.1',
         ...options,
-      });
+      };
+      const server =
+        process.env.SMOCKET_TARGET === 'mock'
+          ? new mock.WebSocketServer(settings)
+          : new RealWebSocketServer(settings);
       servers.push(server);
       const connections: {
         once(event: 'connection', listener: (socket: EventSocket) => void): unknown;

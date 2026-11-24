@@ -1,4 +1,4 @@
-import type { ByteBuffer, EventListenerOptions, RawData } from './contracts';
+import type { ByteBuffer, EventListenerOptions, RawData, WebSocket } from './contracts';
 import { SocketCloseEvent, SocketErrorEvent, SocketEvent, SocketMessageEvent } from './events';
 import type {
   SocketEventHandler,
@@ -6,7 +6,6 @@ import type {
   SocketEventMap,
   SocketEventName,
 } from './events';
-import type { WebSocket } from './runtime';
 
 export interface SocketEvents {
   open: [];

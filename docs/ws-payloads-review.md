@@ -43,5 +43,5 @@ The [close-race review](./ws-close-races-review.md) covers accepted sends during
 termination and messages received while normal closing is pending.
 
 Client membership comparisons live in the [client set review](./ws-client-tracking-review.md).
-Production entry-point binding and independent package consumers belong to
-[#562](https://github.com/electrohyun/smocket/issues/562).
+Production entry-point binding and independent package consumers are described in
+the [package review](./ws-package-review.md).

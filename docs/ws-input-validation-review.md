@@ -42,4 +42,4 @@ secure cases abort immediately and do not verify TLS success.
 The [receive validation review](./ws-receive-validation-review.md) covers malformed
 UTF-8 and fractional codes that truncate to reserved values. The
 [close-race review](./ws-close-races-review.md) covers pending work and concurrent close.
-The public package binding remains [#562](https://github.com/electrohyun/smocket/issues/562).
+The [package review](./ws-package-review.md) describes binding and independent consumer checks.

@@ -2,7 +2,7 @@
 
 > **TL;DR** `smocket` owns the in-process server, `smocket-client` is the
 > `socket.io-client` substitution, and their `/shared-worker` subpaths expose the
-> explicit worker-host and page-client bridge. Keep both packages on one exact version.
+> explicit worker-host and page-client bridge. smocket/ws supplies selected Node ws APIs.
 
 ## Choose the import by owner
 
@@ -10,6 +10,7 @@
 | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
 | `smocket`                      | Test or application fixture in the process that owns the mock server.                                                                                        | `Server`, adapters, server contracts, and retained `connect` / `io` client aliases. |
 | `smocket/shared-worker`        | SharedWorker bridge code. A worker normally attaches a caller-owned port to its `Server`; lower-level bridge tests may also create the page facade directly. | `attachSharedWorker`, `connectSharedWorker`, and bridge types.                      |
+| `smocket/ws`                   | Node application code using the selected in-memory ws API.                                                                                                   | default/named `WebSocket`, `WebSocketServer`, and selected ws types.                |
 | `smocket-client`               | Application-facing replacement for `socket.io-client` in an in-process test.                                                                                 | default lookup, `io`, `connect`, client `Socket`, and supported options.            |
 | `smocket-client/shared-worker` | Browser page code connecting through a caller-created `SharedWorker` port.                                                                                   | `connectSharedWorker` and page-socket types.                                        |
 
@@ -17,6 +18,7 @@
 server registry. Load both packages through ESM or both through CommonJS so they share the
 same module instance. Test-runner aliases should map `socket.io-client` to
 `smocket-client`, not to a private `src` or `dist` path.
+Keep both packages on one exact version.
 
 ## SharedWorker boundary
 
@@ -34,3 +36,10 @@ page-client ownership visible as recorded in
 See the [SharedWorker workflow](./shared-worker.md) for lifecycle and storage-partition
 limits, or the [test-runner guide](./test-runner-integration.md) for Vitest and Jest
 substitution examples.
+
+## ws boundary
+
+Use `import WebSocket, { WebSocketServer } from 'smocket/ws'` or
+`require('smocket/ws').default` with CommonJS. Keep a server/client pair on one loader.
+The [ws contract](./ws-contract.md) defines the selected API and exclusions;
+the [package review](./ws-package-review.md) separates package checks from behavioral comparisons.

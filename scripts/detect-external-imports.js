@@ -19,6 +19,13 @@ const PATTERNS = [
   /(?<![.\w$])import\s+(['"])([^'"]+)\1/g,
 ];
 
+export function unexpectedImports(file, source) {
+  const ws = file === 'dist/ws.js' || file === 'dist/ws.cjs';
+  return detectExternalImports(source).filter(
+    (specifier) => !(ws && (specifier === 'node:buffer' || specifier === 'buffer')),
+  );
+}
+
 export function detectExternalImports(source) {
   const specifiers = [];
   for (const pattern of PATTERNS) {

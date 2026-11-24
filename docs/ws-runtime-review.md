@@ -2,7 +2,7 @@
 
 > **TL;DR** The internal ws runtime models server registration, asynchronous
 > connection, selected payload delivery, and normal close. Real-ws comparison and mock-specific
-> isolation checks establish separate guarantees; package binding belongs to #562.
+> isolation checks establish guarantees distinct from the package checks.
 
 ## Implementation choices
 
@@ -41,12 +41,10 @@ comparison covers Error objects, not Node's formatting of arbitrary unhandled va
 [`emitter.typecheck.ts`](../test/ws/emitter.typecheck.ts) checks the actual runtime's
 callback receivers, event arguments, aliases, and raw-wrapper typing.
 
-Both constructors must structurally satisfy the test adapter's exercised subset,
-without type assertions. Request fixture types keep Node's optional url/method,
-while runtime assertions pin their values. This does not establish the complete
-public contract or provide a production package entry.
-Binding must account for every selected method before [#562](https://github.com/electrohyun/smocket/issues/562)
-can validate the actual package.
+Both constructors structurally satisfy the public contract at [`ws.ts`](../src/ws.ts)
+without whole-contract assertions. Request fixture types keep Node's optional
+url/method, while runtime assertions pin their values. The
+[package review](./ws-package-review.md) explains generated declarations and consumers.
 
 The [event listener review notes](./ws-event-listeners-review.md) explain event
 properties, listener identity, event values, and their comparison limits.

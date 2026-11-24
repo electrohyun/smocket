@@ -77,6 +77,12 @@ await run(process.execPath, [
 ]);
 candidate = await verifiedCandidate(manifestPath);
 await run(process.execPath, [
+  join(repositoryRoot, 'scripts', 'check-ws-package.mjs'),
+  '--tarball',
+  candidate.rootTarball,
+]);
+candidate = await verifiedCandidate(manifestPath);
+await run(process.execPath, [
   join(repositoryRoot, 'scripts', 'check-client-package.mjs'),
   '--tarball',
   candidate.clientTarball,

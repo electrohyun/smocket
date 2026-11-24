@@ -1,4 +1,6 @@
-/** Selected ws contract. Runtime exports and generated declarations belong to #562. */
+/** Selected ws contract shared by the public entry and generated declarations. */
+import type { TracksClients } from './type-helpers.js';
+
 interface BufferShape extends Uint8Array {
   toString(encoding?: string, start?: number, end?: number): string;
   equals(other: Uint8Array): boolean;
@@ -165,14 +167,6 @@ export interface WebSocketServerConstructor {
     callback?: ListeningCallback,
   ): WebSocketServer<TracksClients<Options>>;
 }
-// ws defaults an omitted setting to true, but an explicit undefined disables it.
-type TracksClients<Options> = 'clientTracking' extends keyof Options
-  ? Options extends { clientTracking: infer Tracking }
-    ? Tracking extends true
-      ? true
-      : false
-    : boolean
-  : true;
 interface WebSocketExport extends WebSocketConstructor {
   readonly WebSocket: WebSocketExport;
   readonly WebSocketServer: WebSocketServerConstructor;
