@@ -44,6 +44,12 @@ const END = '<!-- conformance:generated end -->';
  */
 const AREAS = [
   {
+    file: 'test/ws/close-races.test.ts',
+    title: 'ws close races and pending delivery',
+    blurb:
+      'Concurrent close information, close and terminate combinations, pending sends, and connection cancellation during shutdown.',
+  },
+  {
     file: 'test/ws/failure.test.ts',
     title: 'ws connection failure and server close',
     blurb:
