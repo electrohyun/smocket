@@ -23,6 +23,11 @@ interface ServerEvents {
   close: [];
 }
 
+interface CloseInfo {
+  code: number;
+  reason: Buffer;
+}
+
 function clientUrl(address: string | URL): URL {
   let url: URL;
   try {
@@ -58,6 +63,9 @@ export class WebSocket extends WsEmitter<SocketEvents> {
   private peer: WebSocket | undefined;
   private server: WebSocketServer | undefined;
   private cleanClose = false;
+  private terminated = false;
+  private sentClose: CloseInfo | undefined;
+  private receivedClose: CloseInfo | undefined;
   private readonly eventTarget = new WsEventTarget(this, () => this.cleanClose);
 
   get onopen(): SocketEventHandler<'open'> | null {
@@ -173,7 +181,7 @@ export class WebSocket extends WsEmitter<SocketEvents> {
       if (callback) Reflect.apply(callback, undefined, [null]);
     });
     queueMicrotask(() => {
-      if (!peer || peer.state === WebSocket.CLOSED) return;
+      if (!peer || peer.state === WebSocket.CLOSED || peer.terminated) return;
       const received =
         binary && peer.binaryType === 'arraybuffer' ? Uint8Array.from(bytes).buffer : bytes;
       peer.emit('message', received, !!binary);
@@ -200,30 +208,26 @@ export class WebSocket extends WsEmitter<SocketEvents> {
     if (bytes.length > 123) throw new RangeError('The message must not be greater than 123 bytes');
     // ws accepts fractional numbers and truncates them when writing the close code.
     const closeCode = code === undefined ? 1005 : Math.trunc(code);
-    this.state = WebSocket.CLOSING;
-    const peer = this.peer;
-    queueMicrotask(() => {
-      this.finish(closeCode, bytes, true);
-      peer?.finish(closeCode, bytes, true);
-    });
+    this.sendClose(closeCode, bytes);
   }
 
-  /** Also used by test teardown; abrupt-close parity is completed in #540. */
   terminate(): void {
     if (this.state === WebSocket.CLOSED) return;
     if (this.state === WebSocket.CONNECTING) {
       this.fail(new Error('WebSocket was closed before the connection was established'));
       return;
     }
+    this.terminated = true;
     this.state = WebSocket.CLOSING;
     const peer = this.peer;
     queueMicrotask(() => {
-      this.finish(1006, Buffer.alloc(0));
-      peer?.finish(1006, Buffer.alloc(0));
+      this.finishClose();
+      peer?.finishClose();
     });
   }
 
   private fail(error: Error): void {
+    this.terminated = true;
     this.state = WebSocket.CLOSING;
     queueMicrotask(() => {
       try {
@@ -236,10 +240,34 @@ export class WebSocket extends WsEmitter<SocketEvents> {
     });
   }
 
+  private sendClose(code: number, reason: Buffer): void {
+    this.state = WebSocket.CLOSING;
+    this.sentClose = { code, reason };
+    const peer = this.peer;
+    queueMicrotask(() => {
+      if (!peer) {
+        this.finish(code, reason, true);
+        return;
+      }
+      if (peer.state === WebSocket.CLOSED || peer.terminated) return;
+
+      peer.receivedClose = { code, reason };
+      if (!peer.sentClose) peer.sendClose(code, reason);
+      queueMicrotask(() => peer.finishClose());
+    });
+  }
+
+  private finishClose(): void {
+    const close = this.receivedClose;
+    this.finish(close?.code ?? 1006, close?.reason ?? Buffer.alloc(0), close !== undefined);
+  }
+
   private finish(code: number, reason: Buffer, clean = false): void {
     if (this.state === WebSocket.CLOSED) return;
     this.state = WebSocket.CLOSED;
     this.cleanClose = clean;
+    this.sentClose = undefined;
+    this.receivedClose = undefined;
     this.peer = undefined;
     const server = this.server;
     this.server = undefined;

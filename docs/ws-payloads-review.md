@@ -30,9 +30,11 @@ socket sides. A later message marks mixed text/byte FIFO ordering; closing immed
 after several sends preserves their messages before the close event and completes
 each callback once. These checks do not require callback order relative to peer receipt.
 Text byte inputs use valid UTF-8. Caller-buffer mutation, malformed
-UTF-8 rejection, pending work during failure or abrupt termination, concurrent close, and full failure ordering require
+UTF-8 rejection, and additional failure ordering require
 separate comparisons in [#540](https://github.com/electrohyun/smocket/issues/540).
 These checks do not complete every lifecycle requirement of that issue.
+The [close-race review](./ws-close-races-review.md) covers accepted sends during
+termination and messages received while normal closing is pending.
 
 Client membership comparisons live in the [client set review](./ws-client-tracking-review.md).
 Production entry-point binding and independent package consumers belong to

@@ -633,6 +633,29 @@ These cases ran against ws 8.23.0 and the ws mock from the same test file and pa
 both. They cover the internal basic runtime; package entry points and the rest of the
 selected ws contract require their own checks.
 
+### ws close races and pending delivery
+
+Concurrent close information, close and terminate combinations, pending sends, and
+connection cancellation during shutdown.
+
+- [keeps each peer close result when the client closes first](../test/ws/close-races.test.ts#L62)
+- [keeps each peer close result when the server closes first](../test/ws/close-races.test.ts#L62)
+- [client close and pending delivery handles opposite-side close and terminate with close first](../test/ws/close-races.test.ts#L93)
+- [client close and pending delivery handles opposite-side close and terminate with terminate first](../test/ws/close-races.test.ts#L93)
+- [server close and pending delivery handles opposite-side close and terminate with close first](../test/ws/close-races.test.ts#L93)
+- [server close and pending delivery handles opposite-side close and terminate with terminate first](../test/ws/close-races.test.ts#L93)
+- [client close and pending delivery reports the queued close to the peer when its sender terminates](../test/ws/close-races.test.ts#L114)
+- [server close and pending delivery reports the queued close to the peer when its sender terminates](../test/ws/close-races.test.ts#L114)
+- [client close and pending delivery completes an accepted send once when the sender terminates](../test/ws/close-races.test.ts#L127)
+- [client close and pending delivery completes an accepted send once when the receiver terminates](../test/ws/close-races.test.ts#L127)
+- [server close and pending delivery completes an accepted send once when the sender terminates](../test/ws/close-races.test.ts#L127)
+- [server close and pending delivery completes an accepted send once when the receiver terminates](../test/ws/close-races.test.ts#L127)
+- [client close and pending delivery receives the still-open peer send before normal close completes](../test/ws/close-races.test.ts#L148)
+- [server close and pending delivery receives the still-open peer send before normal close completes](../test/ws/close-races.test.ts#L148)
+- [client close and pending delivery ends both sockets once when a message handler terminates the closing initiator](../test/ws/close-races.test.ts#L166)
+- [server close and pending delivery ends both sockets once when a message handler terminates the closing initiator](../test/ws/close-races.test.ts#L166)
+- [rejects a queued connection when its server shuts down and permits reuse](../test/ws/close-races.test.ts#L189)
+
 ### ws connection failure and server close
 
 Failed and cancelled connection attempts, recovery, and server close event and callback
@@ -985,9 +1008,9 @@ claims.
 - [cancels listening when closed before the deferred listening notification](../test/ws/isolation.test.ts#L140)
 - [closes a listening server without a callback and releases its address](../test/ws/isolation.test.ts#L154)
 - [cleans up both sockets when a client aborts inside the connection handler before open](../test/ws/isolation.test.ts#L163)
-- [drops queued text after the peer closes](../test/ws/isolation.test.ts#L191)
-- [handles close on an internal socket before pairing](../test/ws/isolation.test.ts#L210)
-- [handles terminate on an internal socket before pairing](../test/ws/isolation.test.ts#L210)
+- [drains an accepted peer send before completing normal close](../test/ws/isolation.test.ts#L191)
+- [handles close on an internal socket before pairing](../test/ws/isolation.test.ts#L208)
+- [handles terminate on an internal socket before pairing](../test/ws/isolation.test.ts#L208)
 
 ### Virtual ws registry boundaries
 

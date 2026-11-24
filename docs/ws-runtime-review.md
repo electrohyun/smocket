@@ -60,6 +60,6 @@ The [payload review](./ws-payloads-review.md) covers selected byte inputs, binar
 and send callbacks.
 The [failure review](./ws-failure-review.md) covers failed or cancelled connection
 attempts and repeated server-close callbacks.
-The failure and abrupt-close paths support teardown, but their detailed ordering,
-concurrent close, pending work during failure or termination, malformed UTF-8, and caller-buffer mutation require the
-real-ws comparisons in [#540](https://github.com/electrohyun/smocket/issues/540).
+The [close-race review](./ws-close-races-review.md) covers per-socket close results,
+termination, and pending delivery. Malformed UTF-8 and caller-buffer mutation require
+the real-ws comparisons in [#540](https://github.com/electrohyun/smocket/issues/540).

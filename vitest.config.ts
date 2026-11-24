@@ -9,6 +9,7 @@ const targetFiles = [
   'test/ws/client-tracking.test.ts',
   'test/ws/payloads.test.ts',
   'test/ws/failure.test.ts',
+  'test/ws/close-races.test.ts',
   'test/shared-worker/**/*.test.ts',
   'examples/shared-worker-lobby/src/**/*.test.ts',
 ];

@@ -188,7 +188,7 @@ it('cleans up both sockets when a client aborts inside the connection handler be
   expect(client.readyState).toBe(WebSocket.CLOSED);
 });
 
-it('drops queued text after the peer closes', async () => {
+it('drains an accepted peer send before completing normal close', async () => {
   const { server, address } = await serve({ port: 0 });
   const accepted = new Promise<WebSocket>((resolve) => server.once('connection', resolve));
   const client = await connect(`ws://localhost:${address.port}`);
@@ -196,15 +196,13 @@ it('drops queued text after the peer closes', async () => {
   const events: string[] = [];
   client.on('message', () => events.push('message'));
   client.on('close', () => events.push('close'));
+  const done = new Promise<void>((resolve) => client.once('close', () => resolve()));
+
   client.close();
   socket.send('queued after close');
-  await new Promise<void>((resolve) =>
-    queueMicrotask(() => {
-      events.push('queue marker');
-      resolve();
-    }),
-  );
-  expect(events).toEqual(['close', 'queue marker']);
+  await done;
+
+  expect(events).toEqual(['message', 'close']);
 });
 
 it.each(['close', 'terminate'] as const)(
