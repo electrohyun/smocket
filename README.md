@@ -276,6 +276,7 @@ report also lists unmeasured APIs and deliberate differences.
 | [Documentation map](docs/README.md)                          | where to go for adoption, guarantees, and maintenance             |
 | [Package entry points](docs/package-entry-points.md)         | which server, client, and SharedWorker import to use              |
 | [Drawing-game workflow](examples/drawing-game/)              | React development with smocket and real Socket.IO                 |
+| [Node ws forwarding](examples/ws-forwarding/)                | The same text and byte handler with ws and smocket/ws             |
 | [SharedWorker](docs/shared-worker.md)                        | sharing one in-browser server across same-origin tabs             |
 | [Test-runner integration](docs/test-runner-integration.md)   | mapping `socket.io-client` in Vitest and Jest                     |
 | [Conformance](docs/conformance.md)                           | behaviour compared with real Socket.IO and the unmeasured surface |

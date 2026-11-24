@@ -28,8 +28,10 @@ scope in [#582](https://github.com/electrohyun/smocket/issues/582): tracking opt
 stable set identity across connections, removal before user close listeners,
 forwarding with or without the sender, and consecutive text messages followed by
 a marker. It also compares normal server close with tracking disabled.
-Packed consumers and the application example remain in
-[#539](https://github.com/electrohyun/smocket/issues/539).
+The [Node forwarding example](../examples/ws-forwarding/) runs the same handler
+through ESM and CommonJS in a separate project with the packed package and real ws.
+Its later peer marker establishes sender exclusion; mixed payloads and a later
+send after one client disconnects check per-client order and membership cleanup.
 Payload and failure semantics are described in the [payload](./ws-payloads-review.md)
 and [failure](./ws-failure-review.md) reviews; package entry checks belong to
 the [package review](./ws-package-review.md).

@@ -49,6 +49,8 @@ Fixture success proves the validation setup, not a production ws entry or delive
 behavior. The package command requires an explicit tarball, rejects a missing ws
 export, and exercises connection, bytes, callbacks, and cleanup through both loaders.
 The release-candidate check passes its digest-verified root tarball to this command.
+It also installs the Node ws forwarding example outside the checkout and compares
+sender selection, message order, and cleanup with real ws through ESM and CommonJS.
 
 Files named `scripts/*.test.ts` are collected only by the mock Vitest project because
 they test repository tooling rather than Socket.IO behavior. `check-public-surface.test.mjs`

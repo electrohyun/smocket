@@ -38,6 +38,11 @@ Runtime checks load both formats and repeat connection, byte/text exchange, send
 callbacks, normal close, and cleanup. The release-candidate gate uses its digest-checked
 root tarball for these checks. Test-only fixture mode exercises the checker separately.
 
+The [Node forwarding example](../examples/ws-forwarding/) is copied into another
+isolated project and installed with that same tarball plus real ws. ESM and CommonJS
+run identical handlers for sender inclusion/exclusion, mixed payload order, client
+removal, and final cleanup. Both demo targets also run from that installed project.
+
 [`payloads.test.ts`](../test/ws/payloads.test.ts) compares selected sends, binary
 overrides, and live binaryType changes against real ws.
 [`client-tracking.test.ts`](../test/ws/client-tracking.test.ts) separately compares
