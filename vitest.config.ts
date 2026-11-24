@@ -11,6 +11,7 @@ const targetFiles = [
   'test/ws/failure.test.ts',
   'test/ws/close-races.test.ts',
   'test/ws/receive-validation.test.ts',
+  'test/ws/buffer-lifetime.test.ts',
   'test/shared-worker/**/*.test.ts',
   'examples/shared-worker-lobby/src/**/*.test.ts',
 ];

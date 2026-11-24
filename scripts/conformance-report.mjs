@@ -44,6 +44,12 @@ const END = '<!-- conformance:generated end -->';
  */
 const AREAS = [
   {
+    file: 'test/ws/buffer-lifetime.test.ts',
+    title: 'ws caller byte storage',
+    blurb:
+      'Caller storage changed after send or from its callback, offset views, and consecutive sends reusing one Buffer.',
+  },
+  {
     file: 'test/ws/receive-validation.test.ts',
     title: 'ws receive validation',
     blurb:

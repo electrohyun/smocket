@@ -62,5 +62,5 @@ The [failure review](./ws-failure-review.md) covers failed or cancelled connecti
 attempts and repeated server-close callbacks.
 The [close-race review](./ws-close-races-review.md) covers per-socket close results,
 termination, and pending delivery. The [receive validation review](./ws-receive-validation-review.md)
-covers malformed text and close information; caller-buffer mutation requires
-separate comparisons in [#540](https://github.com/electrohyun/smocket/issues/540).
+covers malformed text and close information; the payload review also covers
+caller-owned byte storage changed after send and from its callback.
