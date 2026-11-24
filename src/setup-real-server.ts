@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { createServer, type Server as HttpServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { Server, type Socket as ServerSocket } from 'socket.io';
@@ -37,6 +38,7 @@ export function setupRealServer(): ServerContext {
   let httpServer: HttpServer;
   let ioServer: Server;
   let port: number;
+  let transportPath: string;
   let clients: ClientSocket[] = [];
 
   const asClientContract = (client: ClientSocket): ClientSocketContract =>
@@ -51,7 +53,9 @@ export function setupRealServer(): ServerContext {
 
   beforeEach(async () => {
     httpServer = createServer();
-    ioServer = new Server(httpServer);
+    // Socket.IO caches Managers by origin and path, even after a fixture disconnects.
+    transportPath = `/socket.io/${randomUUID()}`;
+    ioServer = new Server(httpServer, { path: transportPath });
 
     port = (await listenRealOracle(httpServer)).port;
 
@@ -88,6 +92,7 @@ export function setupRealServer(): ServerContext {
     // namespace contract; the dedicated unregistered path below deliberately skips it.
     const serverConnection = ctx.nextConnection(namespace);
     const client = io(`http://${REAL_ORACLE_HOST}:${port}${namespacePath(namespace)}`, {
+      path: transportPath,
       transports: ['websocket'],
       auth,
       query,
@@ -114,6 +119,7 @@ export function setupRealServer(): ServerContext {
     multiplex,
   }: FixtureConnectOptions = {}) => {
     const client = io(`http://${REAL_ORACLE_HOST}:${port}${namespacePath(namespace)}`, {
+      path: transportPath,
       transports: ['websocket'],
       auth,
       query,
@@ -129,6 +135,7 @@ export function setupRealServer(): ServerContext {
   // admission fixture before the client sends its namespace connect packet.
   ctx.openUnregisteredClient = (namespace: string) => {
     const client = io(`http://${REAL_ORACLE_HOST}:${port}${namespacePath(namespace)}`, {
+      path: transportPath,
       transports: ['websocket'],
     });
     clients.push(client);
@@ -137,6 +144,7 @@ export function setupRealServer(): ServerContext {
 
   ctx.openMissingServerClient = () => {
     const client = io(`http://${REAL_ORACLE_HOST}:${port}`, {
+      path: transportPath,
       transports: ['websocket'],
       reconnection: false,
       forceNew: true,
