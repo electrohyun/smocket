@@ -1,4 +1,5 @@
 import { Buffer } from 'node:buffer';
+import { runInNewContext } from 'node:vm';
 import { describe, expect, it } from 'vitest';
 import { closed, setupWs } from './setup-ws';
 import type { EventSocket, SendInput } from './setup-ws';
@@ -47,6 +48,24 @@ const inputs: { label: string; data: SendInput; expected: string; binary: boolea
     expected: 'hello',
     binary: true,
   },
+  {
+    label: 'primitive string after null valueOf',
+    data: { valueOf: () => null, [Symbol.toPrimitive]: () => 'hello' },
+    expected: 'hello',
+    binary: true,
+  },
+  {
+    label: 'primitive string after undefined valueOf',
+    data: { valueOf: () => undefined, [Symbol.toPrimitive]: () => 'hello' },
+    expected: 'hello',
+    binary: true,
+  },
+  {
+    label: 'primitive string without a prototype',
+    data: Object.assign(Object.create(null), { [Symbol.toPrimitive]: () => 'hello' }),
+    expected: 'hello',
+    binary: true,
+  },
 ];
 
 describe.each(['client', 'server'] as const)('%s selected send API', (side) => {
@@ -78,11 +97,32 @@ describe.each(['client', 'server'] as const)('%s selected send API', (side) => {
       });
       synchronous = false;
 
-      const result = await received;
-      await written;
+      const [result] = await Promise.all([received, written]);
+
       expect(Buffer.isBuffer(result.data)).toBe(true);
       expect(result.data).toEqual(Buffer.from(expected));
       expect(result.binary).toBe(binary);
+    },
+  );
+
+  it.each(['ArrayBuffer', 'SharedArrayBuffer'] as const)(
+    'sends %s from another realm',
+    async (bufferType) => {
+      const { sender, receiver } = await pair();
+      const data: ArrayBuffer | SharedArrayBuffer = runInNewContext(
+        `const buffer = new ${bufferType}(5);
+         new Uint8Array(buffer).set([104, 101, 108, 108, 111]);
+         buffer;`,
+      );
+      const received = message(receiver);
+
+      sender.send(data);
+      const result = await received;
+
+      expect(data).not.toBeInstanceOf(
+        bufferType === 'ArrayBuffer' ? ArrayBuffer : SharedArrayBuffer,
+      );
+      expect(result).toEqual({ data: Buffer.from('hello'), binary: true });
     },
   );
 
@@ -108,14 +148,17 @@ describe.each(['client', 'server'] as const)('%s selected send API', (side) => {
       }),
     );
 
-    expect(await received).toEqual({ data: Buffer.from('hello'), binary: expectedBinary });
-    expect(await event).toEqual(expectedBinary ? Buffer.from('hello') : 'hello');
-    await written;
+    const [result, eventData] = await Promise.all([received, event, written]);
+
+    expect(result).toEqual({ data: Buffer.from('hello'), binary: expectedBinary });
+    expect(eventData).toEqual(expectedBinary ? Buffer.from('hello') : 'hello');
   });
 
   it('switches binaryType between Buffer and ArrayBuffer without changing text messages', async () => {
     const { sender, receiver } = await pair();
+
     expect(receiver.binaryType).toBe('nodebuffer');
+
     for (const type of ['arraybuffer', 'nodebuffer'] as const) {
       receiver.binaryType = type;
       const received = message(receiver);
@@ -126,6 +169,7 @@ describe.each(['client', 'server'] as const)('%s selected send API', (side) => {
       sender.send(Buffer.from('hello'));
 
       const { data, binary } = await received;
+
       expect(binary).toBe(true);
       expect(await event).toBe(data);
       if (type === 'arraybuffer') {
@@ -137,6 +181,7 @@ describe.each(['client', 'server'] as const)('%s selected send API', (side) => {
         expect(data).toEqual(Buffer.from('hello'));
       }
     }
+
     receiver.binaryType = 'arraybuffer';
     const text = message(receiver);
 
@@ -147,6 +192,7 @@ describe.each(['client', 'server'] as const)('%s selected send API', (side) => {
 
   it('ignores unsupported binaryType assignments', async () => {
     const { receiver } = await pair();
+
     // @ts-expect-error Invalid JavaScript assignments must leave the selected value unchanged.
     receiver.binaryType = 'invalid';
 
@@ -184,6 +230,7 @@ describe.each(['client', 'server'] as const)('%s selected send API', (side) => {
     receiver.on('close', () => events.push('close'));
     const done = Promise.all([closed(sender), closed(receiver)]);
     const calls: unknown[][] = [];
+
     const written = Promise.all(
       ['first', Buffer.from('second'), new Uint8Array([116, 104, 105, 114, 100])].map(
         (data) =>
@@ -199,7 +246,9 @@ describe.each(['client', 'server'] as const)('%s selected send API', (side) => {
     );
 
     sender.close(1000, 'done');
+
     expect(sender.readyState).toBe(sender.CLOSING);
+
     const closeInfo = await done;
     await written;
 
@@ -224,9 +273,11 @@ describe.each(['client', 'server'] as const)('%s selected send API', (side) => {
       const { sender, receiver } = await pair();
       if (state !== 'OPEN') {
         const done = Promise.all([closed(sender), closed(receiver)]);
+
         sender.close();
         if (state === 'CLOSED') await done;
       }
+
       const failure = new Error('payload conversion failed');
       let conversions = 0;
       const callbacks: string[] = [];
@@ -266,6 +317,7 @@ describe.each(['client', 'server'] as const)('%s selected send API', (side) => {
 
       sender.close();
       if (state === 'CLOSED') await done;
+
       let synchronous = true;
       const written = new Promise<void>((resolve) =>
         sender.send('ignored', (error) => {
@@ -298,9 +350,11 @@ describe.each(['client', 'server'] as const)('%s selected send API', (side) => {
         const { sender, receiver } = await pair();
         if (state !== 'OPEN') {
           const done = Promise.all([closed(sender), closed(receiver)]);
+
           sender.close();
           if (state === 'CLOSED') await done;
         }
+
         const callbacks: string[] = [];
 
         expect(() => {
@@ -324,6 +378,7 @@ describe.each(['client', 'server'] as const)('%s selected send API', (side) => {
 it('throws on send while CONNECTING before invoking a callback', async () => {
   let conversions = 0;
   const callbacks: string[] = [];
+
   const { client } = await ctx.createEventPair((client) => {
     expect(() =>
       client.send(

@@ -7,8 +7,10 @@
 ## Implementation choices
 
 Real ws [normalizes numbers and selects binary defaults before sending](https://github.com/websockets/ws/blob/8.23.0/lib/websocket.js).
-[`data.ts`](../src/ws/data.ts) converts the selected Buffer-compatible inputs while
-preserving view offsets and lengths. Message delivery uses bytes without encoding frames.
+[`data.ts`](../src/ws/data.ts) preserves raw byte-view offsets and lengths and uses
+Buffer.from for other inputs, including foreign-realm buffers and
+valueOf/Symbol.toPrimitive fallback. It copies the converted bytes.
+Message delivery uses bytes without encoding frames.
 Text still reaches ordinary message listeners as Buffer with isBinary=false.
 Binary messages use the receiver's nodebuffer or arraybuffer setting.
 
