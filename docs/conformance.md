@@ -633,6 +633,18 @@ These cases ran against ws 8.23.0 and the ws mock from the same test file and pa
 both. They cover the internal basic runtime; package entry points and the rest of the
 selected ws contract require their own checks.
 
+### ws connection failure and server close
+
+Failed and cancelled connection attempts, recovery, and server close event and callback
+order.
+
+- [closes a failed connection to a missing server and permits reuse of the address](../test/ws/failure.test.ts#L30)
+- [rejects a mismatched path before accepting a later matching client](../test/ws/failure.test.ts#L65)
+- [rejects a secure target against a plain server before accepting a later matching client](../test/ws/failure.test.ts#L65)
+- [cancels a CONNECTING client with close before server admission](../test/ws/failure.test.ts#L91)
+- [cancels a CONNECTING client with terminate before server admission](../test/ws/failure.test.ts#L91)
+- [runs stopped-server callbacks on the close event and only once per call](../test/ws/failure.test.ts#L120)
+
 ### ws payloads and send callbacks
 
 Buffer-compatible inputs, binary overrides, receive binaryType, and state-dependent send
@@ -968,13 +980,14 @@ claims.
 - [matches local aliases for 0:0:0:0:0:0:0:1 without changing the client URL](../test/ws/isolation.test.ts#L57)
 - [keeps ws registrations alive when a Socket.IO server at the same address closes](../test/ws/isolation.test.ts#L70)
 - [keeps registrations with the same port on different hosts separate](../test/ws/isolation.test.ts#L82)
-- [does not connect a wrong-path client and still accepts a later matching client](../test/ws/isolation.test.ts#L100)
-- [cancels listening when closed before the deferred listening notification](../test/ws/isolation.test.ts#L118)
-- [closes a listening server without a callback and releases its address](../test/ws/isolation.test.ts#L132)
-- [cleans up both sockets when a client aborts inside the connection handler before open](../test/ws/isolation.test.ts#L141)
-- [drops queued text after the peer closes](../test/ws/isolation.test.ts#L169)
-- [handles close on an internal socket before pairing](../test/ws/isolation.test.ts#L188)
-- [handles terminate on an internal socket before pairing](../test/ws/isolation.test.ts#L188)
+- [rejects a different virtual host before accepting a matching client](../test/ws/isolation.test.ts#L100)
+- [does not connect a wrong-path client and still accepts a later matching client](../test/ws/isolation.test.ts#L122)
+- [cancels listening when closed before the deferred listening notification](../test/ws/isolation.test.ts#L140)
+- [closes a listening server without a callback and releases its address](../test/ws/isolation.test.ts#L154)
+- [cleans up both sockets when a client aborts inside the connection handler before open](../test/ws/isolation.test.ts#L163)
+- [drops queued text after the peer closes](../test/ws/isolation.test.ts#L191)
+- [handles close on an internal socket before pairing](../test/ws/isolation.test.ts#L210)
+- [handles terminate on an internal socket before pairing](../test/ws/isolation.test.ts#L210)
 
 ### Virtual ws registry boundaries
 

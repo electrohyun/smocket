@@ -97,6 +97,28 @@ it('keeps registrations with the same port on different hosts separate', async (
   }
 });
 
+it('rejects a different virtual host before accepting a matching client', async () => {
+  const { server, address } = await serve({ port: 0, host: '192.0.2.1', path: '/chat' });
+  const accepted: string[] = [];
+  server.on('connection', (_socket: WebSocket, request: { url: string }) =>
+    accepted.push(request.url),
+  );
+  const wrong = new WebSocket(`ws://192.0.2.2:${address.port}/chat`);
+  clients.add(wrong);
+  const rejected = new Promise<Error>((resolve) => wrong.once('error', resolve));
+  const closed = new Promise<void>((resolve) => wrong.once('close', resolve));
+
+  const error = await rejected;
+  await closed;
+
+  expect(error).toBeInstanceOf(Error);
+  expect(wrong.readyState).toBe(WebSocket.CLOSED);
+
+  await connect(`ws://192.0.2.1:${address.port}/chat?marker=accepted`);
+
+  expect(accepted).toEqual(['/chat?marker=accepted']);
+});
+
 it('does not connect a wrong-path client and still accepts a later matching client', async () => {
   const { server, address } = await serve({ port: 0, host: '127.0.0.1', path: '/chat' });
   const accepted: string[] = [];

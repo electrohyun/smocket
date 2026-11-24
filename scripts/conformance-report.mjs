@@ -44,6 +44,12 @@ const END = '<!-- conformance:generated end -->';
  */
 const AREAS = [
   {
+    file: 'test/ws/failure.test.ts',
+    title: 'ws connection failure and server close',
+    blurb:
+      'Failed and cancelled connection attempts, recovery, and server close event and callback order.',
+  },
+  {
     file: 'test/ws/payloads.test.ts',
     title: 'ws payloads and send callbacks',
     blurb:

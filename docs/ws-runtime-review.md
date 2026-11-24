@@ -58,6 +58,8 @@ The [client set review](./ws-client-tracking-review.md) covers membership, sende
 selection, and text order; packed application checks belong to [#539](https://github.com/electrohyun/smocket/issues/539).
 The [payload review](./ws-payloads-review.md) covers selected byte inputs, binaryType,
 and send callbacks.
+The [failure review](./ws-failure-review.md) covers failed or cancelled connection
+attempts and repeated server-close callbacks.
 The failure and abrupt-close paths support teardown, but their detailed ordering,
 concurrent close, pending work during failure or termination, malformed UTF-8, and caller-buffer mutation require the
 real-ws comparisons in [#540](https://github.com/electrohyun/smocket/issues/540).
