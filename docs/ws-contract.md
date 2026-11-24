@@ -1,8 +1,8 @@
 # ws application contract
 
 > **TL;DR** The ws contract defines selected calls, events, and application-visible
-> values independently of transport. Basic source typing is checked here; generated
-> declarations, package exports, and independent consumers belong to [#562](https://github.com/electrohyun/smocket/issues/562).
+> values independently of transport. Source types and the generated package are
+> checked separately; the [package review](./ws-package-review.md) describes their evidence.
 
 ## Target usage
 
@@ -31,8 +31,7 @@ server.on('connection', (socket, request) => {
 CommonJS uses `const WebSocket = require('smocket/ws').default` and
 `const { WebSocketServer } = require('smocket/ws')`, as decided in
 [0045](./decisions/0045-ws-commonjs-uses-default-export.md). No environment factory or
-Buffer injection is required. These are target imports, not evidence of an available
-runtime entry. The support decision and exclusions live in
+Buffer injection is required. The build supplies both entry formats. The support decision and exclusions live in
 [0044](./decisions/0044-ws-api-without-transport.md).
 
 ## Type contract
@@ -59,8 +58,8 @@ IncomingMessage or HTTP Server classes, and it does not create missing runtime b
 Run `pnpm check:ws-types` (also included in `pnpm typecheck`). The compile-only fixtures
 check inference, explicit socket annotations, callbacks, Buffer interoperability, and
 rejection of excluded options. The no-Node case uses types=[] and skipLibCheck=false.
-This checks the source contract, not generated declarations, module exports, a packed
-package, runtime delivery, or all supported TypeScript versions.
+This checks the source contract. `pnpm check:ws-package --tarball <path>` checks one
+packed artifact in isolated TS 5.0.2/6.0.3 consumers and exercises both loaders.
 
 The [runtime review notes](./ws-runtime-review.md) describe the internal connection,
 text, EventEmitter, and event-listener paths, their real-ws comparisons, and remaining limits.

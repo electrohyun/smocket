@@ -41,13 +41,14 @@
 
 `pnpm check:ws-types` checks the source ws contract and compile-only examples with
 and without Node types. It runs as part of `pnpm typecheck`; it does not build or
-validate a published `smocket/ws` entry point.
+validate a packed `smocket/ws` entry point.
 
 `pnpm check:ws-package:fixture` builds a temporary package from the ws contract and
 test-only constructors to exercise the checker independently of the production runtime.
 Fixture success proves the validation setup, not a production ws entry or delivery
-behavior. The package command requires an explicit tarball and fails if its ws export
-is missing.
+behavior. The package command requires an explicit tarball, rejects a missing ws
+export, and exercises connection, bytes, callbacks, and cleanup through both loaders.
+The release-candidate check passes its digest-verified root tarball to this command.
 
 Files named `scripts/*.test.ts` are collected only by the mock Vitest project because
 they test repository tooling rather than Socket.IO behavior. `check-public-surface.test.mjs`

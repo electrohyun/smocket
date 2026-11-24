@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
 
-import { detectExternalImports } from './detect-external-imports.js';
+import { detectExternalImports, unexpectedImports } from './detect-external-imports.js';
 
 // The forms tsup emits for an external dependency, which the check must catch.
 it.each([
@@ -30,3 +30,22 @@ it.each([
 it('finds nothing in source without references', () => {
   expect(detectExternalImports('function defer(fn) { queueMicrotask(fn); }')).toEqual([]);
 });
+
+it.each(['dist/ws.js', 'dist/ws.cjs'])(
+  'permits only node:buffer in the Node ws entry %s',
+  (file) => {
+    const source =
+      'import { Buffer } from "node:buffer"; require("buffer"); require("node:net"); import "ws";';
+
+    expect(unexpectedImports(file, source)).toEqual(['node:net', 'ws']);
+  },
+);
+
+it.each(['dist/index.js', 'dist/index.cjs', 'dist/shared-worker.js', 'dist/shared-worker.cjs'])(
+  'continues rejecting Node Buffer imports in browser entry %s',
+  (file) => {
+    expect(unexpectedImports(file, 'import { Buffer } from "node:buffer";')).toEqual([
+      'node:buffer',
+    ]);
+  },
+);

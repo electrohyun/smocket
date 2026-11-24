@@ -38,6 +38,6 @@ live byte sends and binaryType conversion.
 runtime callback receivers, event data, read-only fields, and excluded options.
 
 The [close-race comparisons](./ws-close-races-review.md) cover pending sends and
-per-socket close information during termination. Additional failure ordering and
-caller-buffer mutation are tracked in [#540](https://github.com/electrohyun/smocket/issues/540).
-The package binding and independent consumer checks remain [#562](https://github.com/electrohyun/smocket/issues/562).
+per-socket close information during termination. The [payload review](./ws-payloads-review.md)
+also covers caller-owned byte storage changed after send.
+The [package review](./ws-package-review.md) describes binding and independent consumer checks.

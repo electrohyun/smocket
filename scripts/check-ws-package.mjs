@@ -74,6 +74,7 @@ async function fixtureTarball() {
     await copyFile(join(fixtures, 'package', file), join(source, file));
   }
   await copyFile(join(repositoryRoot, 'src/ws/contracts.ts'), join(source, 'contracts.cts'));
+  await copyFile(join(repositoryRoot, 'src/ws/type-helpers.ts'), join(source, 'type-helpers.ts'));
   await writeJson(join(packageRoot, 'package.json'), {
     name: 'smocket',
     version: '0.0.0-ws-package-fixture',
@@ -195,8 +196,14 @@ async function checkConsumer(tarball, compiler, withNode) {
     );
     console.log(`${label}, ${mode}: passed.`);
   }
-  await run(process.execPath, [join(project, 'runtime.mjs')], project);
+  await run(
+    process.execPath,
+    [join(project, 'runtime.mjs'), ...(selected.fixture ? [] : ['--delivery'])],
+    project,
+  );
   console.log(`${label}, ESM/CJS loading and constructor exports: passed.`);
+  if (!selected.fixture)
+    console.log(`${label}, ESM/CJS connection, bytes, callbacks, and cleanup: passed.`);
 }
 
 try {
@@ -211,7 +218,7 @@ try {
   console.log(
     selected.fixture
       ? 'Fixture package checks passed. This does not validate the production ws runtime or entry point.'
-      : 'Packed ws entry checks passed. Connections and delivery require the runtime conformance suite.',
+      : 'Packed ws entry and messaging checks passed. Detailed behavior is covered by the runtime conformance suite.',
   );
 } finally {
   await rm(temporaryRoot, { recursive: true, force: true });

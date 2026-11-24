@@ -31,6 +31,9 @@
     "*": {
       "shared-worker": [
         "./dist/shared-worker.d.ts"
+      ],
+      "ws": [
+        "./dist/ws.d.ts"
       ]
     }
   },
@@ -43,6 +46,16 @@
       "require": {
         "types": "./dist/index.d.cts",
         "default": "./dist/index.cjs"
+      }
+    },
+    "./ws": {
+      "import": {
+        "types": "./dist/ws.d.ts",
+        "default": "./dist/ws.js"
+      },
+      "require": {
+        "types": "./dist/ws.d.cts",
+        "default": "./dist/ws.cjs"
       }
     },
     "./shared-worker": {

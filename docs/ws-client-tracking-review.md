@@ -30,6 +30,6 @@ forwarding with or without the sender, and consecutive text messages followed by
 a marker. It also compares normal server close with tracking disabled.
 Packed consumers and the application example remain in
 [#539](https://github.com/electrohyun/smocket/issues/539).
-Payload semantics and complete failure ordering belong to
-[#540](https://github.com/electrohyun/smocket/issues/540); package entry checks belong to
-[#562](https://github.com/electrohyun/smocket/issues/562).
+Payload and failure semantics are described in the [payload](./ws-payloads-review.md)
+and [failure](./ws-failure-review.md) reviews; package entry checks belong to
+the [package review](./ws-package-review.md).

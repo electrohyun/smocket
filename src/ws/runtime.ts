@@ -8,6 +8,8 @@ import type {
   SendData,
   SendOptions,
   ServerOptions,
+  ServerWebSocket,
+  WebSocketServer as PublicServer,
 } from './contracts';
 import { messageBytes } from './data';
 import { WsEmitter } from './emitter';
@@ -15,9 +17,10 @@ import { WsEventTarget } from './event-target';
 import type { SocketEvents } from './event-target';
 import type { SocketEventHandler, SocketEventListener, SocketEventName } from './events';
 import { findServer, register, unregister } from './registry';
+import type { SocketUrl, TracksClients } from './type-helpers';
 
 interface ServerEvents {
-  connection: [socket: WebSocket, request: ConnectionRequest];
+  connection: [socket: WebSocket<null>, request: ConnectionRequest];
   listening: [];
   error: [error: Error];
   close: [];
@@ -43,6 +46,10 @@ function invalidUtf8(): Error {
   });
 }
 
+interface SocketOwner {
+  remove(socket: WebSocket): void;
+}
+
 function clientUrl(address: string | URL): URL {
   let url: URL;
   try {
@@ -61,8 +68,12 @@ function clientUrl(address: string | URL): URL {
   return url;
 }
 
-/** Internal basic runtime, not yet bound to the complete public constructor contract. */
-export class WebSocket extends WsEmitter<SocketEvents> {
+/** The constructor address determines the client or accepted socket URL type. */
+export class WebSocket<
+  Address extends string | URL | null = string | URL | null,
+> extends WsEmitter<SocketEvents> {
+  declare static readonly WebSocket: typeof WebSocket;
+  declare static readonly WebSocketServer: typeof WebSocketServer;
   static readonly CONNECTING = 0;
   static readonly OPEN = 1;
   static readonly CLOSING = 2;
@@ -72,11 +83,11 @@ export class WebSocket extends WsEmitter<SocketEvents> {
   readonly OPEN = 1;
   readonly CLOSING = 2;
   readonly CLOSED = 3;
-  readonly url: string | undefined;
+  private readonly normalizedUrl: string | undefined;
   private outputType: 'nodebuffer' | 'arraybuffer' = 'nodebuffer';
   private state: 0 | 1 | 2 | 3;
   private peer: WebSocket | undefined;
-  private server: WebSocketServer | undefined;
+  private server: SocketOwner | undefined;
   private cleanClose = false;
   private incomingStopped = false;
   private sentClose: CloseInfo | undefined;
@@ -124,15 +135,15 @@ export class WebSocket extends WsEmitter<SocketEvents> {
   }
 
   // null creates an accepted socket internally, as real ws does after upgrade.
-  constructor(address: string | URL | null) {
+  constructor(address: Address) {
     super();
     if (address === null) {
-      this.url = undefined;
+      this.normalizedUrl = undefined;
       this.state = WebSocket.OPEN;
       return;
     }
     const url = clientUrl(address);
-    this.url = url.href;
+    this.normalizedUrl = url.href;
     this.state = WebSocket.CONNECTING;
     queueMicrotask(() => {
       if (this.state !== WebSocket.CONNECTING) return;
@@ -149,6 +160,11 @@ export class WebSocket extends WsEmitter<SocketEvents> {
     return this.state;
   }
 
+  get url(): SocketUrl<Address> {
+    // The constructor branches establish this relation; TS cannot narrow a type parameter.
+    return this.normalizedUrl as SocketUrl<Address>;
+  }
+
   get binaryType(): 'nodebuffer' | 'arraybuffer' {
     return this.outputType;
   }
@@ -157,7 +173,7 @@ export class WebSocket extends WsEmitter<SocketEvents> {
   }
 
   /** Pairing is internal; no socket.io handshake, namespace, or ACK path is used. */
-  accept(client: WebSocket, server: WebSocketServer): void {
+  accept(client: WebSocket, server: SocketOwner): void {
     this.peer = client;
     this.server = server;
     client.peer = this;
@@ -315,12 +331,16 @@ export class WebSocket extends WsEmitter<SocketEvents> {
   }
 }
 
-for (const property of ['onopen', 'onerror', 'onclose', 'onmessage', 'binaryType']) {
+for (const property of ['onopen', 'onerror', 'onclose', 'onmessage', 'url', 'binaryType']) {
   Object.defineProperty(WebSocket.prototype, property, { enumerable: true });
 }
 
-export class WebSocketServer extends WsEmitter<ServerEvents> {
-  declare clients: Set<WebSocket> | undefined;
+type ClientSet<Options extends ServerOptions> = PublicServer<TracksClients<Options>>['clients'];
+
+export class WebSocketServer<
+  Options extends ServerOptions = ServerOptions,
+> extends WsEmitter<ServerEvents> {
+  declare clients: ClientSet<Options>;
   readonly host: string | undefined;
   readonly path: string | undefined;
   private info: AddressInfo | null;
@@ -328,12 +348,13 @@ export class WebSocketServer extends WsEmitter<ServerEvents> {
   private finished = false;
   private readonly sockets = new Set<WebSocket>();
 
-  constructor(options: ServerOptions, callback?: ListeningCallback) {
+  constructor(options: Options, callback?: ListeningCallback) {
     super();
     this.host = options.host;
     this.path = options.path;
     if (!Object.hasOwn(options, 'clientTracking') || options.clientTracking) {
-      this.clients = new Set();
+      // Runtime truthiness follows ws; the conditional type preserves the option's inference.
+      this.clients = new Set<ServerWebSocket>() as ClientSet<Options>;
     }
     this.info = register(this, options.port);
     const receiver = { address: () => this.address() };
@@ -408,3 +429,5 @@ export class WebSocketServer extends WsEmitter<ServerEvents> {
     this.emit('close');
   }
 }
+
+Object.assign(WebSocket, { WebSocket, WebSocketServer });

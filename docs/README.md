@@ -21,7 +21,7 @@ From there, choose the path that matches the code you have:
 
 1. Keep an application's `socket.io-client` import with the
    [test-runner integration guide](./test-runner-integration.md).
-2. Choose among the four supported imports in the
+2. Choose the supported import in the
    [package entry-point guide](./package-entry-points.md).
 3. Share one caller-owned mock server across same-origin browser tabs with the
    [SharedWorker workflow](./shared-worker.md).

@@ -1,5 +1,4 @@
-import type { Data } from './contracts';
-import type { WebSocket } from './runtime';
+import type { Data, WebSocket, WebSocketEventMap } from './contracts';
 
 /** ws supplies its own event objects rather than the host's DOM Event classes. */
 export class SocketEvent {
@@ -73,12 +72,7 @@ export class SocketCloseEvent extends SocketEvent {
   }
 }
 
-export interface SocketEventMap {
-  open: SocketEvent;
-  message: SocketMessageEvent;
-  error: SocketErrorEvent;
-  close: SocketCloseEvent;
-}
+export type SocketEventMap = WebSocketEventMap;
 export type SocketEventName = keyof SocketEventMap;
 export type SocketEventHandler<Event extends SocketEventName> = (
   this: WebSocket,

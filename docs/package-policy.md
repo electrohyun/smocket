@@ -13,7 +13,7 @@ payload.
 
 `pnpm check:package` remains the standalone root check. The release path instead creates
 one [immutable candidate set](./release-candidates.md), checks that the built files import
-no external modules, and passes its digest-verified root tarball to package policy,
+no external modules in browser entries and only Node Buffer in smocket/ws, and passes its digest-verified root tarball to package policy,
 Publint, Are The Types Wrong, and the independent candidate consumers.
 
 The separate `smocket-client` package follows [ADR 0023](./decisions/0023-client-package-is-a-thin-facade.md).
@@ -22,6 +22,9 @@ to be that exact `smocket` version, and its tarball to contain no bundled depend
 tarball must also carry the package README and MIT license. The release candidate check
 applies the same policy plus Publint and Are The Types Wrong to the manifest's exact
 facade tarball.
+
+The Node-only [ws entry](./ws-package-review.md) uses the built-in buffer module;
+this adds no installed dependency and does not change browser-entry imports.
 
 A release bumps both manifests to one version. Publish `smocket` first, then publish
 `smocket-client`. The authoritative candidate publisher reads the registry and rejects

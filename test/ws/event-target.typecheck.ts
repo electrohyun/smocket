@@ -1,10 +1,10 @@
 /** Compile-only checks for actual runtime event-property and listener inference. */
-import type { Data } from '../../src/ws/contracts';
+import type { Data, WebSocket as PublicWebSocket } from '../../src/ws/contracts';
 import type { WebSocket } from '../../src/ws/runtime';
 import type { SocketEventMap } from '../../src/ws/events';
 
 declare const socket: WebSocket;
-declare function acceptSocket(value: WebSocket): void;
+declare function acceptSocket(value: PublicWebSocket): void;
 
 socket.onopen = function (event) {
   acceptSocket(this);
